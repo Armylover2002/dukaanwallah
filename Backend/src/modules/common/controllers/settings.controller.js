@@ -15,16 +15,16 @@ export async function getGlobalSettings(req, res, next) {
 
         // Cleanup any extra modules that might be in the DB (taxi, hotel, etc.)
         const rawSettings = settings.toObject();
-        if (rawSettings.modules) {
-            const allowedModules = ['food', 'quickCommerce'];
-            const cleanedModules = {};
-            allowedModules.forEach(mod => {
-                if (rawSettings.modules[mod] !== undefined) {
-                    cleanedModules[mod] = rawSettings.modules[mod];
-                }
-            });
-            rawSettings.modules = cleanedModules;
-        }
+        const allowedModules = ['food', 'quickCommerce'];
+        const cleanedModules = {};
+        
+        allowedModules.forEach(mod => {
+            // Ensure we always return a boolean for these keys
+            cleanedModules[mod] = (rawSettings.modules && rawSettings.modules[mod] !== undefined) 
+                ? !!rawSettings.modules[mod] 
+                : true;
+        });
+        rawSettings.modules = cleanedModules;
 
         return sendResponse(res, 200, 'Global settings fetched successfully', rawSettings);
     } catch (error) {
@@ -105,12 +105,15 @@ export async function updateGlobalSettings(req, res, next) {
             settings.themeColor = themeColor;
         }
 
-        // Strictly define modules and remove unwanted ones like taxi, hotel
-        const currentModules = settings.modules || {};
+        // Strictly define modules and ensure persistence
+        const incomingModules = modules || data.modules;
+        const currentModules = settings.modules || { food: true, quickCommerce: true };
+        
         settings.modules = {
-            food: modules?.food !== undefined ? !!modules.food : (currentModules.food !== undefined ? !!currentModules.food : true),
-            quickCommerce: modules?.quickCommerce !== undefined ? !!modules.quickCommerce : (currentModules.quickCommerce !== undefined ? !!currentModules.quickCommerce : true)
+            food: (incomingModules && incomingModules.food !== undefined) ? !!incomingModules.food : !!currentModules.food,
+            quickCommerce: (incomingModules && incomingModules.quickCommerce !== undefined) ? !!incomingModules.quickCommerce : !!currentModules.quickCommerce
         };
+        
         // Use markModified to ensure the modules object is fully replaced in DB
         settings.markModified('modules');
 

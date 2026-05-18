@@ -4,6 +4,15 @@ import { FoodTransaction } from '../../orders/models/foodTransaction.model.js';
 import { FoodRestaurant } from '../models/restaurant.model.js';
 import { FoodRestaurantWallet } from '../models/restaurantWallet.model.js';
 import { FoodRestaurantWithdrawal } from '../models/foodRestaurantWithdrawal.model.js';
+import { FoodDailyPass } from '../../subscriptions/models/foodDailyPass.model.js';
+import { FoodWalletLedger } from '../../subscriptions/models/foodWalletLedger.model.js';
+import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone.js';
+import utc from 'dayjs/plugin/utc.js';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+const IST_TIMEZONE = 'Asia/Kolkata';
 
 function toTwoDigitYearString(dateObj) {
     const y = String(dateObj.getFullYear());
@@ -130,8 +139,11 @@ export async function getRestaurantFinance(restaurantId, query = {}) {
         0
     );
 
-    // Add referral earnings from wallet that haven't been withdrawn yet
-    const wallet = await FoodRestaurantWallet.findOne({ restaurantId: rid }).select('balance referralEarnings').lean();
+    // Fetch referral earnings from wallet for withdrawal eligibility
+    const wallet = await FoodRestaurantWallet.findOne({ restaurantId: rid })
+        .select('balance referralEarnings totalEarnings')
+        .lean();
+
     const referralBalance = Number(wallet?.referralEarnings || 0);
 
     // Block only pending withdrawals from available balance.
@@ -220,9 +232,59 @@ export async function getRestaurantFinance(restaurantId, query = {}) {
             restaurantId: restaurant?._id ? `REST${restaurant._id.toString().slice(-6).padStart(6, '0')}` : 'N/A',
             address
         },
+        earnings: {
+            availableBalance: availableBalance,
+            pendingPayout: globalEstimatedPayout,
+            referralEarnings: referralBalance,
+            totalEarnings: Number(wallet?.totalEarnings || 0)
+        },
         currentCycle,
         invoiceSummary,
         pastCycles: pastCyclesResult
+    };
+}
+
+export async function getRestaurantSubscriptionWallet(restaurantId) {
+    if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) return null;
+    const rid = new mongoose.Types.ObjectId(restaurantId);
+
+    const todayIST = dayjs().tz(IST_TIMEZONE).format('YYYY-MM-DD');
+    const [wallet, activePass, recentLedger] = await Promise.all([
+        FoodRestaurantWallet.findOne({ restaurantId: rid })
+            .select('subscriptionBalance')
+            .lean(),
+        FoodDailyPass.findOne({ 
+            userId: rid, 
+            userType: 'RESTAURANT', 
+            date: todayIST,
+            expiresAt: { $gt: new Date() }
+        }).lean(),
+        FoodWalletLedger.find({ 
+            ownerId: String(rid), 
+            ownerType: 'RESTAURANT' 
+        })
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .lean()
+    ]);
+
+    return {
+        subscriptionBalance: Number(wallet?.subscriptionBalance || 0),
+        activePass: activePass ? {
+            id: activePass._id,
+            date: activePass.date,
+            expiresAt: activePass.expiresAt,
+            amountDeducted: activePass.amountDeducted
+        } : null,
+        ledger: recentLedger.map(l => ({
+            id: l._id,
+            type: l.type,
+            amount: l.amount,
+            beforeBalance: l.beforeBalance,
+            afterBalance: l.afterBalance,
+            createdAt: l.createdAt,
+            referenceId: l.referenceId
+        }))
     };
 }
 

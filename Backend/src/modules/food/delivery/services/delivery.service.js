@@ -7,6 +7,7 @@ import { FoodOrder } from '../../orders/models/order.model.js';
 import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service.js';
+import { ensureDailyPassEligibility, activateDailyPass } from '../../subscriptions/services/wallet.service.js';
 
 export const registerDeliveryPartner = async (payload, files) => {
     const { 
@@ -330,6 +331,26 @@ export const updateDeliveryAvailability = async (userId, payload) => {
     if (status === 'online' || status === true) validStatus = 'online';
     else if (status === 'offline' || status === false) validStatus = 'offline';
     
+    // PHASE 3C-1: SUBSCRIPTION TRIGGER (OFFLINE -> ONLINE ONLY)
+    if (partner.availabilityStatus === 'offline' && validStatus === 'online') {
+        const eligibility = await ensureDailyPassEligibility(userId, 'DELIVERY_PARTNER');
+        
+        if (!eligibility.eligible) {
+            throw new ValidationError(eligibility.reason === 'LOW_BALANCE' 
+                ? 'Insufficient subscription balance. Minimum ₹1000 required to go online.' 
+                : 'Subscription access blocked.');
+        }
+
+        if (eligibility.shouldDeduct) {
+            const result = await activateDailyPass(userId, 'DELIVERY_PARTNER');
+            if (!result.success) {
+                throw new ValidationError(result.reason === 'LOW_BALANCE' 
+                    ? 'Insufficient subscription balance for daily pass.' 
+                    : 'Failed to activate daily pass.');
+            }
+        }
+    }
+
     partner.availabilityStatus = validStatus;
     if (typeof latitude === 'number' && typeof longitude === 'number') {
         partner.lastLocation = {

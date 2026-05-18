@@ -35,13 +35,6 @@ const tabs = [
     name: "Food",
     icon: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
   },
-  {
-    id: "quick",
-    name: "Instamart",
-    icon: "https://cdn-icons-png.flaticon.com/512/3724/3724720.png",
-    badge: "15 mins",
-  },
-
 ];
 
 const normalizeHex = (hex, fallback = "#8e24aa") => {

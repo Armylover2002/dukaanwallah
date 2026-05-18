@@ -800,34 +800,50 @@ export default function HubFinance() {
       <div className="flex-1 overflow-y-auto px-4 pt-6 pb-28">
         {activeTab === "payouts" && (
           <div className="space-y-6">
-            {/* Current cycle */}
+            {/* Withdrawable Balance */}
             <div>
-              <h2 className="text-base font-bold text-gray-900 mb-3">Current cycle</h2>
-              <div className="bg-white rounded-lg p-4">
+              <h2 className="text-base font-bold text-gray-900 mb-3">Withdrawable balance</h2>
+              <div className="bg-black rounded-lg p-6 text-white">
                 {loading ? (
-                  <div className="py-8 text-center text-gray-500">Loading...</div>
+                  <div className="py-8 text-center text-gray-400">Loading...</div>
                 ) : (
                   <>
-                    <p className="text-4xl font-bold text-gray-900 mb-2">
-                      ₹{(financeData?.currentCycle?.estimatedPayout || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-sm text-gray-600 mb-4">
-                      {financeData?.currentCycle?.totalOrders || 0} {financeData?.currentCycle?.totalOrders === 1 ? 'order' : 'orders'}
+                    <p className="text-sm text-gray-400 mb-1">Available for withdrawal</p>
+                    <p className="text-4xl font-black mb-6">
+                      ₹{(financeData?.earnings?.availableBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     <button
                       onClick={() => setShowWithdrawalModal(true)}
-                      disabled={!(financeData?.currentCycle?.estimatedPayout > 0)}
-                      className={`w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 mt-4 transition-colors ${
-                        financeData?.currentCycle?.estimatedPayout > 0
-                          ? "bg-black text-white hover:bg-gray-800"
-                          : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      disabled={!(financeData?.earnings?.availableBalance > 0)}
+                      className={`w-full py-4 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                        financeData?.earnings?.availableBalance > 0
+                          ? "bg-white text-black hover:bg-gray-100 active:scale-95"
+                          : "bg-gray-800 text-gray-500 cursor-not-allowed"
                       }`}
                     >
                       <Wallet className="h-5 w-5" />
-                      Withdraw
+                      Withdraw Funds
                     </button>
                   </>
                 )}
+              </div>
+            </div>
+
+            {/* Earnings Breakdown Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Current Cycle</p>
+                <p className="text-xl font-bold text-gray-900">
+                  ₹{(financeData?.currentCycle?.totalEarnings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-1">{financeData?.currentCycle?.totalOrders || 0} orders</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pending Payout</p>
+                <p className="text-xl font-bold text-gray-900">
+                  ₹{(financeData?.earnings?.pendingPayout || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-1">Total unsettled share</p>
               </div>
             </div>
 
@@ -846,7 +862,7 @@ export default function HubFinance() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-2xl font-bold text-gray-900">
-                      ₹{(referralStats?.totalReferralEarnings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{(financeData?.earnings?.referralEarnings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       From {referralStats?.referralCount || 0} approved referrals
@@ -1275,7 +1291,7 @@ export default function HubFinance() {
                 
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">
-                    Available Balance: <span className="font-semibold text-gray-900">₹{(financeData?.currentCycle?.estimatedPayout || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    Available Balance: <span className="font-semibold text-gray-900">₹{(financeData?.earnings?.availableBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </p>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Enter Amount to Withdraw
@@ -1283,14 +1299,14 @@ export default function HubFinance() {
                   <input
                     type="number"
                     min="0.01"
-                    max={financeData?.currentCycle?.estimatedPayout || 0}
+                    max={financeData?.earnings?.availableBalance || 0}
                     step="0.01"
                     value={withdrawalAmount}
                     onChange={(e) => setWithdrawalAmount(e.target.value)}
                     placeholder="0.00"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
                   />
-                  {withdrawalAmount && parseFloat(withdrawalAmount) > (financeData?.currentCycle?.estimatedPayout || 0) && (
+                  {withdrawalAmount && parseFloat(withdrawalAmount) > (financeData?.earnings?.availableBalance || 0) && (
                     <p className="text-sm text-red-600 mt-1">Amount cannot exceed available balance</p>
                   )}
                 </div>
@@ -1312,7 +1328,7 @@ export default function HubFinance() {
                         alert('Please enter a valid amount')
                         return
                       }
-                      if (amount > (financeData?.currentCycle?.estimatedPayout || 0)) {
+                      if (amount > (financeData?.earnings?.availableBalance || 0)) {
                         alert('Amount cannot exceed available balance')
                         return
                       }
@@ -1347,7 +1363,7 @@ export default function HubFinance() {
                         setSubmittingWithdrawal(false)
                       }
                     }}
-                    disabled={submittingWithdrawal || !withdrawalAmount || parseFloat(withdrawalAmount) <= 0 || parseFloat(withdrawalAmount) > (financeData?.currentCycle?.estimatedPayout || 0)}
+                    disabled={submittingWithdrawal || !withdrawalAmount || parseFloat(withdrawalAmount) <= 0 || parseFloat(withdrawalAmount) > (financeData?.earnings?.availableBalance || 0)}
                     className="flex-1 px-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
                     {submittingWithdrawal ? 'Submitting...' : 'Submit Request'}

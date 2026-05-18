@@ -139,6 +139,67 @@ export const initRazorpayPayment = async (options) => {
 };
 
 /**
+ * ✅ NEW: Initialize Razorpay Subscription checkout
+ * @param {Object} options 
+ */
+export const initRazorpaySubscription = async (options) => {
+  try {
+    await loadRazorpayScript();
+
+    if (!window.Razorpay) {
+      throw new Error('Razorpay SDK not available');
+    }
+
+    const razorpayOptions = {
+      key: options.key,
+      subscription_id: options.subscription_id,
+      name: options.name || 'Appzeto Subscriptions',
+      description: options.description || 'Plan Subscription',
+      image: options.image || '/logo.png',
+      prefill: {
+        name: options.prefill?.name || '',
+        email: options.prefill?.email || '',
+        contact: options.prefill?.contact || ''
+      },
+      theme: {
+        color: '#FE5502'
+      },
+      handler: function(response) {
+        if (options.handler) {
+          options.handler(response);
+        }
+      },
+      modal: {
+        ondismiss: function() {
+          if (options.onClose) {
+            options.onClose();
+          }
+        }
+      },
+      retry: {
+        enabled: true,
+        max_count: 3
+      }
+    };
+
+    const rzp = new window.Razorpay(razorpayOptions);
+    rzp.on('payment.failed', function(response) {
+      console.error('Razorpay subscription payment failed:', response);
+      if (options.onError) {
+        options.onError(response.error || { description: 'Payment failed. Please try again.' });
+      }
+    });
+    rzp.open();
+    return rzp;
+  } catch (error) {
+    if (options.onError) {
+      options.onError(error);
+    }
+    throw error;
+  }
+};
+
+/**
  * Format amount for display
  * @param {Number} amount - Amount in paise
  * @returns {String} Formatted amount string

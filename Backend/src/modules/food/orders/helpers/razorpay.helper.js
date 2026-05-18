@@ -75,6 +75,71 @@ export async function fetchRazorpayPaymentLink(paymentLinkId) {
 }
 
 /**
+ * ✅ NEW: Create a Razorpay Plan for recurring subscriptions.
+ * Used for Week/Month plans.
+ * @param {Object} data - Plan details
+ */
+export async function createRazorpayPlan({ name, description, amountPaise, interval, period }) {
+    const instance = getRazorpayInstance();
+    if (!instance) throw new Error('Razorpay not configured');
+    
+    // period: 'daily' | 'weekly' | 'monthly' | 'yearly'
+    return instance.plans.create({
+        period: period.toLowerCase(),
+        interval: Number(interval) || 1,
+        item: {
+            name,
+            description: description || `Subscription Plan: ${name}`,
+            amount: Math.round(amountPaise),
+            currency: 'INR'
+        }
+    });
+}
+
+/**
+ * ✅ NEW: Create a Razorpay Subscription for a user.
+ * @param {Object} data - Subscription details
+ */
+export async function createRazorpaySubscription({ planId, totalCount, customerNotes = {} }) {
+    const instance = getRazorpayInstance();
+    if (!instance) throw new Error('Razorpay not configured');
+
+    return instance.subscriptions.create({
+        plan_id: planId,
+        total_count: Number(totalCount) || 12, // Default 1 year of cycles if not specified
+        quantity: 1,
+        customer_notify: 1,
+        notes: {
+            type: 'subscription',
+            ...customerNotes
+        }
+    });
+}
+
+/**
+ * ✅ NEW: Cancel an active Razorpay Subscription.
+ * @param {string} subscriptionId
+ * @param {boolean} atCycleEnd - If true, cancels at end of current period
+ */
+export async function cancelRazorpaySubscription(subscriptionId, atCycleEnd = true) {
+    const instance = getRazorpayInstance();
+    if (!instance) throw new Error('Razorpay not configured');
+
+    return instance.subscriptions.cancel(subscriptionId, !!atCycleEnd);
+}
+
+/**
+ * ✅ NEW: Fetch Razorpay Subscription details.
+ * @param {string} subscriptionId
+ */
+export async function fetchRazorpaySubscription(subscriptionId) {
+    const instance = getRazorpayInstance();
+    if (!instance) throw new Error('Razorpay not configured');
+
+    return instance.subscriptions.fetch(subscriptionId);
+}
+
+/**
  * ✅ NEW: Initiate a refund for a successful payment.
  * NON-BREAKING Extension for automated cancellation refunds.
  * @param {string} paymentId - Original Razorpay payment_id (captured)

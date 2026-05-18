@@ -382,7 +382,7 @@ async function getFirebasePublicEnv() {
 
   publicEnvPromise = (async () => {
     try {
-      return {
+      const config = {
         apiKey: sanitize(import.meta.env.VITE_FIREBASE_API_KEY) || DEFAULT_FIREBASE_CONFIG.apiKey,
         authDomain: sanitize(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || DEFAULT_FIREBASE_CONFIG.authDomain,
         projectId: sanitize(import.meta.env.VITE_FIREBASE_PROJECT_ID) || DEFAULT_FIREBASE_CONFIG.projectId,
@@ -393,15 +393,20 @@ async function getFirebasePublicEnv() {
         measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
         vapidKey: sanitize(import.meta.env.VITE_FIREBASE_VAPID_KEY),
       };
-    } catch {
+      
+      if (!config.apiKey || config.apiKey.length < 10) {
+        pushDebugWarn(PUSH_DEBUG_PREFIX, "Firebase API Key is missing or invalid in .env");
+      }
+      
+      return config;
+    } catch (e) {
+      pushDebugWarn(PUSH_DEBUG_PREFIX, "Error loading Firebase public env", e);
       return {
         ...DEFAULT_FIREBASE_CONFIG,
         storageBucket: sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
         measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
         vapidKey: sanitize(import.meta.env.VITE_FIREBASE_VAPID_KEY),
       };
-    } finally {
-      publicEnvPromise = null;
     }
   })();
 

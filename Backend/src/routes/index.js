@@ -20,6 +20,7 @@ import quickCommerceRoutes from '../modules/quick-commerce/routes/quick-commerce
 import webhookRoutes from '../core/payments/routes/webhook.routes.js';
 import sellerRoutes from '../modules/quick-commerce/seller/routes/seller.routes.js';
 import searchRoutes from '../modules/food/search/routes/search.routes.js';
+import subscriptionRoutes from '../modules/food/subscriptions/routes/subscription.routes.js';
 
 
 import commonSettingsRoutes from '../modules/common/routes/settings.routes.js';
@@ -40,6 +41,7 @@ router.use('/v1/food/auth', authRoutes);
 router.use('/v1/auth', authRoutes);
 router.use('/v1/food/delivery', deliveryRoutes);
 router.use('/v1/food/restaurant', restaurantRoutes);
+router.use('/v1/food/subscriptions', subscriptionRoutes);
 // Landing & hero-banners for Food user app (paths start with /food/hero-banners/...)
 router.use('/v1/food', landingRoutes);
 router.use('/v1/food/search', searchRoutes);

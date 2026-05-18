@@ -25,14 +25,16 @@ import {
   Bell, HelpCircle, AlertTriangle, 
   Wallet, History, User as UserIcon, LayoutGrid,
   Plus, Minus, Navigation2, Target, Play, CheckCircle2, Clock, ChevronDown,
-  Contact, Package
+  Contact, Package, ShieldCheck, Loader2, Zap
 } from 'lucide-react';
+import { subscriptionAPI } from '@food/api';
 
 import { getHaversineDistance, calculateETA, calculateHeading } from '@/modules/DeliveryV2/utils/geo';
 import { getPrimaryPickupLocation, normalizePickupPoints } from '@/modules/DeliveryV2/utils/orderRouting';
 import { useCompanyName } from "@food/hooks/useCompanyName";
 import { useNavigate } from 'react-router-dom';
 import useNotificationInbox from "@food/hooks/useNotificationInbox";
+import { Button } from "@food/components/ui/button";
 
 /** Minimal bottom-sheet popup (Restored from legacy FeedNavbar) */
 function BottomPopup({ isOpen, onClose, title, children }) {
@@ -60,16 +62,139 @@ function BottomPopup({ isOpen, onClose, title, children }) {
   );
 }
 
+const SubscriptionConfirmationModal = ({ isOpen, onClose, onConfirm, loading, data }) => {
+  if (!isOpen) return null;
+  const amount = data?.deductionAmount || 20;
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="relative bg-white rounded-[40px] p-8 max-w-sm w-full text-center shadow-2xl overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 to-amber-400" />
+        
+        <div className="w-20 h-20 bg-orange-50 rounded-[32px] flex items-center justify-center mx-auto mb-6 text-orange-600 shadow-inner">
+           <Zap className="w-10 h-10" />
+        </div>
+        
+        <h3 className="text-2xl font-black text-slate-900 mb-2 leading-tight">Go Online &<br />Activate Pass?</h3>
+        <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+          Going online will activate your One-Day Pass.
+          <br /><br />
+          <span className="font-black text-slate-900">₹{amount}</span> will be deducted from your Subscription Wallet.
+        </p>
+
+        <div className="bg-slate-50 rounded-3xl p-5 mb-8 text-left space-y-3 border border-slate-100">
+           <div className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
+             <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white"><CheckCircle2 className="w-3 h-3" /></div>
+             Receive delivery requests
+           </div>
+           <div className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
+             <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white"><CheckCircle2 className="w-3 h-3" /></div>
+             Stay active for today
+           </div>
+           <div className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
+             <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white"><CheckCircle2 className="w-3 h-3" /></div>
+             One-time deduction only
+           </div>
+        </div>
+        
+        <div className="space-y-3">
+          <Button 
+            onClick={onConfirm}
+            disabled={loading}
+            className="w-full h-15 bg-slate-900 hover:bg-black text-white rounded-[24px] font-black text-base shadow-xl shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <ShieldCheck className="w-6 h-6" />}
+            Go Online
+          </Button>
+          <button 
+            onClick={onClose}
+            disabled={loading}
+            className="w-full py-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em] hover:text-slate-600 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const LowBalanceBlockingModal = ({ isOpen, onClose, onRecharge, data }) => {
+  if (!isOpen) return null;
+  const balance = data?.balance || 0;
+  const threshold = data?.threshold || 1000;
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="relative bg-white rounded-[40px] p-8 max-w-sm w-full text-center shadow-2xl overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 w-full h-2 bg-rose-500" />
+        
+        <div className="w-20 h-20 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto mb-6 text-rose-600 shadow-inner">
+           <AlertTriangle className="w-10 h-10" />
+        </div>
+        
+        <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Low Subscription Balance</h3>
+        <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+          You need minimum ₹{threshold} subscription balance to receive delivery orders.
+        </p>
+
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Current</p>
+            <p className="text-lg font-black text-rose-600">₹{balance.toFixed(0)}</p>
+          </div>
+          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Required</p>
+            <p className="text-lg font-black text-slate-900">₹{threshold}</p>
+          </div>
+        </div>
+        
+        <div className="space-y-3">
+          <Button 
+            onClick={onRecharge}
+            className="w-full h-15 bg-slate-900 hover:bg-black text-white rounded-[24px] font-black text-base shadow-xl shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Wallet className="w-5 h-5" />
+            Recharge Wallet
+          </Button>
+          <button 
+            onClick={onClose}
+            className="w-full py-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em] hover:text-slate-600 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 /**
  * DeliveryHomeV2 - Premium 1:1 Match with Original App UI.
  * Featuring logical tab switching for Feed, Pocket, History, and Profile.
  */
 export default function DeliveryHomeV2({ tab = 'feed' }) {
   const navigate = useNavigate();
-  const { isOnline, toggleOnline, activeOrder, tripStatus, setRiderLocation, setActiveOrder, updateTripStatus, clearActiveOrder } = useDeliveryStore();
+  const { isOnline, setOnline, toggleOnline, activeOrder, tripStatus, setRiderLocation, setActiveOrder, updateTripStatus, clearActiveOrder } = useDeliveryStore();
   const { isWithinRange, distanceToTarget } = useProximityCheck();
   const { acceptOrder, reachPickup, pickUpOrder, reachDrop, completeDelivery, resetTrip } = useOrderManager();
   const { newOrder, clearNewOrder, orderStatusUpdate, clearOrderStatusUpdate, isConnected: isSocketConnected, emitLocation } = useDeliveryNotifications();
+  const [isProcessingToggle, setIsProcessingToggle] = useState(false);
+  const [showSubModal, setShowSubModal] = useState(false);
+  const [showLowBalanceModal, setShowLowBalanceModal] = useState(false);
+  const [eligibilityData, setEligibilityData] = useState(null);
   const companyName = useCompanyName();
   const { unreadCount: notificationUnreadCount } = useNotificationInbox("delivery", { limit: 20 });
 
@@ -382,10 +507,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     }
   }, [distanceToTarget]);
 
-  // 2. Online/Offline Status Sync (Low Frequency)
-  useEffect(() => {
-    deliveryAPI.updateOnlineStatus(isOnline).catch(() => {});
-  }, [isOnline]);
+  // 2. Online/Offline Status Sync (REMOVED: Handled manually in toggle for subscription safety)
 
   // 3. Location logic (Smart Frequency Tracking)
   useEffect(() => {
@@ -627,26 +749,76 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                 <img src={profileImage || "https://i.ibb.co/3m2Yh7r/Appzeto-Brand-Image.png"} alt="Profile" className="w-full h-full object-cover rounded-full" />
              </div>
              <button 
-               onClick={async () => {
-                 const nextState = !isOnline;
-                 toggleOnline(); // Store action
-                 if (nextState) {
-                    // Try to get location and sync immediately so we are visible for dispatch right away
-                    navigator.geolocation.getCurrentPosition((pos) => {
-                        deliveryAPI.updateLocation(pos.coords.latitude, pos.coords.longitude, true).catch(() => {});
-                    }, (err) => console.warn('Online sync position failed:', err), { enableHighAccuracy: true });
-                 } else {
-                    deliveryAPI.updateOnlineStatus(false).catch(() => {});
-                 }
-               }}
-               className={`relative w-[92px] h-8 rounded-full p-1 transition-all duration-500 flex items-center ${isOnline ? 'bg-green-500 shadow-lg shadow-green-500/20' : 'bg-gray-400'}`}
+                onClick={async () => {
+                  if (isProcessingToggle) return;
+                  
+                  const turningOn = !isOnline;
+                  if (!turningOn) {
+                    setIsProcessingToggle(true);
+                    try {
+                      await deliveryAPI.updateOnlineStatus(false);
+                      setOnline(false);
+                    } catch (err) {
+                      toast.error("Failed to go offline");
+                    } finally {
+                      setIsProcessingToggle(false);
+                    }
+                    return;
+                  }
+
+                  // Turning ON: Check Eligibility
+                  setIsProcessingToggle(true);
+                  try {
+                    const eligRes = await subscriptionAPI.getEligibility("DELIVERY_PARTNER");
+                    const elig = eligRes.data?.data;
+
+                    if (!elig.eligible) {
+                      if (elig.reason === 'LOW_BALANCE') {
+                        setEligibilityData(elig);
+                        setShowLowBalanceModal(true);
+                      } else {
+                        toast.error(elig.message || "Insufficient balance to go online");
+                      }
+                      setIsProcessingToggle(false);
+                      return;
+                    }
+
+                    if (elig.shouldDeduct) {
+                      setEligibilityData(elig);
+                      setShowSubModal(true);
+                      setIsProcessingToggle(false);
+                    } else {
+                      await deliveryAPI.updateOnlineStatus(true);
+                      setOnline(true);
+                      setIsProcessingToggle(false);
+                      navigator.geolocation.getCurrentPosition((pos) => {
+                          deliveryAPI.updateLocation(pos.coords.latitude, pos.coords.longitude, true).catch(() => {});
+                      }, (err) => console.warn('Online sync position failed:', err), { enableHighAccuracy: true });
+                    }
+                  } catch (err) {
+                    toast.error("Failed to verify subscription");
+                    setIsProcessingToggle(false);
+                  }
+                }}
+                disabled={isProcessingToggle}
+                className={`relative w-[92px] h-8 rounded-full p-1 transition-all duration-500 flex items-center ${isOnline ? 'bg-green-500 shadow-lg shadow-green-500/20' : 'bg-gray-400'}`}
              >
-               <div className={`flex items-center justify-between w-full px-2 text-[8.5px] font-black uppercase tracking-widest text-white`}>
-                 <span>{isOnline ? 'Online' : ''}</span>
-                 <span>{!isOnline ? 'Offline' : ''}</span>
-               </div>
-               <motion.div animate={{ x: isOnline ? 59 : 0 }} className="absolute left-1 w-6 h-6 bg-white rounded-full shadow-sm" />
-             </button>
+                <div className={`flex items-center justify-between w-full px-2 text-[8.5px] font-black uppercase tracking-widest text-white`}>
+                  {isProcessingToggle ? (
+                    <div className="w-full flex justify-center">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      <span>{isOnline ? 'Online' : ''}</span>
+                      <span>{!isOnline ? 'Offline' : ''}</span>
+                    </>
+                  )}
+                </div>
+                {!isProcessingToggle && (
+                  <motion.div animate={{ x: isOnline ? 59 : 0 }} className="absolute left-1 w-6 h-6 bg-white rounded-full shadow-sm" />
+                )}
+              </button>
           </div>
           <div className="flex items-center gap-3">
              <button onClick={() => setShowEmergencyPopup(true)} className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20 active:scale-95 transition-all shadow-lg"><AlertTriangle className="w-4 h-4" /></button>
@@ -714,6 +886,38 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <SubscriptionConfirmationModal 
+          isOpen={showSubModal} 
+          onClose={() => setShowSubModal(false)}
+          data={eligibilityData}
+          loading={isProcessingToggle}
+          onConfirm={async () => {
+             setIsProcessingToggle(true);
+             try {
+               await deliveryAPI.updateOnlineStatus(true);
+               setOnline(true);
+               setShowSubModal(false);
+               navigator.geolocation.getCurrentPosition((pos) => {
+                 deliveryAPI.updateLocation(pos.coords.latitude, pos.coords.longitude, true).catch(() => {});
+               }, (err) => console.warn('Online sync position failed:', err), { enableHighAccuracy: true });
+             } catch (err) {
+               toast.error("Failed to go online");
+             } finally {
+               setIsProcessingToggle(false);
+             }
+          }}
+        />
+
+        <LowBalanceBlockingModal
+          isOpen={showLowBalanceModal}
+          onClose={() => setShowLowBalanceModal(false)}
+          data={eligibilityData}
+          onRecharge={() => {
+            setShowLowBalanceModal(false);
+            navigate('/food/delivery/subscription');
+          }}
+        />
       </div>
       )}
 
@@ -971,6 +1175,26 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
             <UserIcon className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Profile</span>
          </button>
       </div>
+      <SubscriptionConfirmationModal 
+        isOpen={showSubModal}
+        loading={isProcessingToggle}
+        onClose={() => setShowSubModal(false)}
+        onConfirm={async () => {
+          setIsProcessingToggle(true);
+          try {
+            await deliveryAPI.updateOnlineStatus(true);
+            setOnline(true);
+            setShowSubModal(false);
+            navigator.geolocation.getCurrentPosition((pos) => {
+                deliveryAPI.updateLocation(pos.coords.latitude, pos.coords.longitude, true).catch(() => {});
+            }, (err) => console.warn('Online sync position failed:', err), { enableHighAccuracy: true });
+          } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to activate pass");
+          } finally {
+            setIsProcessingToggle(false);
+          }
+        }}
+      />
     </div>
   );
 }

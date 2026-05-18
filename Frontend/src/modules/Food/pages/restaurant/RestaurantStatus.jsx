@@ -4,6 +4,7 @@ import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation
 import Lenis from "lenis"
 import { ArrowLeft, Settings, ChevronRight } from "lucide-react"
 import { Switch } from "@food/components/ui/switch"
+import { toast } from "react-hot-toast"
 import { Card, CardContent } from "@food/components/ui/card"
 import { restaurantAPI } from "@food/api"
 import {
@@ -42,6 +43,10 @@ export default function RestaurantStatus() {
   const [showOutsideTimingsDialog, setShowOutsideTimingsDialog] = useState(false)
   const [isDayClosed, setIsDayClosed] = useState(false)
   const [outletTimings, setOutletTimings] = useState(null)
+  const [showDailyPassConfirmModal, setShowDailyPassConfirmModal] = useState(false)
+  const [showLowBalanceModal, setShowLowBalanceModal] = useState(false)
+  const [eligibilityData, setEligibilityData] = useState(null)
+  const [pendingToggle, setPendingToggle] = useState(false)
 
   // Update current date/time every minute
   useEffect(() => {
@@ -237,44 +242,105 @@ export default function RestaurantStatus() {
 
   // Handle delivery status change
   const handleDeliveryStatusChange = async (checked) => {
+    // Going offline always works
+    if (!checked) {
+      setDeliveryStatus(false)
+      try {
+        await restaurantAPI.updateAcceptingOrders(false)
+        persistRestaurantOnlineStatus(false)
+        window.dispatchEvent(new CustomEvent('restaurantStatusChanged', { detail: { isOnline: false } }))
+      } catch (apiError) {
+        debugError('Error updating delivery status in backend:', apiError)
+        setDeliveryStatus(true)
+        persistRestaurantOnlineStatus(true)
+      }
+      return
+    }
+
     // If day is closed in outlet timings, don't allow turning on
-    if (checked && isDayClosed) {
+    if (isDayClosed) {
       setShowOutletClosedDialog(true)
       return
     }
-    
+
     // If outside scheduled delivery timings, show popup
-    if (checked && isWithinTimings === false && !isDayClosed) {
+    if (isWithinTimings === false && !isDayClosed) {
       setShowOutsideTimingsDialog(true)
       return
     }
-    
-    setDeliveryStatus(checked)
+
+    // Check subscription eligibility before toggling ON
     try {
-      // Update backend
-      try {
-        await restaurantAPI.updateAcceptingOrders(checked)
-        debugLog('? Delivery status updated in backend:', checked)
-        persistRestaurantOnlineStatus(checked)
-      } catch (apiError) {
-        debugError('Error updating delivery status in backend:', apiError)
-        // Revert local toggle if backend fails.
-        setDeliveryStatus((prev) => !prev)
-        persistRestaurantOnlineStatus(!checked)
+      const eligibilityRes = await restaurantAPI.checkSubscriptionEligibility()
+      const eligibility = eligibilityRes?.data?.data
+
+      if (!eligibility) {
+        toast.error("Could not check subscription status")
         return
       }
-      
-      try {
-        localStorage.setItem('restaurant_online_status', JSON.stringify(Boolean(checked)))
-      } catch {}
 
-      // Dispatch custom event for navbar to listen
-      window.dispatchEvent(new CustomEvent('restaurantStatusChanged', { 
-        detail: { isOnline: checked } 
-      }))
+      // Already has active subscription or daily pass — toggle directly
+      if (eligibility.reason === 'RECURRING_ACTIVE' || eligibility.reason === 'DAY_PASS_ACTIVE') {
+        setDeliveryStatus(true)
+        await restaurantAPI.updateAcceptingOrders(true)
+        persistRestaurantOnlineStatus(true)
+        window.dispatchEvent(new CustomEvent('restaurantStatusChanged', { detail: { isOnline: true } }))
+        return
+      }
+
+      // Low balance — show blocking modal
+      if (!eligibility.eligible && eligibility.reason === 'LOW_BALANCE') {
+        setPendingToggle(true)
+        setShowLowBalanceModal(true)
+        return
+      }
+
+      // Requires daily pass deduction — show confirmation modal
+      if (eligibility.shouldDeduct && eligibility.reason === 'REQUIRES_DAY_DEDUCTION') {
+        setPendingToggle(true)
+        setEligibilityData(eligibility)
+        setShowDailyPassConfirmModal(true)
+        return
+      }
+
+      // Fallback — should not reach here
+      toast.error("Unable to determine subscription status")
     } catch (error) {
-      debugError("Error saving delivery status:", error)
+      debugError("Error checking eligibility:", error)
+      toast.error("Failed to check subscription status")
     }
+  }
+
+  // Confirm daily pass activation
+  const handleConfirmDailyPass = async () => {
+    setShowDailyPassConfirmModal(false)
+    setDeliveryStatus(true)
+    try {
+      await restaurantAPI.updateAcceptingOrders(true)
+      persistRestaurantOnlineStatus(true)
+      window.dispatchEvent(new CustomEvent('restaurantStatusChanged', { detail: { isOnline: true } }))
+      toast.success("Daily pass activated! You are now online.")
+    } catch (apiError) {
+      debugError('Error activating daily pass:', apiError)
+      setDeliveryStatus(false)
+      persistRestaurantOnlineStatus(false)
+      toast.error(apiError?.response?.data?.message || "Failed to activate daily pass")
+    }
+    setPendingToggle(false)
+    setEligibilityData(null)
+  }
+
+  // Cancel daily pass modal
+  const handleCancelDailyPass = () => {
+    setShowDailyPassConfirmModal(false)
+    setPendingToggle(false)
+    setEligibilityData(null)
+  }
+
+  // Cancel low balance modal
+  const handleCancelLowBalance = () => {
+    setShowLowBalanceModal(false)
+    setPendingToggle(false)
   }
 
   // Handle dialog close and navigate to outlet timings
@@ -527,6 +593,90 @@ export default function RestaurantStatus() {
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
             >
               Change Outlet Timings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Daily Pass Confirmation Dialog */}
+      <Dialog open={showDailyPassConfirmModal} onOpenChange={setShowDailyPassConfirmModal}>
+        <DialogContent className="sm:max-w-md p-4 w-[90%] gap-2 flex flex-col">
+          <DialogHeader className="text-center">
+            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+              <span className="text-3xl">?</span>
+            </div>
+            <DialogTitle className="text-lg font-bold text-gray-900 text-center uppercase tracking-tight">
+              Activate One-Day Pass?
+            </DialogTitle>
+            <DialogDescription className="mt-4 text-sm text-gray-600">
+              One-Day Pass is activated automatically when you turn ON delivery.
+              <br /><br />
+              <span className="text-gray-900 font-semibold italic">If no active plan exists, a small daily fee will be deducted from your Subscription Wallet after confirmation.</span>
+              <br /><br />
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Benefits</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FE5502]" />
+                  <p className="text-xs text-slate-700">Start receiving orders immediately</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FE5502]" />
+                  <p className="text-xs text-slate-700">Valid until midnight tonight</p>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              onClick={handleCancelDailyPass}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmDailyPass}
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
+            >
+              Activate & Go Online
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Low Balance Dialog */}
+      <Dialog open={showLowBalanceModal} onOpenChange={setShowLowBalanceModal}>
+        <DialogContent className="sm:max-w-md p-4 w-[90%] gap-2 flex flex-col">
+          <DialogHeader className="text-center">
+            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+              <span className="text-3xl">!</span>
+            </div>
+            <DialogTitle className="text-lg font-semibold text-gray-900 text-center">
+              Insufficient Subscription Balance
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-sm text-gray-600">
+              Minimum ₹1000 required to receive orders.
+              <br /><br />
+              Recharge your Subscription Wallet to continue.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              onClick={handleCancelLowBalance}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowLowBalanceModal(false)
+                setPendingToggle(false)
+                navigate("/food/restaurant/wallet")
+              }}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Recharge Now
             </Button>
           </DialogFooter>
         </DialogContent>

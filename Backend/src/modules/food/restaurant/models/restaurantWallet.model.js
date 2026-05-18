@@ -13,6 +13,8 @@ const restaurantWalletSchema = new mongoose.Schema(
             unique: true
         },
         balance: { type: Number, default: 0 },
+        /** Subscription wallet balance for daily passes and future fees */
+        subscriptionBalance: { type: Number, default: 0, min: 0 },
         /** Amount locked for pending settlements (cannot be withdrawn) */
         lockedAmount: { type: Number, default: 0, min: 0 },
         /** Lifetime earnings */

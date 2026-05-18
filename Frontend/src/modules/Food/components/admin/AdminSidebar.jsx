@@ -145,11 +145,13 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
   const [badges, setBadges] = useState({})
-  const [enabledModules, setEnabledModules] = useState(() => getCachedSettings()?.modules || {
-    food: true,
-
-    quickCommerce: true,
-  })
+  const [enabledModules, setEnabledModules] = useState(() => {
+    const cached = getCachedSettings()?.modules;
+    return {
+      food: cached?.food !== undefined ? !!cached.food : true,
+      quickCommerce: cached?.quickCommerce !== undefined ? !!cached.quickCommerce : true,
+    };
+  });
 
   useEffect(() => {
     const fetchBadges = async () => {
@@ -253,7 +255,10 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           setCompanyName(settings.companyName)
         }
         if (settings.modules) {
-          setEnabledModules(settings.modules)
+          setEnabledModules({
+            food: settings.modules.food !== undefined ? !!settings.modules.food : true,
+            quickCommerce: settings.modules.quickCommerce !== undefined ? !!settings.modules.quickCommerce : true,
+          });
         }
       }
     }

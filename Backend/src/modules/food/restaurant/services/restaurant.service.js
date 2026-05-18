@@ -14,6 +14,7 @@ import {
     notifyOwnerSafely 
 } from '../../../../core/notifications/firebase.service.js';
 import { isPointInPolygon } from '../../../../utils/geo.js';
+import { ensureDailyPassEligibility, activateDailyPass } from '../../subscriptions/services/wallet.service.js';
 
 const normalizeName = (value) =>
     String(value || '')
@@ -613,7 +614,34 @@ export const updateRestaurantAcceptingOrders = async (restaurantId, isAcceptingO
     if (!restaurantId) {
         throw new ValidationError('Invalid restaurant id');
     }
+
+    const currentRestaurant = await FoodRestaurant.findById(restaurantId).select('isAcceptingOrders');
+    if (!currentRestaurant) {
+        throw new ValidationError('Restaurant not found');
+    }
+
     const value = Boolean(isAcceptingOrders);
+
+    // PHASE 3C-2: SUBSCRIPTION TRIGGER (CLOSED -> OPEN ONLY)
+    if (currentRestaurant.isAcceptingOrders === false && value === true) {
+        const eligibility = await ensureDailyPassEligibility(restaurantId, 'RESTAURANT');
+        
+        if (!eligibility.eligible) {
+            throw new ValidationError(eligibility.reason === 'LOW_BALANCE' 
+                ? 'Insufficient subscription balance. Minimum ₹1000 required to open.' 
+                : 'Subscription access blocked.');
+        }
+
+        if (eligibility.shouldDeduct) {
+            const result = await activateDailyPass(restaurantId, 'RESTAURANT');
+            if (!result.success) {
+                throw new ValidationError(result.reason === 'LOW_BALANCE' 
+                    ? 'Insufficient subscription balance for daily pass.' 
+                    : 'Failed to activate daily pass.');
+            }
+        }
+    }
+
     const doc = await FoodRestaurant.findByIdAndUpdate(
         restaurantId,
         { $set: { isAcceptingOrders: value } },

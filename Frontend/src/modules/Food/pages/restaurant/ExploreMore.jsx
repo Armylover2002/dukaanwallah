@@ -30,6 +30,8 @@ import {
   MapPin,
   LogOut,
   Gift,
+  Crown,
+  Wallet,
 } from "lucide-react"
 import { Card, CardContent } from "@food/components/ui/card"
 import { DateRangeCalendar } from "@food/components/ui/date-range-calendar"
@@ -738,6 +740,7 @@ export default function ExploreMore() {
     { id: 2, label: "Outlet timings", icon: Clock, route: "/restaurant/outlet-timings" },
     { id: 3, label: "Dining Reservations", icon: Calendar, route: "/restaurant/reservations" },
     { id: 4, label: "Menu categories", icon: Settings, route: "/restaurant/menu-categories" },
+    { id: 5, label: "Business Plan", icon: Crown, route: "/restaurant/business-plan" },
   ]
 
   const settingsItems = [
@@ -761,6 +764,7 @@ export default function ExploreMore() {
     { id: 1, label: "Payout", icon: IndianRupee, route: "/restaurant/hub-finance" },
     { id: 2, label: "Invoices", icon: Receipt, route: "/restaurant/hub-finance?tab=invoices" },
     { id: 3, label: "Bank details", icon: Building2, route: "/restaurant/update-bank-details" },
+    { id: 4, label: "Subscription Center", icon: Wallet, route: "/food/restaurant/wallet" },
   ]
 
   // All sections with their items

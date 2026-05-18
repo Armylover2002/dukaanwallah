@@ -38,6 +38,7 @@ import { addOrderJob } from '../../../../queues/producers/order.producer.js';
 import { fetchPolyline } from '../utils/googleMaps.js';
 import { getFirebaseDB } from '../../../../config/firebase.js';
 import * as foodTransactionService from './foodTransaction.service.js';
+import { ensureDailyPassEligibility } from "../../subscriptions/services/wallet.service.js";
 
 const ORDER_ID_PREFIX = "FOD-";
 const ORDER_ID_LENGTH = 6;
@@ -1996,6 +1997,7 @@ export async function calculateOrder(userId, dto) {
 
 // ----- Create order -----
 export async function createOrder(userId, dto) {
+  console.log("[TRACE] createOrder reached", { userId, restaurantId: dto.restaurantId });
   const items = normalizeOrderItems(dto.items, dto.orderType);
   const hasFoodItems = items.some((item) => item.type === "food");
   const hasQuickItems = items.some((item) => item.type === "quick");
@@ -2022,6 +2024,22 @@ export async function createOrder(userId, dto) {
     if (!primaryRestaurant) throw new ValidationError("Restaurant not found");
     if (primaryRestaurant.status !== "approved")
       throw new ValidationError("Restaurant not accepting orders");
+
+    // PHASE 3D: SUBSCRIPTION GUARD (READ-ONLY VALIDATION)
+    // CRITICAL: Use primaryRestaurant.sourceId (MongoDB _id) instead of primaryRestaurantId (which could be custom ID)
+    console.log("[TRACE] calling eligibility", { sourceId: primaryRestaurant.sourceId });
+    const eligibility = await ensureDailyPassEligibility(primaryRestaurant.sourceId, 'RESTAURANT');
+    console.log("[TRACE] eligibility received in createOrder:", eligibility);
+    console.log("[TRACE] condition check:", {
+        eligible: eligibility.eligible,
+        shouldDeduct: eligibility.shouldDeduct,
+        willThrow: !eligibility.eligible || eligibility.shouldDeduct
+    });
+    if (!eligibility.eligible || eligibility.shouldDeduct) {
+      throw new ValidationError(eligibility.reason === 'LOW_BALANCE' || eligibility.reason === 'REQUIRES_DAY_DEDUCTION'
+        ? "Restaurant is not accepting new orders due to insufficient subscription balance." 
+        : "Restaurant is not accepting new orders at this time.");
+    }
   }
   const inactiveQuickSource = [...sourceMap.values()].find(
     (source) =>
@@ -2274,7 +2292,7 @@ export async function createOrder(userId, dto) {
     orderId,
     userId: new mongoose.Types.ObjectId(userId),
     restaurantId:
-      hasFoodItems && primaryRestaurantId ? new mongoose.Types.ObjectId(primaryRestaurantId) : null,
+      hasFoodItems && primaryRestaurant?.sourceId ? new mongoose.Types.ObjectId(primaryRestaurant.sourceId) : null,
     zoneId:
       hasFoodItems
         ? dto.zoneId

@@ -184,6 +184,7 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
     availableCashLimit: Math.max(0, totalCashLimit - cashInHand),
     deliveryWithdrawalLimit,
     totalDeliveries: Number(totalDeliveries) || 0,
+    subscriptionBalance: Number(wallet.subscriptionBalance || 0),
     transactions,
   };
 };

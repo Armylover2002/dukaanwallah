@@ -23,6 +23,44 @@ export const searchAPI = {
     apiClient.get("/food/search/categories/admin", { params }),
 };
 
+// User Subscription (Restaurant/Delivery)
+export const subscriptionAPI = {
+  getPlans: (userType) =>
+    apiClient.get("/food/subscriptions/plans", {
+      params: { userType },
+      contextModule: userType.toLowerCase().replace("_partner", ""),
+    }),
+  getMySubscription: (userType) =>
+    apiClient.get("/food/subscriptions/my-subscription", {
+      contextModule: userType.toLowerCase().replace("_partner", ""),
+    }),
+  purchase: (userType, payload) =>
+    apiClient.post("/food/subscriptions/purchase", payload, {
+      contextModule: userType.toLowerCase().replace("_partner", ""),
+    }),
+  verify: (userType, payload) =>
+    apiClient.post("/food/subscriptions/verify", payload, {
+      contextModule: userType.toLowerCase().replace("_partner", ""),
+    }),
+  createWalletTopupOrder: (userType, amount) =>
+    apiClient.post("/food/subscriptions/wallet/topup", { amount }, {
+      contextModule: userType.toLowerCase().replace("_partner", ""),
+    }),
+  verifyWalletTopup: (userType, payload) =>
+    apiClient.post("/food/subscriptions/wallet/verify", payload, {
+      contextModule: userType.toLowerCase().replace("_partner", ""),
+    }),
+  getWalletLedger: (userType, params = {}) =>
+    apiClient.get("/food/subscriptions/wallet/ledger", {
+      params,
+      contextModule: userType.toLowerCase().replace("_partner", ""),
+    }),
+  getEligibility: (userType) =>
+    apiClient.get("/food/subscriptions/eligibility", {
+      contextModule: userType.toLowerCase().replace("_partner", ""),
+    }),
+};
+
 const createStubAPI = () =>
   new Proxy(
     {},
@@ -599,6 +637,26 @@ export const adminAPI = {
       params: { page: 1, limit: 1000, ...params },
       contextModule: "admin",
     }),
+
+  // Subscription Management
+  getSubscriptionPlans: (params) =>
+    apiClient.get("/food/admin/subscription-plans", {
+      params,
+      contextModule: "admin",
+    }),
+  createSubscriptionPlan: (payload) =>
+    apiClient.post("/food/admin/subscription-plans", payload, {
+      contextModule: "admin",
+    }),
+  updateSubscriptionPlan: (id, payload) =>
+    apiClient.patch(`/food/admin/subscription-plans/${id}`, payload, {
+      contextModule: "admin",
+    }),
+  deleteSubscriptionPlan: (id) =>
+    apiClient.delete(`/food/admin/subscription-plans/${id}`, {
+      contextModule: "admin",
+    }),
+
   getTransactionReport: (params = {}) =>
     apiClient.get("/food/admin/reports/transactions", {
       params: { page: 1, limit: 1000, ...params },
@@ -926,6 +984,26 @@ export const restaurantAPI = {
       contextModule: "restaurant",
       params: params || {},
     }),
+  /** Subscription wallet center. */
+  getSubscriptionWallet: () =>
+    apiClient.get("/food/restaurant/subscription-wallet", {
+      contextModule: "restaurant",
+    }),
+  /** Create a topup order for subscription wallet. */
+  createSubscriptionTopupOrder: (amount) =>
+    apiClient.post("/food/restaurant/subscription-topup", { amount: Number(amount) }, {
+      contextModule: "restaurant"
+    }),
+  /** Verify topup payment and credit wallet. */
+  verifyTopup: (data) =>
+    apiClient.post("/food/restaurant/verify-topup", data, {
+      contextModule: "restaurant"
+    }),
+  /** Get current recurring subscription status. */
+  getMySubscription: () =>
+    apiClient.get("/food/subscriptions/my-subscription", {
+      contextModule: "restaurant"
+    }),
   /** Fetch restaurant by owner (stub for missing backend endpoint). */
   getRestaurantByOwner: () =>
     Promise.resolve({
@@ -986,6 +1064,11 @@ export const restaurantAPI = {
         restaurantCurrentCacheTime = Date.now();
         return res;
       }),
+  /** Check subscription eligibility before going online. */
+  checkSubscriptionEligibility: () =>
+    apiClient.get("/food/restaurant/subscription-eligibility", {
+      contextModule: "restaurant",
+    }),
   /** Upload and set restaurant profile image (multipart). Field name: file */
   uploadProfileImage: (file) => {
     if (!file) return Promise.reject(new Error("File is required"));

@@ -49,6 +49,7 @@ const SafetyEmergencyReports = lazy(() => import("@food/pages/admin/SafetyEmerge
 // Customer Management
 const Customers = lazy(() => import("@food/pages/admin/Customers"));
 const SupportTickets = lazy(() => import("@food/pages/admin/SupportTickets"));
+const SubscriptionManagement = lazy(() => import("@food/pages/admin/SubscriptionManagement"));
 const AddFund = lazy(() => import("@food/pages/admin/wallet/AddFund"));
 const Bonus = lazy(() => import("@food/pages/admin/wallet/Bonus"));
 const LoyaltyPointReport = lazy(() => import("@food/pages/admin/loyalty-point/Report"));
@@ -86,7 +87,8 @@ const RestaurantVATReport = lazy(() => import("@food/pages/admin/reports/Restaur
 const RestaurantWithdraws = lazy(() => import("@food/pages/admin/transactions/RestaurantWithdraws"));
 const WithdrawMethod = lazy(() => import("@food/pages/admin/transactions/WithdrawMethod"));
 // Employee Management
-const EmployeeRole = lazy(() => import("@food/pages/admin/employees/EmployeeRole"));
+const RoleList = lazy(() => import("@food/pages/admin/employees/RoleList"));
+const CreateRole = lazy(() => import("@food/pages/admin/employees/CreateRole"));
 const AddEmployee = lazy(() => import("@food/pages/admin/employees/AddEmployee"));
 const EmployeeList = lazy(() => import("@food/pages/admin/employees/EmployeeList"));
 // Business Settings
@@ -216,6 +218,7 @@ export default function AdminRouter() {
 
             {/* FOOD & CATEGORY MANAGEMENT */}
             <Route path="categories" element={<Category />} />
+            <Route path="subscriptions" element={<SubscriptionManagement />} />
             <Route path="fee-settings" element={<FeeSettings />} />
             <Route path="referral-settings" element={<ReferralSettings />} />
             <Route path="foods" element={<FoodsList />} />
@@ -277,7 +280,9 @@ export default function AdminRouter() {
             <Route path="restaurant-withdraws" element={<RestaurantWithdraws />} />
             <Route path="withdraw-method" element={<WithdrawMethod />} />
             
-            <Route path="employee-role" element={<EmployeeRole />} />
+            <Route path="employee-role" element={<RoleList />} />
+            <Route path="employee-role/create" element={<CreateRole />} />
+            <Route path="employee-role/edit/:id" element={<CreateRole />} />
             <Route path="employees" element={<EmployeeList />} />
             <Route path="employees/add" element={<AddEmployee />} />
 

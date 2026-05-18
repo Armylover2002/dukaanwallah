@@ -16,7 +16,8 @@ import {
     getRestaurantComplaintsController,
     deleteRestaurantAccountController,
     getRestaurantReferralStatsController,
-    getRestaurantReferralDetailsController
+    getRestaurantReferralDetailsController,
+    checkSubscriptionEligibilityController
 } from '../controllers/restaurant.controller.js';
 import {
     createRestaurantSupportTicketController,
@@ -53,7 +54,8 @@ import {
 import * as orderController from '../../orders/controllers/order.controller.js';
 import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
 import { sendError } from '../../../../utils/response.js';
-import { getRestaurantFinanceController } from '../controllers/restaurantFinance.controller.js';
+import { getRestaurantFinanceController, getRestaurantSubscriptionWalletController } from '../controllers/restaurantFinance.controller.js';
+import { createTopupOrderController, verifyTopupController } from '../../subscriptions/controllers/subscription.controller.js';
 
 import { cacheResponse, invalidateCache } from '../../../../middleware/cache.js';
 
@@ -103,6 +105,10 @@ router.patch('/dining-settings', authMiddleware, requireRestaurant, updateCurren
 router.get('/outlet-timings', authMiddleware, requireRestaurant, getCurrentRestaurantOutletTimingsController);
 router.put('/outlet-timings', authMiddleware, requireRestaurant, upsertCurrentRestaurantOutletTimingsController);
 router.get('/finance', authMiddleware, requireRestaurant, getRestaurantFinanceController);
+router.get('/subscription-eligibility', authMiddleware, requireRestaurant, checkSubscriptionEligibilityController);
+router.get('/subscription-wallet', authMiddleware, requireRestaurant, getRestaurantSubscriptionWalletController);
+router.post('/subscription-topup', authMiddleware, requireRestaurant, createTopupOrderController);
+router.post('/verify-topup', authMiddleware, requireRestaurant, verifyTopupController);
 router.post('/withdraw', authMiddleware, requireRestaurant, createWithdrawalRequestController);
 router.get('/withdrawals', authMiddleware, requireRestaurant, listMyWithdrawalsController);
 router.post(

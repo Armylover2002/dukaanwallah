@@ -1,8 +1,10 @@
 import express from 'express';
 import { AuthError } from '../../../../core/auth/errors.js';
 import * as adminController from '../controllers/admin.controller.js';
+import roleRoutes from './role.routes.js';
 import * as foodApprovalController from '../controllers/foodApproval.controller.js';
 import * as addonsApprovalController from '../controllers/addonsApproval.controller.js';
+import * as subscriptionPlanController from '../controllers/subscriptionPlan.controller.js';
 
 import * as feedbackExperienceController from '../controllers/feedbackExperience.controller.js';
 import * as notificationBroadcastController from '../controllers/notificationBroadcast.controller.js';
@@ -113,6 +115,12 @@ router.put('/fee-settings', adminController.createOrUpdateFeeSettings);
 router.get('/referral-settings', adminController.getReferralSettings);
 router.put('/referral-settings', adminController.createOrUpdateReferralSettings);
 
+// ----- Subscription Plans -----
+router.get('/subscription-plans', subscriptionPlanController.listPlansController);
+router.post('/subscription-plans', subscriptionPlanController.createPlanController);
+router.patch('/subscription-plans/:id', subscriptionPlanController.updatePlanController);
+router.delete('/subscription-plans/:id', subscriptionPlanController.deletePlanController);
+
 
 // ----- Delivery Cash Limit -----
 router.get('/delivery-cash-limit', adminController.getDeliveryCashLimit);
@@ -188,5 +196,8 @@ router.put('/pages-social-media/:key', upsertAdminPageController);
 
 router.get('/sidebar-badges', adminController.getSidebarBadges);
 router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifications);
+
+// ----- RBAC Roles -----
+router.use('/roles', roleRoutes);
 
 export default router;

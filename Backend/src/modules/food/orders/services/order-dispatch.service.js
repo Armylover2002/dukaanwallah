@@ -3,6 +3,14 @@ import { FoodOrder, FoodSettings } from "../models/order.model.js";
 import { FoodRestaurant } from "../../restaurant/models/restaurant.model.js";
 import { Seller } from "../../../quick-commerce/seller/models/seller.model.js";
 import { FoodDeliveryPartner } from "../../delivery/models/deliveryPartner.model.js";
+import { FoodDailyPass } from "../../subscriptions/models/foodDailyPass.model.js";
+import { UserSubscription } from "../../user/models/userSubscription.model.js";
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone.js";
+import utc from "dayjs/plugin/utc.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import {
   ValidationError,
   NotFoundError,
@@ -18,6 +26,32 @@ import {
   notifyOwnerSafely,
   notifyOwnersSafely,
 } from "./order.helpers.js";
+
+export async function filterEligiblePartners(partners) {
+  if (!partners.length) return [];
+  const partnerIds = partners.map(p => p.partnerId);
+  const today = dayjs().tz("Asia/Kolkata").format("YYYY-MM-DD");
+  
+  const [activePasses, activeSubs] = await Promise.all([
+    FoodDailyPass.find({
+      userId: { $in: partnerIds },
+      userType: "DELIVERY_PARTNER",
+      date: today,
+      expiresAt: { $gt: new Date() }
+    }).select("userId").lean(),
+    UserSubscription.find({
+      deliveryBoyId: { $in: partnerIds },
+      status: { $in: ["active", "grace"] }
+    }).select("deliveryBoyId").lean()
+  ]);
+
+  const eligibleIds = new Set([
+    ...activePasses.map(p => p.userId.toString()),
+    ...activeSubs.map(s => s.deliveryBoyId.toString())
+  ]);
+
+  return partners.filter(p => eligibleIds.has(p.partnerId.toString()));
+}
 
 async function listNearbyOnlineDeliveryPartners(
   sourceId,
@@ -106,7 +140,8 @@ async function listNearbyOnlineDeliveryPartners(
       ? picked.filter((p) => p.status === "approved")
       : picked;
 
-  return { source, partners: final };
+  const eligible = await filterEligiblePartners(final);
+  return { source, partners: eligible };
 }
 
 export async function getDispatchSettings() {

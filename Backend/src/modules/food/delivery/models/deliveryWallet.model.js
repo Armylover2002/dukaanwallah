@@ -14,6 +14,8 @@ const deliveryWalletSchema = new mongoose.Schema(
             index: true
         },
         balance: { type: Number, default: 0 },
+        /** Subscription wallet balance for daily passes and future fees */
+        subscriptionBalance: { type: Number, default: 0, min: 0 },
         /** Amount locked for pending settlements */
         lockedAmount: { type: Number, default: 0, min: 0 },
         /** Cash collected from COD orders but not yet deposited to company */

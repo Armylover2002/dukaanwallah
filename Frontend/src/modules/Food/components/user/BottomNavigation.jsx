@@ -35,21 +35,7 @@ export default function BottomNavigation() {
     <div
       className="md:hidden fixed bottom-0 left-0 right-0 z-50"
     >
-      <Link
-        to="/user/auth/portal"
-        state={{ redirectTo }}
-        className="relative z-10 mb-0.5 ml-4 mr-auto flex h-9 w-fit items-center gap-2 rounded-t-[16px] rounded-b-[8px] border border-gray-200 bg-white px-3 pb-2 pt-1.5 shadow-[0_-1px_0_rgba(255,255,255,0.9),0_-6px_18px_-10px_rgba(0,0,0,0.12)]"
-      >
-        <div className="pointer-events-none absolute -bottom-2 left-2 right-2 h-2 rounded-b-full bg-white" />
-        <div className="text-left leading-none">
-          <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-primary-orange">
-            Explore
-          </span>
-        </div>
-        <div className="flex h-6 w-6 items-center justify-center rounded-[8px] bg-primary-orange/10 text-primary-orange">
-          <ArrowUpRight className="h-3 w-3" strokeWidth={2.6} />
-        </div>
-      </Link>
+
 
       <div
         className="relative bg-white dark:bg-[#1a1a1a] border-t border-gray-200 dark:border-gray-800 shadow-lg"

@@ -33,11 +33,13 @@ const FssaiUpdate = lazy(() => import("@food/pages/restaurant/FssaiUpdate"))
 const Hyperpure = lazy(() => import("@food/pages/restaurant/Hyperpure"))
 const ItemDetailsPage = lazy(() => import("@food/pages/restaurant/ItemDetailsPage"))
 const HubFinance = lazy(() => import("@food/pages/restaurant/HubFinance"))
+const WalletPage = lazy(() => import("@food/pages/restaurant/WalletPage"))
 const FinanceDetailsPage = lazy(() => import("@food/pages/restaurant/FinanceDetailsPage"))
 const WithdrawalHistoryPage = lazy(() => import("@food/pages/restaurant/WithdrawalHistoryPage"))
 const DownloadReport = lazy(() => import("@food/pages/restaurant/DownloadReport"))
 const RestaurantProfilePage = lazy(() => import("@food/pages/restaurant/RestaurantProfilePage"))
 const RestaurantReferEarn = lazy(() => import("@food/pages/restaurant/RestaurantReferEarn"))
+const BusinessPlanPage = lazy(() => import("@food/pages/restaurant/BusinessPlanPage"))
 
 const ManageOutlets = lazy(() => import("@food/pages/restaurant/ManageOutlets"))
 const UpdateBankDetails = lazy(() => import("@food/pages/restaurant/UpdateBankDetails"))
@@ -97,6 +99,7 @@ export default function RestaurantRouter() {
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><Hyperpure /></ProtectedRoute>} path="hyperpure" />
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><ItemDetailsPage /></ProtectedRoute>} path="hub-menu/item/:id" />
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><HubFinance /></ProtectedRoute>} path="hub-finance" />
+        <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><WalletPage /></ProtectedRoute>} path="wallet" />
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><WithdrawalHistoryPage /></ProtectedRoute>} path="withdrawal-history" />
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><FinanceDetailsPage /></ProtectedRoute>} path="finance-details" />
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><DownloadReport /></ProtectedRoute>} path="download-report" />
@@ -105,6 +108,7 @@ export default function RestaurantRouter() {
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><DiningReservations /></ProtectedRoute>} path="reservations" />
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><ZoneSetup /></ProtectedRoute>} path="zone-setup" />
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><RestaurantProfilePage /></ProtectedRoute>} path="profile" />
+        <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><BusinessPlanPage /></ProtectedRoute>} path="business-plan" />
         <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/food/restaurant/login"><RestaurantReferEarn /></ProtectedRoute>} path="refer-earn" />
         <Route path="*" element={<Navigate to="/food/restaurant" replace />} />
       </Routes>

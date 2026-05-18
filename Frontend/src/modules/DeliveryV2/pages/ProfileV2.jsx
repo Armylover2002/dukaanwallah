@@ -150,6 +150,16 @@ export const ProfileV2 = () => {
             </div>
             <span className="text-sm font-bold text-gray-900">Trips history</span>
           </button>
+          
+          <button
+            onClick={() => navigate("/food/delivery/subscription")}
+            className="bg-white rounded-xl p-4 flex flex-col items-center gap-2 border border-transparent active:bg-gray-50 transition-colors"
+          >
+            <div className="rounded-full bg-orange-50 p-3">
+              <Briefcase className="w-6 h-6 text-orange-600" />
+            </div>
+            <span className="text-sm font-bold text-gray-900">Partner Subscription</span>
+          </button>
         </div>
 
         {/* Sections */}

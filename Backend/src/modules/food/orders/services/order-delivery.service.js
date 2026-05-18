@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import * as walletService from '../../subscriptions/services/wallet.service.js';
 import { FoodOrder } from '../models/order.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodTransaction } from '../models/foodTransaction.model.js';
@@ -303,6 +304,12 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
 
+  // Subscription Guard: Re-check eligibility before accepting
+  const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
+  if (!eligibility.eligible || eligibility.shouldDeduct) {
+    throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
+  }
+
   const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
   const now = new Date();
   const acceptedStatuses = ['created', 'confirmed', 'preparing', 'ready_for_pickup', 'picked_up'];
@@ -505,6 +512,12 @@ export async function rejectOrderDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
 
+  // Subscription Guard: Re-check eligibility before accepting
+  const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
+  if (!eligibility.eligible || eligibility.shouldDeduct) {
+    throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
+  }
+
   const order = await FoodOrder.findOne(identity).select('+deliveryOtp');
   if (!order) throw new NotFoundError('Order not found');
   if (order.dispatch.deliveryPartnerId?.toString() !== deliveryPartnerId.toString()) {
@@ -549,6 +562,12 @@ export async function rejectOrderDelivery(orderId, deliveryPartnerId) {
 export async function confirmReachedPickupDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
+
+  // Subscription Guard: Re-check eligibility before accepting
+  const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
+  if (!eligibility.eligible || eligibility.shouldDeduct) {
+    throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
+  }
 
   const order = await FoodOrder.findOne(identity).select('+deliveryOtp');
   if (!order) throw new NotFoundError('Order not found');
@@ -711,6 +730,12 @@ export async function confirmPickupDelivery(orderId, deliveryPartnerId, billImag
 export async function confirmReachedDropDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
+
+  // Subscription Guard: Re-check eligibility before accepting
+  const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
+  if (!eligibility.eligible || eligibility.shouldDeduct) {
+    throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
+  }
 
   const order = await FoodOrder.findOne(identity).select('+deliveryOtp');
   if (!order) throw new NotFoundError('Order not found');
@@ -934,6 +959,12 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
 export async function updateOrderStatusDelivery(orderId, deliveryPartnerId, orderStatus) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
+
+  // Subscription Guard: Re-check eligibility before accepting
+  const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
+  if (!eligibility.eligible || eligibility.shouldDeduct) {
+    throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
+  }
 
   const order = await FoodOrder.findOne(identity).select('+deliveryOtp');
   if (!order) throw new NotFoundError('Order not found');
