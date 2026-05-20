@@ -262,6 +262,7 @@ export async function verifyPurchase(userId, userType, data) {
                     { _id: doc._id },
                     {
                         $set: {
+                            razorpayPaymentId,
                             status: 'active',
                             startDate: new Date(),
                             expiryDate,
