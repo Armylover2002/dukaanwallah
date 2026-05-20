@@ -5,8 +5,13 @@ import { adminAPI, restaurantAPI, uploadAPI } from "@food/api"
 import { clearModuleAuth } from "@food/utils/auth"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { exportRestaurantsToPDF } from "@food/components/admin/restaurants/restaurantsExportUtils"
+import ApprovalAuditCard from "@food/components/admin/ApprovalAuditCard"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
 import { Loader } from "@googlemaps/js-api-loader"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
+import { toast } from "sonner"
 
 // Import icons from Dashboard-icons
 import locationIcon from "@food/assets/Dashboard-icons/image1.png"
@@ -106,6 +111,57 @@ const getPrimaryRestaurantImage = (restaurant, fallback = "") => {
 
 export default function RestaurantsList() {
   const navigate = useNavigate()
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canCreate = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::restaurant_management::restaurants::list", "create")
+  }, [currentUser, resolvedPermissions])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::restaurant_management::restaurants::list", "edit")
+  }, [currentUser, resolvedPermissions])
+
+  const canDelete = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::restaurant_management::restaurants::list", "delete")
+  }, [currentUser, resolvedPermissions])
   const [searchQuery, setSearchQuery] = useState("")
   const [restaurants, setRestaurants] = useState([])
   const [loading, setLoading] = useState(true)
@@ -863,11 +919,19 @@ export default function RestaurantsList() {
   }
 
   const handleEditLocation = async (restaurant) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     await handleViewDetails(restaurant)
     setIsEditingLocation(true)
   }
 
   const handleSaveLocation = async () => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!selectedRestaurant) return
 
     const restaurantId = selectedRestaurant._id || selectedRestaurant.id
@@ -1098,6 +1162,10 @@ export default function RestaurantsList() {
   }
 
   const handleStartEditDetails = () => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     const source = getDetailsEditSource()
     setDetailsForm(buildDetailsFormFromRestaurant(source))
     setProfileImageFile(null)
@@ -1113,6 +1181,10 @@ export default function RestaurantsList() {
   }
 
   const handleSaveDetails = async () => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!selectedRestaurant) return
     const restaurantId = selectedRestaurant._id || selectedRestaurant.id
 
@@ -1212,6 +1284,10 @@ export default function RestaurantsList() {
 
   // Handle ban/unban restaurant
   const handleBanRestaurant = (restaurant) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     const isBanned = !restaurant.isActive
     setBanConfirmDialog({
       restaurant,
@@ -1220,6 +1296,10 @@ export default function RestaurantsList() {
   }
 
   const confirmBanRestaurant = async () => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!banConfirmDialog) return
 
     const { restaurant, action } = banConfirmDialog
@@ -1276,10 +1356,18 @@ export default function RestaurantsList() {
 
   // Handle delete restaurant
   const handleDeleteRestaurant = (restaurant) => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     setDeleteConfirmDialog({ restaurant })
   }
 
   const confirmDeleteRestaurant = async () => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     if (!deleteConfirmDialog) return
 
     const { restaurant } = deleteConfirmDialog
@@ -1389,13 +1477,15 @@ export default function RestaurantsList() {
             <h2 className="text-xl font-bold text-slate-900">Restaurants List</h2>
 
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate("/admin/food/restaurants/add")}
-                className="px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Restaurant</span>
-              </button>
+              {canCreate && (
+                <button
+                  onClick={() => navigate("/admin/food/restaurants/add")}
+                  className="px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Restaurant</span>
+                </button>
+              )}
               <div className="relative flex-1 sm:flex-initial min-w-[250px]">
                 <input
                   type="text"
@@ -1591,21 +1681,24 @@ export default function RestaurantsList() {
                             </button>
                             <button
                               onClick={() => handleBanRestaurant(restaurant)}
-                              className={`p-1.5 rounded transition-colors ${!restaurant.isActive
+                              disabled={!canEdit}
+                              className={`p-1.5 rounded transition-colors ${!canEdit ? "opacity-50 cursor-not-allowed text-slate-400" : (!restaurant.isActive
                                 ? "text-green-600 hover:bg-green-50"
-                                : "text-red-600 hover:bg-red-50"
+                                : "text-red-600 hover:bg-red-50")
                                 }`}
                               title={!restaurant.isActive ? "Unban Restaurant" : "Ban Restaurant"}
                             >
                               <ShieldX className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleDeleteRestaurant(restaurant)}
-                              className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
-                              title="Delete Restaurant"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDeleteRestaurant(restaurant)}
+                                className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
+                                title="Delete Restaurant"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1635,32 +1728,34 @@ export default function RestaurantsList() {
                 <p className="text-sm text-slate-500 mt-1">Detailed overview and information</p>
               </div>
               <div className="flex items-center gap-2">
-                {!isEditingDetails ? (
-                  <button
-                    onClick={handleStartEditDetails}
-                    className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
-                  >
-                    Edit Details
-                  </button>
-                ) : (
-                  <>
+                {canEdit ? (
+                  !isEditingDetails ? (
                     <button
-                      onClick={handleCancelEditDetails}
-                      disabled={savingDetails}
-                      className="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors disabled:opacity-60"
+                      onClick={handleStartEditDetails}
+                      className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
                     >
-                      Cancel
+                      Edit Details
                     </button>
-                    <button
-                      onClick={handleSaveDetails}
-                      disabled={savingDetails}
-                      className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-60 flex items-center gap-2"
-                    >
-                      {savingDetails && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {savingDetails ? "Saving..." : "Save Changes"}
-                    </button>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleCancelEditDetails}
+                        disabled={savingDetails}
+                        className="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveDetails}
+                        disabled={savingDetails}
+                        className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-60 flex items-center gap-2"
+                      >
+                        {savingDetails && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {savingDetails ? "Saving..." : "Save Changes"}
+                      </button>
+                    </>
+                  )
+                ) : null}
                 <button
                   onClick={closeDetailsModal}
                   className="p-2.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all duration-200 bg-slate-50"
@@ -2025,6 +2120,12 @@ export default function RestaurantsList() {
                             Outlet: {(r?.isActive !== false) ? "Active" : "Inactive"}
                           </p>
                         </div>
+                        <ApprovalAuditCard
+                          className="mt-3"
+                          approvedBy={r?.approvedBy || null}
+                          rejectedBy={r?.rejectedBy || null}
+                          rejectionReason={r?.rejectionReason || ""}
+                        />
                       </div>
                     </div>
                   </div>

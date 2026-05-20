@@ -10,6 +10,10 @@ export async function initiatePurchase(userId, userType, { planId }) {
     const plan = await SubscriptionPlan.findOne({ _id: planId, isDeleted: false, isActive: true });
     if (!plan) throw new NotFoundError('Subscription plan not found or inactive');
 
+    if (plan.userType !== userType) {
+        throw new ValidationError('Plan mismatch for user role');
+    }
+
     const restaurantId = userType === 'RESTAURANT' ? userId : null;
     const deliveryBoyId = userType === 'DELIVERY_PARTNER' ? userId : null;
     const ownerFilter = { $or: [{ restaurantId }, { deliveryBoyId }].filter(Boolean) };
@@ -136,16 +140,11 @@ export async function initiatePurchase(userId, userType, { planId }) {
 
     // 2. Handle One-Time vs Recurring
     if (plan.paymentType === 'ONE_TIME') {
-        const order = await razorpayHelper.createRazorpayOrder({
-            amountPaise: plan.price * 100,
-            notes: {
-                type: 'subscription',
-                planId: String(plan._id),
-                restaurantId: restaurantId ? String(restaurantId) : undefined,
-                deliveryBoyId: deliveryBoyId ? String(deliveryBoyId) : undefined,
-                userType
-            }
-        });
+        const order = await razorpayHelper.createRazorpayOrder(
+            plan.price * 100,
+            'INR',
+            String(pendingDoc._id)
+        );
 
         // 📂 CRITICAL: Create PENDING subscription record for One-Time too (idempotency)
         await UserSubscription.updateOne(
@@ -207,17 +206,82 @@ export async function verifyPurchase(userId, userType, data) {
     const { razorpayPaymentId, razorpaySignature, razorpayOrderId, razorpaySubscriptionId } = data;
 
     // 1. Verify Signature
-    const secret = process.env.RAZORPAY_KEY_SECRET;
-    const verified = razorpayHelper.verifyPaymentSignature(
-        razorpayOrderId || razorpaySubscriptionId,
-        razorpayPaymentId,
-        razorpaySignature
-    );
+    let verified = false;
+    if (razorpaySubscriptionId) {
+        verified = razorpayHelper.verifySubscriptionSignature(
+            razorpaySubscriptionId,
+            razorpayPaymentId,
+            razorpaySignature
+        );
+    } else {
+        verified = razorpayHelper.verifyPaymentSignature(
+            razorpayOrderId,
+            razorpayPaymentId,
+            razorpaySignature
+        );
+    }
 
     if (!verified) throw new ValidationError('Payment signature verification failed');
 
-    // Webhook will handle the actual DB update for production robustness,
-    // but we can do a quick check/update here for better UX response.
+    // 2. Perform direct DB update to activate the subscription immediately (local/fallback bypass)
+    const restaurantId = userType === 'RESTAURANT' ? userId : null;
+    const deliveryBoyId = userType === 'DELIVERY_PARTNER' ? userId : null;
+    const ownerFilter = { $or: [{ restaurantId }, { deliveryBoyId }].filter(Boolean) };
+
+    let query = { ...ownerFilter };
+    if (razorpayOrderId) {
+        query['metadata.razorpayOrderId'] = razorpayOrderId;
+    } else if (razorpaySubscriptionId) {
+        query.razorpaySubscriptionId = razorpaySubscriptionId;
+    }
+
+    const doc = await UserSubscription.findOne(query).populate('planId');
+    if (doc) {
+        const plan = doc.planId;
+        if (plan) {
+            const expiryDate = dayjs().add(plan.durationValue, plan.durationUnit.toLowerCase()).toDate();
+            
+            if (razorpayOrderId) {
+                await UserSubscription.updateOne(
+                    { _id: doc._id },
+                    {
+                        $set: {
+                            razorpayPaymentId,
+                            startDate: new Date(),
+                            expiryDate,
+                            status: 'active',
+                            purchasedPlanName: plan.name,
+                            purchasedPrice: plan.price,
+                            purchasedDuration: plan.durationValue,
+                            purchasedDurationType: plan.durationUnit
+                        }
+                    }
+                );
+            } else {
+                await UserSubscription.updateOne(
+                    { _id: doc._id },
+                    {
+                        $set: {
+                            status: 'active',
+                            startDate: new Date(),
+                            expiryDate,
+                            lastRenewedAt: new Date(),
+                            renewalCount: 0,
+                            autoRenew: true,
+                            gracePeriodUntil: null,
+                            cancelAt: null,
+                            cancelAtCycleEnd: false,
+                            purchasedPlanName: plan.name,
+                            purchasedPrice: plan.price,
+                            purchasedDuration: plan.durationValue,
+                            purchasedDurationType: plan.durationUnit
+                        }
+                    }
+                );
+            }
+        }
+    }
+
     return { verified: true };
 }
 

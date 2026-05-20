@@ -186,9 +186,18 @@ export default function Home() {
   const { zoneId: liveZoneId, isInService: isLiveInService } = useZone(location);
   const defaultSavedAddress = useMemo(() => getDefaultAddress?.() || null, [getDefaultAddress]);
   const defaultSavedAddressLocation = useMemo(() => {
+    if (!defaultSavedAddress) return null;
     const coords = defaultSavedAddress?.location?.coordinates;
-    if (Array.isArray(coords) && coords.length >= 2) return { latitude: coords[1], longitude: coords[0] };
-    return null;
+    const latitude = Array.isArray(coords) && coords.length >= 2 ? coords[1] : (defaultSavedAddress.latitude ?? null);
+    const longitude = Array.isArray(coords) && coords.length >= 2 ? coords[0] : (defaultSavedAddress.longitude ?? null);
+    return {
+      ...defaultSavedAddress,
+      latitude,
+      longitude,
+      area: defaultSavedAddress.additionalDetails || defaultSavedAddress.area || "",
+      zipCode: defaultSavedAddress.zipCode || defaultSavedAddress.postalCode || "",
+      postalCode: defaultSavedAddress.postalCode || defaultSavedAddress.zipCode || "",
+    };
   }, [defaultSavedAddress]);
   const { zoneId: savedZoneId, isInService: isSavedInService } = useZone(defaultSavedAddressLocation);
 

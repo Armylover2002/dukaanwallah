@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { MapPin, Plus, Search, Edit, Trash2, Eye, Map, Bike } from "lucide-react"
 import { adminAPI } from "@food/api"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -9,6 +12,58 @@ const debugError = (...args) => {}
 
 export default function ZoneSetup() {
   const navigate = useNavigate()
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canCreate = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::restaurant_management::zone_setup", "create")
+  }, [currentUser, resolvedPermissions])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::restaurant_management::zone_setup", "edit")
+  }, [currentUser, resolvedPermissions])
+
+  const canDelete = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::restaurant_management::zone_setup", "delete")
+  }, [currentUser, resolvedPermissions])
+
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -34,6 +89,10 @@ export default function ZoneSetup() {
 
 
   const handleDeleteZone = async (zoneId) => {
+    if (!canDelete) {
+      alert("Permission denied")
+      return
+    }
     if (!window.confirm("Are you sure you want to delete this zone?")) {
       return
     }
@@ -81,13 +140,15 @@ export default function ZoneSetup() {
               <Map className="w-5 h-5" />
               <span>View Map</span>
             </button>
-            <button
-              onClick={() => navigate("/admin/food/zone-setup/add")}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Add Zone</span>
-            </button>
+            {canCreate && (
+              <button
+                onClick={() => navigate("/admin/food/zone-setup/add")}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Zone</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -118,7 +179,7 @@ export default function ZoneSetup() {
             <p className="text-slate-600 mb-6">
               {searchQuery ? "Try adjusting your search query" : "Create your first delivery zone to get started"}
             </p>
-            {!searchQuery && (
+            {!searchQuery && canCreate && (
               <button
                 onClick={() => navigate("/admin/food/zone-setup/add")}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -148,20 +209,24 @@ export default function ZoneSetup() {
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => navigate(`/admin/food/zone-setup/edit/${zone._id || zone.id}`)}
-                      className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteZone(zone._id || zone.id)}
-                      className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => navigate(`/admin/food/zone-setup/edit/${zone._id || zone.id}`)}
+                        className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteZone(zone._id || zone.id)}
+                        className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">

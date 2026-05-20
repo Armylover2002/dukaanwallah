@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Counter } from "../../../../core/models/counter.model.js";
+import { actionPerformerSchema } from "../../../../core/models/actionPerformer.schema.js";
 
 const normalizeRatingValue = (value) => {
   const numeric = Number(value);
@@ -248,7 +249,12 @@ const restaurantSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
+      index: true,
     },
+    approvedAt: { type: Date, default: null },
+    rejectedAt: { type: Date, default: null },
+    approvedBy: { type: actionPerformerSchema, default: null },
+    rejectedBy: { type: actionPerformerSchema, default: null },
     referralCode: {
       type: String,
       unique: true,
@@ -264,12 +270,6 @@ const restaurantSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "FoodRestaurant",
       index: true,
-    },
-    approvedAt: {
-      type: Date,
-    },
-    rejectedAt: {
-      type: Date,
     },
     rejectionReason: {
       type: String,

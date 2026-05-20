@@ -4,6 +4,7 @@ import {
     approveFoodItem,
     rejectFoodItem
 } from '../services/foodApproval.service.js';
+import { resolveActionPerformerSnapshot } from '../../../../core/utils/performer.js';
 
 export async function getPendingFoodApprovals(req, res, next) {
     try {
@@ -16,7 +17,8 @@ export async function getPendingFoodApprovals(req, res, next) {
 
 export async function approveFoodItemController(req, res, next) {
     try {
-        const updated = await approveFoodItem(req.params.id);
+        const performer = await resolveActionPerformerSnapshot(req.user);
+        const updated = await approveFoodItem(req.params.id, performer);
         if (!updated) return sendError(res, 404, 'Food item not found or not pending');
         return sendResponse(res, 200, 'Food item approved successfully', { food: updated });
     } catch (error) {
@@ -26,7 +28,8 @@ export async function approveFoodItemController(req, res, next) {
 
 export async function rejectFoodItemController(req, res, next) {
     try {
-        const updated = await rejectFoodItem(req.params.id, req.body?.reason);
+        const performer = await resolveActionPerformerSnapshot(req.user);
+        const updated = await rejectFoodItem(req.params.id, req.body?.reason, performer);
         if (!updated) return sendError(res, 404, 'Food item not found or not pending');
         return sendResponse(res, 200, 'Food item rejected successfully', { food: updated });
     } catch (error) {

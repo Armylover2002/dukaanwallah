@@ -119,6 +119,86 @@ const buildBigDataCloudAddress = (data, latitude, longitude) => {
   }
 }
 
+const buildGoogleAddress = (data, latitude, longitude) => {
+  if (!data || !data.results || !data.results[0]) return null
+  const result = data.results[0]
+  const addressComponents = result.address_components || []
+  const displayName = result.formatted_address || ""
+
+  let streetNumber = ""
+  let route = ""
+  let subpremise = ""
+  let premise = ""
+  let sublocality1 = ""
+  let sublocality2 = ""
+  let locality = ""
+  let administrativeArea1 = ""
+  let country = ""
+  let postalCode = ""
+
+  addressComponents.forEach(comp => {
+    const types = comp.types || []
+    if (types.includes("street_number")) streetNumber = comp.long_name
+    if (types.includes("route")) route = comp.long_name
+    if (types.includes("subpremise")) subpremise = comp.long_name
+    if (types.includes("premise")) premise = comp.long_name
+    if (types.includes("sublocality_level_1")) sublocality1 = comp.long_name
+    if (types.includes("sublocality_level_2")) sublocality2 = comp.long_name
+    if (types.includes("locality")) locality = comp.long_name
+    if (types.includes("administrative_area_level_1")) administrativeArea1 = comp.long_name
+    if (types.includes("country")) country = comp.long_name
+    if (types.includes("postal_code")) postalCode = comp.long_name
+  })
+
+  const streetParts = [streetNumber, subpremise, premise, route].filter(Boolean)
+  const street = streetParts.join(", ")
+
+  const area = sublocality1 || sublocality2 || ""
+  const city = locality || "Unknown City"
+  const state = administrativeArea1 || ""
+
+  return {
+    area: area || city,
+    city: city,
+    state: state,
+    country: country,
+    postalCode: postalCode,
+    street: street || displayName.split(",")[0] || "",
+    address: displayName,
+    formattedAddress: displayName,
+  }
+}
+
+const buildNominatimAddress = (data, latitude, longitude) => {
+  if (!data || !data.address) return null
+  const addr = data.address
+  const displayName = data.display_name || ""
+
+  // Extract meaningful street/area info
+  const streetParts = [
+    addr.road,
+    addr.house_number,
+    addr.building,
+  ].filter(Boolean)
+  const street = streetParts.join(", ")
+
+  const area = addr.suburb || addr.neighbourhood || addr.city_district || addr.residential || ""
+  const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || ""
+  const state = addr.state || ""
+  const postcode = addr.postcode || ""
+
+  return {
+    area: area || city || "",
+    city: city || "Unknown City",
+    state,
+    country: addr.country || "",
+    postalCode: postcode,
+    street: street || displayName.split(",")[0] || "",
+    address: displayName,
+    formattedAddress: displayName,
+  }
+}
+
 const reverseGeocodeDirect = async (latitude, longitude, forceFresh = false) => {
   const now = Date.now()
   const movedMeters = geoDistanceMeters(
@@ -162,28 +242,85 @@ const reverseGeocodeDirect = async (latitude, longitude, forceFresh = false) => 
   globalReverseGeocodeLastCoords = { latitude, longitude }
 
   const run = (async () => {
+    // 1. Try Google Geocoding REST API if the API key is available
+    const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    if (googleApiKey) {
+      try {
+        const controller = new AbortController()
+        const abortTimeout = setTimeout(() => controller.abort(), 4000) // 4s timeout for Google
+
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${googleApiKey}&language=en`
+        const res = await fetch(url, { signal: controller.signal })
+        clearTimeout(abortTimeout)
+
+        if (res.ok) {
+          const data = await res.json()
+          if (data.status === "OK" && data.results && data.results[0]) {
+            const parsed = buildGoogleAddress(data, latitude, longitude)
+            if (parsed && parsed.address && parsed.address.trim() !== "") {
+              globalReverseGeocodeLastSuccess = parsed
+              return parsed
+            }
+          } else {
+            debugWarn("Google Geocoding API returned status:", data.status)
+          }
+        }
+      } catch (googleErr) {
+        debugWarn("Google Geocoding failed, falling back to Nominatim:", googleErr.message)
+      }
+    }
+
+    // 2. Try Nominatim as a fallback for detailed street-level data
     try {
       const controller = new AbortController()
-      setTimeout(() => controller.abort(), 3000) // Faster timeout
+      const abortTimeout = setTimeout(() => controller.abort(), 4000) // 4s timeout for Nominatim
+
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "Accept-Language": "en",
+          "User-Agent": "AppZeto-Food-App"
+        }
+      })
+
+      clearTimeout(abortTimeout)
+
+      if (res.ok) {
+        const data = await res.json()
+        const parsed = buildNominatimAddress(data, latitude, longitude)
+        if (parsed && parsed.address && parsed.address.trim() !== "") {
+          globalReverseGeocodeLastSuccess = parsed
+          return parsed
+        }
+      }
+    } catch (nominatimErr) {
+      debugWarn("Nominatim reverse geocode failed, falling back to BigDataCloud:", nominatimErr.message)
+    }
+
+    // 3. Fallback to BigDataCloud (using new api-bdc.io endpoint)
+    try {
+      const controller = new AbortController()
+      const abortTimeout = setTimeout(() => controller.abort(), 3000) // Faster timeout for fallback
 
       const res = await fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+        `https://api-bdc.io/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
         { signal: controller.signal }
       )
 
+      clearTimeout(abortTimeout)
+
       const data = await res.json()
-
       const value = buildBigDataCloudAddress(data, latitude, longitude)
-
       globalReverseGeocodeLastSuccess = value
       return value
-    } catch {
+    } catch (bdcErr) {
+      debugError("Fallback BigDataCloud geocoding failed too:", bdcErr.message)
       const fallback = {
         city: "Current Location",
         address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
         formattedAddress: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
       }
-      // Don't cache failures as "success" (keeps retries possible), but still return something usable.
       return fallback
     } finally {
       globalReverseGeocodeInFlight = null
@@ -1718,6 +1855,7 @@ export function useLocation() {
     requestLocation,
     startWatchingLocation,
     stopWatchingLocation,
+    reverseGeocode: (lat, lng, _options = {}) => reverseGeocodeDirect(lat, lng, _options?.forceFresh || false),
   }
 }
 

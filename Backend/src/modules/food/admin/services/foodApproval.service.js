@@ -101,13 +101,13 @@ export async function listPendingFoodApprovals(query = {}) {
     return { requests: allRequests, page, limit, total: allRequests.length };
 }
 
-export async function approveFoodItem(id) {
+export async function approveFoodItem(id, performer = null) {
     if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
         throw new ValidationError('Invalid food id');
     }
     const updated = await FoodItem.findOneAndUpdate(
         { _id: id, approvalStatus: 'pending' },
-        { $set: { approvalStatus: 'approved', approvedAt: new Date(), rejectedAt: null, rejectionReason: '' } },
+        { $set: { approvalStatus: 'approved', approvedAt: new Date(), rejectedAt: null, rejectionReason: '', approvedBy: performer } },
         { new: true }
     ).lean();
     if (updated?.restaurantId) {
@@ -136,7 +136,7 @@ export async function approveFoodItem(id) {
     return updated;
 }
 
-export async function rejectFoodItem(id, reason) {
+export async function rejectFoodItem(id, reason, performer = null) {
     if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
         throw new ValidationError('Invalid food id');
     }
@@ -146,7 +146,7 @@ export async function rejectFoodItem(id, reason) {
 
     const updated = await FoodItem.findOneAndUpdate(
         { _id: id, approvalStatus: 'pending' },
-        { $set: { approvalStatus: 'rejected', rejectedAt: new Date(), rejectionReason: r, approvedAt: null } },
+        { $set: { approvalStatus: 'rejected', rejectedAt: new Date(), rejectionReason: r, approvedAt: null, rejectedBy: performer } },
         { new: true }
     ).lean();
     if (updated?.restaurantId) {

@@ -1,8 +1,11 @@
-import { Suspense, lazy } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import AdminLayout from "./AdminLayout";
 import Loader from "@food/components/Loader";
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { getDefaultAdminLandingPath, resolveAdminPermissionsForUser } from "@food/utils/adminPermissions";
 
 const AdminHome = lazy(() => import("@food/pages/admin/AdminHome"));
 const PointOfSale = lazy(() => import("@food/pages/admin/PointOfSale"));
@@ -137,6 +140,50 @@ const QuickCommerceAdminRoutes = lazy(() => import("@/modules/quickCommerce/admi
 const GlobalApplicationSettings = lazy(() => import("@/modules/common/admin/pages/GlobalApplicationSettings"));
 const ModuleManagement = lazy(() => import("@/modules/common/admin/pages/ModuleManagement"));
 
+function FoodAdminIndex() {
+  const { user: authUser } = useAuth();
+  const user = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+  const [landingPath, setLandingPath] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolveLandingPath = async () => {
+      if (!user) {
+        if (isMounted) setLandingPath("/admin/login");
+        return;
+      }
+
+      if (user.role === "ADMIN") {
+        if (isMounted) setLandingPath("/admin/food/dashboard");
+        return;
+      }
+
+      const resolvedPermissions = await resolveAdminPermissionsForUser(user);
+      const nextPath = getDefaultAdminLandingPath(user, resolvedPermissions);
+
+      if (isMounted) {
+        setLandingPath(nextPath === "/admin/food" ? "/admin/login" : nextPath);
+      }
+    };
+
+    resolveLandingPath();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  if (!landingPath) {
+    return <Loader />;
+  }
+
+  if (landingPath === "/admin/food/dashboard") {
+    return <AdminHome />;
+  }
+
+  return <Navigate to={landingPath} replace />;
+}
+
 
 
 export default function AdminRouter() {
@@ -177,7 +224,7 @@ export default function AdminRouter() {
 
           {/* FOOD ADMIN - All food related routes nested here */}
           <Route path="food/*">
-            <Route index element={<AdminHome />} />
+            <Route index element={<FoodAdminIndex />} />
             <Route path="point-of-sale" element={<PointOfSale />} />
             <Route path="profile" element={<AdminProfile />} />
             <Route path="settings" element={<AdminSettings />} />
@@ -285,6 +332,7 @@ export default function AdminRouter() {
             <Route path="employee-role/edit/:id" element={<CreateRole />} />
             <Route path="employees" element={<EmployeeList />} />
             <Route path="employees/add" element={<AddEmployee />} />
+            <Route path="employees/edit/:id" element={<AddEmployee />} />
 
             {/* SYSTEM & BUSINESS SETTINGS */}
             <Route path="email-template" element={<EmailTemplate />} />

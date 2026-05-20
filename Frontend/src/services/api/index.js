@@ -207,7 +207,8 @@ export const notificationAPI = {
 export const adminAPI = {
   getSidebarBadges: () =>
     apiClient.get("/food/admin/sidebar-badges", { contextModule: "admin" }),
-  login: (email, password) => authService.adminLogin(email, password),
+  getPublicRoles: () => apiClient.get("/auth/admin/roles"),
+  login: (email, password, roleId) => authService.adminLogin(email, password, roleId),
   /** POST /auth/admin/forgot-password/request-otp – only accepts registered admin email */
   requestForgotPasswordOtp: (email) =>
     apiClient.post("/auth/admin/forgot-password/request-otp", {
@@ -654,6 +655,20 @@ export const adminAPI = {
     }),
   deleteSubscriptionPlan: (id) =>
     apiClient.delete(`/food/admin/subscription-plans/${id}`, {
+      contextModule: "admin",
+    }),
+  getSubscriptionOverview: () =>
+    apiClient.get("/food/admin/subscription/overview", {
+      contextModule: "admin",
+    }),
+  getSubscriptionHistory: (params, config = {}) =>
+    apiClient.get("/food/admin/subscription/history", {
+      params,
+      contextModule: "admin",
+      ...config,
+    }),
+  getSubscriptionAnalytics: () =>
+    apiClient.get("/food/admin/subscription/analytics", {
       contextModule: "admin",
     }),
 

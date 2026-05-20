@@ -52,6 +52,13 @@ export function verifyPaymentSignature(orderId, paymentId, signature) {
     return expected === signature;
 }
 
+export function verifySubscriptionSignature(subscriptionId, paymentId, signature) {
+    if (!KEY_SECRET) return false;
+    const body = `${paymentId}|${subscriptionId}`;
+    const expected = crypto.createHmac('sha256', KEY_SECRET).update(body).digest('hex');
+    return expected === signature;
+}
+
 /**
  * Fetch Razorpay payment (server-side) for additional validation (amount/status/order match).
  * @param {string} paymentId

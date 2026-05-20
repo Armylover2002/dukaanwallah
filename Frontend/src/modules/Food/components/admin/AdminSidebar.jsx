@@ -79,6 +79,9 @@ import {
   updateBrowserFavicon
 } from "@common/utils/businessSettings"
 import { adminAPI } from "@food/api"
+import { getCurrentUser } from "@food/utils/auth"
+import { useAuth } from "@core/context/AuthContext"
+import { extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions, getFirstAccessibleAdminPath, hasAnyRootAccess } from "@food/utils/adminPermissions"
 
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -348,12 +351,55 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
   const isCommonAdmin = location.pathname.startsWith("/admin/global-settings")
 
+  const { user: authUser } = useAuth()
+  const user = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!user || user.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(user)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(user)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+
   const activeMenuData = useMemo(() => {
     let menu = adminSidebarMenu
-    if (isQuickAdmin) menu = quickAdminSidebarMenu
-
-
-    else if (isCommonAdmin) menu = commonAdminSidebarMenu
+    let rootKey = "food"
+    if (isQuickAdmin) {
+      menu = quickAdminSidebarMenu
+      rootKey = "quick"
+    } else if (isCommonAdmin) {
+      menu = commonAdminSidebarMenu
+      rootKey = "global"
+    }
 
     // Special case for the "Module Switcher" or shared links if they exist
     // But since we are filtering the WHOLE menu based on the active admin context:
@@ -361,8 +407,45 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
     if (!isQuickAdmin && !isCommonAdmin && !enabledModules.food) return []
 
+    // Filter by permissions if employee
+    if (user && user.role !== "ADMIN") {
+      const permissions = resolvedPermissions;
+      const filterMenuByPermissions = (menuList, parentKey) => {
+        return menuList
+          .map((item) => {
+            if (!item.permissionKey) return null;
+            const currentKey = `${parentKey}::${item.permissionKey}`;
+            const hasView = permissions[currentKey]?.view === true;
+
+            if (item.type === "link" && item.permissionKey === "dashboard") {
+              return null;
+            }
+
+            if (item.type === "section" && item.items) {
+              if (!hasView) return null;
+              const filteredItems = filterMenuByPermissions(item.items, currentKey);
+              if (filteredItems.length === 0) return null;
+              return { ...item, items: filteredItems };
+            }
+
+            if (item.type === "expandable" && item.subItems) {
+              if (!hasView) return null;
+              const filteredSubItems = filterMenuByPermissions(item.subItems, currentKey);
+              if (filteredSubItems.length === 0) return null;
+              return { ...item, subItems: filteredSubItems };
+            }
+
+            if (!hasView) return null;
+
+            return item;
+          })
+          .filter(Boolean);
+      };
+      return filterMenuByPermissions(menu, rootKey);
+    }
+
     return menu
-  }, [isQuickAdmin, isCommonAdmin, enabledModules])
+  }, [isQuickAdmin, isCommonAdmin, enabledModules, resolvedPermissions, user])
 
   // Ensure expandable keys exist for whichever admin module is active (food/quick)
   useEffect(() => {
@@ -378,14 +461,30 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     })
   }, [activeMenuData])
 
+  const canAccessFoodModule = user?.role === "ADMIN" || hasAnyRootAccess(resolvedPermissions, "food")
+  const canAccessQuickModule = user?.role === "ADMIN" || hasAnyRootAccess(resolvedPermissions, "quick")
+  const canAccessGlobalModule = user?.role === "ADMIN" || hasAnyRootAccess(resolvedPermissions, "global")
+
   const switchAdminModule = (target) => {
     if (target === "quick") {
-      navigate("/admin/quick-commerce")
+      const targetPath =
+        user?.role === "ADMIN"
+          ? "/admin/quick-commerce"
+          : getFirstAccessibleAdminPath(quickAdminSidebarMenu, resolvedPermissions, "quick") || "/admin/quick-commerce"
+      navigate(targetPath)
 
     } else if (target === "common") {
-      navigate("/admin/global-settings")
+      const targetPath =
+        user?.role === "ADMIN"
+          ? "/admin/global-settings"
+          : getFirstAccessibleAdminPath(commonAdminSidebarMenu, resolvedPermissions, "global") || "/admin/global-settings"
+      navigate(targetPath)
     } else {
-      navigate("/admin/food")
+      const targetPath =
+        user?.role === "ADMIN"
+          ? "/admin/food"
+          : getFirstAccessibleAdminPath(adminSidebarMenu, resolvedPermissions, "food") || "/admin/food"
+      navigate(targetPath)
     }
     if (window.innerWidth < 1024 && onClose) {
       onClose()
@@ -826,7 +925,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
               </h2>
               <div className="mt-2 rounded-xl border border-neutral-800 bg-neutral-900/80 p-1">
                 <div className="grid grid-cols-2 gap-1">
-                  {enabledModules.food && (
+                  {enabledModules.food && canAccessFoodModule && (
                     <button
                       key="food-module-btn"
                       type="button"
@@ -841,7 +940,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                       Food
                     </button>
                   )}
-                  {enabledModules.quickCommerce && (
+                  {enabledModules.quickCommerce && canAccessQuickModule && (
                     <button
                       key="quick-module-btn"
                       type="button"
@@ -857,20 +956,21 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                     </button>
                   )}
 
-
-                  <button
-                    key="global-settings-btn"
-                    type="button"
-                    onClick={() => switchAdminModule("common")}
-                    className={cn(
-                      "rounded-lg px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-all col-span-2",
-                      isCommonAdmin
-                        ? "bg-violet-600 text-white shadow-[0_6px_20px_rgba(124,58,237,0.35)]"
-                        : "text-neutral-400 hover:text-white"
-                    )}
-                  >
-                    Global Settings
-                  </button>
+                  {canAccessGlobalModule && (
+                    <button
+                      key="global-settings-btn"
+                      type="button"
+                      onClick={() => switchAdminModule("common")}
+                      className={cn(
+                        "rounded-lg px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-all col-span-2",
+                        isCommonAdmin
+                          ? "bg-violet-600 text-white shadow-[0_6px_20px_rgba(124,58,237,0.35)]"
+                          : "text-neutral-400 hover:text-white"
+                      )}
+                    >
+                      Global Settings
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

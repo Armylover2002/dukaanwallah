@@ -5,6 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/componen
 import { exportBonusToExcel, exportBonusToPDF } from "@food/components/admin/deliveryman/deliverymanExportUtils"
 import { adminAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -21,7 +24,7 @@ const formatBonusAmount = (transaction) => {
   
   // Clean the bonus string - remove superscript characters
   let cleaned = transaction.bonus.toString()
-    .replace(/น/g, '') // Remove superscript 1
+    .replace(/ยน/g, '') // Remove superscript 1
     .replace(/[\u2070-\u207F\u2080-\u208F]/g, '') // Remove all superscript characters
     .trim()
   
@@ -36,6 +39,50 @@ const formatBonusAmount = (transaction) => {
 }
 
 export default function DeliverymanBonus() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canCreate = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::deliveryman_management::deliveryman::bonus", "create")
+  }, [currentUser, resolvedPermissions])
+
   const [formData, setFormData] = useState({
     deliveryPartnerId: "",
     amount: "",
@@ -140,6 +187,10 @@ export default function DeliverymanBonus() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!canCreate) {
+      setError("Permission denied")
+      return
+    }
     if (!validateForm()) return
     
     setSubmitting(true)
@@ -306,7 +357,7 @@ export default function DeliverymanBonus() {
                   className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
                     formErrors.deliveryPartnerId ? "border-red-500" : "border-slate-300"
                   }`}
-                  disabled={submitting}
+                  disabled={submitting || !canCreate}
                 >
                   <option value="">Select Delivery Man</option>
                   {deliveryPartners.map((partner) => (
@@ -331,7 +382,7 @@ export default function DeliverymanBonus() {
                   className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
                     formErrors.amount ? "border-red-500" : "border-slate-300"
                   }`}
-                  disabled={submitting}
+                  disabled={submitting || !canCreate}
                 />
                 {formErrors.amount && <p className="text-xs text-red-500 mt-1">{formErrors.amount}</p>}
               </div>
@@ -348,18 +399,20 @@ export default function DeliverymanBonus() {
                 type="button"
                 onClick={handleReset}
                 className="px-6 py-2.5 text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={submitting}
+                disabled={submitting || !canCreate}
               >
                 Reset
               </button>
-              <button
-                type="submit"
-                className="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                disabled={submitting}
-              >
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {submitting ? "Submitting..." : "Submit"}
-              </button>
+              {canCreate && (
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  disabled={submitting}
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {submitting ? "Submitting..." : "Submit"}
+                </button>
+              )}
             </div>
           </form>
         </div>

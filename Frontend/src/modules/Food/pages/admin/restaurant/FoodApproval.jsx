@@ -11,12 +11,59 @@ import {
 } from "@food/components/ui/dialog"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function FoodApproval() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::food_approval", "edit")
+  }, [currentUser, resolvedPermissions])
+
   const [foodRequests, setFoodRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -102,6 +149,10 @@ export default function FoodApproval() {
 
   // Handle approve food item or addon
   const handleApprove = async (request) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!request?.isActionable) return
     try {
       setProcessing(true)
@@ -128,6 +179,10 @@ export default function FoodApproval() {
 
   // Handle reject food item or addon
   const handleReject = async () => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!selectedRequest?.isActionable) {
       setShowRejectModal(false)
       return
@@ -170,6 +225,10 @@ export default function FoodApproval() {
 
   // Open reject modal
   const handleRejectClick = (request) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!request?.isActionable) return
     setSelectedRequest(request)
     setShowRejectModal(true)
@@ -313,22 +372,26 @@ export default function FoodApproval() {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <button
-                                onClick={() => handleApprove(request)}
-                                disabled={processing || !request.isActionable}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Approve"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleRejectClick(request)}
-                                disabled={processing || !request.isActionable}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Reject"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
+                              {canEdit && (
+                                <>
+                                  <button
+                                    onClick={() => handleApprove(request)}
+                                    disabled={processing || !request.isActionable}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Approve"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectClick(request)}
+                                    disabled={processing || !request.isActionable}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Reject"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -477,12 +540,13 @@ export default function FoodApproval() {
             >
               Close
             </button>
-            {selectedRequest?.isActionable && (
+            {selectedRequest?.isActionable && canEdit && (
               <>
                 <button
                   type="button"
                   onClick={() => handleRejectClick(selectedRequest)}
-                  className="px-6 py-2 text-sm font-semibold text-white bg-red-500 rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-all active:scale-95"
+                  disabled={processing || !canEdit}
+                  className="px-6 py-2 text-sm font-semibold text-white bg-red-500 rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Reject
                 </button>
@@ -526,6 +590,7 @@ export default function FoodApproval() {
                   required
                   rows={4}
                   className="w-full rounded-xl border border-gray-200 bg-slate-50 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                  disabled={processing || !canEdit}
                 />
               </div>
             </div>
@@ -540,7 +605,7 @@ export default function FoodApproval() {
               <button
                 type="button"
                 onClick={handleReject}
-                disabled={processing || !rejectReason.trim()}
+                disabled={processing || !rejectReason.trim() || !canEdit}
                 className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50"
               >
                 {processing ? "Processing..." : "Confirm Rejection"}

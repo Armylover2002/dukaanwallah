@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { actionPerformerSchema } from '../../../../core/models/actionPerformer.schema.js';
 
 const normalizeRatingValue = (value) => {
     const numeric = Number(value);
@@ -87,6 +88,8 @@ const deliveryPartnerSchema = new mongoose.Schema(
         rejectionReason: { type: String },
         rejectedAt: { type: Date },
         approvedAt: { type: Date },
+        approvedBy: { type: actionPerformerSchema, default: null },
+        rejectedBy: { type: actionPerformerSchema, default: null },
         bankAccountHolderName: { type: String },
         bankAccountNumber: { type: String },
         bankIfscCode: { type: String },

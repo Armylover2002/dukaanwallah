@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Search, PiggyBank, Loader2, Package } from "lucide-react"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -13,6 +16,50 @@ const formatCurrency = (amount) => {
 }
 
 export default function DeliveryBoyWallet() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::deliveryman_management::wallet", "edit")
+  }, [currentUser, resolvedPermissions])
+
   const [wallets, setWallets] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -80,6 +127,11 @@ export default function DeliveryBoyWallet() {
           <p className="text-sm text-slate-600 mt-1">
             View each delivery boy&apos;s wallet details: name, ID, remaining cash limit, pocket balance, cash collected, total earning, bonus, total withdrawal, cash in hand.
           </p>
+          {!canEdit && currentUser?.role !== "ADMIN" ? (
+            <p className="text-xs text-slate-500 mt-3">
+              Wallet adjustment controls are unavailable for your role on this screen.
+            </p>
+          ) : null}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

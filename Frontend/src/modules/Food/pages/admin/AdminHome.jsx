@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@food/components/ui/card"
 import {
@@ -25,6 +25,9 @@ import {
 } from "recharts"
 import { Activity, ArrowUpRight, ShoppingBag, CreditCard, Truck, Receipt, DollarSign, Store, UserCheck, Package, UserCircle, Clock, CheckCircle, Plus, XCircle } from "lucide-react"
 import { adminAPI } from "@food/api"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canAccessAdminPath, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = () => {}
 const debugError = () => {}
 
@@ -39,11 +42,66 @@ function formatCurrency(amount, options = {}) {
 
 export default function AdminHome() {
   const navigate = useNavigate()
+  const { user: authUser } = useAuth()
+  const user = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
   const [selectedZone, setSelectedZone] = useState("all")
   const [selectedPeriod, setSelectedPeriod] = useState("overall")
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState(null)
   const [zones, setZones] = useState([])
+  const [subOverview, setSubOverview] = useState(null)
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!user || user.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(user)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(user)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+
+  const canAccessPath = (path) => canAccessAdminPath(user, resolvedPermissions, path)
+
+  useEffect(() => {
+    const fetchSubOverview = async () => {
+      try {
+        const response = await adminAPI.getSubscriptionOverview()
+        if (response.data?.success && response.data?.data) {
+          setSubOverview(response.data.data)
+        }
+      } catch (err) {
+        // debugError
+      }
+    }
+    fetchSubOverview()
+  }, [])
 
   // Fetch zone list for filter
   useEffect(() => {
@@ -341,6 +399,61 @@ export default function AdminHome() {
             />
           </div>
 
+          {/* Subscription Operations Section */}
+          <div className="pt-4 border-t border-neutral-200/60 mt-6">
+            <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4">Subscription Operations Command</h3>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <MetricCard
+                title="Total revenue"
+                value={formatCurrency(subOverview?.totalRevenue || 0)}
+                helper="Gross collected all-time"
+                icon={<DollarSign className="h-5 w-5 text-[#FE5502]" />}
+                accent="bg-orange-100/40"
+                path="/admin/food/subscriptions?source=revenue"
+              />
+              <MetricCard
+                title="Active paid users"
+                value={`${subOverview?.activeSubscribers?.total || 0} (${subOverview?.activeSubscribers?.restaurants || 0} R / ${subOverview?.activeSubscribers?.deliveryPartners || 0} D)`}
+                helper="Active subscription plans"
+                icon={<Activity className="h-5 w-5 text-blue-600" />}
+                accent="bg-blue-100/40"
+                path="/admin/food/subscriptions?status=active"
+              />
+              <MetricCard
+                title="Daily pass count"
+                value={(subOverview?.oneDayPassCount || 0).toLocaleString("en-IN")}
+                helper="One day passes activated"
+                icon={<Truck className="h-5 w-5 text-purple-600" />}
+                accent="bg-purple-100/40"
+                path="/admin/food/subscriptions?type=DAILY_DEDUCTION"
+              />
+              <MetricCard
+                title="Recharge revenue"
+                value={formatCurrency(subOverview?.walletRechargeRevenue || 0)}
+                helper="Wallet topup volume"
+                icon={<CreditCard className="h-5 w-5 text-emerald-600" />}
+                accent="bg-emerald-100/40"
+                path="/admin/food/subscriptions?type=TOPUP"
+              />
+              <MetricCard
+                title="Recurring plans"
+                value={formatCurrency(subOverview?.recurringPlanRevenue || 0)}
+                helper="Weekly & Monthly direct plans"
+                icon={<Package className="h-5 w-5 text-indigo-600" />}
+                accent="bg-indigo-100/40"
+                path="/admin/food/subscriptions?type=WEEKLY_SUBSCRIPTION"
+              />
+              <MetricCard
+                title="Expiring soon"
+                value={(subOverview?.expiringSoon || 0).toLocaleString("en-IN")}
+                helper="Plans expiring within 3 days"
+                icon={<Clock className="h-5 w-5 text-amber-600" />}
+                accent="bg-amber-100/40"
+                path="/admin/food/subscriptions?status=expiring"
+              />
+            </div>
+          </div>
+
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2 min-w-0 border-neutral-200 bg-white">
               <CardHeader className="flex flex-col gap-2 border-b border-neutral-200 pb-4">
@@ -595,7 +708,50 @@ export default function AdminHome() {
 }
 
 function MetricCard({ title, value, helper, icon, accent, path }) {
+  const { user: authUser } = useAuth()
+  const user = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
   const navigate = useNavigate()
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!user || user.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(user)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(user)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+
+  if (path && !canAccessAdminPath(user, resolvedPermissions, path)) {
+    return null
+  }
+
   return (
     <Card
       className="group relative overflow-hidden border-neutral-200 bg-white p-0 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98]"

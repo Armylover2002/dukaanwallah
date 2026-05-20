@@ -31,6 +31,14 @@ const adminSchema = new mongoose.Schema(
             type: String,
             default: 'ADMIN'
         },
+        adminRoleId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'AdminRole'
+        },
+        zoneId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'FoodZone'
+        },
         isActive: {
             type: Boolean,
             default: true

@@ -16,6 +16,9 @@ import {
 import { adminAPI, uploadAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
@@ -52,6 +55,58 @@ const zoneLabel = (zone) => {
 }
 
 export default function Category() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canCreate = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::categories::list", "create")
+  }, [currentUser, resolvedPermissions])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::categories::list", "edit")
+  }, [currentUser, resolvedPermissions])
+
+  const canDelete = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::categories::list", "delete")
+  }, [currentUser, resolvedPermissions])
+
   const [searchQuery, setSearchQuery] = useState("")
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -160,6 +215,10 @@ export default function Category() {
   }
 
   const handleAddNew = () => {
+    if (!canCreate) {
+      toast.error("Permission denied")
+      return
+    }
     setEditingCategory(null)
     setFormData(defaultFormData)
     setSelectedImageFile(null)
@@ -168,6 +227,10 @@ export default function Category() {
   }
 
   const handleEdit = (category) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     setEditingCategory(category)
     const zoneIdValue =
       typeof category?.zoneId === "string"
@@ -210,6 +273,10 @@ export default function Category() {
   }
 
   const handleToggleStatus = async (id) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     try {
       const response = await adminAPI.toggleCategoryStatus(String(id))
       if (response?.data?.success) {
@@ -222,6 +289,10 @@ export default function Category() {
   }
 
   const handleApprove = async (id) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     try {
       const response = await adminAPI.approveCategory(String(id))
       if (response?.data?.success) {
@@ -234,6 +305,10 @@ export default function Category() {
   }
 
   const handleReject = async (category) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     const reason = window.prompt(`Reject "${category?.name}" with a reason:`)
     if (reason == null) return
     if (!String(reason).trim()) {
@@ -253,6 +328,10 @@ export default function Category() {
   }
 
   const handleMakeGlobal = async (category) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!window.confirm(`Make "${category?.name}" global for every restaurant?`)) return
 
     try {
@@ -267,6 +346,10 @@ export default function Category() {
   }
 
   const handleDelete = async (id) => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     const categoryName = categories.find((category) => String(category?.id) === String(id))?.name || "this category"
     if (!window.confirm(`Delete "${categoryName}"? This action cannot be undone.`)) return
 
@@ -326,6 +409,14 @@ export default function Category() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (editingCategory && !canEdit) {
+      toast.error("Permission denied")
+      return
+    }
+    if (!editingCategory && !canCreate) {
+      toast.error("Permission denied")
+      return
+    }
 
     try {
       setUploadingImage(true)
@@ -417,13 +508,15 @@ export default function Category() {
               Export
             </button>
 
-            <button
-              onClick={handleAddNew}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white"
-            >
-              <Plus className="h-4 w-4" />
-              Add Category
-            </button>
+            {canCreate && (
+              <button
+                onClick={handleAddNew}
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white"
+              >
+                <Plus className="h-4 w-4" />
+                Add Category
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -516,7 +609,8 @@ export default function Category() {
                       <td className="px-4 py-5 text-center">
                         <button
                           onClick={() => handleToggleStatus(category.id)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full ${category?.status ? "bg-blue-600" : "bg-slate-300"}`}
+                          disabled={!canEdit}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full ${category?.status ? "bg-blue-600" : "bg-slate-300"} ${!canEdit ? "opacity-50 cursor-not-allowed" : ""}`}
                           title={category?.status ? "Deactivate" : "Activate"}
                         >
                           <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${category?.status ? "translate-x-6" : "translate-x-1"}`} />
@@ -536,7 +630,7 @@ export default function Category() {
                       <td className="px-5 py-5">
                         <div className="flex flex-col items-end gap-2">
                           <div className="flex flex-wrap justify-end gap-2">
-                            {approvalStatus !== "approved" && (
+                            {canEdit && approvalStatus !== "approved" && (
                               <button
                                 onClick={() => handleApprove(category.id)}
                                 className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
@@ -544,7 +638,7 @@ export default function Category() {
                                 Approve
                               </button>
                             )}
-                            {isRestaurantCategory && approvalStatus !== "rejected" && (
+                            {canEdit && isRestaurantCategory && approvalStatus !== "rejected" && (
                               <button
                                 onClick={() => handleReject(category)}
                                 className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
@@ -552,7 +646,7 @@ export default function Category() {
                                 Reject
                               </button>
                             )}
-                            {isRestaurantCategory && !category?.isGlobal && approvalStatus === "approved" && (
+                            {canEdit && isRestaurantCategory && !category?.isGlobal && approvalStatus === "approved" && (
                               <button
                                 onClick={() => handleMakeGlobal(category)}
                                 className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
@@ -562,20 +656,24 @@ export default function Category() {
                             )}
                           </div>
                           <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => handleEdit(category)}
-                              className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
-                              title="Edit"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(category.id)}
-                              className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {canEdit && (
+                              <button
+                                onClick={() => handleEdit(category)}
+                                className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
+                                title="Edit"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDelete(category.id)}
+                                className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </td>

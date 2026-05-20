@@ -1,5 +1,6 @@
 import { AdminRole } from '../../../../core/admin/role.model.js';
 import { sendResponse, sendError } from '../../../../utils/response.js';
+import { invalidateRoleCache } from '../../../../core/auth/auth.middleware.js';
 
 /**
  * Get all roles
@@ -7,7 +8,7 @@ import { sendResponse, sendError } from '../../../../utils/response.js';
 export const getRoles = async (req, res) => {
     try {
         const roles = await AdminRole.find().sort({ createdAt: -1 });
-        return sendResponse(res, 200, roles);
+        return sendResponse(res, 200, 'Roles fetched successfully', roles);
     } catch (error) {
         return sendError(res, 500, error.message);
     }
@@ -20,7 +21,7 @@ export const getRoleById = async (req, res) => {
     try {
         const role = await AdminRole.findById(req.params.id);
         if (!role) return sendError(res, 404, 'Role not found');
-        return sendResponse(res, 200, role);
+        return sendResponse(res, 200, 'Role fetched successfully', role);
     } catch (error) {
         return sendError(res, 500, error.message);
     }
@@ -47,7 +48,7 @@ export const createRole = async (req, res) => {
         });
 
         await newRole.save();
-        return sendResponse(res, 201, newRole, 'Role created successfully');
+        return sendResponse(res, 201, 'Role created successfully', newRole);
     } catch (error) {
         return sendError(res, 500, error.message);
     }
@@ -86,7 +87,8 @@ export const updateRole = async (req, res) => {
         role.status = status || role.status;
 
         await role.save();
-        return sendResponse(res, 200, role, 'Role updated successfully');
+        invalidateRoleCache(roleId);
+        return sendResponse(res, 200, 'Role updated successfully', role);
     } catch (error) {
         return sendError(res, 500, error.message);
     }
@@ -106,8 +108,9 @@ export const toggleRoleStatus = async (req, res) => {
 
         role.status = role.status === 'active' ? 'inactive' : 'active';
         await role.save();
+        invalidateRoleCache(req.params.id);
 
-        return sendResponse(res, 200, role, `Role ${role.status === 'active' ? 'activated' : 'deactivated'} successfully`);
+        return sendResponse(res, 200, `Role ${role.status === 'active' ? 'activated' : 'deactivated'} successfully`, role);
     } catch (error) {
         return sendError(res, 500, error.message);
     }

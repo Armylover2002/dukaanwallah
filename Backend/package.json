@@ -17,7 +17,6 @@
     "migrate:order-payments": "node scripts/migrate-orders-to-transactions.js",
     "migrate:global-auth": "node scripts/migrate-global-auth-collections.js",
     "migrate:seller-quick-shared": "node scripts/migrate-seller-quick-commerce-to-shared.js",
-
     "cleanup:legacy-collections": "node scripts/cleanup-legacy-collections.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -54,6 +53,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "nodemon": "^3.1.2"
+    "nodemon": "^3.1.2",
+    "playwright": "^1.60.0"
   }
 }

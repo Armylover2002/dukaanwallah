@@ -2868,7 +2868,7 @@ export async function updateRestaurantAddonAdmin(addonId, body) {
     return addon.toObject();
 }
 
-export async function approveRestaurantAddon(addonId) {
+export async function approveRestaurantAddon(addonId, performer = null) {
     if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) return null;
     const _id = new mongoose.Types.ObjectId(String(addonId));
 
@@ -2882,7 +2882,8 @@ export async function approveRestaurantAddon(addonId) {
                     approvalStatus: 'approved',
                     approvedAt: '$$NOW',
                     rejectedAt: null,
-                    rejectionReason: ''
+                    rejectionReason: '',
+                    approvedBy: performer
                 }
             }
         ],
@@ -2895,7 +2896,7 @@ export async function approveRestaurantAddon(addonId) {
             await notifyOwnersSafely(
                 [{ ownerType: 'RESTAURANT', ownerId: updated.restaurantId }],
                 {
-                    title: 'Addon Approved! âœ…',
+                    title: 'Addon Approved! ✅',
                     body: `Your addon "${updated.published?.name || 'New Addon'}" has been approved and is now live.`,
                     image: 'https://i.ibb.co/3m2Yh7r/Appzeto-Brand-Image.png',
                     data: {
@@ -2913,7 +2914,7 @@ export async function approveRestaurantAddon(addonId) {
     return updated || null;
 }
 
-export async function rejectRestaurantAddon(addonId, reason) {
+export async function rejectRestaurantAddon(addonId, reason, performer = null) {
     if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) return null;
     const _id = new mongoose.Types.ObjectId(String(addonId));
     const rejectionReason = String(reason || '').trim();
@@ -2926,7 +2927,9 @@ export async function rejectRestaurantAddon(addonId, reason) {
             $set: {
                 approvalStatus: 'rejected',
                 rejectionReason,
-                rejectedAt: new Date()
+                rejectedAt: new Date(),
+                approvedAt: null,
+                rejectedBy: performer
             }
         },
         { new: true }
@@ -2993,11 +2996,11 @@ export async function getFoods(query) {
         : [];
     const restaurantMap = new Map(restaurants.map((r) => [String(r._id), r.restaurantName]));
 
-    const foods = list.map((f) => ({
-        id: f._id,
-        _id: f._id,
-        restaurantId: f.restaurantId,
-        restaurantName: restaurantMap.get(String(f.restaurantId)) || 'Unknown Restaurant',
+      const foods = list.map((f) => ({
+          id: f._id,
+          _id: f._id,
+          restaurantId: f.restaurantId,
+          restaurantName: restaurantMap.get(String(f.restaurantId)) || 'Unknown Restaurant',
         categoryId: f.categoryId || null,
         categoryName: f.categoryName || '',
         name: f.name,
@@ -3006,13 +3009,18 @@ export async function getFoods(query) {
         variants: serializeFoodVariants(f.variants),
         variations: serializeFoodVariants(f.variants),
         image: f.image || '',
-        foodType: f.foodType || 'Non-Veg',
-        isAvailable: f.isAvailable !== false,
-        preparationTime: f.preparationTime || '',
-        approvalStatus: f.approvalStatus || 'approved',
-        createdAt: f.createdAt,
-        updatedAt: f.updatedAt
-    }));
+          foodType: f.foodType || 'Non-Veg',
+          isAvailable: f.isAvailable !== false,
+          preparationTime: f.preparationTime || '',
+          approvalStatus: f.approvalStatus || 'approved',
+          rejectionReason: f.rejectionReason || '',
+          approvedAt: f.approvedAt || null,
+          rejectedAt: f.rejectedAt || null,
+          approvedBy: f.approvedBy || null,
+          rejectedBy: f.rejectedBy || null,
+          createdAt: f.createdAt,
+          updatedAt: f.updatedAt
+      }));
 
     return { foods, total, page, limit };
 }
@@ -3308,7 +3316,7 @@ export async function createRestaurantByAdmin(body) {
     return restaurant.toObject();
 }
 
-export async function approveRestaurant(id) {
+export async function approveRestaurant(id, performer = null) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const updated = await FoodRestaurant.findByIdAndUpdate(
         id,
@@ -3318,7 +3326,8 @@ export async function approveRestaurant(id) {
                 isActive: true,
                 approvedAt: new Date(),
                 rejectedAt: undefined,
-                rejectionReason: undefined
+                rejectionReason: undefined,
+                approvedBy: performer
             },
             $unset: { reVerification: "" }
         },
@@ -3399,7 +3408,7 @@ export async function approveRestaurant(id) {
     return updated;
 }
 
-export async function rejectRestaurant(id, reason) {
+export async function rejectRestaurant(id, reason, performer = null) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const updated = await FoodRestaurant.findByIdAndUpdate(
         id,
@@ -3408,7 +3417,8 @@ export async function rejectRestaurant(id, reason) {
                 status: 'rejected',
                 rejectedAt: new Date(),
                 rejectionReason: typeof reason === 'string' ? reason.trim() : undefined,
-                approvedAt: null
+                approvedAt: null,
+                rejectedBy: performer
             }
         },
         { new: true, runValidators: false }
@@ -4518,7 +4528,7 @@ export async function getDeliverymanReviews(query = {}) {
     return { reviews, total, page, limit };
 }
 
-export async function approveDeliveryPartner(id) {
+export async function approveDeliveryPartner(id, performer = null) {
     const partner = await FoodDeliveryPartner.findById(id);
     if (!partner) return null;
     partner.status = 'approved';
@@ -4526,6 +4536,7 @@ export async function approveDeliveryPartner(id) {
     partner.approvedAt = new Date();
     partner.rejectedAt = undefined;
     partner.rejectionReason = undefined;
+    partner.approvedBy = performer;
     await partner.save();
 
     try {
@@ -4604,7 +4615,7 @@ export async function approveDeliveryPartner(id) {
     return partner.toObject();
 }
 
-export async function rejectDeliveryPartner(id, reason) {
+export async function rejectDeliveryPartner(id, reason, performer = null) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const updated = await FoodDeliveryPartner.findByIdAndUpdate(
         id,
@@ -4614,7 +4625,8 @@ export async function rejectDeliveryPartner(id, reason) {
                 isActive: false,
                 rejectedAt: new Date(),
                 rejectionReason: typeof reason === 'string' ? reason.trim() : undefined,
-                approvedAt: null
+                approvedAt: null,
+                rejectedBy: performer
             }
         },
         { new: true }

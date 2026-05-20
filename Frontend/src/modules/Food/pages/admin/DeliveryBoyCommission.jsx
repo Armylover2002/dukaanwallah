@@ -4,12 +4,67 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { adminAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function DeliveryBoyCommission() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canCreate = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::deliveryman_management::commission", "create")
+  }, [currentUser, resolvedPermissions])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::deliveryman_management::commission", "edit")
+  }, [currentUser, resolvedPermissions])
+
+  const canDelete = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::deliveryman_management::commission", "delete")
+  }, [currentUser, resolvedPermissions])
+
   const [searchQuery, setSearchQuery] = useState("")
   const [commissions, setCommissions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -145,6 +200,10 @@ export default function DeliveryBoyCommission() {
   }
 
   const handleToggleStatus = async (commission) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     try {
       const newStatus = !commission.status
       await adminAPI.toggleCommissionRuleStatus(commission._id, newStatus)
@@ -159,6 +218,10 @@ export default function DeliveryBoyCommission() {
   }
 
   const handleAdd = () => {
+    if (!canCreate) {
+      toast.error("Permission denied")
+      return
+    }
     setSelectedCommission(null)
     setFormData({ name: "", minDistance: "0", maxDistance: "", maxDistanceUnlimited: false, commissionPerKm: "", basePayout: "" })
     setFormErrors({})
@@ -166,6 +229,10 @@ export default function DeliveryBoyCommission() {
   }
 
   const handleEdit = (commission) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     setSelectedCommission(commission)
     const isUnlimited = commission.maxDistance === null || commission.maxDistance === undefined
     setFormData({
@@ -181,11 +248,19 @@ export default function DeliveryBoyCommission() {
   }
 
   const handleDelete = (commission) => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     setSelectedCommission(commission)
     setIsDeleteOpen(true)
   }
 
   const confirmDelete = async () => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     if (!selectedCommission) return
     
     try {
@@ -223,6 +298,14 @@ export default function DeliveryBoyCommission() {
   }
 
   const handleSave = async () => {
+    if (selectedCommission && !canEdit) {
+      toast.error("Permission denied")
+      return
+    }
+    if (!selectedCommission && !canCreate) {
+      toast.error("Permission denied")
+      return
+    }
     if (!validateForm()) return
     
     try {
@@ -404,12 +487,14 @@ export default function DeliveryBoyCommission() {
             </div>
 
           <div className="flex items-center gap-2">
-              <button
-                onClick={handleAdd}
-                className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Add Rule
-              </button>
+              {canCreate && (
+                <button
+                  onClick={handleAdd}
+                  className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add Rule
+                </button>
+              )}
               <button 
                 onClick={() => setIsSettingsOpen(true)}
                 className="p-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all"
@@ -528,9 +613,10 @@ export default function DeliveryBoyCommission() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => handleToggleStatus(commission)}
+                            disabled={!canEdit}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                               commission.status ? "bg-blue-600" : "bg-slate-300"
-                            }`}
+                            } ${!canEdit ? "cursor-not-allowed opacity-50" : ""}`}
                           >
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -543,20 +629,24 @@ export default function DeliveryBoyCommission() {
                       {visibleColumns.actions && (
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleEdit(commission)}
-                              className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
-                              title="Edit"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(commission)}
-                              className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canEdit && (
+                              <button
+                                onClick={() => handleEdit(commission)}
+                                className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDelete(commission)}
+                                className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}
@@ -589,6 +679,7 @@ export default function DeliveryBoyCommission() {
                   formErrors.name ? "border-red-500" : "border-slate-300"
                 }`}
                 placeholder={`e.g., Base (0-${formulaMinDistance} km)`}
+                disabled={saving || (selectedCommission ? !canEdit : !canCreate)}
               />
               {formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}
             </div>
@@ -606,6 +697,7 @@ export default function DeliveryBoyCommission() {
                   formErrors.minDistance ? "border-red-500" : "border-slate-300"
                 }`}
                 placeholder="e.g., 4"
+                disabled={saving || (selectedCommission ? !canEdit : !canCreate)}
               />
               {formErrors.minDistance && <p className="text-xs text-red-500 mt-1">{formErrors.minDistance}</p>}
             </div>
@@ -625,6 +717,7 @@ export default function DeliveryBoyCommission() {
                         maxDistance: e.target.checked ? "" : formData.maxDistance,
                       })
                     }
+                    disabled={saving || (selectedCommission ? !canEdit : !canCreate)}
                   />
                   Unlimited
                 </label>
@@ -644,11 +737,11 @@ export default function DeliveryBoyCommission() {
                     maxDistance: e.target.value,
                   })
                 }
-                disabled={Boolean(formData.maxDistanceUnlimited)}
                 className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
                   formErrors.maxDistance ? "border-red-500" : "border-slate-300"
                 }`}
                 placeholder="e.g., 3 (or enable Unlimited)"
+                disabled={Boolean(formData.maxDistanceUnlimited) || saving || (selectedCommission ? !canEdit : !canCreate)}
               />
               {formErrors.maxDistance && <p className="text-xs text-red-500 mt-1">{formErrors.maxDistance}</p>}
             </div>
@@ -674,6 +767,7 @@ export default function DeliveryBoyCommission() {
                   formErrors.commissionPerKm ? "border-red-500" : "border-slate-300"
                 }`}
                 placeholder="e.g., 5"
+                disabled={saving || (selectedCommission ? !canEdit : !canCreate)}
               />
               {formErrors.commissionPerKm && <p className="text-xs text-red-500 mt-1">{formErrors.commissionPerKm}</p>}
             </div>
@@ -691,6 +785,7 @@ export default function DeliveryBoyCommission() {
                   formErrors.basePayout ? "border-red-500" : "border-slate-300"
                 }`}
                 placeholder="e.g., 25"
+                disabled={saving || (selectedCommission ? !canEdit : !canCreate)}
               />
               {formErrors.basePayout && <p className="text-xs text-red-500 mt-1">{formErrors.basePayout}</p>}
               <p className="text-xs text-slate-500 mt-1">
@@ -707,7 +802,7 @@ export default function DeliveryBoyCommission() {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || (selectedCommission ? !canEdit : !canCreate)}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -737,7 +832,7 @@ export default function DeliveryBoyCommission() {
             </button>
             <button
               onClick={confirmDelete}
-              disabled={deleting}
+              disabled={deleting || !canDelete}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {deleting && <Loader2 className="w-4 h-4 animate-spin" />}

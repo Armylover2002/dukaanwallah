@@ -5,12 +5,58 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { exportTransactionsToExcel, exportTransactionsToPDF } from "@food/components/admin/transactions/transactionsExportUtils"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function RestaurantWithdraws() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::transaction_management::restaurant_withdraws", "edit")
+  }, [currentUser, resolvedPermissions])
   const [activeTab, setActiveTab] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
   const [withdraws, setWithdraws] = useState([])
@@ -100,6 +146,10 @@ export default function RestaurantWithdraws() {
   }
 
   const handleApprove = async (id) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!confirm('Are you sure you want to approve this withdrawal request?')) {
       return
     }
@@ -122,6 +172,10 @@ export default function RestaurantWithdraws() {
   }
 
   const handleReject = async (id) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!rejectionReason.trim()) {
       alert('Please provide a rejection reason')
       return
@@ -382,7 +436,7 @@ export default function RestaurantWithdraws() {
                             >
                               <Eye className="w-4 h-4 text-orange-600" />
                             </button>
-                            {withdraw.status === 'Pending' && (
+                            {withdraw.status === 'Pending' && canEdit && (
                               <>
                                 <button
                                   onClick={() => handleApprove(withdraw.id)}
@@ -552,7 +606,7 @@ export default function RestaurantWithdraws() {
               </button>
               <button
                 onClick={() => selectedWithdraw && handleReject(selectedWithdraw.id)}
-                disabled={!rejectionReason.trim() || processingAction === selectedWithdraw?.id}
+                disabled={!rejectionReason.trim() || processingAction === selectedWithdraw?.id || !canEdit}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processingAction === selectedWithdraw?.id ? 'Rejecting...' : 'Reject'}

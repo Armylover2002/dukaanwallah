@@ -3,9 +3,13 @@ import { useSearchParams } from "react-router-dom"
 import { Search, Trash2, Loader2, Eye, Pencil, Plus, Save, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { adminAPI, uploadAPI } from "@food/api"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@food/components/ui/popover"
 import { getFoodDisplayPrice, getFoodVariants } from "@food/utils/foodVariants"
+import ApprovalAuditCard from "@food/components/admin/ApprovalAuditCard"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -33,6 +37,58 @@ const createVariantDraft = (variant = {}) => ({
 })
 
 export default function FoodsList() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canCreate = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::foods::list", "create")
+  }, [currentUser, resolvedPermissions])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::foods::list", "edit")
+  }, [currentUser, resolvedPermissions])
+
+  const canDelete = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::foods::list", "delete")
+  }, [currentUser, resolvedPermissions])
+
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedRestaurant, setSelectedRestaurant] = useState("all")
   const [foods, setFoods] = useState([])
@@ -139,6 +195,11 @@ export default function FoodsList() {
                       variants: getFoodVariants(f),
                       foodType: f.foodType || "Non-Veg",
                       approvalStatus: f.approvalStatus || "approved",
+                      rejectionReason: f.rejectionReason || "",
+                      approvedAt: f.approvedAt || null,
+                      rejectedAt: f.rejectedAt || null,
+                      approvedBy: f.approvedBy || null,
+                      rejectedBy: f.rejectedBy || null,
                       description: f.description || "",
                       preparationTime: f.preparationTime || "",
                       isAvailable: f.isAvailable !== false,
@@ -253,6 +314,10 @@ export default function FoodsList() {
   }, [restaurantsForFilter])
 
   const openAddFoodModal = () => {
+    if (!canCreate) {
+      toast.error("Permission denied")
+      return
+    }
     setFoodFormMode("add")
     setEditingFood(null)
     setFoodForm({
@@ -267,6 +332,10 @@ export default function FoodsList() {
   }
 
   const openEditFoodModal = (food) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     setFoodFormMode("edit")
     setEditingFood(food)
     setFoodForm({
@@ -346,6 +415,14 @@ export default function FoodsList() {
   }
 
   const handleFoodFormSubmit = async () => {
+    if (foodFormMode === "edit" && !canEdit) {
+      toast.error("Permission denied")
+      return
+    }
+    if (foodFormMode === "add" && !canCreate) {
+      toast.error("Permission denied")
+      return
+    }
     if (!foodForm.restaurantId) {
       toast.error("Please select a restaurant")
       return
@@ -440,6 +517,10 @@ export default function FoodsList() {
   }
 
   const handleDelete = async (id) => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     const food = foods.find(f => f.id === id)
     if (!food) return
 
@@ -490,14 +571,16 @@ export default function FoodsList() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <button
-              type="button"
-              onClick={openAddFoodModal}
-              className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Food</span>
-            </button>
+            {canCreate && (
+              <button
+                type="button"
+                onClick={openAddFoodModal}
+                className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Food</span>
+              </button>
+            )}
             <div className="relative flex-1 sm:flex-initial min-w-[200px]">
               <input
                 type="text"
@@ -616,25 +699,29 @@ export default function FoodsList() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => openEditFoodModal(food)}
-                          className="p-1.5 rounded text-amber-600 hover:bg-amber-50 transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(food.id)}
-                          disabled={deleting}
-                          className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Delete"
-                        >
-                          {deleting ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => openEditFoodModal(food)}
+                            className="p-1.5 rounded text-amber-600 hover:bg-amber-50 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(food.id)}
+                            disabled={deleting}
+                            className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Delete"
+                          >
+                            {deleting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -763,6 +850,11 @@ export default function FoodsList() {
                   <span className="font-semibold text-slate-800">Description:</span> {selectedFood.description}
                 </p>
               )}
+              <ApprovalAuditCard
+                approvedBy={selectedFood.approvedBy}
+                rejectedBy={selectedFood.rejectedBy}
+                rejectionReason={selectedFood.rejectionReason}
+              />
             </div>
           )}
         </DialogContent>
@@ -1042,7 +1134,7 @@ export default function FoodsList() {
               <button
                 type="button"
                 onClick={handleFoodFormSubmit}
-                disabled={submittingFood}
+                disabled={submittingFood || (foodFormMode === "edit" ? !canEdit : !canCreate)}
                 className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-60 inline-flex items-center gap-2"
               >
                 {submittingFood ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

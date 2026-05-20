@@ -8,6 +8,7 @@ import { validateDeliveryCommissionRuleDto, validateOptionalStatusDto } from '..
 import { validateFeeSettingsUpsertDto } from '../validators/feeSettings.validator.js';
 import { validateDeliveryEmergencyHelpUpsertDto } from '../validators/deliveryEmergencyHelp.validator.js';
 import { validateReferralSettingsUpsertDto } from '../validators/referralSettings.validator.js';
+import { resolveActionPerformerSnapshot } from '../../../../core/utils/performer.js';
 
 // ----- Customers / Users -----
 export async function getCustomers(req, res, next) {
@@ -721,7 +722,7 @@ export async function updateEarningAddon(req, res, next) {
         const body = validateEarningAddonUpsertDto(req.body || {});
         const updated = await adminService.updateEarningAddon(id, body);
         if (!updated) {
-            return res.status(404).json({ success: false, message: 'Earning addon not found' });
+            return res.status(404).json({ success: 'Earning addon not found' });
         }
         res.status(200).json({ success: true, message: 'Earning addon updated successfully', data: { earningAddon: updated } });
     } catch (error) {
@@ -976,7 +977,8 @@ export async function approveRestaurant(req, res, next) {
                 message: 'Invalid restaurant id'
             });
         }
-        const restaurant = await adminService.approveRestaurant(id);
+        const performer = await resolveActionPerformerSnapshot(req.user);
+        const restaurant = await adminService.approveRestaurant(id, performer);
         if (!restaurant) {
             return res.status(404).json({
                 success: false,
@@ -1016,7 +1018,11 @@ export async function rejectRestaurant(req, res, next) {
                 message: 'Invalid restaurant id'
             });
         }
-        const restaurant = await adminService.rejectRestaurant(id, reason);
+        if (!reason) {
+            return res.status(400).json({ success: false, message: 'Rejection reason is required' });
+        }
+        const performer = await resolveActionPerformerSnapshot(req.user);
+        const restaurant = await adminService.rejectRestaurant(id, reason, performer);
         if (!restaurant) {
             return res.status(404).json({
                 success: false,
@@ -1155,7 +1161,8 @@ export async function getDeliveryPartnerById(req, res, next) {
 
 export async function approveDeliveryPartner(req, res, next) {
     try {
-        const partner = await adminService.approveDeliveryPartner(req.params.id);
+        const performer = await resolveActionPerformerSnapshot(req.user);
+        const partner = await adminService.approveDeliveryPartner(req.params.id, performer);
         if (!partner) {
             return res.status(404).json({
                 success: false,
@@ -1174,8 +1181,9 @@ export async function approveDeliveryPartner(req, res, next) {
 
 export async function rejectDeliveryPartner(req, res, next) {
     try {
-        const reason = req.body?.reason != null ? String(req.body.reason).trim() : '';
-        const partner = await adminService.rejectDeliveryPartner(req.params.id, reason);
+        const { reason } = req.body;
+        const performer = await resolveActionPerformerSnapshot(req.user);
+        const partner = await adminService.rejectDeliveryPartner(req.params.id, reason, performer);
         if (!partner) {
             return res.status(404).json({
                 success: false,

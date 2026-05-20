@@ -103,7 +103,11 @@ export const handleRazorpayWebhook = async (req, res) => {
                                 razorpayPaymentId: rzPaymentId,
                                 startDate: new Date(),
                                 expiryDate,
-                                status: 'active'
+                                status: 'active',
+                                purchasedPlanName: plan.name,
+                                purchasedPrice: plan.price,
+                                purchasedDuration: plan.durationValue,
+                                purchasedDurationType: plan.durationUnit
                             }
                         }
                     );
@@ -239,6 +243,10 @@ export const handleRazorpayWebhook = async (req, res) => {
                                 gracePeriodUntil: null,
                                 cancelAt: null,
                                 cancelAtCycleEnd: false,
+                                purchasedPlanName: plan.name,
+                                purchasedPrice: plan.price,
+                                purchasedDuration: plan.durationValue,
+                                purchasedDurationType: plan.durationUnit,
                                 'metadata.lastProcessedEventKey': dedupeKey,
                                 'metadata.lastProcessedEventType': event,
                                 'metadata.lastProcessedAt': now
@@ -279,6 +287,10 @@ export const handleRazorpayWebhook = async (req, res) => {
                                 lastRenewedAt: now,
                                 autoRenew: true,
                                 gracePeriodUntil: null,
+                                purchasedPlanName: plan.name,
+                                purchasedPrice: plan.price,
+                                purchasedDuration: plan.durationValue,
+                                purchasedDurationType: plan.durationUnit,
                                 'metadata.lastProcessedEventKey': dedupeKey,
                                 'metadata.lastProcessedEventType': event,
                                 'metadata.lastProcessedAt': now

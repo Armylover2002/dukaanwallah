@@ -100,7 +100,7 @@ const persistSelectedLocation = (locationData) => {
 export default function AddressSelectorPage() {
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
-  const { location, loading, requestLocation } = useGeoLocation()
+  const { location, loading, requestLocation, reverseGeocode } = useGeoLocation()
   const { addresses = [], addAddress, updateAddress, setDefaultAddress, userProfile } = useProfile()
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [mapPosition, setMapPosition] = useState([22.7196, 75.8577]) // Default Indore coordinates [lat, lng]
@@ -131,8 +131,34 @@ export default function AddressSelectorPage() {
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [baseMapHeight, setBaseMapHeight] = useState(320)
   const formBodyRef = useRef(null)
+  const hasInitializedRef = useRef(false)
   const manualFieldRefs = useRef({})
   
+  // Sync currentAddress and mapPosition with the useLocation hook's location address on load/update
+  useEffect(() => {
+    if (location && (location.formattedAddress || location.address)) {
+      const addrText = location.formattedAddress || location.address || ""
+      setCurrentAddress(addrText)
+      
+      if (!hasInitializedRef.current && location.latitude && location.longitude) {
+        hasInitializedRef.current = true
+        setMapPosition([location.latitude, location.longitude])
+        
+        // Sync addressFormData on initial load/first set if form values are empty
+        setAddressFormData(prev => {
+          if (prev.street || prev.city) return prev
+          return {
+            ...prev,
+            street: location.street || location.area || "",
+            city: location.city || "",
+            state: location.state || "",
+            zipCode: location.postalCode || location.zipCode || "",
+          }
+        })
+      }
+    }
+  }, [location])
+
   const ENABLE_LOCATION_REVERSE_GEOCODE = import.meta.env.VITE_ENABLE_LOCATION_REVERSE_GEOCODE !== "false"
   const ENABLE_NOMINATIM_SEARCH = import.meta.env.VITE_ENABLE_NOMINATIM_SEARCH !== "false"
   const getAddressId = (address) => address?.id || address?._id || null
@@ -402,44 +428,20 @@ export default function AddressSelectorPage() {
     manualFieldRefs.current._lastCoords = coordKey
 
     try {
-      // Use Nominatim for free reverse geocoding on the client side
-      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
-      const response = await fetch(url, { 
-        headers: { 
-          "Accept-Language": "en",
-          "User-Agent": "AppZeto-Food-App" 
-        } 
-      })
-      const json = await response.json()
-      
-      if (json && json.address) {
-        const addr = json.address
-        const formatted = json.display_name
-        
-        // Extract meaningful street/area info
-        const street = [
-          addr.road,
-          addr.suburb,
-          addr.neighbourhood,
-          addr.house_number
-        ].filter(Boolean).slice(0, 2).join(", ") || addr.amenity || addr.industrial || ""
-
-        const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || ""
-        const state = addr.state || ""
-        const postcode = addr.postcode || ""
-
-        // Update state ONLY if values changed significantly
+      const parsed = await reverseGeocode(lat, lng, { forceFresh: true })
+      if (parsed) {
+        const formatted = parsed.formattedAddress || parsed.address || ""
         setCurrentAddress(prev => prev === formatted ? prev : formatted)
         setAddressFormData(prev => {
-          if (prev.street === street && prev.city === city && prev.state === state && prev.zipCode === postcode) {
+          if (prev.street === parsed.street && prev.city === parsed.city && prev.state === parsed.state && prev.zipCode === parsed.postalCode) {
             return prev
           }
           return {
             ...prev,
-            street: street || formatted.split(",")[0] || prev.street,
-            city: city || prev.city,
-            state: state || prev.state,
-            zipCode: postcode || prev.zipCode,
+            street: parsed.street || parsed.area || prev.street,
+            city: parsed.city || prev.city,
+            state: parsed.state || prev.state,
+            zipCode: parsed.postalCode || prev.zipCode,
           }
         })
       }

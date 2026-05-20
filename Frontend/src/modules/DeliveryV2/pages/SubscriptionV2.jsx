@@ -14,7 +14,8 @@ export default function SubscriptionV2() {
   const [plans, setPlans] = useState([])
   const [activeSub, setActiveSub] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [purchasing, setPurchasing] = useState(false)
+  const [purchasing, setPurchasing] = useState(null)
+  const purchasingRef = useRef(false)
   
   const [walletBalance, setWalletBalance] = useState(0)
   const [ledger, setLedger] = useState([])
@@ -78,8 +79,10 @@ export default function SubscriptionV2() {
   }
 
   const handlePurchase = async (plan) => {
+    if (purchasingRef.current) return
+    purchasingRef.current = true
     try {
-      setPurchasing(true)
+      setPurchasing(plan._id)
       const res = await subscriptionAPI.purchase("DELIVERY_PARTNER", { planId: plan._id })
       const data = res.data?.data
       const isOneTime = !!data.orderId
@@ -98,6 +101,15 @@ export default function SubscriptionV2() {
               })
             } catch (_err) {
             }
+          } else {
+            try {
+              await subscriptionAPI.verify("DELIVERY_PARTNER", {
+                razorpaySubscriptionId: response.razorpay_subscription_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              })
+            } catch (_err) {
+            }
           }
 
           toast.success(isOneTime ? "Payment received. Activating..." : "Payment received. Activating subscription...")
@@ -108,16 +120,19 @@ export default function SubscriptionV2() {
             toast.success("Activation pending. Webhook will sync shortly.")
           }
           await fetchData()
-          setPurchasing(false)
+          setPurchasing(null)
+          purchasingRef.current = false
         }
         ,
         onError: () => {
           toast.error("Payment failed or cancelled")
-          setPurchasing(false)
+          setPurchasing(null)
+          purchasingRef.current = false
         },
         onClose: () => {
           toast.error("Payment cancelled")
-          setPurchasing(false)
+          setPurchasing(null)
+          purchasingRef.current = false
         }
       }
 
@@ -128,7 +143,8 @@ export default function SubscriptionV2() {
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || "Purchase failed")
-      setPurchasing(false)
+      setPurchasing(null)
+      purchasingRef.current = false
     }
   }
 
@@ -382,10 +398,10 @@ export default function SubscriptionV2() {
                     ) : (
                       <Button 
                         onClick={() => handlePurchase(plan)}
-                        disabled={purchasing || (activeSub?.status === 'active' && activeSub?.planId?._id === plan._id)}
+                        disabled={!!purchasing || (activeSub?.status === 'active' && activeSub?.planId?._id === plan._id)}
                         className={`rounded-2xl px-6 font-black h-12 transition-all shadow-lg ${activeSub?.planId?._id === plan._id ? 'bg-slate-100 text-slate-400 shadow-none' : 'bg-slate-900 text-white hover:bg-black shadow-slate-200'}`}
                       >
-                        {purchasing ? <Loader2 className="w-5 h-5 animate-spin" /> : activeSub?.planId?._id === plan._id ? 'Current' : 'Subscribe'}
+                        {purchasing === plan._id ? <Loader2 className="w-5 h-5 animate-spin" /> : activeSub?.planId?._id === plan._id ? 'Current' : 'Subscribe'}
                       </Button>
                     )}
                   </div>

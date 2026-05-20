@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { actionPerformerSchema } from '../../../../core/models/actionPerformer.schema.js';
 
 const foodVariantSchema = new mongoose.Schema(
     {
@@ -27,7 +28,9 @@ const foodSchema = new mongoose.Schema(
         rejectionReason: { type: String, trim: true, default: '' },
         requestedAt: { type: Date },
         approvedAt: { type: Date },
-        rejectedAt: { type: Date }
+        rejectedAt: { type: Date },
+        approvedBy: { type: actionPerformerSchema, default: null },
+        rejectedBy: { type: actionPerformerSchema, default: null }
     },
     {
         collection: 'food_items',

@@ -56,7 +56,7 @@ router.use('/v1/common/settings', commonSettingsRoutes);
 // Backward compatibility for public settings
 router.get('/v1/food/admin/business-settings/public', getPublicSettings);
 
-router.use('/v1/food/admin', authMiddleware, requireRoles('ADMIN'), restaurantAdminRoutes);
+router.use('/v1/food/admin', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), restaurantAdminRoutes);
 router.use('/v1/food/user', authMiddleware, requireRoles('USER'), userRoutes);
 router.use('/v1/food/notifications', authMiddleware, requireRoles('USER', 'RESTAURANT', 'DELIVERY_PARTNER'), notificationRoutes);
 router.use('/v1/food/orders', authMiddleware, requireRoles('USER'), orderUserRoutes);

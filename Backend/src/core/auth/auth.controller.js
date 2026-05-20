@@ -15,6 +15,7 @@ import {
   changeAdminPassword,
   requestAdminForgotPasswordOtp,
   resetAdminPasswordWithOtp,
+  getPublicRoles,
 } from "./auth.service.js";
 import { validateUserOtpRequestDto } from "../../dtos/auth/userOtpRequest.dto.js";
 import { validateUserOtpVerifyDto } from "../../dtos/auth/userOtpVerify.dto.js";
@@ -65,9 +66,18 @@ export const verifyUserOtpController = async (req, res, next) => {
 
 export const adminLoginController = async (req, res, next) => {
   try {
-    const { email, password } = validateAdminLoginDto(req.body);
-    const result = await adminLogin(email, password);
+    const { email, password, roleId } = validateAdminLoginDto(req.body);
+    const result = await adminLogin(email, password, roleId);
     return sendResponse(res, 200, "Admin login successful", result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPublicRolesController = async (req, res, next) => {
+  try {
+    const roles = await getPublicRoles();
+    return sendResponse(res, 200, "Roles fetched successfully", roles);
   } catch (error) {
     next(error);
   }

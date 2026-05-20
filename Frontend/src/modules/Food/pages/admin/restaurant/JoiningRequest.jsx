@@ -5,6 +5,10 @@ import {
   FileText, Image as ImageIcon, ExternalLink, CreditCard, Calendar, Star, Building2, User, Phone, Mail, MapPin, Clock
 } from "lucide-react"
 import { adminAPI, restaurantAPI } from "@food/api"
+import ApprovalAuditCard from "@food/components/admin/ApprovalAuditCard"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -70,6 +74,50 @@ const formatRestaurantId = (restaurant) => {
 
 
 export default function JoiningRequest() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::restaurant_management::restaurants::joining_request", "edit")
+  }, [currentUser, resolvedPermissions])
+
   const [activeTab, setActiveTab] = useState("pending")
   const [searchQuery, setSearchQuery] = useState("")
   const [pendingRequests, setPendingRequests] = useState([])
@@ -266,6 +314,10 @@ export default function JoiningRequest() {
   const hasActiveFilters = filters.zone || filters.dateFrom || filters.dateTo
 
   const handleApprove = async (request) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     try {
       setProcessing(true)
       await adminAPI.approveRestaurant(request._id)
@@ -283,12 +335,20 @@ export default function JoiningRequest() {
   }
 
   const handleReject = (request) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     setSelectedRequest(request)
     setRejectionReason("")
     setShowRejectDialog(true)
   }
 
   const confirmReject = async () => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!selectedRequest || !rejectionReason.trim()) {
       alert("Please provide a rejection reason")
       return
@@ -598,7 +658,7 @@ export default function JoiningRequest() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {activeTab === "pending" && (
+                          {activeTab === "pending" && canEdit && (
                             <>
                               <button
                                 onClick={() => handleApprove(request)}
@@ -747,6 +807,7 @@ export default function JoiningRequest() {
                   placeholder="Enter reason for rejection..."
                   className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
                   rows={4}
+                  disabled={processing || !canEdit}
                 />
               </div>
 
@@ -764,7 +825,7 @@ export default function JoiningRequest() {
                 </button>
                 <button
                   onClick={confirmReject}
-                  disabled={processing || !rejectionReason.trim()}
+                  disabled={processing || !rejectionReason.trim() || !canEdit}
                   className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {processing ? (
@@ -1414,6 +1475,13 @@ export default function JoiningRequest() {
                       </div>
                     </div>
                   )}
+
+                  <ApprovalAuditCard
+                    className="pt-6 border-t border-slate-200"
+                    approvedBy={r?.approvedBy || null}
+                    rejectedBy={r?.rejectedBy || null}
+                    rejectionReason={r?.rejectionReason || ""}
+                  />
                 </div>
                 )
               })()}

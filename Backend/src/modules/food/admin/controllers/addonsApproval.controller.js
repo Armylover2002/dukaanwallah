@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import * as adminService from '../services/admin.service.js';
 import { validateAddonAdminListQuery, validateAddonRejectDto } from '../validators/addonApproval.validator.js';
+import { extractPerformer } from '../../../../core/utils/performer.js';
 
 export async function getRestaurantAddons(req, res, next) {
     try {
@@ -18,7 +19,8 @@ export async function approveRestaurantAddon(req, res, next) {
         if (!id || !mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ success: false, message: 'Invalid add-on id' });
         }
-        const updated = await adminService.approveRestaurantAddon(id);
+        const performer = extractPerformer(req.user);
+        const updated = await adminService.approveRestaurantAddon(id, performer);
         if (!updated) {
             return res.status(404).json({ success: false, message: 'Add-on not found' });
         }
@@ -35,7 +37,8 @@ export async function rejectRestaurantAddon(req, res, next) {
             return res.status(400).json({ success: false, message: 'Invalid add-on id' });
         }
         const { reason } = validateAddonRejectDto(req.body || {});
-        const updated = await adminService.rejectRestaurantAddon(id, reason);
+        const performer = extractPerformer(req.user);
+        const updated = await adminService.rejectRestaurantAddon(id, reason, performer);
         if (!updated) {
             return res.status(404).json({ success: false, message: 'Add-on not found' });
         }

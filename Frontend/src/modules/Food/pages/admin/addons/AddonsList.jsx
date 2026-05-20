@@ -3,6 +3,9 @@ import { Eye, Loader2, Search, Trash2, Pencil } from "lucide-react"
 import { Switch } from "@food/components/ui/switch"
 import { adminAPI, uploadAPI } from "@food/api"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
 
 const debugError = (...args) => {}
@@ -32,6 +35,54 @@ const getAddonImage = (addon) =>
   "https://via.placeholder.com/40"
 
 export default function AddonsList() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::foods::addons", "edit")
+  }, [currentUser, resolvedPermissions])
+
+  const canDelete = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::food_management::foods::addons", "delete")
+  }, [currentUser, resolvedPermissions])
+
   const [searchQuery, setSearchQuery] = useState("")
   const [addons, setAddons] = useState([])
   const [loading, setLoading] = useState(true)
@@ -88,6 +139,10 @@ export default function AddonsList() {
   }
 
   const handleEdit = (addon) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     setEditingAddon(addon)
     setEditForm({
       name: addon?.draft?.name || addon?.name || "",
@@ -107,6 +162,10 @@ export default function AddonsList() {
   }
 
   const handleSaveEdit = async () => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     const id = editingAddon?.id || editingAddon?._id
     if (!id) return
     if (!editForm.name.trim()) {
@@ -165,6 +224,10 @@ export default function AddonsList() {
   const [pendingDelete, setPendingDelete] = useState(null)
 
   const confirmDelete = async () => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     if (!pendingDelete) return
     const id = pendingDelete?.id || pendingDelete?._id
     try {
@@ -182,6 +245,10 @@ export default function AddonsList() {
   }
 
   const handleDelete = (addon) => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     setPendingDelete(addon)
   }
 
@@ -304,20 +371,24 @@ export default function AddonsList() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleEdit(addon)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(addon)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => handleEdit(addon)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            Edit
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(addon)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -409,6 +480,7 @@ export default function AddonsList() {
                     setEditImagePreview(preview)
                   }}
                   className="text-sm"
+                  disabled={!canEdit || submittingAction}
                 />
                 <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB</p>
               </div>
@@ -420,6 +492,7 @@ export default function AddonsList() {
                 value={editForm.name}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                disabled={!canEdit}
               />
             </div>
             <div>
@@ -431,6 +504,7 @@ export default function AddonsList() {
                 value={editForm.price}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, price: e.target.value }))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                disabled={!canEdit}
               />
             </div>
             <div>
@@ -440,12 +514,14 @@ export default function AddonsList() {
                 value={editForm.description}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                disabled={!canEdit}
               />
             </div>
             <div className="flex items-center gap-2">
               <Switch
                 checked={editForm.isAvailable}
                 onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, isAvailable: checked }))}
+                disabled={!canEdit}
               />
               <span className="text-sm text-slate-700">Available</span>
             </div>
@@ -461,7 +537,7 @@ export default function AddonsList() {
             <button
               type="button"
               onClick={handleSaveEdit}
-              disabled={submittingAction}
+              disabled={submittingAction || !canEdit}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submittingAction ? "Saving..." : "Save"}
@@ -497,7 +573,7 @@ export default function AddonsList() {
             <button
               type="button"
               onClick={confirmDelete}
-              disabled={submittingAction}
+              disabled={submittingAction || !canDelete}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submittingAction ? "Deleting..." : "Yes, delete"}

@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/public', settingsController.getGlobalSettings);
 
 // Protected admin endpoints
-router.get('/', authMiddleware, requireRoles('ADMIN'), settingsController.getGlobalSettings);
+router.get('/', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), settingsController.getGlobalSettings);
 router.patch('/', authMiddleware, requireRoles('ADMIN'), upload.fields([
     { name: 'adminLogo', maxCount: 1 },
     { name: 'adminFavicon', maxCount: 1 },

@@ -36,7 +36,7 @@ export async function sendAdminResetOtpEmail(to, otp) {
         return false;
     }
     const from = config.emailFrom || config.emailUser;
-    const subject = 'Your password reset code – Appzeto Admin';
+    const subject = 'Your password reset code – ItzoFood Admin';
     const html = `
 <!DOCTYPE html>
 <html>
@@ -47,14 +47,14 @@ export async function sendAdminResetOtpEmail(to, otp) {
   <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; background: #f5f5f5; padding: 12px 16px; border-radius: 8px;">${otp}</p>
   <p style="color: #666; font-size: 14px;">If you did not request this, you can ignore this email.</p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">Appzeto Admin</p>
+  <p style="color: #999; font-size: 12px;">ItzoFood Admin</p>
 </body>
 </html>`;
     const text = `Your password reset code is: ${otp}. It is valid for 10 minutes. If you did not request this, ignore this email.`;
 
     try {
         await trans.sendMail({
-            from: typeof from === 'string' && from.includes('<') ? from : `Appzeto <${from}>`,
+            from: typeof from === 'string' && from.includes('<') ? from : `ItzoFood <${from}>`,
             to,
             subject,
             text,
@@ -64,6 +64,59 @@ export async function sendAdminResetOtpEmail(to, otp) {
         return true;
     } catch (err) {
         logger.error(`Failed to send admin OTP email to ${to}:`, err.message);
+        return false;
+    }
+}
+
+/**
+ * Send credentials to a new employee.
+ * @param {string} to - Recipient email
+ * @param {string} password - The generated/provided password
+ * @param {string} roleName - The assigned role name
+ * @param {string} loginUrl - The login portal URL
+ * @returns {Promise<boolean>}
+ */
+export async function sendEmployeeCredentialsEmail(to, password, roleName, loginUrl) {
+    const trans = getTransporter();
+    if (!trans) {
+        logger.warn('Employee credentials email skipped: SMTP not configured');
+        return false;
+    }
+    const from = config.emailFrom || config.emailUser;
+    const subject = 'Welcome to ItzoFood Admin – Your Login Credentials';
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 500px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #111;">Welcome to the Team!</h2>
+  <p>You have been added to the ItzoFood Admin Panel with the role of <strong>${roleName}</strong>.</p>
+  <p>Here are your login credentials:</p>
+  <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin: 15px 0;">
+    <p style="margin: 5px 0;"><strong>Email:</strong> ${to}</p>
+    <p style="margin: 5px 0;"><strong>Password:</strong> ${password}</p>
+  </div>
+  <p>Please log in using the link below:</p>
+  <p><a href="${loginUrl}" style="display: inline-block; background: #2563eb; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">Login to Dashboard</a></p>
+  <p style="color: #666; font-size: 14px; margin-top: 20px;">For security reasons, we recommend changing your password after your first login.</p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+  <p style="color: #999; font-size: 12px;">ItzoFood Team</p>
+</body>
+</html>`;
+    const text = `Welcome to ItzoFood Admin. You have been assigned the role: ${roleName}. Email: ${to}. Password: ${password}. Login at: ${loginUrl}`;
+
+    try {
+        await trans.sendMail({
+            from: typeof from === 'string' && from.includes('<') ? from : `ItzoFood <${from}>`,
+            to,
+            subject,
+            text,
+            html
+        });
+        logger.info(`Employee credentials email sent to ${to}`);
+        return true;
+    } catch (err) {
+        logger.error(`Failed to send credentials email to ${to}:`, err.message);
         return false;
     }
 }

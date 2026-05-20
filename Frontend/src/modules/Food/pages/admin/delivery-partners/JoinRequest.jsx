@@ -4,6 +4,7 @@ import { adminAPI } from "@food/api"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
 import { exportJoinRequestsToExcel, exportJoinRequestsToPDF } from "@food/components/admin/deliveryman/joinRequestExportUtils"
+import ApprovalAuditCard from "@food/components/admin/ApprovalAuditCard"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -652,6 +653,24 @@ export default function JoinRequest() {
                         </div>
                       </div>
                     )}
+                    {viewDetails.approvedBy && (
+                      <div className="col-span-2 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                        <p className="text-xs font-semibold text-emerald-700 mb-1">Approved By</p>
+                        <p className="text-sm text-emerald-900 font-medium">{viewDetails.approvedBy.name}</p>
+                        {viewDetails.approvedBy.email && <p className="text-xs text-emerald-600">{viewDetails.approvedBy.email}</p>}
+                        {viewDetails.approvedBy.roleName && <p className="text-xs text-emerald-600">Role: {viewDetails.approvedBy.roleName}</p>}
+                        {viewDetails.approvedBy.actionAt && <p className="text-xs text-emerald-500 mt-1">{new Date(viewDetails.approvedBy.actionAt).toLocaleString()}</p>}
+                      </div>
+                    )}
+                    {viewDetails.rejectedBy && (
+                      <div className="col-span-2 p-3 bg-rose-50 rounded-lg border border-rose-200">
+                        <p className="text-xs font-semibold text-rose-700 mb-1">Rejected By</p>
+                        <p className="text-sm text-rose-900 font-medium">{viewDetails.rejectedBy.name}</p>
+                        {viewDetails.rejectedBy.email && <p className="text-xs text-rose-600">{viewDetails.rejectedBy.email}</p>}
+                        {viewDetails.rejectedBy.roleName && <p className="text-xs text-rose-600">Role: {viewDetails.rejectedBy.roleName}</p>}
+                        {viewDetails.rejectedBy.actionAt && <p className="text-xs text-rose-500 mt-1">{new Date(viewDetails.rejectedBy.actionAt).toLocaleString()}</p>}
+                      </div>
+                    )}
                     {viewDetails.dateOfBirth && (
                       <div>
                         <label className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-1">
@@ -940,6 +959,12 @@ export default function JoinRequest() {
                     </div>
                   )}
                 </div>
+                <ApprovalAuditCard
+                  className="pt-6 border-t border-slate-200"
+                  approvedBy={viewDetails.approvedBy}
+                  rejectedBy={viewDetails.rejectedBy}
+                  rejectionReason={viewDetails.rejectionReason}
+                />
               </div>
             ) : (
               <div className="flex items-center justify-center py-8">

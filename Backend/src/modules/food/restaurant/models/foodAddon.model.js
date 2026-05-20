@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { actionPerformerSchema } from '../../../../core/models/actionPerformer.schema.js';
 
 const addonPayloadSchema = new mongoose.Schema(
     {
@@ -33,6 +34,8 @@ const foodAddonSchema = new mongoose.Schema(
         requestedAt: { type: Date, default: null, index: true },
         approvedAt: { type: Date, default: null },
         rejectedAt: { type: Date, default: null },
+        approvedBy: { type: actionPerformerSchema, default: null },
+        rejectedBy: { type: actionPerformerSchema, default: null },
         // Operational toggle controlled by restaurant; user app filters on this.
         isAvailable: { type: Boolean, default: true, index: true },
         // Soft delete for safety + auditability.

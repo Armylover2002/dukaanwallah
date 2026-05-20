@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { adminAPI } from "@food/api"
 import { setAuthData } from "@food/utils/auth"
+import { getDefaultAdminLandingPath, resolveAdminPermissionsForUser } from "@food/utils/adminPermissions"
 import { loadBusinessSettings, getCachedSettings, getAppLogo } from "@common/utils/businessSettings"
 import { Button } from "@food/components/ui/button"
 import {
@@ -14,7 +15,14 @@ import {
 } from "@food/components/ui/card"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, UserCircle } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@food/components/ui/select"
 
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -33,6 +41,8 @@ export default function AdminLogin() {
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('admin'))
   const [companyName, setCompanyName] = useState(() => getCachedSettings()?.companyName || null)
   const submittingRef = useRef(false)
+  const [roles, setRoles] = useState([])
+  const [selectedRoleId, setSelectedRoleId] = useState("ADMIN")
 
   useEffect(() => {
     const message = location.state?.message
@@ -41,6 +51,20 @@ export default function AdminLogin() {
       window.history.replaceState({}, document.title, location.pathname)
     }
   }, [location.state?.message, location.pathname])
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await adminAPI.getPublicRoles()
+        if (response?.data?.data) {
+          setRoles(response.data.data)
+        }
+      } catch (err) {
+        debugWarn("Failed to fetch roles:", err)
+      }
+    }
+    fetchRoles()
+  }, [])
 
   // Fetch business settings logo on mount
   useEffect(() => {
@@ -103,7 +127,7 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const response = await adminAPI.login(trimmedEmail, password)
+      const response = await adminAPI.login(trimmedEmail, password, selectedRoleId)
       const data = response?.data?.data || response?.data || {}
 
       const accessToken = data.accessToken
@@ -117,7 +141,9 @@ export default function AdminLogin() {
         throw new Error("Invalid response from server: missing refresh token")
       }
       setAuthData("admin", accessToken, adminUser, refreshToken)
-      navigate("/admin/food", { replace: true })
+      const resolvedPermissions = await resolveAdminPermissionsForUser(adminUser)
+      const landingPath = getDefaultAdminLandingPath(adminUser, resolvedPermissions)
+      navigate(landingPath, { replace: true })
     } catch (err) {
       const message =
         err?.response?.data?.message ||
@@ -180,6 +206,32 @@ export default function AdminLogin() {
                   {error}
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label className="text-base font-medium text-gray-900">Select Role</Label>
+                <Select
+                  value={selectedRoleId}
+                  onValueChange={setSelectedRoleId}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="h-12 text-base w-full">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">
+                      <div className="flex items-center gap-2">
+                        <UserCircle className="h-4 w-4 text-primary" />
+                        Admin
+                      </div>
+                    </SelectItem>
+                    {roles.map((r) => (
+                      <SelectItem key={r._id} value={r._id}>
+                        {r.roleName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-base font-medium text-gray-900">Email</Label>

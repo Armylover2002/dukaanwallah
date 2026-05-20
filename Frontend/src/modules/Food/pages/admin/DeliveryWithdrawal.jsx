@@ -9,6 +9,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@food/components/ui/dialog"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -22,6 +25,49 @@ const TABS = [
 ]
 
 export default function DeliveryWithdrawal() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::deliveryman_management::withdrawal", "edit")
+  }, [currentUser, resolvedPermissions])
   const [activeTab, setActiveTab] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
   const [requests, setRequests] = useState([])
@@ -92,6 +138,10 @@ export default function DeliveryWithdrawal() {
   }
 
   const handleApprove = async (id) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     if (!confirm("Are you sure you want to approve this withdrawal request?")) return
     try {
       setProcessingAction(id)
@@ -113,6 +163,10 @@ export default function DeliveryWithdrawal() {
   }
 
   const handleReject = async (id) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     try {
       setProcessingAction(id)
       const response = await adminAPI.updateDeliveryWithdrawalStatus(id, {
@@ -263,7 +317,7 @@ export default function DeliveryWithdrawal() {
                             >
                               <Eye className="w-4 h-4 text-amber-600" />
                             </button>
-                            {req.status === "Pending" && (
+                            {req.status === "Pending" && canEdit && (
                               <>
                                 <button
                                   onClick={() => handleApprove(req.id)}
@@ -441,7 +495,7 @@ export default function DeliveryWithdrawal() {
               </button>
               <button
                 onClick={() => selectedRequest && handleReject(selectedRequest.id)}
-                disabled={processingAction === selectedRequest?.id}
+                disabled={processingAction === selectedRequest?.id || !canEdit}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processingAction === selectedRequest?.id ? "Rejecting…" : "Reject"}

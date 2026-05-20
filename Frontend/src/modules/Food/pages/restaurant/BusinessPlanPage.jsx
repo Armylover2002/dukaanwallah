@@ -18,7 +18,8 @@ export default function BusinessPlanPage() {
   const [plans, setPlans] = useState([])
   const [activeSub, setActiveSub] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [purchasing, setPurchasing] = useState(false)
+  const [purchasing, setPurchasing] = useState(null)
+  const purchasingRef = useRef(false)
 
   // Sort plans: DAY -> WEEK -> MONTH
   const sortedPlans = useMemo(() => {
@@ -87,8 +88,10 @@ export default function BusinessPlanPage() {
   }
 
   const handlePurchase = async (plan) => {
+    if (purchasingRef.current) return
+    purchasingRef.current = true
     try {
-      setPurchasing(true)
+      setPurchasing(plan._id)
       const res = await subscriptionAPI.purchase("RESTAURANT", { planId: plan._id })
       const data = res.data?.data
       const isOneTime = !!data.orderId
@@ -107,6 +110,15 @@ export default function BusinessPlanPage() {
               })
             } catch (_err) {
             }
+          } else {
+            try {
+              await subscriptionAPI.verify("RESTAURANT", {
+                razorpaySubscriptionId: response.razorpay_subscription_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              })
+            } catch (_err) {
+            }
           }
 
           toast.success(isOneTime ? "Payment received. Activating..." : "Payment received. Activating subscription...")
@@ -117,15 +129,18 @@ export default function BusinessPlanPage() {
             toast.success("Activation pending. Webhook will sync shortly.")
           }
           await fetchData()
-          setPurchasing(false)
+          setPurchasing(null)
+          purchasingRef.current = false
         },
         onError: (err) => {
           toast.error("Payment failed or cancelled")
-          setPurchasing(false)
+          setPurchasing(null)
+          purchasingRef.current = false
         },
         onClose: () => {
           toast.error("Payment cancelled")
-          setPurchasing(false)
+          setPurchasing(null)
+          purchasingRef.current = false
         }
       }
 
@@ -136,7 +151,8 @@ export default function BusinessPlanPage() {
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || "Purchase failed")
-      setPurchasing(false)
+      setPurchasing(null)
+      purchasingRef.current = false
     }
   }
 
@@ -251,10 +267,10 @@ export default function BusinessPlanPage() {
                 ) : (
                   <Button 
                     onClick={() => handlePurchase(plan)}
-                    disabled={purchasing || (activeSub?.status === 'active' && activeSub?.planId?._id === plan._id)}
+                    disabled={!!purchasing || (activeSub?.status === 'active' && activeSub?.planId?._id === plan._id)}
                     className={`w-full h-12 rounded-2xl font-bold text-sm tracking-wide transition-all ${activeSub?.planId?._id === plan._id ? 'bg-slate-100 text-slate-400' : 'bg-[#FE5502] hover:bg-[#E64D02] text-white shadow-lg shadow-[#FE5502]/20'}`}
                   >
-                    {purchasing ? <Loader2 className="w-5 h-5 animate-spin" /> : activeSub?.planId?._id === plan._id ? 'Current Plan' : 'Subscribe Now'}
+                    {purchasing === plan._id ? <Loader2 className="w-5 h-5 animate-spin" /> : activeSub?.planId?._id === plan._id ? 'Current Plan' : 'Subscribe Now'}
                   </Button>
                 )}
               </motion.div>

@@ -41,3 +41,33 @@ export async function deletePlanController(req, res, next) {
         next(err);
     }
 }
+
+export async function getSubscriptionOverviewController(req, res, next) {
+    try {
+        const stats = await subscriptionService.getSubscriptionOverview();
+        return sendResponse(res, 200, 'Subscription overview fetched successfully', stats);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function getSubscriptionHistoryController(req, res, next) {
+    try {
+        const result = await subscriptionService.getSubscriptionHistory(req.query, res);
+        if (result) {
+            return sendResponse(res, 200, 'Subscription history fetched successfully', result);
+        }
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function getSubscriptionAnalyticsController(req, res, next) {
+    try {
+        const analytics = await subscriptionService.getSubscriptionAnalytics();
+        return sendResponse(res, 200, 'Subscription analytics fetched successfully', analytics);
+    } catch (err) {
+        next(err);
+    }
+}
+

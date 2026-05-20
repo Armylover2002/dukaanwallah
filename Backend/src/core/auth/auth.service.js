@@ -18,6 +18,7 @@ import { config } from "../../config/env.js";
 import { logger } from "../../utils/logger.js";
 import { sendAdminResetOtpEmail } from "../../utils/email.js";
 import mongoose from "mongoose";
+import { AdminRole } from "../admin/role.model.js";
 import { creditReferralReward } from "../../modules/food/user/services/userWallet.service.js";
 
 const ROLES = {
@@ -27,6 +28,47 @@ const ROLES = {
   ADMIN: "ADMIN",
   SELLER: "SELLER",
 };
+
+const normalizeRolePermissions = (permissions) => {
+  if (!permissions) return {};
+
+  if (permissions instanceof Map) {
+    return Object.fromEntries(permissions.entries());
+  }
+
+  if (typeof permissions.toObject === "function") {
+    return permissions.toObject();
+  }
+
+  if (typeof permissions === "object") {
+    return permissions;
+  }
+
+  return {};
+};
+
+const normalizeAdminProfile = (adminDoc) => {
+  if (!adminDoc) return null;
+
+  const profile = typeof adminDoc.toObject === "function"
+    ? adminDoc.toObject()
+    : { ...adminDoc };
+
+  if (profile?.adminRoleId && typeof profile.adminRoleId === "object") {
+    profile.adminRoleId = {
+      ...profile.adminRoleId,
+      permissions: normalizeRolePermissions(profile.adminRoleId.permissions),
+    };
+  }
+
+  return profile;
+};
+
+const getAdminProfileDocument = (adminId) =>
+  FoodAdmin.findById(adminId)
+    .select("-password")
+    .populate("adminRoleId")
+    .lean();
 
 const getResolvedUserWalletBalance = async (userId, fallbackBalance = 0) => {
   const wallet = await FoodUserWallet.findOne({ userId })
@@ -233,12 +275,12 @@ export const verifyUserOtpAndLogin = async (
   return { accessToken, refreshToken, user, isNewUser };
 };
 
-export const adminLogin = async (email, password) => {
+export const adminLogin = async (email, password, roleId) => {
   if (!email || !password) {
     throw new ValidationError("Email and password are required");
   }
 
-  const admin = await FoodAdmin.findOne({ email });
+  const admin = await FoodAdmin.findOne({ email }).populate('adminRoleId');
   if (!admin) {
     throw new AuthError("Invalid credentials");
   }
@@ -246,6 +288,20 @@ export const adminLogin = async (email, password) => {
   const isMatch = await admin.comparePassword(password);
   if (!isMatch) {
     throw new AuthError("Invalid credentials");
+  }
+
+  if (roleId) {
+    if (roleId === 'ADMIN' && admin.role !== 'ADMIN') {
+      throw new AuthError("Please select the correct role for this account.");
+    }
+    if (roleId !== 'ADMIN') {
+      if (admin.role !== 'EMPLOYEE') {
+        throw new AuthError("Please select the correct role for this account.");
+      }
+      if (admin.adminRoleId && String(admin.adminRoleId._id) !== roleId) {
+        throw new AuthError("Please select the correct role for this account.");
+      }
+    }
   }
 
   const payload = { userId: admin._id.toString(), role: admin.role };
@@ -262,9 +318,14 @@ export const adminLogin = async (email, password) => {
     expiresAt,
   });
 
-  const userObj = admin.toObject();
+  const userObj = normalizeAdminProfile(admin);
   delete userObj.password;
   return { accessToken, refreshToken, user: userObj };
+};
+
+export const getPublicRoles = async () => {
+  const roles = await AdminRole.find({ status: 'active' }).select('_id roleName').lean();
+  return roles;
 };
 
 export const requestRestaurantOtp = async (phone) => {
@@ -584,7 +645,8 @@ export const getProfile = async (userId, role) => {
     }
       break;
     case ROLES.ADMIN:
-      profile = await FoodAdmin.findById(id).select("-password").lean();
+    case "EMPLOYEE":
+      profile = normalizeAdminProfile(await getAdminProfileDocument(id));
       break;
     case ROLES.RESTAURANT:
       {

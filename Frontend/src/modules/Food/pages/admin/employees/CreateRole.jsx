@@ -13,6 +13,7 @@ import { toast } from "react-hot-toast";
 import axiosInstance from "@food/api";
 import { generatePermissionTree } from "@food/utils/permissionGenerator";
 import { cn } from "@/lib/utils";
+import { getCachedSettings } from "@/modules/common/utils/businessSettings";
 
 export default function CreateRole() {
   const navigate = useNavigate();
@@ -27,9 +28,19 @@ export default function CreateRole() {
   
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [enabledModules, setEnabledModules] = useState(null);
+  const [enabledModules, setEnabledModules] = useState(() => {
+    const cached = getCachedSettings();
+    return cached?.modules || null;
+  });
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+
+  const buildSubmitPermissions = (permissions) => {
+    const nextPermissions = { ...(permissions || {}) };
+    delete nextPermissions["food::dashboard"];
+    delete nextPermissions["quick::dashboard"];
+    return nextPermissions;
+  };
 
   // Generate tree from sidebar configs
   const rawPermissionTree = useMemo(() => generatePermissionTree(enabledModules), [enabledModules]);
@@ -62,7 +73,7 @@ export default function CreateRole() {
         if (settings?.modules) setEnabledModules(settings.modules);
 
         if (isEdit) {
-          const roleRes = await axiosInstance.get(`/api/v1/food/admin/roles/${id}`);
+          const roleRes = await axiosInstance.get(`/food/admin/roles/${id}`);
           if (roleRes.data.success) {
             const data = roleRes.data.data;
             setRoleData({
@@ -77,8 +88,31 @@ export default function CreateRole() {
           setExpandedNodes(new Set(["food", "quick", "global"]));
         }
       } catch (error) {
-        toast.error("Failed to load page data");
-        if (isEdit) navigate("/admin/food/employee-role");
+        const cached = getCachedSettings();
+        if (!cached?.modules) {
+          toast.error("Failed to load page data");
+          if (isEdit) navigate("/admin/food/employee-role");
+        } else {
+          console.warn("Failed to fetch fresh settings, using cached settings:", error);
+          if (isEdit) {
+            // Still try to load the role even if settings failed but we have cache
+            try {
+              const roleRes = await axiosInstance.get(`/food/admin/roles/${id}`);
+              if (roleRes.data.success) {
+                const data = roleRes.data.data;
+                setRoleData({
+                  roleName: data.roleName,
+                  description: data.description || "",
+                  permissions: data.permissions || {},
+                });
+                setExpandedNodes(new Set(["food", "quick", "global"]));
+              }
+            } catch (roleError) {
+              toast.error("Failed to load role data");
+              navigate("/admin/food/employee-role");
+            }
+          }
+        }
       } finally {
         setFetching(false);
       }
@@ -113,11 +147,11 @@ export default function CreateRole() {
    * Logic Fix: Child select -> auto preserve parent visibility
    */
   const ensureParentVisibility = (targetKey, newPermissions) => {
-    const parts = targetKey.split('.');
+    const parts = targetKey.split('::');
     if (parts.length <= 1) return;
 
     for (let i = 1; i < parts.length; i++) {
-      const parentKey = parts.slice(0, i).join('.');
+      const parentKey = parts.slice(0, i).join('::');
       if (!newPermissions[parentKey]) {
         newPermissions[parentKey] = { view: false, create: false, edit: false, delete: false };
       }
@@ -168,7 +202,12 @@ export default function CreateRole() {
     const applyRecursive = (n) => {
       const k = n.permissionKey;
       if (!newPermissions[k]) newPermissions[k] = { view: false, create: false, edit: false, delete: false };
-      actions.forEach(a => { newPermissions[k][a] = isChecked; });
+      actions.forEach(a => {
+        const isAllowed = !n.allowedActions || n.allowedActions.includes(a);
+        if (isAllowed) {
+          newPermissions[k][a] = isChecked;
+        }
+      });
       if (n.children) n.children.forEach(applyRecursive);
     };
 
@@ -192,10 +231,14 @@ export default function CreateRole() {
 
     try {
       setLoading(true);
-      const url = isEdit ? `/api/v1/food/admin/roles/${id}` : "/api/v1/food/admin/roles";
+      const url = isEdit ? `/food/admin/roles/${id}` : "/food/admin/roles";
       const method = isEdit ? "patch" : "post";
+      const payload = {
+        ...roleData,
+        permissions: buildSubmitPermissions(roleData.permissions),
+      };
       
-      const response = await axiosInstance[method](url, roleData);
+      const response = await axiosInstance[method](url, payload);
       if (response.data.success) {
         toast.success(response.data.message);
         navigate("/admin/food/employee-role");
@@ -224,7 +267,7 @@ export default function CreateRole() {
         <div 
           className={cn(
             "flex items-center justify-between py-3 px-4 border-b border-neutral-50 hover:bg-neutral-50/80 transition-all duration-200 group",
-            depth === 0 && "bg-neutral-100/50 border-neutral-200/50 sticky top-[57px] z-[5] backdrop-blur-sm",
+            depth === 0 && "bg-neutral-100/50 border-neutral-200/50 backdrop-blur-sm",
             depth === 1 && "bg-white"
           )}
         >
@@ -252,36 +295,49 @@ export default function CreateRole() {
           </div>
 
           <div className="flex items-center gap-4 md:gap-8">
-            {["view", "create", "edit", "delete"].map(action => (
-              <div key={action} className="flex flex-col items-center gap-1.5 min-w-[44px]" title={depth > 0 ? actionIcons[action].label : ""}>
-                {depth === 0 ? (
-                  <span className={cn("text-[9px] font-bold uppercase tracking-tighter", actionIcons[action].color)}>
-                    {actionIcons[action].label}
-                  </span>
-                ) : (
-                  <Checkbox 
-                    checked={permissions[action]}
-                    onCheckedChange={(checked) => handlePermissionChange(node, action, checked)}
-                    className={cn(
-                      "w-4.5 h-4.5 border-neutral-300 transition-all duration-200",
-                      permissions[action] && "scale-110 shadow-sm"
-                    )}
-                  />
-                )}
-              </div>
-            ))}
+            {["view", "create", "edit", "delete"].map(action => {
+              const isAllowed = !node.allowedActions || node.allowedActions.includes(action);
+              return (
+                <div key={action} className="flex flex-col items-center gap-1.5 min-w-[44px]" title={depth > 0 ? actionIcons[action].label : ""}>
+                  {depth === 0 ? (
+                    <span className={cn("text-[9px] font-bold uppercase tracking-tighter", actionIcons[action].color)}>
+                      {actionIcons[action].label}
+                    </span>
+                  ) : (
+                    isAllowed ? (
+                      <Checkbox 
+                        checked={permissions[action]}
+                        onCheckedChange={(checked) => handlePermissionChange(node, action, checked)}
+                        className={cn(
+                          "w-4.5 h-4.5 border-2 border-neutral-800 transition-all duration-200",
+                          permissions[action] && "scale-110 shadow-sm"
+                        )}
+                      />
+                    ) : (
+                      <div className="w-4.5 h-4.5 flex items-center justify-center opacity-30" title={`'${actionIcons[action].label}' not applicable`}>
+                        <div className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
+                      </div>
+                    )
+                  )}
+                </div>
+              );
+            })}
 
             <div className="w-12 flex justify-center border-l border-neutral-100 ml-2">
                {depth > 0 && (
                  <button 
                   type="button"
                   onClick={() => {
-                    const allSelected = ["view", "create", "edit", "delete"].every(a => permissions[a]);
+                    const applicableActions = ["view", "create", "edit", "delete"].filter(a => !node.allowedActions || node.allowedActions.includes(a));
+                    const allSelected = applicableActions.length > 0 ? applicableActions.every(a => permissions[a]) : false;
                     handleSectionSelectAll(node, !allSelected);
                   }}
                   className={cn(
                     "text-[10px] font-black px-2 py-0.5 rounded transition-all duration-200",
-                    ["view", "create", "edit", "delete"].every(a => permissions[a]) 
+                    (() => {
+                      const applicableActions = ["view", "create", "edit", "delete"].filter(a => !node.allowedActions || node.allowedActions.includes(a));
+                      return applicableActions.length > 0 && applicableActions.every(a => permissions[a]);
+                    })()
                       ? "bg-primary/10 text-primary" 
                       : "text-neutral-400 hover:text-primary hover:bg-primary/5"
                   )}

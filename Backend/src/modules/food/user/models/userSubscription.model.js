@@ -79,6 +79,22 @@ const userSubscriptionSchema = new mongoose.Schema(
         cancellationReason: {
             type: String
         },
+        purchasedPlanName: {
+            type: String,
+            default: null
+        },
+        purchasedPrice: {
+            type: Number,
+            default: null
+        },
+        purchasedDuration: {
+            type: Number,
+            default: null
+        },
+        purchasedDurationType: {
+            type: String,
+            default: null
+        },
         metadata: {
             type: mongoose.Schema.Types.Mixed,
             default: {}

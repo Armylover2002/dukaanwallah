@@ -1,12 +1,67 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Search, Wallet, Info, Calendar, Edit, Trash2 } from "lucide-react"
 import { emptyWalletBonuses } from "@food/utils/adminFallbackData"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
+import { toast } from "sonner"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function Bonus() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canCreate = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::customer_management::wallet_updates", "create")
+  }, [currentUser, resolvedPermissions])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::customer_management::wallet_updates", "edit")
+  }, [currentUser, resolvedPermissions])
+
+  const canDelete = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::customer_management::wallet_updates", "delete")
+  }, [currentUser, resolvedPermissions])
   const [activeLanguage, setActiveLanguage] = useState("default")
   const [searchQuery, setSearchQuery] = useState("")
   const [bonuses, setBonuses] = useState(emptyWalletBonuses)
@@ -24,9 +79,9 @@ export default function Bonus() {
   const languageTabs = [
     { key: "default", label: "Default" },
     { key: "en", label: "English(EN)" },
-    { key: "bn", label: "Bengali - বাংলা(BN)" },
-    { key: "ar", label: "Arabic - العربية (AR)" },
-    { key: "es", label: "Spanish - espa�ol(ES)" },
+    { key: "bn", label: "Bengali - à¦¬à¦¾à¦à¦²à¦¾(BN)" },
+    { key: "ar", label: "Arabic - Ø§ÙØ¹Ø±Ø¨ÙØ© (AR)" },
+    { key: "es", label: "Spanish - español(ES)" },
   ]
 
   const filteredBonuses = useMemo(() => {
@@ -46,6 +101,10 @@ export default function Bonus() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (!canCreate) {
+      toast.error("Permission denied")
+      return
+    }
     debugLog("Form submitted:", formData)
     alert("Bonus setup saved successfully!")
   }
@@ -64,12 +123,20 @@ export default function Bonus() {
   }
 
   const handleToggleStatus = (sl) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     setBonuses(bonuses.map(bonus =>
       bonus.sl === sl ? { ...bonus, status: !bonus.status } : bonus
     ))
   }
 
   const handleDelete = (sl) => {
+    if (!canDelete) {
+      toast.error("Permission denied")
+      return
+    }
     if (window.confirm("Are you sure you want to delete this bonus?")) {
       setBonuses(bonuses.filter(bonus => bonus.sl !== sl))
     }
@@ -235,7 +302,8 @@ export default function Bonus() {
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md"
+                disabled={!canCreate}
+                className="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Submit
               </button>
@@ -304,9 +372,10 @@ export default function Bonus() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => handleToggleStatus(bonus.sl)}
+                        disabled={!canEdit}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                           bonus.status ? "bg-blue-600" : "bg-slate-300"
-                        }`}
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <span
                           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -317,19 +386,23 @@ export default function Bonus() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(bonus.sl)}
-                          className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canEdit && (
+                          <button
+                            className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(bonus.sl)}
+                            className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

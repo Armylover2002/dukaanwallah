@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
-  Plus, Edit2, Trash2, Search, ShieldCheck, ToggleLeft, ToggleRight, 
-  MoreVertical, Users, CheckCircle2, AlertCircle, Copy, FileStack,
+  Plus, Edit2, Trash2, Search, ShieldCheck, ToggleLeft, ToggleRight,
+  MoreVertical, Users, CheckCircle2, AlertCircle, Copy,
   ArrowRight, ShieldAlert, Layers
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -19,19 +19,25 @@ import {
 import { toast } from "react-hot-toast";
 import axiosInstance from "@food/api";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
 
 export default function RoleList() {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [resolvedPermissions, setResolvedPermissions] = useState({});
 
   const fetchRoles = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get("/api/v1/food/admin/roles");
+      const response = await axiosInstance.get("/food/admin/roles");
       if (response.data.success) {
-        setRoles(response.data.data);
+        setRoles(response.data.data || []);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to fetch roles");
@@ -44,9 +50,53 @@ export default function RoleList() {
     fetchRoles();
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser);
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions);
+        return;
+      }
+
+      const roleId = extractAdminRoleId(currentUser);
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId);
+        if (isMounted) setResolvedPermissions(rolePermissions);
+      } catch {
+        if (isMounted) setResolvedPermissions({});
+      }
+    };
+
+    resolvePermissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  const rolePermissionKey = "food::staff_management::roles";
+  const canCreateRole = canPerformAdminPermissionAction(currentUser, resolvedPermissions, rolePermissionKey, "create");
+  const canEditRole = canPerformAdminPermissionAction(currentUser, resolvedPermissions, rolePermissionKey, "edit");
+  const canDeleteRole = canPerformAdminPermissionAction(currentUser, resolvedPermissions, rolePermissionKey, "delete");
+
   const handleToggleStatus = async (roleId) => {
+    if (!canEditRole) {
+      toast.error("You do not have permission to update roles");
+      return;
+    }
     try {
-      const response = await axiosInstance.patch(`/api/v1/food/admin/roles/${roleId}/toggle`);
+      const response = await axiosInstance.patch(`/food/admin/roles/${roleId}/toggle`);
       if (response.data.success) {
         toast.success(response.data.message);
         fetchRoles();
@@ -56,7 +106,7 @@ export default function RoleList() {
     }
   };
 
-  const filteredRoles = roles.filter(role => 
+  const filteredRoles = (roles || []).filter(role => 
     role.roleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     role.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -64,7 +114,7 @@ export default function RoleList() {
   const stats = [
     { 
       label: "TOTAL ROLES", 
-      value: roles.length, 
+      value: (roles || []).length, 
       icon: Layers, 
       color: "bg-neutral-900", 
       textColor: "text-white",
@@ -72,7 +122,7 @@ export default function RoleList() {
     },
     { 
       label: "ACTIVE", 
-      value: roles.filter(r => r.status === 'active').length, 
+      value: (roles || []).filter(r => r.status === 'active').length, 
       icon: CheckCircle2, 
       color: "bg-emerald-500", 
       textColor: "text-white",
@@ -80,7 +130,7 @@ export default function RoleList() {
     },
     { 
       label: "INACTIVE", 
-      value: roles.filter(r => r.status !== 'active').length, 
+      value: (roles || []).filter(r => r.status !== 'active').length, 
       icon: ShieldAlert, 
       color: "bg-amber-500", 
       textColor: "text-white",
@@ -109,13 +159,15 @@ export default function RoleList() {
              </div>
           </div>
         </div>
-        <Button 
-          onClick={() => navigate("/admin/food/employee-role/create")}
-          className="bg-neutral-900 hover:bg-black text-white h-12 px-8 rounded-2xl font-black shadow-2xl shadow-neutral-900/20 transition-all active:scale-95"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          CREATE NEW ROLE
-        </Button>
+        {canCreateRole && (
+          <Button 
+            onClick={() => navigate("/admin/food/employee-role/create")}
+            className="bg-neutral-900 hover:bg-black text-white h-12 px-8 rounded-2xl font-black shadow-2xl shadow-neutral-900/20 transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            CREATE NEW ROLE
+          </Button>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -148,7 +200,6 @@ export default function RoleList() {
             />
           </div>
           <div className="flex items-center gap-2 mr-2">
-             <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black tracking-widest text-neutral-400"><FileStack className="w-3.5 h-3.5 mr-2" /> EXPORT LOGS</Button>
           </div>
         </div>
 
@@ -172,12 +223,14 @@ export default function RoleList() {
                   Start by creating a role to define access boundaries for your staff members.
                 </p>
               </div>
-              <Button 
-                onClick={() => navigate("/admin/food/employee-role/create")}
-                className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-12 px-8 font-black shadow-xl shadow-primary/20"
-              >
-                PROVISION FIRST ROLE <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              {canCreateRole && (
+                <Button 
+                  onClick={() => navigate("/admin/food/employee-role/create")}
+                  className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-12 px-8 font-black shadow-xl shadow-primary/20"
+                >
+                  PROVISION FIRST ROLE <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -228,8 +281,9 @@ export default function RoleList() {
                       <td className="px-8 py-6">
                         <button 
                           onClick={() => handleToggleStatus(role._id)}
+                          disabled={!canEditRole}
                           className={cn(
-                            "inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm",
+                            "inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
                             role.status === 'active' 
                             ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100' 
                             : 'bg-neutral-50 text-neutral-400 border border-neutral-100 hover:bg-neutral-100'
@@ -249,19 +303,15 @@ export default function RoleList() {
                           <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-neutral-100 shadow-2xl">
                             <DropdownMenuLabel className="text-[10px] font-black text-neutral-400 uppercase tracking-widest px-3 py-2">Role Management</DropdownMenuLabel>
                             <DropdownMenuSeparator className="bg-neutral-100" />
-                            <DropdownMenuItem 
-                              className="rounded-xl h-11 font-bold text-sm focus:bg-primary/5 focus:text-primary cursor-pointer px-3"
-                              onClick={() => navigate(`/admin/food/employee-role/edit/${role._id}`)}
-                            >
-                              <Edit2 className="w-4 h-4 mr-3 opacity-60" /> Edit Configuration
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="rounded-xl h-11 font-bold text-sm focus:bg-primary/5 focus:text-primary cursor-pointer px-3"
-                              onClick={() => toast.success("Duplicating Role Context...")}
-                            >
-                              <Copy className="w-4 h-4 mr-3 opacity-60" /> Duplicate Role
-                            </DropdownMenuItem>
-                            {!role.isDefault && (
+                            {canEditRole && (
+                              <DropdownMenuItem 
+                                className="rounded-xl h-11 font-bold text-sm focus:bg-primary/5 focus:text-primary cursor-pointer px-3"
+                                onClick={() => navigate(`/admin/food/employee-role/edit/${role._id}`)}
+                              >
+                                <Edit2 className="w-4 h-4 mr-3 opacity-60" /> Edit Configuration
+                              </DropdownMenuItem>
+                            )}
+                            {!role.isDefault && canDeleteRole && (
                               <>
                                 <DropdownMenuSeparator className="bg-neutral-100" />
                                 <DropdownMenuItem 

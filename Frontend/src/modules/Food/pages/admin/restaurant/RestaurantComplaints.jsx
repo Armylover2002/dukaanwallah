@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 import { Search, Filter, AlertCircle, CheckCircle, Clock, XCircle, FileText, Edit } from "lucide-react"
 import {
   Select,
@@ -43,6 +46,50 @@ const COMPLAINT_TYPE_OPTIONS = [
 ]
 
 export default function RestaurantComplaints() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::restaurant_management::restaurants::complaints", "edit")
+  }, [currentUser, resolvedPermissions])
+
   const [complaints, setComplaints] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -103,11 +150,19 @@ export default function RestaurantComplaints() {
   }
 
   const handleOpenModal = (complaint) => {
+    if (!canEdit) {
+      toast.error('Permission denied')
+      return
+    }
     setEditingComplaint(complaint)
     setUpdateData({ status: complaint.status, adminResponse: complaint.adminResponse || '' })
   }
 
   const handleUpdateComplaint = async () => {
+    if (!canEdit) {
+      toast.error('Permission denied')
+      return
+    }
     if (!editingComplaint) return
     try {
       const response = await adminAPI.updateRestaurantComplaint(editingComplaint._id, updateData)
@@ -240,9 +295,11 @@ export default function RestaurantComplaints() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => handleOpenModal(complaint)} className="p-2 rounded-md hover:bg-gray-200">
-                    <Edit className="w-4 h-4 text-gray-600" />
-                  </button>
+                  {canEdit && (
+                    <button onClick={() => handleOpenModal(complaint)} className="p-2 rounded-md hover:bg-gray-200">
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  )}
                 </div>
                 <p className="text-sm text-gray-700 mb-3">{complaint.description}</p>
                 {complaint.restaurantResponse && (
@@ -309,7 +366,13 @@ export default function RestaurantComplaints() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
-              <Select value={updateData.status} onValueChange={(val) => setUpdateData({ ...updateData, status: val })}>
+              <Select
+                value={updateData.status}
+                onValueChange={(val) => {
+                  if (!canEdit) return
+                  setUpdateData({ ...updateData, status: val })
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -327,12 +390,19 @@ export default function RestaurantComplaints() {
                 placeholder="Type your response here..."
                 value={updateData.adminResponse}
                 onChange={(e) => setUpdateData({ ...updateData, adminResponse: e.target.value })}
+                disabled={!canEdit}
               />
             </div>
           </div>
           <DialogFooter>
             <button onClick={() => setEditingComplaint(null)} className="px-4 py-2 border rounded-md">Cancel</button>
-            <button onClick={handleUpdateComplaint} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
+            <button
+              onClick={handleUpdateComplaint}
+              disabled={!canEdit}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Save Changes
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

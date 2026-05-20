@@ -15,7 +15,8 @@ import {
     updateAdminProfileController,
     changeAdminPasswordController,
     requestAdminForgotPasswordOtpController,
-    resetAdminPasswordWithOtpController
+    resetAdminPasswordWithOtpController,
+    getPublicRolesController
 } from './auth.controller.js';
 import { authMiddleware, requireAdmin } from './auth.middleware.js';
 import { authRateLimiter } from '../../middleware/rateLimit.js';
@@ -42,6 +43,7 @@ router.post('/delivery/verify-otp', authRateLimiter, verifyDeliveryOtpController
 
 // Admin login
 router.post('/admin/login', authRateLimiter, adminLoginController);
+router.get('/admin/roles', getPublicRolesController);
 
 // Admin forgot password (no auth required)
 router.post('/admin/forgot-password/request-otp', authRateLimiter, requestAdminForgotPasswordOtpController);

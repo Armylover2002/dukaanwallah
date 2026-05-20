@@ -14,7 +14,9 @@ import {
     notifyOwnerSafely 
 } from '../../../../core/notifications/firebase.service.js';
 import { isPointInPolygon } from '../../../../utils/geo.js';
-import { ensureDailyPassEligibility, activateDailyPass } from '../../subscriptions/services/wallet.service.js';
+import { ensureDailyPassEligibility, activateDailyPass, checkRestaurantEligibilityReadOnly } from '../../subscriptions/services/wallet.service.js';
+import { logger } from '../../../../utils/logger.js';
+
 
 const normalizeName = (value) =>
     String(value || '')
@@ -600,9 +602,30 @@ export const getCurrentRestaurantProfile = async (restaurantId) => {
         .populate('zoneId', 'name zoneName serviceLocation')
         .lean();
     if (!doc) return null;
+
+    // Determine derived acceptsOrders status using the pure read-only check
+    let isAcceptingOrders = doc.isAcceptingOrders !== false;
+    try {
+        const eligibility = await checkRestaurantEligibilityReadOnly(restaurantId, 'RESTAURANT');
+        if (isAcceptingOrders !== eligibility.shouldAppearOnline) {
+            isAcceptingOrders = eligibility.shouldAppearOnline;
+            
+            // Self-heal the database state asynchronously (non-blocking)
+            FoodRestaurant.updateOne(
+                { _id: restaurantId },
+                { $set: { isAcceptingOrders } }
+            ).catch(err => {
+                logger.error(`[SELF-HEAL] Failed to update isAcceptingOrders to ${isAcceptingOrders} for restaurant ${restaurantId}: ${err.message}`);
+            });
+        }
+    } catch (err) {
+        logger.error(`[PROFILE-HYDRATION] Error validating accepts orders status: ${err.message}`);
+    }
+
     const diningSnapshot = await getRestaurantDiningSnapshot(restaurantId);
     return toRestaurantProfile({
         ...doc,
+        isAcceptingOrders,
         diningCategoryIds: diningSnapshot.categoryIds,
         diningCategories: diningSnapshot.categories,
         diningPrimaryCategoryId: diningSnapshot.primaryCategoryId,

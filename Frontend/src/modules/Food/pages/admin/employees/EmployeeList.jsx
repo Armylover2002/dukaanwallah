@@ -1,33 +1,25 @@
-import { useState, useMemo } from "react"
-import { Users, ChevronDown, Search, Settings, Edit, Trash2, ArrowUpDown, Download, FileText, FileSpreadsheet, Code, Check, Columns } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Users, ChevronDown, Search, Settings, Edit, Trash2, ArrowUpDown, Download, FileText, FileSpreadsheet, Code, Check, Columns, Plus, Eye } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
-
-
-const initialEmployees = [
-  {
-    id: 1,
-    name: "Jhon",
-    phone: "+81234567890",
-    email: "jhon@gmail.com",
-    createdAt: "07 Feb, 2023",
-  },
-  {
-    id: 2,
-    name: "Monali Khan",
-    phone: "+81234567891",
-    email: "test@gmail.com",
-    createdAt: "22 Aug, 2021",
-  },
-]
+import axiosInstance from "@food/api"
+import { toast } from "react-hot-toast"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
 
 export default function EmployeeList() {
+  const navigate = useNavigate()
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
   const [searchQuery, setSearchQuery] = useState("")
-  const [employees, setEmployees] = useState(initialEmployees)
+  const [employees, setEmployees] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
   const [visibleColumns, setVisibleColumns] = useState({
     si: true,
     name: true,
@@ -64,9 +56,95 @@ export default function EmployeeList() {
     return email
   }
 
-  const handleDelete = (id) => {
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true)
+      const res = await axiosInstance.get("/food/admin/employees")
+      if (res.data.success) {
+        setEmployees(res.data.data || [])
+      }
+    } catch (error) {
+      toast.error("Failed to fetch employees")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchEmployees()
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const employeePermissionKey = "food::staff_management::list"
+  const canCreateEmployee = canPerformAdminPermissionAction(currentUser, resolvedPermissions, employeePermissionKey, "create")
+  const canEditEmployee = canPerformAdminPermissionAction(currentUser, resolvedPermissions, employeePermissionKey, "edit")
+  const canDeleteEmployee = canPerformAdminPermissionAction(currentUser, resolvedPermissions, employeePermissionKey, "delete")
+
+  const toggleStatus = async (id) => {
+    if (!canEditEmployee) {
+      toast.error("You do not have permission to update employee status")
+      return
+    }
+    try {
+      const res = await axiosInstance.patch(`/food/admin/employees/${id}/status`);
+      if (res.data.success) {
+        toast.success(res.data.message);
+        fetchEmployees();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to change status");
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!canDeleteEmployee) {
+      toast.error("You do not have permission to delete employees")
+      return
+    }
     if (window.confirm("Are you sure you want to delete this employee?")) {
-      setEmployees(employees.filter(employee => employee.id !== id))
+      try {
+        const res = await axiosInstance.delete(`/food/admin/employees/${id}`)
+        if (res.data.success) {
+          toast.success(res.data.message)
+          fetchEmployees()
+        }
+      } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to delete employee")
+      }
     }
   }
 
@@ -107,11 +185,25 @@ export default function EmployeeList() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Employee List</h1>
+                <p className="text-xs text-slate-500 mt-0.5">Manage your administrative staff and roles.</p>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Employee List</h1>
+            {canCreateEmployee && (
+              <button
+                onClick={() => navigate("/admin/food/employees/add")}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold shadow-md transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                ADD NEW EMPLOYEE
+              </button>
+            )}
           </div>
         </div>
 
@@ -222,6 +314,7 @@ export default function EmployeeList() {
                       </div>
                     </th>
                   )}
+                  <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-700 uppercase tracking-wider">Status</th>
                   {visibleColumns.actions && (
                     <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-700 uppercase tracking-wider">Action</th>
                   )}
@@ -237,7 +330,7 @@ export default function EmployeeList() {
                 ) : (
                   filteredEmployees.map((employee, index) => (
                     <tr
-                      key={employee.id}
+                      key={employee._id}
                       className="hover:bg-slate-50 transition-colors"
                     >
                       {visibleColumns.si && (
@@ -262,25 +355,52 @@ export default function EmployeeList() {
                       )}
                       {visibleColumns.createdAt && (
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-slate-700">{employee.createdAt}</span>
+                          <span className="text-sm text-slate-700">
+                            {new Date(employee.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
                         </td>
                       )}
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => toggleStatus(employee._id)}
+                          disabled={!canEditEmployee}
+                          className={`w-10 h-5 rounded-full relative transition-colors ${employee.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          title={employee.isActive ? "Active" : "Inactive"}
+                        >
+                          <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${employee.isActive ? 'translate-x-5' : ''}`} />
+                        </button>
+                      </td>
                       {visibleColumns.actions && (
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
-                              className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
-                              title="Edit"
+                              onClick={() => {
+                                setSelectedEmployee(employee)
+                                setIsViewModalOpen(true)
+                              }}
+                              className="p-1.5 rounded text-indigo-600 hover:bg-indigo-50 transition-colors"
+                              title="View"
                             >
-                              <Edit className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleDelete(employee.id)}
-                              className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canEditEmployee && (
+                              <button
+                                onClick={() => navigate(`/admin/food/employees/edit/${employee._id}`, { state: { employee } })}
+                                className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canDeleteEmployee && (
+                              <button
+                                onClick={() => handleDelete(employee._id)}
+                                className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}
@@ -292,6 +412,66 @@ export default function EmployeeList() {
           </div>
         </div>
       </div>
+
+      {/* View Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-md bg-white p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-indigo-600" />
+              Employee Details
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 space-y-4">
+            {selectedEmployee && (
+              <>
+                <div className="flex items-center justify-center mb-6">
+                  {selectedEmployee.profileImage ? (
+                    <img src={selectedEmployee.profileImage} alt={selectedEmployee.name} className="w-24 h-24 rounded-full object-cover border-4 border-slate-50" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-indigo-100 flex items-center justify-center border-4 border-white shadow-sm">
+                      <span className="text-3xl font-bold text-indigo-600">
+                        {selectedEmployee.name?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="text-slate-500 font-medium">Name:</div>
+                  <div className="text-slate-900 font-semibold">{selectedEmployee.name}</div>
+                  
+                  <div className="text-slate-500 font-medium">Email:</div>
+                  <div className="text-slate-900">{selectedEmployee.email}</div>
+                  
+                  <div className="text-slate-500 font-medium">Phone:</div>
+                  <div className="text-slate-900">{selectedEmployee.phone}</div>
+                  
+                  <div className="text-slate-500 font-medium">Role:</div>
+                  <div className="text-slate-900 capitalize bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded inline-block w-max">
+                    {selectedEmployee.adminRoleId?.roleName || selectedEmployee.role}
+                  </div>
+                  
+                  <div className="text-slate-500 font-medium">Zone:</div>
+                  <div className="text-slate-900">{selectedEmployee.zoneId?.name || "Global / All Zones"}</div>
+                  
+                  <div className="text-slate-500 font-medium">Status:</div>
+                  <div className={`font-semibold ${selectedEmployee.isActive ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {selectedEmployee.isActive ? 'Active' : 'Inactive'}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-xl flex justify-end">
+            <button 
+              onClick={() => setIsViewModalOpen(false)}
+              className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Settings Dialog */}
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>

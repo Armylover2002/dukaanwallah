@@ -1,13 +1,27 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { UserPlus, User, Eye, EyeOff, Upload, ChevronDown } from "lucide-react"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+import { toast } from "react-hot-toast"
+import { useNavigate, useParams, useLocation } from "react-router-dom"
+import axiosInstance from "@food/api"
 
+const NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{0,49}$/
+const EMAIL_REGEX = /^[a-z0-9._%+-]+@gmail\.com$/
+const PHONE_REGEX = /^\d{10}$/
+const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif"]
 
 export default function AddEmployee() {
+  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [roles, setRoles] = useState([])
+  const [zones, setZones] = useState([])
+  const [errors, setErrors] = useState({})
+  const { id } = useParams()
+  const location = useLocation()
+  const isEditMode = !!id
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,20 +35,183 @@ export default function AddEmployee() {
     confirmPassword: "",
   })
 
+  useEffect(() => {
+    if (isEditMode && location.state?.employee) {
+      const emp = location.state.employee;
+      const nameParts = (emp.name || "").split(" ");
+      setFormData(prev => ({
+        ...prev,
+        firstName: nameParts[0] || "",
+        lastName: nameParts.slice(1).join(" ") || "",
+        email: emp.email || "",
+        phone: emp.phone?.replace("+91", "") || "",
+        phoneCode: "+91",
+        role: emp.adminRoleId?._id || emp.adminRoleId || "",
+        zone: emp.zoneId || "All",
+      }));
+    }
+  }, [isEditMode, location.state])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [rolesRes, zonesRes] = await Promise.all([
+          axiosInstance.get("/food/admin/roles"),
+          axiosInstance.get("/food/admin/zones")
+        ])
+        if (rolesRes.data.success) {
+          setRoles(rolesRes.data.data || [])
+        }
+        if (zonesRes.data.success) {
+          setZones(zonesRes.data.data.zones || [])
+        }
+      } catch (error) {
+        toast.error("Failed to load roles and zones")
+      }
+    }
+    fetchData()
+  }, [])
+
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    let nextValue = value
+
+    if (field === "firstName" || field === "lastName") {
+      nextValue = value.replace(/[^A-Za-z\s.'-]/g, "").replace(/\s{2,}/g, " ").slice(0, 50)
+    }
+
+    if (field === "phone") {
+      nextValue = value.replace(/\D/g, "").slice(0, 10)
+    }
+
+    if (field === "email") {
+      nextValue = value.trim().toLowerCase()
+    }
+
+    setFormData(prev => ({ ...prev, [field]: nextValue }))
+    setErrors(prev => ({ ...prev, [field]: "" }))
   }
 
   const handleFileUpload = (field, file) => {
-    if (file) {
-      setFormData(prev => ({ ...prev, [field]: file }))
+    if (!file) return
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Please upload a JPG, PNG, or GIF image")
+      return
     }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      toast.error("Image size must be 2 MB or less")
+      return
+    }
+    setFormData(prev => ({ ...prev, [field]: file }))
+    setErrors(prev => ({ ...prev, [field]: "" }))
   }
 
-  const handleSubmit = (e) => {
+  const validateForm = () => {
+    const nextErrors = {}
+    const firstName = formData.firstName.trim()
+    const lastName = formData.lastName.trim()
+    const email = formData.email.trim().toLowerCase()
+    const phone = formData.phone.trim()
+    const password = formData.password
+    const confirmPassword = formData.confirmPassword
+
+    if (!firstName) {
+      nextErrors.firstName = "First name is required"
+    } else if (!NAME_REGEX.test(firstName)) {
+      nextErrors.firstName = "First name can contain only letters and basic punctuation"
+    }
+
+    if (!lastName) {
+      nextErrors.lastName = "Last name is required"
+    } else if (!NAME_REGEX.test(lastName)) {
+      nextErrors.lastName = "Last name can contain only letters and basic punctuation"
+    }
+
+    if (!formData.role) {
+      nextErrors.role = "Please select a role"
+    }
+
+    if (!phone) {
+      nextErrors.phone = "Phone number is required"
+    } else if (!PHONE_REGEX.test(phone)) {
+      nextErrors.phone = "Phone number must be exactly 10 digits"
+    }
+
+    if (!email) {
+      nextErrors.email = "Email is required"
+    } else if (!EMAIL_REGEX.test(email)) {
+      nextErrors.email = "Enter a valid Gmail address"
+    }
+
+    if (!isEditMode) {
+      if (!password) {
+        nextErrors.password = "Password is required"
+      } else if (password.length < 8) {
+        nextErrors.password = "Password must be at least 8 characters"
+      }
+
+      if (!confirmPassword) {
+        nextErrors.confirmPassword = "Confirm password is required"
+      } else if (password !== confirmPassword) {
+        nextErrors.confirmPassword = "Passwords do not match"
+      }
+    } else if (password || confirmPassword) {
+      if (password.length < 8) {
+        nextErrors.password = "Password must be at least 8 characters"
+      }
+      if (password !== confirmPassword) {
+        nextErrors.confirmPassword = "Passwords do not match"
+      }
+    }
+
+    setErrors(nextErrors)
+    return nextErrors
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    debugLog("Form submitted:", formData)
-    alert("Employee added successfully!")
+    const validationErrors = validateForm()
+    if (Object.keys(validationErrors).length > 0) {
+      toast.error(Object.values(validationErrors)[0])
+      return
+    }
+
+    try {
+      setLoading(true)
+      const data = new FormData()
+      data.append('firstName', formData.firstName.trim())
+      data.append('lastName', formData.lastName.trim())
+      data.append('email', formData.email.trim().toLowerCase())
+      if (formData.password) {
+        data.append('password', formData.password)
+      }
+      data.append('phone', formData.phoneCode + formData.phone.trim())
+      data.append('roleId', formData.role)
+      data.append('zoneId', formData.zone)
+      
+      if (formData.employeeImage) {
+        data.append('employeeImage', formData.employeeImage)
+      }
+
+      let res;
+      if (isEditMode) {
+        res = await axiosInstance.patch(`/food/admin/employees/${id}`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      } else {
+        res = await axiosInstance.post("/food/admin/employees", data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      }
+      
+      if (res.data.success) {
+        toast.success(res.data.message)
+        navigate("/admin/food/employees")
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to add employee")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleReset = () => {
@@ -50,6 +227,7 @@ export default function AddEmployee() {
       password: "",
       confirmPassword: "",
     })
+    setErrors({})
   }
 
   return (
@@ -61,7 +239,7 @@ export default function AddEmployee() {
             <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
               <UserPlus className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Add New Employee</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{isEditMode ? 'Update Employee' : 'Add New Employee'}</h1>
           </div>
         </div>
 
@@ -87,8 +265,9 @@ export default function AddEmployee() {
                       value={formData.firstName}
                       onChange={(e) => handleInputChange("firstName", e.target.value)}
                       placeholder="Ex: John"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.firstName ? "border-red-500" : "border-slate-300"}`}
                     />
+                    {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>}
                   </div>
 
                   {/* Last Name */}
@@ -101,8 +280,9 @@ export default function AddEmployee() {
                       value={formData.lastName}
                       onChange={(e) => handleInputChange("lastName", e.target.value)}
                       placeholder="Ex: Doe"
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.lastName ? "border-red-500" : "border-slate-300"}`}
                     />
+                    {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>}
                   </div>
                 </div>
 
@@ -119,9 +299,9 @@ export default function AddEmployee() {
                         className="w-full px-4 py-2.5 pr-8 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none cursor-pointer"
                       >
                         <option value="All">All</option>
-                        <option value="Zone 1">Zone 1</option>
-                        <option value="Zone 2">Zone 2</option>
-                        <option value="Zone 3">Zone 3</option>
+                        {zones.map(z => (
+                          <option key={z._id} value={z._id}>{z.name}</option>
+                        ))}
                       </select>
                       <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                     </div>
@@ -136,15 +316,16 @@ export default function AddEmployee() {
                       <select
                         value={formData.role}
                         onChange={(e) => handleInputChange("role", e.target.value)}
-                        className="w-full px-4 py-2.5 pr-8 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none cursor-pointer"
+                        className={`w-full px-4 py-2.5 pr-8 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none cursor-pointer ${errors.role ? "border-red-500" : "border-slate-300"}`}
                       >
                         <option value="">Select Role</option>
-                        <option value="manager">Manager</option>
-                        <option value="customer-care">Customer Care Executive</option>
-                        <option value="admin">Admin</option>
+                        {roles.filter(r => r.status === 'active').map(r => (
+                          <option key={r._id} value={r._id}>{r.roleName}</option>
+                        ))}
                       </select>
                       <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                     </div>
+                    {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role}</p>}
                   </div>
                 </div>
 
@@ -169,9 +350,12 @@ export default function AddEmployee() {
                       value={formData.phone}
                       onChange={(e) => handleInputChange("phone", e.target.value)}
                       placeholder="Phone number"
-                      className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className={`flex-1 px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.phone ? "border-red-500" : "border-slate-300"}`}
                     />
                   </div>
+                  {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
                 </div>
               </div>
 
@@ -189,13 +373,25 @@ export default function AddEmployee() {
                     id="employee-image-upload"
                   />
                   <label htmlFor="employee-image-upload" className="cursor-pointer">
-                    <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-slate-700 mb-1">Upload Image</p>
-                    <div className="text-xs text-slate-500 space-y-1 mt-2">
-                      <p>Image format - jpg png jpeg gif</p>
-                      <p>Image Size - maximum size 2 MB</p>
-                      <p>Image Ratio - 1:1</p>
-                    </div>
+                    {formData.employeeImage ? (
+                      <div className="w-full h-32 flex justify-center object-cover">
+                        <img 
+                          src={URL.createObjectURL(formData.employeeImage)} 
+                          alt="Preview" 
+                          className="h-full rounded object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                        <p className="text-sm font-medium text-slate-700 mb-1">Upload Image</p>
+                        <div className="text-xs text-slate-500 space-y-1 mt-2">
+                          <p>Image format - jpg png jpeg gif</p>
+                          <p>Image Size - maximum size 2 MB</p>
+                          <p>Image Ratio - 1:1</p>
+                        </div>
+                      </>
+                    )}
                   </label>
                 </div>
               </div>
@@ -220,14 +416,15 @@ export default function AddEmployee() {
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="Ex: ex@gmail.com"
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.email ? "border-red-500" : "border-slate-300"}`}
                 />
+                {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
               </div>
 
               {/* Password */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Password
+                  Password {isEditMode && <span className="text-xs text-slate-400 font-normal">(Leave blank to keep current)</span>}
                 </label>
                 <div className="relative">
                   <input
@@ -235,7 +432,7 @@ export default function AddEmployee() {
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     placeholder="Password length 8+"
-                    className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.password ? "border-red-500" : "border-slate-300"}`}
                   />
                   <button
                     type="button"
@@ -245,12 +442,13 @@ export default function AddEmployee() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
               </div>
 
               {/* Confirm Password */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Confirm Password
+                  Confirm Password {isEditMode && <span className="text-xs text-slate-400 font-normal">(Leave blank to keep current)</span>}
                 </label>
                 <div className="relative">
                   <input
@@ -258,7 +456,7 @@ export default function AddEmployee() {
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                     placeholder="Password length 8+"
-                    className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.confirmPassword ? "border-red-500" : "border-slate-300"}`}
                   />
                   <button
                     type="button"
@@ -268,6 +466,7 @@ export default function AddEmployee() {
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {errors.confirmPassword && <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>}
               </div>
             </div>
           </div>
@@ -283,9 +482,10 @@ export default function AddEmployee() {
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md"
+              disabled={loading}
+              className="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md disabled:opacity-50"
             >
-              Submit
+              {loading ? "Submitting..." : isEditMode ? "Update" : "Submit"}
             </button>
           </div>
         </form>

@@ -5,6 +5,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
 import { exportDeliverymenToExcel, exportDeliverymenToPDF } from "@food/components/admin/deliveryman/deliverymanExportUtils"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
+import ApprovalAuditCard from "@food/components/admin/ApprovalAuditCard"
 const debugError = () => {}
 
 
@@ -15,6 +19,50 @@ const formatCurrency = (amount) => {
 }
 
 export default function DeliverymanList() {
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const canEdit = useMemo(() => {
+    return canPerformAdminPermissionAction(currentUser, resolvedPermissions, "food::deliveryman_management::deliveryman::list", "edit")
+  }, [currentUser, resolvedPermissions])
+
   const [searchQuery, setSearchQuery] = useState("")
   const [deliverymen, setDeliverymen] = useState([])
   const [loading, setLoading] = useState(true)
@@ -238,6 +286,10 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
   }
 
   const startEditingWallet = (deliveryman) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     setEditingDeliveryId(String(deliveryman._id))
     setEditValues({
       pocketBalance: String(Number(deliveryman.pocketBalance) || 0),
@@ -255,6 +307,10 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
   }
 
   const saveWalletChanges = async (deliveryman) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     const nextPocketBalance = Number(editValues.pocketBalance)
     const nextCashInHand = Number(editValues.cashInHand)
 
@@ -338,6 +394,10 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
   }
 
   const handleToggleActiveStatus = async (deliveryman) => {
+    if (!canEdit) {
+      toast.error("Permission denied")
+      return
+    }
     const deliverymanId = String(deliveryman?._id || "")
     if (!deliverymanId) {
       toast.error("Delivery partner not found")
@@ -656,33 +716,35 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                         {visibleColumns.actions && (
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="flex items-center justify-center gap-2">
-                              {editingDeliveryId === String(dm._id) ? (
-                                <>
+                              {canEdit && (
+                                editingDeliveryId === String(dm._id) ? (
+                                  <>
+                                    <button
+                                      onClick={() => saveWalletChanges(dm)}
+                                      disabled={savingDeliveryId === String(dm._id)}
+                                      className="p-1.5 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                      title="Save Wallet"
+                                    >
+                                      {savingDeliveryId === String(dm._id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    </button>
+                                    <button
+                                      onClick={cancelEditingWallet}
+                                      disabled={savingDeliveryId === String(dm._id)}
+                                      className="p-1.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                                      title="Cancel"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                ) : (
                                   <button
-                                    onClick={() => saveWalletChanges(dm)}
-                                    disabled={savingDeliveryId === String(dm._id)}
-                                    className="p-1.5 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                                    title="Save Wallet"
+                                    onClick={() => startEditingWallet(dm)}
+                                    className="p-1.5 rounded bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                                    title="Edit Wallet"
                                   >
-                                    {savingDeliveryId === String(dm._id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    <Pencil className="w-4 h-4" />
                                   </button>
-                                  <button
-                                    onClick={cancelEditingWallet}
-                                    disabled={savingDeliveryId === String(dm._id)}
-                                    className="p-1.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors disabled:opacity-50"
-                                    title="Cancel"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </>
-                              ) : (
-                                <button
-                                  onClick={() => startEditingWallet(dm)}
-                                  className="p-1.5 rounded bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
-                                  title="Edit Wallet"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </button>
+                                )
                               )}
                               <button 
                                 onClick={() => handleView(dm)}
@@ -691,18 +753,20 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <button
-                                onClick={() => handleToggleActiveStatus(dm)}
-                                disabled={activeUpdatingId === String(dm._id)}
-                                className={`px-2 py-1 rounded text-[11px] font-semibold transition-colors disabled:opacity-50 ${dm.isActive !== false ? "bg-red-50 text-red-700 hover:bg-red-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
-                                title={dm.isActive !== false ? "Deactivate Delivery Partner" : "Activate Delivery Partner"}
-                              >
-                                {activeUpdatingId === String(dm._id) ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  dm.isActive !== false ? "Deactivate" : "Activate"
-                                )}
-                              </button>
+                              {canEdit && (
+                                <button
+                                  onClick={() => handleToggleActiveStatus(dm)}
+                                  disabled={activeUpdatingId === String(dm._id)}
+                                  className={`px-2 py-1 rounded text-[11px] font-semibold transition-colors disabled:opacity-50 ${dm.isActive !== false ? "bg-red-50 text-red-700 hover:bg-red-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+                                  title={dm.isActive !== false ? "Deactivate Delivery Partner" : "Activate Delivery Partner"}
+                                >
+                                  {activeUpdatingId === String(dm._id) ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    dm.isActive !== false ? "Deactivate" : "Activate"
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </td>
                         )}
@@ -1093,6 +1157,12 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                     </div>
                   )}
                 </div>
+                <ApprovalAuditCard
+                  className="pt-6 border-t border-slate-200"
+                  approvedBy={viewDetails.approvedBy}
+                  rejectedBy={viewDetails.rejectedBy}
+                  rejectionReason={viewDetails.rejectionReason}
+                />
               </div>
             ) : (
               <div className="flex items-center justify-center py-8">
