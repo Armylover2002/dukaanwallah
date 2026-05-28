@@ -21,6 +21,7 @@ const foodSchema = new mongoose.Schema(
         otherPrice: { type: Number, min: 0, default: 0 },
         variants: { type: [foodVariantSchema], default: [] },
         image: { type: String, trim: true, default: '' },
+        images: { type: [String], default: [] },
         foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
         isAvailable: { type: Boolean, default: true, index: true },
         preparationTime: { type: String, trim: true, default: '' },

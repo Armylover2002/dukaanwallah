@@ -43,6 +43,12 @@ export const registerDeliveryPartner = async (payload, files) => {
             'food/delivery/license'
         );
     }
+    if (files?.vehicleImage?.[0]) {
+        images.vehicleImage = await uploadImageBuffer(
+            files.vehicleImage[0].buffer,
+            'food/delivery/vehicle'
+        );
+    }
 
     const partner = await FoodDeliveryPartner.create({
         name,
@@ -168,6 +174,12 @@ export const updateDeliveryPartnerProfile = async (userId, payload, files) => {
         partner.drivingLicensePhoto = await uploadImageBuffer(
             files.drivingLicensePhoto[0].buffer,
             'food/delivery/license'
+        );
+    }
+    if (files?.vehicleImage?.[0]) {
+        partner.vehicleImage = await uploadImageBuffer(
+            files.vehicleImage[0].buffer,
+            'food/delivery/vehicle'
         );
     }
 

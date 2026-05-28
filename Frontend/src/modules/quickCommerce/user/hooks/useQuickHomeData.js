@@ -30,8 +30,8 @@ import { resolveQuickImageUrl } from "../utils/image";
 
 // --- Constants ---
 const DEFAULT_CATEGORY_THEME = {
-  gradient: "linear-gradient(to bottom, #25D366, #4ADE80)",
-  shadow: "shadow-green-500/20",
+  gradient: "linear-gradient(to bottom, #FE5502, #FFF3EC)",
+  shadow: "shadow-orange-500/20",
   accent: "text-[#1A1A1A]",
 };
 
@@ -107,7 +107,7 @@ const ALL_CATEGORY = {
   name: "All",
   icon: HomeIcon,
   theme: DEFAULT_CATEGORY_THEME,
-  headerColor: "#065f46",
+  headerColor: "#F26522",
   banner: {
     title: "HOUSEFULL",
     subtitle: "SALE",

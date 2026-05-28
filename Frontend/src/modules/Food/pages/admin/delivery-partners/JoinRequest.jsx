@@ -765,13 +765,13 @@ export default function JoinRequest() {
                         </div>
                       )}
                       {viewDetails.vehicle.model && (
-                        <div className="text-right col-span-1">
+                        <div>
                           <label className="text-xs font-semibold text-slate-500 uppercase">Model</label>
-                          <p className="text-xs text-slate-900 mt-1">{viewDetails.vehicle.model}</p>
+                          <p className="text-sm text-slate-900 mt-1">{viewDetails.vehicle.model}</p>
                         </div>
                       )}
                       {viewDetails.vehicle.number && (
-                        <div className="col-span-2">
+                        <div>
                           <label className="text-xs font-semibold text-slate-500 uppercase">Vehicle Number</label>
                           <p className="text-sm text-slate-900 mt-1">{viewDetails.vehicle.number}</p>
                         </div>
@@ -780,6 +780,26 @@ export default function JoinRequest() {
                         <div>
                           <label className="text-xs font-semibold text-slate-500 uppercase">Vehicle Type</label>
                           <p className="text-sm text-slate-900 mt-1 capitalize">{viewDetails.vehicle.type}</p>
+                        </div>
+                      )}
+                      {viewDetails.vehicle.vehicleImage && (
+                        <div className="col-span-4 mt-3">
+                          <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Vehicle Image</label>
+                          <a
+                            href={viewDetails.vehicle.vehicleImage}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block relative rounded-lg overflow-hidden border border-slate-200 group bg-slate-50 shadow-sm"
+                          >
+                            <img
+                              src={viewDetails.vehicle.vehicleImage}
+                              alt="Vehicle"
+                              className="w-full max-w-sm h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                              <ExternalLink className="w-4 h-4" /> View Fullscreen
+                            </div>
+                          </a>
                         </div>
                       )}
                     </div>

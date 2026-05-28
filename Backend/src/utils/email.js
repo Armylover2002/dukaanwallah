@@ -120,3 +120,48 @@ export async function sendEmployeeCredentialsEmail(to, password, roleName, login
         return false;
     }
 }
+
+/**
+ * Send OTP email for user registration / login.
+ * @param {string} to - Recipient email
+ * @param {string} otp - 4-digit OTP
+ * @returns {Promise<boolean>} true if sent, false if skipped/failed
+ */
+export async function sendUserOtpEmail(to, otp) {
+    const trans = getTransporter();
+    if (!trans) {
+        logger.warn('User OTP email skipped: SMTP not configured');
+        return false;
+    }
+    const from = config.emailFrom || config.emailUser;
+    const subject = 'Your verification code – Itzo';
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 480px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #111;">Email Verification Code</h2>
+  <p>Use the code below to verify your email. It is valid for 5 minutes.</p>
+  <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; background: #f5f5f5; padding: 12px 16px; border-radius: 8px;">${otp}</p>
+  <p style="color: #666; font-size: 14px;">If you did not request this, you can ignore this email.</p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+  <p style="color: #999; font-size: 12px;">Itzo Team</p>
+</body>
+</html>`;
+    const text = `Your verification code is: ${otp}. It is valid for 5 minutes. If you did not request this, ignore this email.`;
+
+    try {
+        await trans.sendMail({
+            from: typeof from === 'string' && from.includes('<') ? from : `Itzo <${from}>`,
+            to,
+            subject,
+            text,
+            html
+        });
+        logger.info(`User OTP email sent to ${to}`);
+        return true;
+    } catch (err) {
+        logger.error(`Failed to send user OTP email to ${to}:`, err.message);
+        return false;
+    }
+}

@@ -10,10 +10,19 @@ const generateOtpCode = () => {
     return String(code);
 };
 
-const normalizePhoneForOtp = (phone) => String(phone || '').replace(/\D/g, '');
+const normalizePhoneForOtp = (phone) => {
+    const raw = String(phone || '').trim();
+    if (raw.includes('@')) {
+        return raw.toLowerCase();
+    }
+    return raw.replace(/\D/g, '');
+};
 
 const getPhoneCandidates = (phone) => {
     const raw = String(phone || '').trim();
+    if (raw.includes('@')) {
+        return [raw.toLowerCase()];
+    }
     const digits = normalizePhoneForOtp(phone);
     const last10 = digits.slice(-10);
 
@@ -112,11 +121,12 @@ export const createOrUpdateOtp = async (phone, options = {}) => {
     }
 
     const shouldUseDefaultOtp = config.useDefaultOtp && !forceRandom;
+    const isEmail = String(phone || '').includes('@');
 
     let otp;
-    if (shouldUseDefaultOtp) {
+    if (shouldUseDefaultOtp || isEmail) {
         otp = '1234';
-        logger.info(`Default OTP mode enabled – OTP is ${otp} for phone ${phone}`);
+        logger.info(`Default OTP '1234' used for ${phone}`);
     } else {
         otp = generateOtpCode();
     }
@@ -149,8 +159,15 @@ export const createOrUpdateOtp = async (phone, options = {}) => {
         });
     }
 
-    // Only send SMS if not in default OTP mode and credentials exist.
-    if (!shouldUseDefaultOtp && config.smsApiKey && config.smsSenderId) {
+    // Delivery based on phone/email context
+    if (isEmail) {
+        try {
+            const { sendUserOtpEmail } = await import('../../utils/email.js');
+            await sendUserOtpEmail(phone, otp);
+        } catch (err) {
+            logger.warn(`Could not send email OTP to ${phone}: ${err.message}`);
+        }
+    } else if (!shouldUseDefaultOtp && config.smsApiKey && config.smsSenderId) {
         await sendSmsViaIndiaHub(phone, otp);
     } else if (!shouldUseDefaultOtp) {
         logger.warn(`OTP generated for ${phone}, but SMS delivery is skipped because SMS India Hub credentials are missing.`);

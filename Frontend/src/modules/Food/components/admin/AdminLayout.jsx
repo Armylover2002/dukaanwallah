@@ -118,7 +118,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="h-screen bg-neutral-200 flex overflow-hidden">
+    <div className="h-screen bg-[#EDE8E0] flex overflow-hidden admin-theme-scope">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -150,7 +150,7 @@ export default function AdminLayout() {
         )}
 
         {/* Page Content */}
-        <main className="flex-1 min-h-0 w-full max-w-full overflow-x-hidden overflow-y-auto bg-neutral-100">
+        <main className="flex-1 min-h-0 w-full max-w-full overflow-x-hidden overflow-y-auto bg-[#ffffffcc]">
           <div style={{ marginLeft: '20px', padding: '20px 20px 48px 0px' }}>
             {!hasAccess ? (
               <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white rounded-2xl shadow-xs border border-gray-100 max-w-xl mx-auto my-12 animate-fade-in">

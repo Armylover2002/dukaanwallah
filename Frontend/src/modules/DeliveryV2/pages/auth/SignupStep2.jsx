@@ -345,6 +345,13 @@ export default function SignupStep2() {
     }
 
     const formData = new FormData()
+    
+    // Load vehicle image from IndexedDB if it exists and append to FormData
+    const vehicleImageFile = await getFileFromDB("vehicleImage")
+    if (vehicleImageFile instanceof File || vehicleImageFile instanceof Blob) {
+      formData.append("vehicleImage", vehicleImageFile)
+    }
+
     formData.append("name", details.name || "")
     formData.append("phone", String(details.phone || "").replace(/\D/g, "").slice(0, 15))
     if (details.email) formData.append("email", String(details.email).trim())

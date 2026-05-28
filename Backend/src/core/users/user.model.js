@@ -69,7 +69,12 @@ const userSchema = new mongoose.Schema(
     {
         phone: {
             type: String,
-            required: true,
+            required: false,
+            trim: true
+        },
+        alternatePhone: {
+            type: String,
+            default: '',
             trim: true
         },
         countryCode: {
@@ -227,7 +232,8 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-userSchema.index({ phone: 1 }, { unique: true });
+userSchema.index({ phone: 1 }, { unique: true, sparse: true });
+userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ 'addresses.location': '2dsphere' });
 
 export const FoodUser = mongoose.model('FoodUser', userSchema, 'common_users');

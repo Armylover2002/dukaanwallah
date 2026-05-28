@@ -243,7 +243,7 @@ export default function QuickHeader({ showSearch = true, activeCategory = null, 
   const displayContent = useTransform(scrollY, (value) => value > 160 ? "none" : "block");
   const displayNav = useTransform(scrollY, (value) => value > 200 ? "none" : "flex");
 
-  const baseHeaderColor = activeCategory?.headerColor || "#0c831f";
+  const baseHeaderColor = "#FE5502";
   const headerGradient = buildHeaderGradient(baseHeaderColor);
   const searchBarBg = buildSearchBarBackgroundColor(baseHeaderColor);
   const categoryAccent = "#ffffff";

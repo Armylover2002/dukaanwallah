@@ -55,6 +55,7 @@ const buildMenuFromFoods = async (foods = []) => {
             variants: serializeFoodVariants(food.variants),
             variations: serializeFoodVariants(food.variants),
             image: food.image || '',
+            images: Array.isArray(food.images) && food.images.length > 0 ? food.images.filter(Boolean) : (food.image ? [food.image] : []),
             foodType: food.foodType || 'Non-Veg',
             isAvailable: food.isAvailable !== false,
             approvalStatus: food.approvalStatus || 'approved',

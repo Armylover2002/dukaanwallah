@@ -4449,12 +4449,13 @@ export async function getDeliveryPartnerById(id) {
         location: (partner.address || partner.city || partner.state)
             ? { addressLine1: partner.address, city: partner.city, state: partner.state }
             : null,
-        vehicle: (partner.vehicleType || partner.vehicleName || partner.vehicleNumber)
+        vehicle: (partner.vehicleType || partner.vehicleName || partner.vehicleNumber || partner.vehicleImage)
             ? {
                 type: partner.vehicleType,
                 brand: partner.vehicleName,
                 model: partner.vehicleName,
-                number: partner.vehicleNumber
+                number: partner.vehicleNumber,
+                vehicleImage: partner.vehicleImage || null
             }
             : null
     };

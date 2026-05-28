@@ -38,6 +38,7 @@ export const updateCurrentUserProfile = async (userId, body) => {
 
     if (body.name !== undefined) user.name = String(body.name || '').trim();
     if (body.email !== undefined) user.email = String(body.email || '').trim().toLowerCase();
+    if (body.alternatePhone !== undefined) user.alternatePhone = String(body.alternatePhone || '').trim();
     if (body.profileImage !== undefined) user.profileImage = String(body.profileImage || '').trim();
     if (body.gender !== undefined) user.gender = String(body.gender || '').trim();
 

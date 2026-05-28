@@ -368,13 +368,13 @@ export default function Customers() {
   }
 
   return (
-    <div className="p-4 lg:p-6 bg-slate-50 min-h-screen">
+    <div className="p-4 lg:p-6 bg-[#ffffffcc]">
       <div className="max-w-7xl mx-auto">
         {/* Filters Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#EDE8E0] p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#5C5247] mb-2">
                 Order Date
               </label>
               <div className="relative">
@@ -382,13 +382,13 @@ export default function Customers() {
                   type="date"
                   value={filters.orderDate}
                   onChange={(e) => handleFilterChange("orderDate", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="w-full px-4 py-2.5 border border-[#EDE8E0] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:border-[#F26522] text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#5C5247] mb-2">
                 Customer Joining Date
               </label>
               <div className="relative">
@@ -396,19 +396,19 @@ export default function Customers() {
                   type="date"
                   value={filters.joiningDate}
                   onChange={(e) => handleFilterChange("joiningDate", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="w-full px-4 py-2.5 border border-[#EDE8E0] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:border-[#F26522] text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#5C5247] mb-2">
                 Customer status
               </label>
               <select
                 value={filters.status}
                 onChange={(e) => handleFilterChange("status", e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-4 py-2.5 border border-[#EDE8E0] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:border-[#F26522] text-sm"
               >
                 <option value="">Select Status</option>
                 <option value="active">Active</option>
@@ -417,13 +417,13 @@ export default function Customers() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#5C5247] mb-2">
                 Sort By
               </label>
               <select
                 value={filters.sortBy}
                 onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-4 py-2.5 border border-[#EDE8E0] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:border-[#F26522] text-sm"
               >
                 <option value="">Select Customer Sorting Order</option>
                 <option value="name-asc">Name (A-Z)</option>
@@ -434,7 +434,7 @@ export default function Customers() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#5C5247] mb-2">
                 Choose First
               </label>
               <input
@@ -442,7 +442,7 @@ export default function Customers() {
                 value={filters.chooseFirst}
                 onChange={(e) => handleFilterChange("chooseFirst", e.target.value)}
                 placeholder="Ex: 100"
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-4 py-2.5 border border-[#EDE8E0] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:border-[#F26522] text-sm"
               />
             </div>
           </div>
@@ -453,7 +453,7 @@ export default function Customers() {
                 onClick={() => {
                   // Filters are applied automatically via useMemo
                 }}
-                className="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all"
+                className="px-6 py-2.5 text-sm font-medium rounded-lg bg-[#F26522] text-white hover:bg-[#D94F18] transition-all"
               >
                 Apply Filters
               </button>
@@ -467,23 +467,23 @@ export default function Customers() {
                     chooseFirst: "",
                   })
                 }}
-                className="px-6 py-2.5 text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all"
+                className="px-6 py-2.5 text-sm font-medium rounded-lg border border-[#EDE8E0] bg-white text-[#5C5247] hover:bg-[#FFF3EC] hover:text-[#F26522] transition-all"
               >
                 Reset Filters
               </button>
             </div>
-            <div className="text-sm text-slate-600">
+            <div className="text-sm text-[#5C5247]">
               {loading ? 'Loading...' : `Showing ${filteredCustomers.length} of ${totalCustomers} customers`}
             </div>
           </div>
         </div>
 
         {/* Customer List Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#EDE8E0] p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900">Customer list</h2>
-              <span className="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
+              <h2 className="text-xl font-bold text-[#1A1A1A]">Customer list</h2>
+              <span className="px-3 py-1 rounded-full text-sm font-semibold bg-[#FFF3EC] text-[#F26522]">
                 {filteredCustomers.length}
               </span>
             </div>
@@ -495,31 +495,31 @@ export default function Customers() {
                   placeholder="Ex: Search by name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+                  className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-[#EDE8E0] bg-white focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:border-[#F26522]"
                 />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9E8F7E]" />
               </div>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="px-4 py-2.5 text-sm font-medium rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-all">
+                  <button className="px-4 py-2.5 text-sm font-medium rounded-lg border border-[#EDE8E0] bg-white hover:bg-[#FFF3EC] hover:text-[#F26522] text-[#5C5247] flex items-center gap-2 transition-all">
                     <Download className="w-4 h-4" />
-                    <span className="text-black font-bold">Export</span>
+                    <span className="font-bold">Export</span>
                     <ChevronDown className="w-3 h-3" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
-                  <DropdownMenuLabel>Export Format</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleExport("csv")} className="cursor-pointer">
+                <DropdownMenuContent align="end" className="w-56 bg-white border border-[#EDE8E0] rounded-lg shadow-lg z-50">
+                  <DropdownMenuLabel className="text-[#1A1A1A]">Export Format</DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-[#EDE8E0]" />
+                  <DropdownMenuItem onClick={() => handleExport("csv")} className="cursor-pointer hover:bg-[#FFF3EC] hover:text-[#F26522] focus:bg-[#FFF3EC] focus:text-[#F26522]">
                     <FileDown className="w-4 h-4 mr-2" />
                     Export as CSV
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport("excel")} className="cursor-pointer">
+                  <DropdownMenuItem onClick={() => handleExport("excel")} className="cursor-pointer hover:bg-[#FFF3EC] hover:text-[#F26522] focus:bg-[#FFF3EC] focus:text-[#F26522]">
                     <FileSpreadsheet className="w-4 h-4 mr-2" />
                     Export as Excel
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport("pdf")} className="cursor-pointer">
+                  <DropdownMenuItem onClick={() => handleExport("pdf")} className="cursor-pointer hover:bg-[#FFF3EC] hover:text-[#F26522] focus:bg-[#FFF3EC] focus:text-[#F26522]">
                     <FileText className="w-4 h-4 mr-2" />
                     Export as PDF
                   </DropdownMenuItem>
@@ -528,8 +528,8 @@ export default function Customers() {
             </div>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-sm text-slate-600">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#EDE8E0] bg-[#FAF7F2] px-4 py-3">
+            <p className="text-sm text-[#5C5247]">
               {selectedCustomersCount > 0
                 ? `${selectedCustomersCount} customer selected`
                 : "Select customers for bulk COD action"}
@@ -555,58 +555,58 @@ export default function Customers() {
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1080px]">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-[#FAF7F2] border-b border-[#EDE8E0]">
                 <tr>
-                  <th className="px-4 py-4 text-center text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                  <th className="px-4 py-4 text-center text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">
                     <input
                       type="checkbox"
                       checked={allVisibleSelected}
                       onChange={toggleSelectAllVisible}
-                      className="h-4 w-4 rounded border-slate-300"
+                      className="h-4 w-4 rounded border-[#EDE8E0] text-[#F26522] focus:ring-[#F26522]"
                     />
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Sl</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Contact Information</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Total Order</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Total Order Amount</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Joining Date</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">COD Access</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Active/Inactive</th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-700 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">Sl</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">Contact Information</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">Total Order</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">Total Order Amount</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">Joining Date</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">COD Access</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">Active/Inactive</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold text-[#5C5247] uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-100">
+              <tbody className="bg-white divide-y divide-[#EDE8E0]/70">
                 {loading ? (
                   <tr>
                     <td colSpan={10} className="px-6 py-8 text-center">
-                      <div className="text-sm text-slate-500">Loading customers...</div>
+                      <div className="text-sm text-[#9E8F7E]">Loading customers...</div>
                     </td>
                   </tr>
                 ) : filteredCustomers.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="px-6 py-8 text-center">
-                      <div className="text-sm text-slate-500">No customers found</div>
+                      <div className="text-sm text-[#9E8F7E]">No customers found</div>
                     </td>
                   </tr>
                 ) : (
                   filteredCustomers.map((customer, index) => (
-                    <tr key={getCustomerId(customer) || index} className="hover:bg-slate-50 transition-colors">
+                    <tr key={getCustomerId(customer) || index} className="hover:bg-[#FAF7F2]/55 transition-colors">
                       <td className="px-4 py-4 text-center">
                         <input
                           type="checkbox"
                           checked={selectedCustomerIds.includes(getCustomerId(customer))}
                           onChange={() => toggleCustomerSelection(getCustomerId(customer))}
-                          className="h-4 w-4 rounded border-slate-300"
+                          className="h-4 w-4 rounded border-[#EDE8E0] text-[#F26522] focus:ring-[#F26522]"
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-slate-700">{index + 1}</span>
+                        <span className="text-sm font-medium text-[#5C5247]">{index + 1}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div 
-                            className="w-10 h-10 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-all border border-slate-100"
+                            className="w-10 h-10 rounded-full bg-[#FAF7F2] text-[#5C5247] flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-all border border-[#EDE8E0]"
                             onClick={() => handleViewDetails(customer._id || customer.id || customer.sl)}
                           >
                             {customer.profileImage ? (
@@ -623,7 +623,7 @@ export default function Customers() {
                             )}
                           </div>
                           <span 
-                            className="text-sm font-medium text-slate-900 cursor-pointer hover:text-blue-600 transition-colors"
+                            className="text-sm font-medium text-[#1A1A1A] cursor-pointer hover:text-[#F26522] transition-colors"
                             onClick={() => handleViewDetails(customer._id || customer.id || customer.sl)}
                           >
                             {customer.name}
@@ -632,24 +632,24 @@ export default function Customers() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="text-sm text-slate-700">{customer.email}</span>
-                          <span className="text-xs text-slate-500">{customer.phone}</span>
+                          <span className="text-sm text-[#5C5247]">{customer.email}</span>
+                          <span className="text-xs text-[#9E8F7E]">{customer.phone}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-slate-700">{customer.totalOrder || 0}</span>
+                        <span className="text-sm text-[#5C5247]">{customer.totalOrder || 0}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-slate-900">{"\u20B9"} {(customer.totalOrderAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="text-sm font-medium text-[#1A1A1A]">{"\u20B9"} {(customer.totalOrderAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-slate-700">{formatDateTime(customer.joiningDate)}</span>
+                        <span className="text-sm text-[#5C5247]">{formatDateTime(customer.joiningDate)}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleToggleCodAccess(getCustomerId(customer))}
                           disabled={codUpdatingId === getCustomerId(customer)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 ${customer.isCodAllowed !== false ? "bg-emerald-600" : "bg-slate-300"
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:ring-offset-2 disabled:opacity-60 ${customer.isCodAllowed !== false ? "bg-emerald-600" : "bg-slate-300"
                             }`}
                         >
                           <span
@@ -661,7 +661,7 @@ export default function Customers() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleToggleStatus(getCustomerId(customer))}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${customer.status ? "bg-blue-600" : "bg-slate-300"
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:ring-offset-2 ${customer.status ? "bg-[#F26522]" : "bg-slate-300"
                             }`}
                         >
                           <span
@@ -673,7 +673,7 @@ export default function Customers() {
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <button
                           onClick={() => handleViewDetails(customer._id || customer.id || customer.sl)}
-                          className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="p-1.5 rounded text-[#F26522] hover:bg-[#FFF3EC] transition-colors"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -689,56 +689,56 @@ export default function Customers() {
 
       {/* User Details Modal */}
       <Dialog open={showUserDetails} onOpenChange={setShowUserDetails}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto mx-auto p-0 gap-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-200">
-            <DialogTitle className="pr-12 text-xl font-bold text-slate-900">User Details</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto mx-auto p-0 gap-0 bg-[#FAF7F2] border-[#EDE8E0]">
+          <DialogHeader className="px-6 pt-6 pb-4 bg-white border-b border-[#EDE8E0]">
+            <DialogTitle className="pr-12 text-xl font-bold text-[#1A1A1A]">User Details</DialogTitle>
           </DialogHeader>
 
           {loadingDetails ? (
-            <div className="px-6 py-8 text-center">
-              <div className="text-sm text-slate-500">Loading user details...</div>
+            <div className="px-6 py-8 text-center bg-white">
+              <div className="text-sm text-[#9E8F7E]">Loading user details...</div>
             </div>
           ) : userDetails ? (
             <div className="space-y-4 px-6 py-5">
               {/* Profile Section */}
-              <div className="bg-slate-50 rounded-xl p-4 sm:p-5">
+              <div className="bg-white border border-[#EDE8E0] rounded-xl p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                  <div className="w-16 h-16 rounded-full bg-[#FAF7F2] border border-[#EDE8E0] flex items-center justify-center flex-shrink-0">
                     {userDetails.profileImage ? (
                       <img src={userDetails.profileImage} alt={userDetails.name} className="w-full h-full rounded-full object-cover" />
                     ) : (
-                      <User className="w-8 h-8 text-slate-400" />
+                      <User className="w-8 h-8 text-[#9E8F7E]" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <h3 className="text-lg font-bold text-slate-900">{userDetails.name}</h3>
+                      <h3 className="text-lg font-bold text-[#1A1A1A]">{userDetails.name}</h3>
                       {userDetails.isActive ? (
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1">
+                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[#EAF4EA] text-[#2E7D32] flex items-center gap-1">
                           <CheckCircle className="w-3 h-3" />
                           Active
                         </span>
                       ) : (
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 flex items-center gap-1">
+                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-100 flex items-center gap-1">
                           <XCircle className="w-3 h-3" />
                           Inactive
                         </span>
                       )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                      <div className="flex items-center gap-2 text-sm text-slate-600 min-w-0">
-                        <Mail className="w-4 h-4" />
+                      <div className="flex items-center gap-2 text-sm text-[#5C5247] min-w-0">
+                        <Mail className="w-4 h-4 text-[#9E8F7E]" />
                         <span className="truncate">{userDetails.email}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600 min-w-0">
-                        <Phone className="w-4 h-4" />
+                      <div className="flex items-center gap-2 text-sm text-[#5C5247] min-w-0">
+                        <Phone className="w-4 h-4 text-[#9E8F7E]" />
                         <span>{userDetails.phone}</span>
                         {userDetails.phoneVerified && (
-                          <CheckCircle className="w-3 h-3 text-green-600" />
+                          <CheckCircle className="w-3 h-3 text-[#2E7D32]" />
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <CalendarIcon className="w-4 h-4" />
+                      <div className="flex items-center gap-2 text-sm text-[#5C5247]">
+                        <CalendarIcon className="w-4 h-4 text-[#9E8F7E]" />
                         <span>Joined: {formatDateTime(userDetails.joiningDate)}</span>
                       </div>
                     </div>
@@ -748,50 +748,50 @@ export default function Customers() {
 
               {/* Statistics Section */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="bg-blue-50 rounded-lg p-3">
+                <div className="bg-[#FFF3EC] border border-[#EDE8E0] rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <Package className="w-4 h-4 text-blue-600" />
-                    <span className="text-xs font-semibold text-slate-700">Total Orders</span>
+                    <Package className="w-4 h-4 text-[#F26522]" />
+                    <span className="text-xs font-semibold text-[#5C5247]">Total Orders</span>
                   </div>
-                  <p className="text-xl font-bold text-blue-600">{userDetails.totalOrders || 0}</p>
+                  <p className="text-xl font-bold text-[#F26522]">{userDetails.totalOrders || 0}</p>
                 </div>
-                <div className="bg-green-50 rounded-lg p-3">
+                <div className="bg-[#EAF4EA] border border-[#EDE8E0] rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <IndianRupee className="w-4 h-4 text-green-600" />
-                    <span className="text-xs font-semibold text-slate-700">Total Spent</span>
+                    <IndianRupee className="w-4 h-4 text-[#2E7D32]" />
+                    <span className="text-xs font-semibold text-[#5C5247]">Total Spent</span>
                   </div>
-                  <p className="text-xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-[#2E7D32]">
                     {"\u20B9"}{(userDetails.totalOrderAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="bg-purple-50 rounded-lg p-3">
+                <div className="bg-white border border-[#EDE8E0] rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <CalendarIcon className="w-4 h-4 text-purple-600" />
-                    <span className="text-xs font-semibold text-slate-700">Member Since</span>
+                    <CalendarIcon className="w-4 h-4 text-[#9E8F7E]" />
+                    <span className="text-xs font-semibold text-[#5C5247]">Member Since</span>
                   </div>
-                  <p className="text-base font-bold text-purple-600">{formatDateTime(userDetails.joiningDate)}</p>
+                  <p className="text-base font-bold text-[#1A1A1A]">{formatDateTime(userDetails.joiningDate)}</p>
                 </div>
               </div>
 
               {/* Addresses Section */}
               {userDetails.addresses && userDetails.addresses.length > 0 && (
                 <div>
-                  <h4 className="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
+                  <h4 className="text-base font-bold text-[#1A1A1A] mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#F26522]" />
                     Addresses
                   </h4>
                   <div className="space-y-2">
                     {userDetails.addresses.map((address, index) => (
-                      <div key={index} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                      <div key={index} className="bg-white rounded-xl p-3 border border-[#EDE8E0]">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-semibold text-slate-700">{address.label || 'Address'}</span>
+                          <span className="text-sm font-semibold text-[#1A1A1A]">{address.label || 'Address'}</span>
                           {address.isDefault && (
-                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[#FFF3EC] text-[#F26522] border border-[#EDE8E0]">
                               Default
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-[#5C5247]">
                           {address.street}
                           {address.additionalDetails && `, ${address.additionalDetails}`}
                           {address.city && `, ${address.city}`}
@@ -807,20 +807,20 @@ export default function Customers() {
               {/* Recent Orders Section */}
               {userDetails.orders && userDetails.orders.length > 0 && (
                 <div>
-                  <h4 className="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
-                    <Package className="w-4 h-4" />
+                  <h4 className="text-base font-bold text-[#1A1A1A] mb-2 flex items-center gap-2">
+                    <Package className="w-4 h-4 text-[#F26522]" />
                     Recent Orders
                   </h4>
                   <div className="space-y-2">
                     {userDetails.orders.slice(0, 5).map((order, index) => (
-                      <div key={index} className="bg-slate-50 rounded-lg p-3 border border-slate-200 flex items-center justify-between">
+                      <div key={index} className="bg-white rounded-xl p-3 border border-[#EDE8E0] flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-slate-900">{order.orderId}</p>
-                          <p className="text-xs text-slate-600">{order.restaurantName}</p>
+                          <p className="text-sm font-semibold text-[#1A1A1A]">{order.orderId}</p>
+                          <p className="text-xs text-[#5C5247]">{order.restaurantName}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-slate-900">{"\u20B9"}{(order.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                          <p className="text-xs text-slate-600 capitalize">{order.status}</p>
+                          <p className="text-sm font-semibold text-[#1A1A1A]">{"\u20B9"}{(order.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          <p className="text-xs text-[#5C5247] capitalize">{order.status}</p>
                         </div>
                       </div>
                     ))}
@@ -829,15 +829,15 @@ export default function Customers() {
               )}
 
               {/* Uploaded Contacts Section */}
-              <div className="mt-4 border-t border-slate-200 pt-4">
-                <h4 className="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
-                  <User className="w-4 h-4" />
+              <div className="mt-4 border-t border-[#EDE8E0] pt-4">
+                <h4 className="text-base font-bold text-[#1A1A1A] mb-2 flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#F26522]" />
                   Uploaded Contacts ({userContacts.length})
                 </h4>
                 {loadingContacts ? (
-                  <div className="py-4 text-center text-sm text-slate-500">Loading contacts...</div>
+                  <div className="py-4 text-center text-sm text-[#5C5247]">Loading contacts...</div>
                 ) : userContacts.length === 0 ? (
-                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 text-center text-sm text-slate-500">
+                  <div className="bg-white rounded-xl p-4 border border-[#EDE8E0] text-center text-sm text-[#5C5247]">
                     No contacts uploaded by this user.
                   </div>
                 ) : (
@@ -848,19 +848,19 @@ export default function Customers() {
                         placeholder="Search contacts by name or phone..."
                         value={contactsSearchQuery}
                         onChange={(e) => setContactsSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-[#EDE8E0] bg-white focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:border-[#F26522]"
                       />
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9E8F7E]" />
                     </div>
                     
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg max-h-48 overflow-y-auto divide-y divide-slate-200">
+                    <div className="bg-white border border-[#EDE8E0] rounded-xl max-h-48 overflow-y-auto divide-y divide-[#EDE8E0]">
                       {filteredUserContacts.length === 0 ? (
-                        <div className="py-4 text-center text-sm text-slate-500">No matching contacts found</div>
+                        <div className="py-4 text-center text-sm text-[#5C5247]">No matching contacts found</div>
                       ) : (
                         filteredUserContacts.map((contact, index) => (
-                          <div key={contact._id || index} className="px-4 py-2.5 flex justify-between items-center hover:bg-slate-100 transition-colors">
-                            <span className="text-sm font-semibold text-slate-800">{contact.contactName}</span>
-                            <span className="text-sm text-slate-600 font-mono">{contact.contactNumber}</span>
+                          <div key={contact._id || index} className="px-4 py-2.5 flex justify-between items-center hover:bg-[#FAF7F2] transition-colors">
+                            <span className="text-sm font-semibold text-[#1A1A1A]">{contact.contactName}</span>
+                            <span className="text-sm text-[#5C5247] font-mono">{contact.contactNumber}</span>
                           </div>
                         ))
                       )}
@@ -872,15 +872,15 @@ export default function Customers() {
               {/* Additional Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {userDetails.gender && (
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs font-semibold text-slate-700 mb-1">Gender</p>
-                    <p className="text-sm text-slate-600 capitalize">{userDetails.gender}</p>
+                  <div className="bg-white rounded-xl p-3 border border-[#EDE8E0]">
+                    <p className="text-xs font-semibold text-[#5C5247] mb-1">Gender</p>
+                    <p className="text-sm text-[#1A1A1A] capitalize">{userDetails.gender}</p>
                   </div>
                 )}
                 {userDetails.dateOfBirth && (
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs font-semibold text-slate-700 mb-1">Date of Birth</p>
-                    <p className="text-sm text-slate-600">
+                  <div className="bg-white rounded-xl p-3 border border-[#EDE8E0]">
+                    <p className="text-xs font-semibold text-[#5C5247] mb-1">Date of Birth</p>
+                    <p className="text-sm text-[#1A1A1A]">
                       {new Date(userDetails.dateOfBirth).toLocaleDateString('en-GB', {
                         day: 'numeric',
                         month: 'short',
@@ -892,8 +892,8 @@ export default function Customers() {
               </div>
             </div>
           ) : (
-            <div className="py-8 text-center">
-              <div className="text-sm text-slate-500">No user details available</div>
+            <div className="py-8 text-center bg-white">
+              <div className="text-sm text-[#9E8F7E]">No user details available</div>
             </div>
           )}
         </DialogContent>

@@ -140,6 +140,13 @@ export const adminSidebarMenu = [
       },
       {
         type: "link",
+        label: "Customer Role Requests",
+        permissionKey: "customers",
+        path: "/admin/food/customer-role-requests",
+        icon: "UserCheck",
+      },
+      {
+        type: "link",
         label: "Support Tickets (User & Restaurant)",
         permissionKey: "support_tickets",
         path: "/admin/food/support-tickets",

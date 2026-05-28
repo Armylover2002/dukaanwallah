@@ -18,32 +18,33 @@
   -moz-osx-font-smoothing: grayscale;
   --radius: 0.625rem;
   
-  --background: #ffffff;
-  --foreground: oklch(0.2 0.05 50);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.05 50);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.05 50);
-  --primary: #FE5502;
-  --primary-foreground: oklch(0.15 0.05 50);
-  --secondary: oklch(0.95 0.02 90);
-  --secondary-foreground: oklch(0.3 0.08 60);
-  --muted: oklch(0.96 0.01 90);
-  --muted-foreground: oklch(0.5 0.05 50);
-  --accent: oklch(0.92 0.08 75);
-  --accent-foreground: oklch(0.25 0.06 55);
+  /* Brand Theme Colors */
+  --background: #FAF7F2;
+  --foreground: #1A1A1A;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+  --primary: #F26522;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFF3EC;
+  --secondary-foreground: #F26522;
+  --muted: #FAF7F2;
+  --muted-foreground: #5C5247;
+  --accent: #EAF4EA;
+  --accent-foreground: #2E7D32;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.02 85);
-  --input: oklch(0.95 0.01 90);
-  --ring: #FE5502;
-  --sidebar: oklch(0.98 0.01 90);
-  --sidebar-foreground: oklch(0.2 0.05 50);
-  --sidebar-primary: oklch(0.7 0.15 85);
-  --sidebar-primary-foreground: oklch(0.15 0.05 50);
-  --sidebar-accent: oklch(0.95 0.02 90);
-  --sidebar-accent-foreground: oklch(0.3 0.08 60);
-  --sidebar-border: oklch(0.9 0.02 85);
-  --sidebar-ring: oklch(0.7 0.15 85);
+  --border: #EDE8E0;
+  --input: #EDE8E0;
+  --ring: #F26522;
+  --sidebar: #FAF7F2;
+  --sidebar-foreground: #1A1A1A;
+  --sidebar-primary: #F26522;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFF3EC;
+  --sidebar-accent-foreground: #F26522;
+  --sidebar-border: #EDE8E0;
+  --sidebar-ring: #F26522;
 }
 
 @theme inline {
@@ -83,25 +84,45 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Blinkit Brand Colors */
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #bbf7d0;
-  --color-brand-300: #86efac;
-  --color-brand-400: #2e7d32;
-  --color-brand-500: #15803d;
-  --color-brand-600: #0c831f;
-  --color-brand-700: #0a6919;
-  --color-brand-800: #085013;
-  --color-brand-900: #06390e;
-  --color-brand-950: #021e07;
+  /* Blinkit Brand Colors & Semantic Accent Colors */
+  --color-brand-50: #EAF4EA;
+  --color-brand-100: #D0E5D0;
+  --color-brand-200: #A2CBA2;
+  --color-brand-300: #73B073;
+  --color-brand-400: #2E7D32;
+  --color-brand-500: #256428;
+  --color-brand-600: #1D4F20;
+  --color-brand-700: #153917;
+  --color-brand-800: #0C240E;
+  --color-brand-900: #040E05;
+  --color-brand-950: #010401;
   
-  --color-page-bg: #ffffff;
-  --color-primary-orange: #FE5502;
-  --color-primary-hover: #C83C00;
-  --color-primary-dark: #A03000;
+  /* Brand Color Overrides for Tailwind Utilities */
+  --color-orange-50: #FFF3EC;
+  --color-orange-100: #FFE5D4;
+  --color-orange-500: #F26522;
+  --color-orange-600: #D94F18;
+  --color-orange-700: #B83C0D;
+
+  --color-green-50: #EAF4EA;
+  --color-green-100: #D0E5D0;
+  --color-green-500: #2E7D32;
+  --color-green-600: #256428;
+
+  --color-page-bg: #FAF7F2;
+  --color-primary-orange: #F26522;
+  --color-primary-hover: #D94F18;
+  --color-primary-dark: #B83C0D;
   --font-poppins: var(--font-poppins);
   --font-outfit: var(--font-outfit);
+
+  /* Specific brand mappings */
+  --color-orange-tint: #FFF3EC;
+  --color-accent-green: #2E7D32;
+  --color-green-tint: #EAF4EA;
+  --color-text-dark: #1A1A1A;
+  --color-text-muted: #5C5247;
+  --color-text-subtle: #C0B5A5;
 }
 
 .dark {
@@ -111,7 +132,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
+  --primary: #F26522;
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -122,15 +143,15 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: #F26522;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: #F26522;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: #F26522;
 }
 
 @layer base {
@@ -280,3 +301,217 @@
   pointer-events: auto !important;
 }
 }
+
+/* Admin Theme Scope Global Consistency Overrides */
+.admin-theme-scope {
+  /* Set theme properties for components that use Tailwind v4 CSS variables directly */
+  --background: #ffffffcc !important;
+  --border: #EDE8E0 !important;
+  --card: #ffffffcc !important;
+  --card-foreground: #1A1A1A !important;
+  --popover: #ffffffcc !important;
+  --popover-foreground: #1A1A1A !important;
+  --muted: #ffffffcc !important;
+  --muted-foreground: #5C5247 !important;
+  --primary: #F26522 !important;
+  --ring: #F26522 !important;
+
+  /* Force slate overrides */
+  --color-slate-50: #ffffffcc !important;
+  --color-slate-100: #FFF3EC !important;
+  --color-slate-200: #EDE8E0 !important;
+  --color-slate-300: #EDE8E0 !important;
+  --color-slate-400: #C0B5A5 !important;
+  --color-slate-500: #9E8F7E !important;
+  --color-slate-600: #5C5247 !important;
+  --color-slate-700: #5C5247 !important;
+  --color-slate-800: #1A1A1A !important;
+  --color-slate-900: #1A1A1A !important;
+
+  /* Force neutral overrides */
+  --color-neutral-50: #ffffffcc !important;
+  --color-neutral-100: #FFF3EC !important;
+  --color-neutral-200: #EDE8E0 !important;
+  --color-neutral-300: #EDE8E0 !important;
+  --color-neutral-400: #C0B5A5 !important;
+  --color-neutral-500: #9E8F7E !important;
+  --color-neutral-600: #5C5247 !important;
+  --color-neutral-700: #5C5247 !important;
+  --color-neutral-800: #1A1A1A !important;
+  --color-neutral-900: #1A1A1A !important;
+
+  /* Force gray overrides */
+  --color-gray-50: #ffffffcc !important;
+  --color-gray-100: #FFF3EC !important;
+  --color-gray-200: #EDE8E0 !important;
+  --color-gray-300: #EDE8E0 !important;
+  --color-gray-400: #C0B5A5 !important;
+  --color-gray-500: #9E8F7E !important;
+  --color-gray-600: #5C5247 !important;
+  --color-gray-700: #5C5247 !important;
+  --color-gray-800: #1A1A1A !important;
+  --color-gray-900: #1A1A1A !important;
+}
+
+/* Base button and text behavior overrides for standard blue and indigo styles inside Admin */
+.admin-theme-scope [class*="bg-blue-600"],
+.admin-theme-scope [class*="bg-indigo-600"] {
+  background-color: #F26522 !important;
+}
+
+.admin-theme-scope [class*="hover:bg-blue-700"]:hover,
+.admin-theme-scope [class*="hover:bg-indigo-700"]:hover {
+  background-color: #D94F18 !important;
+}
+
+.admin-theme-scope [class*="text-blue-600"],
+.admin-theme-scope [class*="text-indigo-600"] {
+  color: #F26522 !important;
+}
+
+.admin-theme-scope [class*="hover:text-blue-600"]:hover,
+.admin-theme-scope [class*="hover:text-indigo-600"]:hover {
+  color: #F26522 !important;
+}
+
+.admin-theme-scope [class*="bg-blue-50"],
+.admin-theme-scope [class*="bg-indigo-50"] {
+  background-color: #FFF3EC !important;
+}
+
+.admin-theme-scope [class*="hover:bg-blue-50"]:hover,
+.admin-theme-scope [class*="hover:bg-indigo-50"]:hover {
+  background-color: #FFF3EC !important;
+}
+
+.admin-theme-scope [class*="border-blue-"],
+.admin-theme-scope [class*="border-indigo-"] {
+  border-color: #EDE8E0 !important;
+}
+
+.admin-theme-scope [class*="focus:ring-blue-"]:focus,
+.admin-theme-scope [class*="focus:ring-indigo-"]:focus {
+  --tw-ring-color: #F26522 !important;
+}
+
+/* Quick Commerce Theme Overrides (to match Food Section Theme colors: Orange & Warm Cream) */
+.quick-theme-scope {
+  /* Redefine Tailwind's brand and green variables inside this scope */
+  --color-brand-50: #FFF3EC !important;
+  --color-brand-100: #FFE5D4 !important;
+  --color-brand-200: #EDE8E0 !important;
+  --color-brand-300: #EDE8E0 !important;
+  --color-brand-400: #FE5502 !important;
+  --color-brand-500: #C83C00 !important;
+  --color-brand-600: #B83C0D !important;
+  --color-brand-700: #1A1A1A !important;
+  --color-brand-800: #1A1A1A !important;
+  --color-brand-900: #1A1A1A !important;
+  
+  --color-green-50: #FFF3EC !important;
+  --color-green-100: #FFE5D4 !important;
+  --color-green-500: #FE5502 !important;
+  --color-green-600: #C83C00 !important;
+}
+
+/* Force hex colors used in the quickCommerce layouts & pages */
+.quick-theme-scope [class~="bg-[#E6F5EC]"],
+.quick-theme-scope [class*="bg-[#E6F5EC]"] {
+  background-color: #FFF3EC !important;
+}
+
+.quick-theme-scope [class~="bg-[#0c831f]"],
+.quick-theme-scope [class~="bg-[#0b721b]"],
+.quick-theme-scope [class~="bg-[#0a701a]"],
+.quick-theme-scope [class~="bg-[#2f7a46]"],
+.quick-theme-scope [class~="bg-[#2E7D32]"] {
+  background-color: #FE5502 !important;
+}
+
+.quick-theme-scope [class*="bg-[#0c831f]/5"] {
+  background-color: rgba(254, 85, 2, 0.05) !important;
+}
+.quick-theme-scope [class*="bg-[#0c831f]/10"] {
+  background-color: rgba(254, 85, 2, 0.1) !important;
+}
+.quick-theme-scope [class*="bg-[#0c831f]/20"] {
+  background-color: rgba(254, 85, 2, 0.2) !important;
+}
+.quick-theme-scope [class*="bg-[#0c831f]/50"] {
+  background-color: rgba(254, 85, 2, 0.5) !important;
+}
+
+.quick-theme-scope [class*="hover:bg-[#0b721b]"]:hover,
+.quick-theme-scope [class*="hover:bg-[#0a701a]"]:hover,
+.quick-theme-scope [class*="hover:bg-green-700"]:hover,
+.quick-theme-scope [class*="hover:bg-green-600"]:hover,
+.quick-theme-scope [class*="hover:bg-[#0c831f]"]:hover {
+  background-color: #C83C00 !important;
+}
+
+.quick-theme-scope [class~="text-[#0c831f]"],
+.quick-theme-scope [class~="text-[#2f7a46]"],
+.quick-theme-scope [class~="text-[#2E7D32]"],
+.quick-theme-scope [class*="text-green-600"] {
+  color: #FE5502 !important;
+}
+.quick-theme-scope [class*="text-[#0c831f]/80"] {
+  color: rgba(254, 85, 2, 0.8) !important;
+}
+.quick-theme-scope [class*="text-green-50"] {
+  color: #FFF3EC !important;
+}
+
+.quick-theme-scope [class*="bg-green-50"],
+.quick-theme-scope [class*="bg-green-100"] {
+  background-color: #FFF3EC !important;
+}
+
+.quick-theme-scope [class~="border-[#0c831f]"],
+.quick-theme-scope [class~="border-[#2f7a46]"],
+.quick-theme-scope [class~="border-[#2E7D32]"] {
+  border-color: #FE5502 !important;
+}
+.quick-theme-scope [class*="border-[#0c831f]/10"] {
+  border-color: rgba(254, 85, 2, 0.1) !important;
+}
+.quick-theme-scope [class*="border-[#0c831f]/15"] {
+  border-color: rgba(254, 85, 2, 0.15) !important;
+}
+.quick-theme-scope [class*="border-[#0c831f]/20"] {
+  border-color: rgba(254, 85, 2, 0.2) !important;
+}
+
+.quick-theme-scope [class*="border-green-100"],
+.quick-theme-scope [class*="border-green-200"] {
+  border-color: #EDE8E0 !important;
+}
+
+.quick-theme-scope [class*="shadow-green-"] {
+  --tw-shadow-color: rgba(254, 85, 2, 0.15) !important;
+}
+
+.quick-theme-scope [class*="focus:ring-green-"]:focus {
+  --tw-ring-color: #FE5502 !important;
+}
+
+/* Redefine standard green text/bg utility class overrides inside Quick scope */
+.quick-theme-scope .bg-green-50 {
+  background-color: #FFF3EC !important;
+}
+.quick-theme-scope .bg-green-100 {
+  background-color: #FFE5D4 !important;
+}
+.quick-theme-scope .bg-green-600 {
+  background-color: #FE5502 !important;
+}
+.quick-theme-scope .text-green-600 {
+  color: #FE5502 !important;
+}
+.quick-theme-scope .border-green-100 {
+  border-color: #EDE8E0 !important;
+}
+.quick-theme-scope .border-green-200 {
+  border-color: #EDE8E0 !important;
+}
+

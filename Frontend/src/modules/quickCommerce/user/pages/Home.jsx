@@ -96,7 +96,7 @@ const CATEGORY_METADATA = {
   Grocery: {
     icon: LocalGroceryStoreIcon,
     theme: {
-      gradient: "linear-gradient(to bottom, #FE5502, #ff5252)",
+      gradient: "linear-gradient(to bottom, #F26522, #ff5252)",
       shadow: "shadow-red-500/20",
       accent: "text-red-900",
     },
@@ -219,7 +219,7 @@ const categories = [
     name: "Grocery",
     icon: LocalGroceryStoreIcon,
     theme: {
-      gradient: "linear-gradient(to bottom, #FE5502, #ff5252)",
+      gradient: "linear-gradient(to bottom, #F26522, #ff5252)",
       shadow: "shadow-red-500/20",
       accent: "text-red-900",
     },
@@ -522,7 +522,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
 
   useEffect(() => {
     if (typeof onThemeChange !== "function") return;
-    const resolvedColor = activeCategory?.headerColor || ALL_CATEGORY.headerColor;
+    const resolvedColor = "#FE5502";
     if (typeof window !== "undefined" && resolvedColor) {
       window.sessionStorage.setItem(QUICK_THEME_STORAGE_KEY, resolvedColor);
     }
@@ -688,7 +688,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
               <div>
                 <div
                   className="relative w-full overflow-hidden"
-                  style={embedded ? { backgroundColor: activeCategory?.headerColor || ALL_CATEGORY.headerColor } : undefined}>
+                  style={embedded ? { backgroundColor: "#FE5502" } : undefined}>
                   {hasHeroBanners ? (
                     <ExperienceBannerCarousel
                       section={{ title: "" }}
@@ -816,20 +816,20 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
                   ? "border-y-0 shadow-none"
                   : "border-y border-[#e6ddc4] bg-[#f7f0df] shadow-[0_10px_30px_rgba(15,23,42,0.08)]",
               )}
-              style={embedded ? { backgroundColor: activeCategory?.headerColor || ALL_CATEGORY.headerColor } : undefined}>
+              style={embedded ? { backgroundColor: "#FE5502" } : undefined}>
               <div
                 className={cn(
                   "absolute inset-y-0 left-0 w-10 pointer-events-none",
                   embedded ? "bg-none" : "bg-gradient-to-r from-[#f7f0df] via-[#f7f0df]/90 to-transparent",
                 )}
-                style={embedded ? { backgroundImage: `linear-gradient(to right, ${activeCategory?.headerColor || ALL_CATEGORY.headerColor}, ${activeCategory?.headerColor || ALL_CATEGORY.headerColor}E6, transparent)` } : undefined}
+                style={embedded ? { backgroundImage: `linear-gradient(to right, #FE5502, #FE5502E6, transparent)` } : undefined}
               />
               <div
                 className={cn(
                   "absolute inset-y-0 right-0 w-10 pointer-events-none",
                   embedded ? "bg-none" : "bg-gradient-to-l from-[#f7f0df] via-[#f7f0df]/90 to-transparent",
                 )}
-                style={embedded ? { backgroundImage: `linear-gradient(to left, ${activeCategory?.headerColor || ALL_CATEGORY.headerColor}, ${activeCategory?.headerColor || ALL_CATEGORY.headerColor}E6, transparent)` } : undefined}
+                style={embedded ? { backgroundImage: `linear-gradient(to left, #FE5502, #FE5502E6, transparent)` } : undefined}
               />
               <div
                 className={cn(
@@ -900,8 +900,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
                                   activeCategory?.id ||
                                   ALL_CATEGORY._id,
                                 color:
-                                  activeCategory?.headerColor ||
-                                  ALL_CATEGORY.headerColor,
+                                  "#FE5502",
                                 name:
                                   activeCategory?.name || ALL_CATEGORY.name,
                               }),

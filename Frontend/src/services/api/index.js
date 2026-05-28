@@ -986,6 +986,12 @@ export const adminAPI = {
       contextModule: "admin",
     });
   },
+  /** GET /food/admin/customer-role-requests (Bearer ADMIN) */
+  getCustomerRoleRequests: () =>
+    apiClient.get("/food/admin/customer-role-requests", { contextModule: "admin" }),
+  /** PATCH /food/admin/customer-role-requests/:id/status (Bearer ADMIN) */
+  updateCustomerRoleRequestStatus: (id, status) =>
+    apiClient.patch(`/food/admin/customer-role-requests/${id}/status`, { status }, { contextModule: "admin" }),
 };
 
 /** Restaurant API - OTP login via new backend; no email/password. */
@@ -2306,6 +2312,18 @@ export const userAPI = {
     const platform = options?.platform === "mobile" ? "mobile" : "web";
     return apiClient.post("/fcm-tokens/test", { platform }, { contextModule: "user" });
   },
+  /** POST /food/user/role-requests (Bearer USER) */
+  submitRoleRequest: (role, details) =>
+    apiClient.post("/food/user/role-requests", { role, details }, { contextModule: "user" }),
+  /** GET /food/user/role-requests (Bearer USER) */
+  getMyRoleRequests: () =>
+    apiClient.get("/food/user/role-requests", { contextModule: "user" }),
+  /** PATCH /food/user/role-requests/:id (Bearer USER) */
+  updateRoleRequest: (id, details) =>
+    apiClient.patch(`/food/user/role-requests/${id}`, { details }, { contextModule: "user" }),
+  /** DELETE /food/user/role-requests/:id (Bearer USER) */
+  deleteRoleRequest: (id) =>
+    apiClient.delete(`/food/user/role-requests/${id}`, { contextModule: "user" }),
 };
 export const locationAPI = createStubAPI();
 export const zoneAPI = {

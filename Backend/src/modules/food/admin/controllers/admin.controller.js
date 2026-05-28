@@ -1415,3 +1415,39 @@ export async function getExpiredFssaiNotifications(req, res, next) {
         next(error);
     }
 }
+
+export async function getCustomerRoleRequests(req, res, next) {
+    try {
+        const { RoleRequest } = await import('../models/roleRequest.model.js');
+        const requests = await RoleRequest.find({})
+            .populate('userId', 'name email phone')
+            .sort({ createdAt: -1 });
+        res.status(200).json({ success: true, message: 'Role requests fetched successfully', data: requests });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateCustomerRoleRequestStatus(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        if (!status || !['APPROVED', 'REJECTED'].includes(status)) {
+            return res.status(400).json({ success: false, message: 'Invalid or missing status parameter' });
+        }
+        
+        const { RoleRequest } = await import('../models/roleRequest.model.js');
+        const request = await RoleRequest.findById(id);
+        if (!request) {
+            return res.status(404).json({ success: false, message: 'Role request not found' });
+        }
+        
+        request.status = status;
+        await request.save();
+        
+        res.status(200).json({ success: true, message: `Request status updated to ${status} successfully`, data: request });
+    } catch (error) {
+        next(error);
+    }
+}
+

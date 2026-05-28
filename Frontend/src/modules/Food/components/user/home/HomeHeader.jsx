@@ -35,6 +35,11 @@ const tabs = [
     name: "Food",
     icon: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
   },
+  {
+    id: "quick",
+    name: "Quick Commerce",
+    icon: "https://cdn-icons-png.flaticon.com/512/3759/3759601.png",
+  },
 ];
 
 const normalizeHex = (hex, fallback = "#8e24aa") => {
@@ -51,7 +56,7 @@ const withAlpha = (hex, alpha) => {
 };
 
 const quickTheme = (baseColor) => {
-  const base = normalizeHex(baseColor, "#2f7a46");
+  const base = normalizeHex(baseColor, "#F26522");
   return {
     topBg: `linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 100%), ${base}`,
     accent: base,
@@ -436,7 +441,6 @@ export default function HomeHeader({
         </div>
       </div>
 
-      {/* Hidden because there is only one tab and it is redundant as per request
       <div className="px-3 pt-1 flex items-end justify-start gap-1 relative z-10">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -516,7 +520,6 @@ export default function HomeHeader({
           );
         })}
       </div>
-      */}
 
       <div className={cn("relative z-10 pb-0 px-3 overflow-visible", isFood ? "pt-3" : "pt-0")}>
         {isFood && (

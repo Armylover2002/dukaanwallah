@@ -12,7 +12,8 @@ const uploadFields = upload.fields([
     { name: 'aadharPhoto', maxCount: 1 },
     { name: 'panPhoto', maxCount: 1 },
     { name: 'drivingLicensePhoto', maxCount: 1 },
-    { name: 'upiQrCode', maxCount: 1 }
+    { name: 'upiQrCode', maxCount: 1 },
+    { name: 'vehicleImage', maxCount: 1 }
 ]);
 
 router.post('/register', uploadFields, registerDeliveryPartnerController);

@@ -34,11 +34,24 @@ import {
     updatePermissionStatusController
 } from '../controllers/userContact.controller.js';
 
+import {
+    submitRoleRequestController,
+    listMyRoleRequestsController,
+    updateRoleRequestController,
+    deleteRoleRequestController
+} from '../controllers/userRoleRequest.controller.js';
+
 const router = express.Router();
 
 router.get('/profile', getCurrentUserProfileController);
 router.patch('/profile', updateCurrentUserProfileController);
 router.post('/profile/profile-image', upload.single('file'), uploadCurrentUserProfileImageController);
+
+// Customer Role Requests
+router.post('/role-requests', submitRoleRequestController);
+router.get('/role-requests', listMyRoleRequestsController);
+router.patch('/role-requests/:id', updateRoleRequestController);
+router.delete('/role-requests/:id', deleteRoleRequestController);
 
 // Wallet (Bearer USER)
 router.get('/wallet', getUserWalletController);

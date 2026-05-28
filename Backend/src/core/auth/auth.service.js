@@ -84,13 +84,24 @@ const getResolvedUserWalletBalance = async (userId, fallbackBalance = 0) => {
 
 export const requestUserOtp = async (phone) => {
   if (!phone) {
-    throw new ValidationError("Phone is required");
+    throw new ValidationError("Phone or Email is required");
+  }
+  const isEmail = String(phone || "").includes("@");
+  if (isEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(phone)) {
+      throw new ValidationError("Invalid email format");
+    }
+  } else {
+    const digits = String(phone || "").replace(/\D/g, "");
+    if (digits.length < 8) {
+      throw new ValidationError("Phone number must be at least 8 digits");
+    }
   }
 
   const otp = await createOrUpdateOtp(phone);
-  // TODO: integrate SMS provider here
   const shouldExposeOtp =
-    config.nodeEnv !== "production" || config.useDefaultOtp;
+    config.nodeEnv !== "production" || config.useDefaultOtp || isEmail;
   return shouldExposeOtp ? { otp } : {};
 };
 
@@ -108,20 +119,37 @@ export const verifyUserOtpAndLogin = async (
     throw new AuthError(result.reason || "OTP verification failed");
   }
 
-  let userDoc = await FoodUser.findOne({ phone });
+  const isEmail = String(phone || "").includes("@");
+  let userDoc;
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+
+  if (isEmail) {
+    const emailLower = String(phone || "").trim().toLowerCase();
+    userDoc = await FoodUser.findOne({ email: emailLower });
+  } else {
+    userDoc = await FoodUser.findOne({ phone });
+  }
   
   // Ensure user exists and mark as verified on successful OTP.
   // Check if user is new or hasn't provided a name yet
   const needsNamePrompt = !userDoc || !userDoc.name || String(userDoc.name).trim() === "" || String(userDoc.name).toLowerCase() === "null";
   const isNewUser = needsNamePrompt;
-  const trimmedName = typeof name === "string" ? name.trim() : "";
 
   if (!userDoc) {
-    userDoc = await FoodUser.create({
-      phone,
-      isVerified: true,
-      ...(trimmedName ? { name: trimmedName } : {}),
-    });
+    if (isEmail) {
+      const emailLower = String(phone || "").trim().toLowerCase();
+      userDoc = await FoodUser.create({
+        email: emailLower,
+        isVerified: true,
+        ...(trimmedName ? { name: trimmedName } : {}),
+      });
+    } else {
+      userDoc = await FoodUser.create({
+        phone,
+        isVerified: true,
+        ...(trimmedName ? { name: trimmedName } : {}),
+      });
+    }
   } else {
     let needsSave = false;
     if (!userDoc.isVerified) {

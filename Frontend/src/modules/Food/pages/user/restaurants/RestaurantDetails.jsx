@@ -15,6 +15,8 @@ import {
   Clock,
   Tag,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Info,
   Star,
   SlidersHorizontal,
@@ -87,6 +89,7 @@ function RestaurantDetailsContent() {
   const [showManageCollections, setShowManageCollections] = useState(false)
   const [showItemDetail, setShowItemDetail] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
+  const [selectedItemImageIndex, setSelectedItemImageIndex] = useState(0)
   const [selectedVariantId, setSelectedVariantId] = useState("")
   const [showFilterSheet, setShowFilterSheet] = useState(false)
   const [showLocationSheet, setShowLocationSheet] = useState(false)
@@ -1622,6 +1625,7 @@ function RestaurantDetailsContent() {
   // Handle item card click
   const handleItemClick = (item) => {
     setSelectedItem(item)
+    setSelectedItemImageIndex(0)
     setShowItemDetail(true)
   }
 
@@ -3444,18 +3448,88 @@ function RestaurantDetailsContent() {
                   </div>
 
                   {/* Image Section */}
-                  <div className="relative w-full h-64 overflow-hidden rounded-t-3xl">
-                    {selectedItem.image ? (
-                      <img
-                        src={selectedItem.image}
-                        alt={selectedItem.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        <span className="text-sm text-gray-400">No image available</span>
-                      </div>
-                    )}
+                  <div className="relative w-full h-64 overflow-hidden rounded-t-3xl bg-gray-100 dark:bg-gray-800">
+                    {(() => {
+                      const allImages = (selectedItem.images || []).filter(img => img && typeof img === 'string');
+                      if (selectedItem.image && !allImages.includes(selectedItem.image)) {
+                        allImages.unshift(selectedItem.image);
+                      }
+                      
+                      if (allImages.length === 0) {
+                        return (
+                          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <span className="text-sm text-gray-400">No image available</span>
+                          </div>
+                        )
+                      }
+                      
+                      return (
+                        <div className="relative w-full h-full">
+                          <AnimatePresence mode="wait">
+                            <motion.img
+                              key={selectedItemImageIndex}
+                              src={allImages[selectedItemImageIndex]}
+                              alt={`${selectedItem.name} - Image ${selectedItemImageIndex + 1}`}
+                              className="w-full h-full object-cover"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                            />
+                          </AnimatePresence>
+                          
+                          {/* Navigation Chevrons */}
+                          {allImages.length > 1 && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedItemImageIndex(prev => (prev - 1 + allImages.length) % allImages.length);
+                                }}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/85 dark:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow hover:bg-white dark:hover:bg-black transition-all z-10"
+                              >
+                                <ChevronLeft className="w-4 h-4 text-gray-900 dark:text-white" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedItemImageIndex(prev => (prev + 1) % allImages.length);
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/85 dark:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow hover:bg-white dark:hover:bg-black transition-all z-10"
+                              >
+                                <ChevronRight className="w-4 h-4 text-gray-900 dark:text-white" />
+                              </button>
+                              
+                              {/* Slide Counter Overlay */}
+                              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full z-10">
+                                <span className="text-white text-[10px] font-semibold">
+                                  {selectedItemImageIndex + 1} / {allImages.length}
+                                </span>
+                              </div>
+                              
+                              {/* Indicators at the bottom */}
+                              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                                {allImages.map((_, idx) => (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedItemImageIndex(idx);
+                                    }}
+                                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                                      idx === selectedItemImageIndex ? "bg-white scale-125" : "bg-white/50"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )
+                    })()}
                     {/* Bookmark and Share Icons Overlay */}
                     <div className="absolute bottom-4 right-4 flex items-center gap-3">
                       <button

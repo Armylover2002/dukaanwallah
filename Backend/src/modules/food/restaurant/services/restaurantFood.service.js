@@ -194,7 +194,8 @@ export async function createRestaurantFood(restaurantId, body = {}) {
     const { price, otherPrice, variants } = getCreateFoodPricing(body);
 
     const description = toStr(body.description);
-    const image = toStr(body.image);
+    const images = Array.isArray(body.images) ? body.images.map(toStr) : (body.image ? [toStr(body.image)] : []);
+    const image = images.length > 0 ? images[0] : toStr(body.image);
     const isAvailable = body.isAvailable !== false;
     const foodType = normalizeFoodType(body.foodType);
     const preparationTime = toStr(body.preparationTime);
@@ -210,6 +211,7 @@ export async function createRestaurantFood(restaurantId, body = {}) {
         otherPrice,
         variants,
         image,
+        images,
         foodType,
         isAvailable,
         preparationTime,
@@ -272,7 +274,15 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
         update.name = name;
     }
     if (body.description !== undefined) update.description = toStr(body.description);
-    if (body.image !== undefined) update.image = toStr(body.image);
+    if (body.images !== undefined) {
+        const images = Array.isArray(body.images) ? body.images.map(toStr) : [];
+        update.images = images;
+        update.image = images.length > 0 ? images[0] : '';
+    } else if (body.image !== undefined) {
+        const img = toStr(body.image);
+        update.image = img;
+        update.images = img ? [img] : [];
+    }
     Object.assign(update, getUpdatedFoodPricing(existing, body));
     if (body.isAvailable !== undefined) update.isAvailable = body.isAvailable !== false;
     if (body.preparationTime !== undefined) update.preparationTime = toStr(body.preparationTime);

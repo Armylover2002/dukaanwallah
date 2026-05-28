@@ -76,7 +76,7 @@ export const initRazorpayPayment = async (options) => {
       },
       notes: options.notes || {},
       theme: {
-        color: '#FE5502'
+        color: '#F26522'
       },
       handler: function(response) {
         if (options.handler) {
@@ -162,7 +162,7 @@ export const initRazorpaySubscription = async (options) => {
         contact: options.prefill?.contact || ''
       },
       theme: {
-        color: '#FE5502'
+        color: '#F26522'
       },
       handler: function(response) {
         if (options.handler) {

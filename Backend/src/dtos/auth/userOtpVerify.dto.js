@@ -4,10 +4,17 @@ import { ValidationError } from "../../core/auth/errors.js";
 const schema = z.object({
   phone: z
     .string()
-    .min(1, "Phone is required")
-    .regex(/^\d+$/, "Phone must contain only digits")
-    .min(8, "Phone must be at least 8 digits")
-    .max(15, "Phone must be at most 15 digits"),
+    .min(1, "Phone or Email is required")
+    .refine((val) => {
+        const isEmail = val.includes("@");
+        if (isEmail) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+        } else {
+            return /^\d+$/.test(val) && val.length >= 8 && val.length <= 15;
+        }
+    }, {
+        message: "Must be a valid email address or 8-15 digit phone number"
+    }),
   otp: z
     .string()
     .length(4, "OTP must be exactly 4 digits")

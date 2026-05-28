@@ -71,6 +71,7 @@ const normalizePhoneToTenDigits = (value) =>
 const buildFormDataFromProfile = (profile = {}) => ({
   name: profile.name || "",
   mobile: normalizePhoneToTenDigits(profile.mobile || profile.phone || ""),
+  alternatePhone: normalizePhoneToTenDigits(profile.alternatePhone || ""),
   email: profile.email || "",
   dateOfBirth: profile.dateOfBirth
     ? (typeof profile.dateOfBirth === 'string'
@@ -119,6 +120,7 @@ export default function EditProfile() {
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({
     mobile: "",
+    alternatePhone: "",
     email: "",
     dateOfBirth: "",
   })
@@ -225,6 +227,11 @@ export default function EditProfile() {
     return /^\d{10}$/.test(value) ? "" : "Mobile number must be 10 digits"
   }
 
+  const validateAlternatePhone = (value) => {
+    if (!value) return ""
+    return /^\d{10}$/.test(value) ? "" : "Alternate mobile number must be 10 digits"
+  }
+
   const validateDateOfBirth = (value) => {
     if (!value) return ""
     const dob = dayjs(value)
@@ -239,6 +246,9 @@ export default function EditProfile() {
     if (field === "mobile") {
       normalizedValue = String(value || "").replace(/\D/g, "").slice(0, 10)
       errorMessage = validateMobile(normalizedValue)
+    } else if (field === "alternatePhone") {
+      normalizedValue = String(value || "").replace(/\D/g, "").slice(0, 10)
+      errorMessage = validateAlternatePhone(normalizedValue)
     } else if (field === "email") {
       normalizedValue = String(value || "").trim()
       errorMessage = validateEmail(normalizedValue)
@@ -251,7 +261,7 @@ export default function EditProfile() {
       [field]: normalizedValue
     }))
 
-    if (field === "mobile" || field === "email" || field === "dateOfBirth") {
+    if (field === "mobile" || field === "alternatePhone" || field === "email" || field === "dateOfBirth") {
       setFieldErrors((prev) => ({
         ...prev,
         [field]: errorMessage
@@ -345,6 +355,7 @@ export default function EditProfile() {
   const validateForm = () => {
     const nextErrors = {
       mobile: validateMobile(formData.mobile),
+      alternatePhone: validateAlternatePhone(formData.alternatePhone),
       email: validateEmail(formData.email),
       dateOfBirth: validateDateOfBirth(formData.dateOfBirth),
     }
@@ -367,6 +378,7 @@ export default function EditProfile() {
         name: formData.name,
         email: formData.email || undefined,
         phone: formData.mobile || undefined,
+        alternatePhone: formData.alternatePhone || undefined,
         dateOfBirth: formData.dateOfBirth ? formData.dateOfBirth.format('YYYY-MM-DD') : undefined,
         anniversary: formData.anniversary ? formData.anniversary.format('YYYY-MM-DD') : undefined,
         gender: formData.gender || undefined,
@@ -382,6 +394,7 @@ export default function EditProfile() {
         updateUserProfile({
           ...updatedUser,
           phone: updatedUser.phone || formData.mobile,
+          alternatePhone: updatedUser.alternatePhone || formData.alternatePhone,
           profileImage: updatedUser.profileImage || profileImage,
         })
 
@@ -390,6 +403,7 @@ export default function EditProfile() {
           name: updatedUser.name || formData.name,
           phone: updatedUser.phone || formData.mobile,
           mobile: updatedUser.phone || formData.mobile,
+          alternatePhone: updatedUser.alternatePhone || formData.alternatePhone,
           email: updatedUser.email || formData.email,
           profileImage: updatedUser.profileImage || profileImage,
           dateOfBirth: updatedUser.dateOfBirth || formData.dateOfBirth?.format('YYYY-MM-DD'),
@@ -523,6 +537,26 @@ export default function EditProfile() {
               </div>
               {fieldErrors.mobile && (
                 <p className="text-xs text-red-600">{fieldErrors.mobile}</p>
+              )}
+            </div>
+
+            {/* Alternate Mobile Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="alternatePhone" className="text-sm font-medium text-gray-700 dark:text-white">
+                Alternate Mobile <span className="text-gray-400 dark:text-gray-500 font-normal">(Optional)</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="alternatePhone"
+                  type="tel"
+                  value={formData.alternatePhone || ""}
+                  onChange={(e) => handleChange('alternatePhone', e.target.value)}
+                  className="flex-1 h-12 text-base  border border-gray-300 dark:border-gray-700 focus:border-primary-orange focus:ring-1 focus:ring-primary-orange rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white"
+                  placeholder="Alternate Mobile"
+                />
+              </div>
+              {fieldErrors.alternatePhone && (
+                <p className="text-xs text-red-600">{fieldErrors.alternatePhone}</p>
               )}
             </div>
 

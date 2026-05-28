@@ -9,9 +9,15 @@ import { loadBusinessSettings, getCachedSettings, getAppLogo, getCompanyName, se
 
 export default function UnifiedOTPFastLogin() {
   const RESEND_COOLDOWN_SECONDS = 60
+  const [loginType, setLoginType] = useState("phone") // "phone" | "email"
   const [phoneNumber, setPhoneNumber] = useState("")
+  const [emailAddress, setEmailAddress] = useState("")
   const [otp, setOtp] = useState("")
   const [step, setStep] = useState(1)
+
+  const getIdentifier = () => {
+    return loginType === "email" ? emailAddress.trim().toLowerCase() : phoneNumber;
+  }
   const [loading, setLoading] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
@@ -62,22 +68,32 @@ export default function UnifiedOTPFastLogin() {
 
   const handleSendOTP = async (e) => {
     e.preventDefault()
-    const phone = normalizedPhone()
-    if (phone.length < 8) {
-      toast.error("Please enter a valid phone number (at least 8 digits)")
-      return
+    const identifier = getIdentifier()
+    if (loginType === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(identifier)) {
+        toast.error("Please enter a valid email address")
+        return
+      }
+    } else {
+      const phoneDigits = String(identifier).replace(/\D/g, "").slice(-15)
+      if (phoneDigits.length < 8) {
+        toast.error("Please enter a valid phone number (at least 8 digits)")
+        return
+      }
     }
+
     if (submitting.current) return
     submitting.current = true
     setLoading(true)
     try {
       clearNameFlow()
-      await authAPI.sendOTP(phoneNumber, "login", null)
+      await authAPI.sendOTP(identifier, "login", null)
       setOtpSent(true)
       setOtp("")
       setStep(2)
       setResendTimer(RESEND_COOLDOWN_SECONDS)
-      toast.success("OTP sent! Check your phone.")
+      toast.success(loginType === "email" ? "Verification code sent to your email!" : "OTP sent! Check your phone.")
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || "Failed to send OTP."
       toast.error(msg)
@@ -88,21 +104,30 @@ export default function UnifiedOTPFastLogin() {
   }
 
   const handleResendOTP = async () => {
-    const phone = normalizedPhone()
-    if (phone.length < 8) {
-      toast.error("Please enter a valid phone number (at least 8 digits)")
-      return
+    const identifier = getIdentifier()
+    if (loginType === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(identifier)) {
+        toast.error("Please enter a valid email address")
+        return
+      }
+    } else {
+      const phoneDigits = String(identifier).replace(/\D/g, "").slice(-15)
+      if (phoneDigits.length < 8) {
+        toast.error("Please enter a valid phone number (at least 8 digits)")
+        return
+      }
     }
     if (resendTimer > 0 || submitting.current) return
     submitting.current = true
     setLoading(true)
     try {
       clearNameFlow()
-      await authAPI.sendOTP(phoneNumber, "login", null)
+      await authAPI.sendOTP(identifier, "login", null)
       setOtp("")
       setOtpSent(true)
       setResendTimer(RESEND_COOLDOWN_SECONDS)
-      toast.success("OTP resent successfully.")
+      toast.success("Verification code resent successfully.")
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || "Failed to resend OTP."
       toast.error(msg)
@@ -121,7 +146,7 @@ export default function UnifiedOTPFastLogin() {
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault()
-    const phone = normalizedPhone()
+    const identifier = getIdentifier()
     const otpDigits = String(otp).replace(/\D/g, "").slice(0, 4)
     if (otpDigits.length !== 4) {
       toast.error("Please enter the 4-digit OTP")
@@ -157,7 +182,7 @@ export default function UnifiedOTPFastLogin() {
       }
 
       const response = await authAPI.verifyOTP(
-        phoneNumber, 
+        identifier, 
         otpDigits, 
         "login", 
         null, 
@@ -338,28 +363,71 @@ export default function UnifiedOTPFastLogin() {
           <form onSubmit={showNameInput ? handleSubmitName : step === 1 ? handleSendOTP : handleVerifyOTP} className="space-y-5">
             {step === 1 ? (
               <div className="space-y-6">
+                {/* Clean, tabbed UI switcher */}
+                <div className="flex border-b border-gray-100 dark:border-gray-800 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setLoginType("phone")}
+                    className={`flex-1 pb-3 text-sm font-black transition-all border-b-2 cursor-pointer text-center ${
+                      loginType === "phone"
+                        ? "border-primary-orange text-primary-orange"
+                        : "border-transparent text-gray-400 hover:text-gray-600"
+                    }`}
+                  >
+                    Phone Number
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLoginType("email")}
+                    className={`flex-1 pb-3 text-sm font-black transition-all border-b-2 cursor-pointer text-center ${
+                      loginType === "email"
+                        ? "border-primary-orange text-primary-orange"
+                        : "border-transparent text-gray-400 hover:text-gray-600"
+                    }`}
+                  >
+                    Email Address
+                  </button>
+                </div>
+
                 <div className="space-y-4">
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-1 flex items-center pointer-events-none">
-                      <Phone className="w-5 h-5 text-gray-400 group-focus-within:text-primary-orange transition-colors" />
+                  {loginType === "phone" ? (
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-1 flex items-center pointer-events-none">
+                        <Phone className="w-5 h-5 text-gray-400 group-focus-within:text-primary-orange transition-colors" />
+                      </div>
+                      <div className="absolute left-8 inset-y-0 flex items-center pointer-events-none">
+                         <span className="text-sm font-bold text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-800 pr-3">+91</span>
+                      </div>
+                      <input
+                        type="tel"
+                        required
+                        autoFocus
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        maxLength={10}
+                        className="block w-full pl-20 pr-4 py-3 bg-transparent text-gray-900 dark:text-white border-b-2 border-gray-100 dark:border-gray-800 focus:border-primary-orange outline-none transition-all placeholder:text-gray-300 font-bold text-lg"
+                        placeholder="Phone number"
+                      />
                     </div>
-                    <div className="absolute left-8 inset-y-0 flex items-center pointer-events-none">
-                       <span className="text-sm font-bold text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-800 pr-3">+91</span>
+                  ) : (
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-1 flex items-center pointer-events-none">
+                        <UserRound className="w-5 h-5 text-gray-400 group-focus-within:text-primary-orange transition-colors" />
+                      </div>
+                      <input
+                        type="email"
+                        required
+                        autoFocus
+                        value={emailAddress}
+                        onChange={(e) => setEmailAddress(e.target.value)}
+                        className="block w-full pl-10 pr-4 py-3 bg-transparent text-gray-900 dark:text-white border-b-2 border-gray-100 dark:border-gray-800 focus:border-primary-orange outline-none transition-all placeholder:text-gray-300 font-bold text-lg"
+                        placeholder="Email address"
+                      />
                     </div>
-                    <input
-                      type="tel"
-                      required
-                      autoFocus
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      maxLength={10}
-                      className="block w-full pl-20 pr-4 py-3 bg-transparent text-gray-900 dark:text-white border-b-2 border-gray-100 dark:border-gray-800 focus:border-primary-orange outline-none transition-all placeholder:text-gray-300 font-bold text-lg"
-                      placeholder="Phone number"
-                    />
-                  </div>
+                  )}
                 </div>
                 <p className="text-[11px] text-gray-400 text-center leading-relaxed">
-                  We will send success notifications and order updates via SMS
+                  We will send success notifications and order updates via verification code
                 </p>
               </div>
             ) : showNameInput ? (
@@ -369,8 +437,10 @@ export default function UnifiedOTPFastLogin() {
                     <ShieldCheck className="w-5 h-5 text-primary-orange" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Verified Number</p>
-                    <p className="text-sm font-black text-gray-900 dark:text-white">+91 {phoneNumber}</p>
+                    <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Verified Account</p>
+                    <p className="text-sm font-black text-gray-900 dark:text-white">
+                      {loginType === "email" ? emailAddress : `+91 ${phoneNumber}`}
+                    </p>
                   </div>
                   <button type="button" onClick={handleEditNumber} className="text-xs text-primary-orange font-black underline cursor-pointer">
                     Change
@@ -413,13 +483,15 @@ export default function UnifiedOTPFastLogin() {
                          <ShieldCheck className="w-5 h-5 text-primary-orange" />
                       </div>
                       <div className="flex-1">
-                         <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Sent to</p>
-                         <p className="text-sm font-black text-gray-900 dark:text-white">+91 {phoneNumber}</p>
+                          <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Sent to</p>
+                          <p className="text-sm font-black text-gray-900 dark:text-white">
+                            {loginType === "email" ? emailAddress : `+91 ${phoneNumber}`}
+                          </p>
                       </div>
                       <button type="button" onClick={handleEditNumber} className="text-xs text-primary-orange font-black underline cursor-pointer">Edit</button>
                    </div>
-
-                  <div className="flex justify-center gap-3 mt-4">
+ 
+                   <div className="flex justify-center gap-3 mt-4">
                     {[0, 1, 2, 3].map((index) => (
                       <input
                         key={index}

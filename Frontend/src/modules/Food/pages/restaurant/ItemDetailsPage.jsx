@@ -110,6 +110,7 @@ export default function ItemDetailsPage() {
   const [isTagsPopupOpen, setIsTagsPopupOpen] = useState(false)
   const [categories, setCategories] = useState([])
   const [loadingCategories, setLoadingCategories] = useState(true)
+  const [loadingItem, setLoadingItem] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [isPureVegRestaurant, setIsPureVegRestaurant] = useState(false)
 
@@ -498,38 +499,23 @@ export default function ItemDetailsPage() {
   ]
 
   const handleSelectLibraryImage = (selectedMedia) => {
-    const applySelection = () => {
-      setImageFiles(new Map());
-      setImages([selectedMedia.url]);
+    if (images.includes(selectedMedia.url)) {
+      toast.error("This image is already added");
       setIsLibraryOpen(false);
-      toast.success("Image selected from library");
-    };
-
-    if (images.length > 0) {
-      const confirmReplace = window.confirm("Replace current selected image?");
-      if (confirmReplace) {
-        applySelection();
-      }
-    } else {
-      applySelection();
+      return;
     }
+    setImages((prev) => [...prev, selectedMedia.url]);
+    setIsLibraryOpen(false);
+    toast.success("Image selected from library");
   };
 
   const handleSelectSuggestedImage = (url) => {
-    const applySelection = () => {
-      setImageFiles(new Map());
-      setImages([url]);
-      toast.success("Image selected from suggestions");
-    };
-
-    if (images.length > 0) {
-      const confirmReplace = window.confirm("Replace current selected image?");
-      if (confirmReplace) {
-        applySelection();
-      }
-    } else {
-      applySelection();
+    if (images.includes(url)) {
+      toast.error("This image is already added");
+      return;
     }
+    setImages((prev) => [...prev, url]);
+    toast.success("Image selected from suggestions");
   };
 
   const handleImageAdd = (file) => {
@@ -555,21 +541,21 @@ export default function ItemDetailsPage() {
     try {
       const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels)
       
-      // Single-image mode: keep only the first selected valid file
+      // Multiple-image mode: append the cropped preview URL
       const previewUrl = URL.createObjectURL(croppedImage)
 
-      images.forEach((img) => {
-        if (img && img.startsWith('blob:')) {
-          URL.revokeObjectURL(img)
-        }
+      setImageFiles((prev) => {
+        const next = new Map(prev)
+        next.set(previewUrl, croppedImage)
+        return next
       })
 
-      const newImageFilesMap = new Map()
-      newImageFilesMap.set(previewUrl, croppedImage)
+      setImages((prev) => {
+        const next = [...prev, previewUrl]
+        setCurrentImageIndex(next.length - 1)
+        return next
+      })
 
-      setImages([previewUrl])
-      setImageFiles(newImageFilesMap)
-      setCurrentImageIndex(0)
       setIsCropping(false)
       setImageToCrop(null)
     } catch (e) {
@@ -758,7 +744,12 @@ export default function ItemDetailsPage() {
       debugLog('Image files map:', imageFiles)
 
       // Upload new File objects to Cloudinary (files that are blob URLs)
-      const filesToUpload = Array.from(imageFiles.values())
+      const filesToUpload = []
+      images.forEach(img => {
+        if (img && img.startsWith('blob:') && imageFiles.has(img)) {
+          filesToUpload.push(imageFiles.get(img))
+        }
+      })
       debugLog('Files to upload:', filesToUpload.length, filesToUpload)
 
       if (filesToUpload.length > 0) {
@@ -794,7 +785,7 @@ export default function ItemDetailsPage() {
         }
       }
 
-      // Single-image mode: keep only one URL
+      // Multiple-image mode: keep all URLs
       const allImageUrls = [
         ...existingImageUrls,
         ...uploadedImageUrls
@@ -803,7 +794,7 @@ export default function ItemDetailsPage() {
         typeof url === 'string' &&
         url.trim() !== '' &&
         self.indexOf(url) === index
-      ).slice(0, 1)
+      )
 
       // Debug: Log image URLs
       debugLog('=== IMAGE UPLOAD SUMMARY ===')
@@ -882,6 +873,7 @@ export default function ItemDetailsPage() {
           otherPrice: Number(otherPrice) || 0,
           variants: variantPayload,
           image: allImageUrls.length > 0 ? allImageUrls[0] : "",
+          images: allImageUrls,
           foodType: foodType,
           isAvailable: isInStock,
           preparationTime: preparationTime || "",
@@ -905,6 +897,7 @@ export default function ItemDetailsPage() {
           otherPrice: Number(otherPrice) || 0,
           variants: variantPayload,
           image: allImageUrls.length > 0 ? allImageUrls[0] : "",
+          images: allImageUrls,
           foodType: foodType,
           isAvailable: isInStock,
           preparationTime: preparationTime || "",
@@ -976,6 +969,15 @@ export default function ItemDetailsPage() {
     // Delete logic here
     debugLog("Deleting item:", id)
     goBack()
+  }
+
+  if (loadingItem) {
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-gray-950" />
+        <p className="text-sm font-medium text-gray-500 mt-3 animate-pulse">Loading item details...</p>
+      </div>
+    )
   }
 
   return (
@@ -1117,7 +1119,7 @@ export default function ItemDetailsPage() {
                   <Camera className="w-10 h-10 text-gray-400" />
                 </div>
                 <p className="text-sm font-medium text-gray-600">No images added yet</p>
-                <p className="text-xs text-gray-500 mt-1">Tap the button below to add one image</p>
+                <p className="text-xs text-gray-500 mt-1">Tap the button below to add images</p>
               </div>
             </div>
           )}

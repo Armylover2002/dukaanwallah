@@ -279,20 +279,20 @@ export default function AdminNavbar({ onMenuClick }) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white border-b border-neutral-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-[#ffffffcc] border-b border-[#EDE8E0] shadow-xs">
         <div className="flex items-center justify-between px-6 py-3">
           {/* Left: Logo and Mobile Menu */}
           <div className="flex items-center gap-3">
             <button
               onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-md text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors"
+              className="lg:hidden p-2 rounded-md text-[#5C5247] hover:bg-[#FFF3EC] hover:text-[#F26522] transition-colors"
               aria-label="Toggle menu"
             >
               <Menu className="w-5 h-5" />
             </button>
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="w-24 h-12 rounded-lg bg-white flex items-center justify-center ring-neutral-200">
+              <div className="w-24 h-12 rounded-lg bg-white border border-[#EDE8E0] flex items-center justify-center shadow-xs">
                 {logoUrl ? (
                   <img
                     src={logoUrl}
@@ -316,11 +316,11 @@ export default function AdminNavbar({ onMenuClick }) {
           <div className="flex-1 flex justify-center max-w-md mx-8">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 text-neutral-600 cursor-pointer hover:bg-neutral-200 transition-colors w-full border border-neutral-200"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white text-[#9E8F7E] cursor-pointer hover:bg-[#FFF3EC]/85 hover:text-[#F26522] hover:border-[#F26522]/50 transition-colors w-full border border-[#EDE8E0]"
             >
-              <Search className="w-4 h-4 text-neutral-700" />
-              <span className="text-sm flex-1 text-left text-neutral-700">Search</span>
-              <span className="text-xs px-2 py-0.5 rounded bg-white text-neutral-600 border border-neutral-200">
+              <Search className="w-4 h-4 text-[#9E8F7E]" />
+              <span className="text-sm flex-1 text-left text-[#9E8F7E]">Search</span>
+              <span className="text-xs px-2 py-0.5 rounded bg-[#FAF7F2] text-[#9E8F7E] border border-[#EDE8E0]">
                 Ctrl+K
               </span>
             </button>
@@ -332,20 +332,20 @@ export default function AdminNavbar({ onMenuClick }) {
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="relative h-11 w-11 rounded-full border border-neutral-200 bg-neutral-50 text-neutral-700 flex items-center justify-center hover:bg-neutral-100 transition-colors"
+                  className="relative h-11 w-11 rounded-full border border-[#EDE8E0] bg-white text-[#1A1A1A] flex items-center justify-center hover:bg-[#FFF3EC] hover:text-[#F26522] transition-colors"
                   aria-label="Notifications"
                 >
-                  <Bell className="w-5 h-5" />
+                  <Bell className="w-5 h-5 text-[#5C5247] hover:text-[#F26522]" />
                   {notificationCount > 0 && (
-                    <span className="absolute top-2 right-2 min-w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                    <span className="absolute top-2 right-2 min-w-4 h-4 rounded-full bg-[#F26522] text-white text-[10px] font-bold flex items-center justify-center px-1">
                       {notificationCount > 9 ? "9+" : notificationCount}
                     </span>
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-96 p-0 mt-2 border border-neutral-200 shadow-2xl rounded-2xl overflow-hidden" align="end">
+              <PopoverContent className="w-96 p-0 mt-2 border border-[#EDE8E0] shadow-2xl rounded-2xl overflow-hidden" align="end">
                 <div className="bg-white">
-                  <div className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
+                  <div className="px-4 py-3 border-b border-[#EDE8E0] flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-neutral-900">Notifications</p>
                       <p className="text-xs text-neutral-500">Approval and support alerts</p>
@@ -353,7 +353,7 @@ export default function AdminNavbar({ onMenuClick }) {
                     <button
                       type="button"
                       onClick={openNotificationsPage}
-                      className="text-xs font-semibold text-amber-600 hover:text-amber-700"
+                      className="text-xs font-semibold text-[#F26522] hover:text-[#D94F18]"
                     >
                       View all
                     </button>
@@ -371,7 +371,7 @@ export default function AdminNavbar({ onMenuClick }) {
                           key={item?.id}
                           type="button"
                           onClick={openNotificationsPage}
-                          className="w-full text-left px-4 py-4 border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50 transition-colors"
+                          className="w-full text-left px-4 py-4 border-b border-neutral-100 last:border-b-0 hover:bg-[#FAF7F2] transition-colors"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -400,7 +400,7 @@ export default function AdminNavbar({ onMenuClick }) {
             {/* User Profile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-2 pl-3 border-l border-neutral-200 cursor-pointer hover:bg-neutral-100 rounded-md px-2 py-1 transition-colors">
+                <div className="flex items-center gap-2 pl-3 border-l border-[#EDE8E0] cursor-pointer hover:bg-[#FFF3EC]/80 rounded-md px-2 py-1 transition-colors">
 
                   <div className="hidden md:block">
                     <p className="text-sm font-medium text-neutral-900">
@@ -425,9 +425,9 @@ export default function AdminNavbar({ onMenuClick }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-64 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 text-neutral-900 animate-in fade-in-0 zoom-in-95 duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+                className="w-64 bg-white border border-[#EDE8E0] rounded-lg shadow-lg z-50 text-neutral-900 animate-in fade-in-0 zoom-in-95 duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
               >
-                <div className="p-4 border-b border-neutral-200">
+                <div className="p-4 border-b border-[#EDE8E0]">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center overflow-hidden border border-neutral-300">
                       {adminData?.profileImage ? (
@@ -475,21 +475,21 @@ export default function AdminNavbar({ onMenuClick }) {
                 </div>
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    className="cursor-pointer hover:bg-neutral-100 focus:bg-neutral-100"
+                    className="cursor-pointer hover:bg-[#FFF3EC] hover:text-[#F26522] focus:bg-[#FFF3EC] focus:text-[#F26522]"
                     onClick={() => navigate("/admin/food/profile")}
                   >
                     <User className="mr-2 w-4 h-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    className="cursor-pointer hover:bg-neutral-100 focus:bg-neutral-100"
+                    className="cursor-pointer hover:bg-[#FFF3EC] hover:text-[#F26522] focus:bg-[#FFF3EC] focus:text-[#F26522]"
                     onClick={() => navigate("/admin/food/settings")}
                   >
                     <Settings className="mr-2 w-4 h-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-[#EDE8E0]" />
                 <DropdownMenuItem
                   className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50"
                   onClick={handleLogout}

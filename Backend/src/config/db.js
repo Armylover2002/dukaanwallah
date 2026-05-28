@@ -18,6 +18,24 @@ export const connectDB = async () => {
             connectTimeoutMS: 15000,
         });
         logger.info(`MongoDB connected: ${conn.connection.host}`);
+
+        // Programmatically inspect and drop legacy non-sparse index to prevent duplicate null key errors
+        try {
+            const db = conn.connection.db;
+            const collections = await db.listCollections({ name: 'common_users' }).toArray();
+            if (collections.length > 0) {
+                const userCol = db.collection('common_users');
+                const indexes = await userCol.indexes();
+                const phoneIndex = indexes.find(idx => idx.name === 'phone_1');
+                if (phoneIndex && !phoneIndex.sparse) {
+                    logger.info("Dropping legacy non-sparse index 'phone_1' on 'common_users' to enable dual email/phone auth...");
+                    await userCol.dropIndex('phone_1');
+                    logger.info("Legacy non-sparse index 'phone_1' dropped successfully.");
+                }
+            }
+        } catch (idxErr) {
+            logger.warn(`Failed to inspect/drop legacy index: ${idxErr.message}`);
+        }
     } catch (error) {
         logger.error(`MongoDB connection error: ${error.message}`);
         // Log the URI without password for debugging

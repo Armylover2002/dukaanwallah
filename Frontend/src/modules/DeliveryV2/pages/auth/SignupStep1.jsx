@@ -1,11 +1,77 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
+import { openCamera } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
+
+const DB_NAME = "DeliverySignupDB"
+const STORE_NAME = "documents"
+
+const initDB = () => {
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(DB_NAME, 1)
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME)
+        }
+      }
+      request.onsuccess = (e) => resolve(e.target.result)
+      request.onerror = () => resolve(null)
+    } catch (e) {
+      resolve(null)
+    }
+  })
+}
+
+const saveFileToDB = async (key, file) => {
+  const db = await initDB()
+  if (!db) return
+  return new Promise((resolve) => {
+    try {
+      const transaction = db.transaction(STORE_NAME, "readwrite")
+      const store = transaction.objectStore(STORE_NAME)
+      store.put(file, key)
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = () => resolve()
+    } catch (e) {
+      resolve()
+    }
+  })
+}
+
+const getFileFromDB = async (key) => {
+  const db = await initDB()
+  if (!db) return null
+  return new Promise((resolve) => {
+    try {
+      const transaction = db.transaction(STORE_NAME, "readonly")
+      const store = transaction.objectStore(STORE_NAME)
+      const request = store.get(key)
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => resolve(null)
+    } catch (e) {
+      resolve(null)
+    }
+  })
+}
+
+const removeFileFromDB = async (key) => {
+  const db = await initDB()
+  if (!db) return
+  try {
+    const transaction = db.transaction(STORE_NAME, "readwrite")
+    transaction.objectStore(STORE_NAME).delete(key)
+  } catch (e) {
+    debugError("Error removing file from DB:", e)
+  }
+}
+
 
 
 export default function SignupStep1() {
@@ -45,6 +111,65 @@ export default function SignupStep1() {
   })
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const vehicleFileInputRef = useRef(null)
+  const [vehicleImage, setVehicleImage] = useState(null)
+  const [vehicleImagePreview, setVehicleImagePreview] = useState(null)
+
+  useEffect(() => {
+    const loadSavedVehicleImage = async () => {
+      try {
+        const file = await getFileFromDB("vehicleImage")
+        if (file && (file instanceof File || file instanceof Blob)) {
+          const restoredFile = file instanceof File ? file : new File([file], "vehicleImage.jpg", { type: file.type || "image/jpeg" })
+          setVehicleImage(restoredFile)
+          setVehicleImagePreview(URL.createObjectURL(restoredFile))
+        }
+      } catch (e) {
+        debugError("Error loading saved vehicle image:", e)
+      }
+    }
+    loadSavedVehicleImage()
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (vehicleImagePreview) {
+        URL.revokeObjectURL(vehicleImagePreview)
+      }
+    }
+  }, [vehicleImagePreview])
+
+  const handleVehicleImageSelect = async (file) => {
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB")
+      return
+    }
+
+    if (vehicleImagePreview) {
+      URL.revokeObjectURL(vehicleImagePreview)
+    }
+
+    setVehicleImage(file)
+    setVehicleImagePreview(URL.createObjectURL(file))
+    await saveFileToDB("vehicleImage", file)
+    toast.success("Vehicle image selected")
+  }
+
+  const handleVehicleImageRemove = async () => {
+    if (vehicleImagePreview) {
+      URL.revokeObjectURL(vehicleImagePreview)
+    }
+    setVehicleImage(null)
+    setVehicleImagePreview(null)
+    await removeFileFromDB("vehicleImage")
+    toast.info("Vehicle image removed")
+  }
 
   const sanitizeLocationValue = (value) =>
     value.replace(/[^A-Za-z\s.-]/g, "").replace(/\s{2,}/g, " ")
@@ -379,6 +504,80 @@ export default function SignupStep1() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               placeholder="e.g., Honda Activa"
             />
+          </div>
+
+          {/* Vehicle Image Upload */}
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Vehicle Image (Optional)
+            </label>
+            {vehicleImagePreview ? (
+              <div className="relative">
+                <img
+                  src={vehicleImagePreview}
+                  alt="Vehicle Preview"
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={handleVehicleImageRemove}
+                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="absolute bottom-2 left-2 bg-green-500 text-white px-3 py-1 rounded-full flex items-center gap-1 text-sm">
+                  <Check className="w-4 h-4" />
+                  <span>Selected</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 transition-colors px-4">
+                <div className="flex flex-col items-center justify-center pt-5 pb-3">
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500 mb-1">Upload vehicle image</p>
+                  <p className="text-xs text-gray-400">PNG, JPG up to 5MB</p>
+                </div>
+                <div className="w-full grid grid-cols-2 gap-2 pb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openCamera({
+                        onSelectFile: handleVehicleImageSelect,
+                        fileNamePrefix: "signup-vehicle"
+                      })
+                    }}
+                    className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 text-white text-xs font-bold cursor-pointer hover:bg-black transition-all active:scale-95"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Take Photo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => vehicleFileInputRef.current?.click()}
+                    className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#00B761] text-white text-xs font-bold cursor-pointer hover:bg-[#00A055] transition-all active:scale-95"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Gallery</span>
+                  </button>
+                </div>
+                <input
+                  ref={vehicleFileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif"
+                  onClick={(e) => {
+                    e.target.value = ""
+                  }}
+                  onChange={(e) => {
+                    const selectedFile = e.target.files[0]
+                    if (selectedFile) {
+                      handleVehicleImageSelect(selectedFile)
+                    }
+                    e.target.value = ""
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Vehicle Number */}

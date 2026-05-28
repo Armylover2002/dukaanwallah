@@ -40,6 +40,15 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * @returns {Promise<{ data }>}
  */
 export function requestUserOtp(phone) {
+  const isEmail = String(phone || "").includes("@");
+  if (isEmail) {
+    const trimmed = String(phone).trim().toLowerCase();
+    if (!EMAIL_REGEX.test(trimmed)) {
+      return Promise.reject(new Error("Please enter a valid email address"));
+    }
+    return apiClient.post(AUTH.USER_REQUEST_OTP, { phone: trimmed });
+  }
+
   const digits = normalizePhone(phone);
   if (!digits) {
     return Promise.reject(new Error("Phone number is required"));
@@ -72,16 +81,26 @@ export function verifyUserOtp(
   fcmToken = null,
   platform = "web",
 ) {
-  const digits = normalizePhone(phone);
-  if (!digits) {
-    return Promise.reject(new Error("Phone number is required"));
-  }
-  const normalized =
-    digits.length > USER_PHONE_LENGTH
-      ? digits.slice(-USER_PHONE_LENGTH)
-      : digits;
-  if (normalized.length !== USER_PHONE_LENGTH) {
-    return Promise.reject(new Error("Phone number must be exactly 10 digits"));
+  const isEmail = String(phone || "").includes("@");
+  let normalized = "";
+
+  if (isEmail) {
+    normalized = String(phone).trim().toLowerCase();
+    if (!EMAIL_REGEX.test(normalized)) {
+      return Promise.reject(new Error("Please enter a valid email address"));
+    }
+  } else {
+    const digits = normalizePhone(phone);
+    if (!digits) {
+      return Promise.reject(new Error("Phone number is required"));
+    }
+    normalized =
+      digits.length > USER_PHONE_LENGTH
+        ? digits.slice(-USER_PHONE_LENGTH)
+        : digits;
+    if (normalized.length !== USER_PHONE_LENGTH) {
+      return Promise.reject(new Error("Phone number must be exactly 10 digits"));
+    }
   }
   const otpStr = String(otp ?? "")
     .replace(/\D/g, "")
