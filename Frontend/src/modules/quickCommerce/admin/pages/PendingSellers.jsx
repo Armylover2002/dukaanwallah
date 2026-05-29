@@ -21,6 +21,9 @@ import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import { adminApi } from '../services/adminApi';
 import { cn } from '@/lib/utils';
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
 
 const buildDocs = (seller) => {
   const docs = [];
@@ -40,6 +43,43 @@ const formatDate = (value) => {
 };
 
 const PendingSellers = () => {
+  const { user: authUser } = useAuth();
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+  const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+      const existingPermissions = extractAdminPermissions(currentUser);
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions);
+        return;
+      }
+      const roleId = extractAdminRoleId(currentUser);
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId);
+        if (isMounted) setResolvedPermissions(rolePermissions);
+      } catch {
+        if (isMounted) setResolvedPermissions({});
+      }
+    };
+    resolvePermissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  const permissionKey = "quick::core_management::seller_requests";
+  const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
+
   const [pendingSellers, setPendingSellers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -403,14 +443,16 @@ const PendingSellers = () => {
                         </div>
                       )}
 
-                      <div className="flex flex-col gap-3 pt-4 md:flex-row">
-                        <button type="button" disabled={isProcessing} onClick={() => handleReject(viewingSeller._id)} className="flex-1 rounded-2xl bg-slate-100 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-slate-700 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-60">
-                          <span className="inline-flex items-center gap-2"><HiOutlineXCircle className="h-4 w-4" />Reject request</span>
-                        </button>
-                        <button type="button" disabled={isProcessing} onClick={() => handleApprove(viewingSeller._id)} className="flex-[1.35] rounded-2xl bg-slate-900 py-4 text-[11px] font-black uppercase tracking-[0.22em] text-white transition hover:bg-black disabled:opacity-60">
-                          <span className="inline-flex items-center gap-2 justify-center">{isProcessing ? <HiOutlineArrowPath className="h-4 w-4 animate-spin" /> : <HiOutlineCheckCircle className="h-4 w-4" />}Approve seller</span>
-                        </button>
-                      </div>
+                      {canEdit && (
+                        <div className="flex flex-col gap-3 pt-4 md:flex-row">
+                          <button type="button" disabled={isProcessing} onClick={() => handleReject(viewingSeller._id)} className="flex-1 rounded-2xl bg-slate-100 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-slate-700 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-60">
+                            <span className="inline-flex items-center gap-2"><HiOutlineXCircle className="h-4 w-4" />Reject request</span>
+                          </button>
+                          <button type="button" disabled={isProcessing} onClick={() => handleApprove(viewingSeller._id)} className="flex-[1.35] rounded-2xl bg-slate-900 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-black disabled:opacity-60">
+                            <span className="inline-flex items-center gap-2 justify-center">{isProcessing ? <HiOutlineArrowPath className="h-4 w-4 animate-spin" /> : <HiOutlineCheckCircle className="h-4 w-4" />}Approve seller</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

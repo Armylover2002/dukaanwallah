@@ -24,13 +24,59 @@ import {
   getQuickCheckoutPath,
 } from "../utils/routes";
 import { resolveQuickImageUrl } from "../utils/image";
+import { useLocation as useAppLocation } from "../context/LocationContext";
 
 const DEFAULT_QUICK_BILLING_SETTINGS = {
   deliveryFee: 25,
   deliveryFeeRanges: [],
+  deliveryCommissionRules: [],
   freeDeliveryThreshold: 0,
   platformFee: 0,
   gstRate: 0,
+};
+
+const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // radius of Earth in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
+  const d = Number(distanceKm);
+  if (!Number.isFinite(d) || d < 0) return 0;
+  if (!Array.isArray(rules) || !rules.length) return 0;
+
+  const sorted = [...rules]
+    .filter((r) => r && r.status !== false)
+    .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
+
+  const baseRule = sorted.find((r) => (Number(r.minDistance) || 0) === 0) || null;
+  if (!baseRule) return 0;
+
+  let earning = Number(baseRule.basePayout || 0);
+  for (const rule of sorted) {
+    const perKm = Number(rule.commissionPerKm || 0);
+    if (!Number.isFinite(perKm) || perKm <= 0) continue;
+    const min = Number(rule.minDistance || 0);
+    const max = rule.maxDistance == null ? null : Number(rule.maxDistance);
+    if (d <= min) continue;
+    const upper = max == null ? d : Math.min(d, max);
+    const kmInSlab = Math.max(0, upper - min);
+    if (kmInSlab > 0) {
+      earning += kmInSlab * perKm;
+    }
+  }
+
+  if (!Number.isFinite(earning) || earning <= 0) return 0;
+  return Math.round(earning);
 };
 
 const calculateQuickCartPricing = ({
@@ -38,38 +84,18 @@ const calculateQuickCartPricing = ({
   cartItems = [],
   feeSettings = DEFAULT_QUICK_BILLING_SETTINGS,
   categoryFeeMap = {},
+  distanceKm = 0,
 }) => {
   const safeSubtotal = Number(subtotal || 0);
   const freeThreshold = Number(feeSettings?.freeDeliveryThreshold || 0);
-  const ranges = Array.isArray(feeSettings?.deliveryFeeRanges)
-    ? [...feeSettings.deliveryFeeRanges].sort((a, b) => Number(a.min) - Number(b.min))
-    : [];
 
   let deliveryFee = 0;
   if (safeSubtotal <= 0) {
     deliveryFee = 0;
   } else if (Number.isFinite(freeThreshold) && freeThreshold > 0 && safeSubtotal >= freeThreshold) {
     deliveryFee = 0;
-  } else if (ranges.length) {
-    let matchedFee = null;
-    for (let i = 0; i < ranges.length; i += 1) {
-      const range = ranges[i] || {};
-      const min = Number(range.min);
-      const max = Number(range.max);
-      const fee = Number(range.fee);
-      if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(fee)) continue;
-      const isLast = i === ranges.length - 1;
-      const inRange = isLast
-        ? safeSubtotal >= min && safeSubtotal <= max
-        : safeSubtotal >= min && safeSubtotal < max;
-      if (inRange) {
-        matchedFee = fee;
-        break;
-      }
-    }
-    deliveryFee = Number.isFinite(matchedFee)
-      ? matchedFee
-      : Number(feeSettings?.deliveryFee || 0);
+  } else if (Array.isArray(feeSettings?.deliveryCommissionRules) && feeSettings.deliveryCommissionRules.length > 0) {
+    deliveryFee = calculateFrontendRiderEarning(distanceKm, feeSettings.deliveryCommissionRules);
   } else {
     deliveryFee = Number(feeSettings?.deliveryFee || 0);
   }
@@ -115,6 +141,75 @@ const CartPage = () => {
   );
   const [categoryFeeMap, setCategoryFeeMap] = useState({});
   const [isUserCodAllowed, setIsUserCodAllowed] = useState(true);
+  const [storeLocation, setStoreLocation] = useState(null);
+  const [distanceKm, setDistanceKm] = useState(0);
+  const { currentLocation } = useAppLocation();
+
+  useEffect(() => {
+    let mounted = true;
+    const firstCartItem = cart[0];
+    const sellerId =
+      firstCartItem?.sellerId?._id ||
+      firstCartItem?.sellerId ||
+      firstCartItem?.seller?._id ||
+      firstCartItem?.quickStoreId ||
+      firstCartItem?.storeId;
+
+    if (!sellerId || typeof sellerId !== "string" || sellerId === "quick-commerce") {
+      setStoreLocation(null);
+      setDistanceKm(0);
+      return;
+    }
+
+    const fetchStoreDetails = async () => {
+      try {
+        const response = await customerApi.getStoreDetails(sellerId);
+        const store = response?.data?.result || response?.data?.data || null;
+        if (!mounted || !store) return;
+        
+        const loc = store.location;
+        let sCoords = null;
+        if (Array.isArray(loc?.coordinates) && loc.coordinates.length === 2) {
+          sCoords = { lat: Number(loc.coordinates[1]), lng: Number(loc.coordinates[0]) };
+        } else if (Number.isFinite(Number(loc?.latitude)) && Number.isFinite(Number(loc?.longitude))) {
+          sCoords = { lat: Number(loc.latitude), lng: Number(loc.longitude) };
+        }
+        
+        setStoreLocation(sCoords);
+      } catch (error) {
+        console.error("Failed to fetch store details:", error);
+      }
+    };
+
+    void fetchStoreDetails();
+    return () => {
+      mounted = false;
+    };
+  }, [cart]);
+
+  useEffect(() => {
+    if (!storeLocation) {
+      setDistanceKm(0);
+      return;
+    }
+
+    const lat1 = storeLocation.lat;
+    const lon1 = storeLocation.lng;
+    const lat2 = Number(currentLocation?.latitude || currentLocation?.lat);
+    const lon2 = Number(currentLocation?.longitude || currentLocation?.lng);
+
+    if (
+      Number.isFinite(lat1) &&
+      Number.isFinite(lon1) &&
+      Number.isFinite(lat2) &&
+      Number.isFinite(lon2)
+    ) {
+      const dist = calculateHaversineDistance(lat1, lon1, lat2, lon2);
+      setDistanceKm(dist);
+    } else {
+      setDistanceKm(0);
+    }
+  }, [storeLocation, currentLocation]);
 
   useEffect(() => {
     let mounted = true;
@@ -136,6 +231,9 @@ const CartPage = () => {
           deliveryFeeRanges: Array.isArray(feeSettings.deliveryFeeRanges)
             ? feeSettings.deliveryFeeRanges
             : prev.deliveryFeeRanges,
+          deliveryCommissionRules: Array.isArray(feeSettings.deliveryCommissionRules)
+            ? feeSettings.deliveryCommissionRules
+            : prev.deliveryCommissionRules,
         }));
 
         const results =
@@ -208,6 +306,7 @@ const CartPage = () => {
       cartItems: cart,
       feeSettings: quickBillingSettings,
       categoryFeeMap,
+      distanceKm,
     });
   const paymentMethods = [
     ...(settings?.onlineEnabled === false

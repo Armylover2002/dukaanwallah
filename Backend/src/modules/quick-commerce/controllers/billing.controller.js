@@ -100,11 +100,19 @@ export async function createOrUpdateFeeSettings(req, res, next) {
 export async function getPublicBillingSettings(req, res, next) {
   try {
     const { feeSettings } = await billingService.getFeeSettings();
+    const activeRules = await billingService.getActiveDeliveryCommissionRules();
+    
+    // Inject active commission rules into public settings response
+    const enrichedSettings = {
+      ...(feeSettings || {}),
+      deliveryCommissionRules: activeRules || [],
+    };
+
     res.status(200).json({
       success: true,
       message: 'Billing settings fetched successfully',
-      result: feeSettings,
-      data: { feeSettings },
+      result: enrichedSettings,
+      data: { feeSettings: enrichedSettings },
     });
   } catch (error) {
     next(error);

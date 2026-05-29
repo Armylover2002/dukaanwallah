@@ -37,13 +37,25 @@ export const LimitSettlementV2 = () => {
             amount: t.amount || 0,
             status: t.status || 'Pending',
             description: t.description || 'Available limit settlement',
-            date: new Date(t.date || t.createdAt).toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })
+            rejectionReason: t.rejectionReason || '',
+            date: (() => {
+              const rawDate = t.date || t.createdAt;
+              if (!rawDate) return '—';
+              const parsed = new Date(rawDate);
+              if (isNaN(parsed.getTime())) return String(rawDate);
+              try {
+                return parsed.toLocaleString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                });
+              } catch (e) {
+                return parsed.toLocaleString();
+              }
+            })()
           })));
         }
       } catch (err) {
@@ -132,12 +144,17 @@ export const LimitSettlementV2 = () => {
                                   </span>
                                </div>
                                <p className="text-gray-900 text-xl font-bold mb-1 font-poppins">
-                                  ₹{tx.amount}
+                                  ₹{Number(tx.amount || 0).toFixed(2)}
                                </p>
                                <p className="text-gray-600 text-sm mb-1 font-medium">
                                   {tx.description}
                                </p>
                                <p className="text-gray-400 text-[11px] font-semibold">Date: {tx.date}</p>
+                               {tx.status?.toLowerCase() === 'rejected' && tx.rejectionReason && (
+                                  <div className="mt-2.5 p-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700 font-medium">
+                                     <span className="font-bold">Rejection Reason: </span>{tx.rejectionReason}
+                                  </div>
+                               )}
                             </div>
                          </div>
                       </div>

@@ -107,7 +107,7 @@ export default function Restaurants() {
     }
   }, [zoneId])
 
-  const hasRestaurants = useMemo(() => restaurants.length > 0, [restaurants.length])
+  const hasRestaurants = restaurants.length > 0
 
   return (
     <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 dark:from-[#0a0a0a] via-white dark:via-[#0a0a0a] to-orange-50/20 dark:to-[#0a0a0a]">

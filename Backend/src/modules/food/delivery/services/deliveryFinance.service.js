@@ -3,6 +3,7 @@ import { FoodOrder } from "../../orders/models/order.model.js";
 import { FoodDeliveryWithdrawal } from "../models/foodDeliveryWithdrawal.model.js";
 import { FoodDeliveryCashDeposit } from "../models/foodDeliveryCashDeposit.model.js";
 import { FoodDeliveryPartner } from "../models/deliveryPartner.model.js";
+import { uploadImageBuffer } from "../../../../services/cloudinary.service.js";
 import { DeliveryBonusTransaction } from "../../admin/models/deliveryBonusTransaction.model.js";
 import { getDeliveryCashLimitSettings } from "../../admin/services/admin.service.js";
 import { ValidationError } from "../../../../core/auth/errors.js";
@@ -420,6 +421,80 @@ export const verifyDeliveryCashDepositPayment = async (
         razorpayOrderId: orderId,
         razorpayPaymentId: paymentId,
       });
+
+  return {
+    deposit,
+    wallet: await getDeliveryPartnerWalletEnhanced(deliveryPartnerId),
+  };
+};
+
+/**
+ * Submits a manual cash deposit (Admin Bank, Admin UPI, Admin QR, or Zone Hub) with an optional payment proof file.
+ */
+export const submitDeliveryManualDeposit = async (deliveryPartnerId, payload, file) => {
+  const amount = Number(payload?.amount);
+  const depositType = String(payload?.depositType || 'online').trim();
+
+  if (!Number.isFinite(amount) || amount < 1) {
+    throw new ValidationError("Amount must be at least ₹1");
+  }
+
+  const wallet = await getDeliveryPartnerWalletEnhanced(deliveryPartnerId);
+  if (amount > wallet.cashInHand) {
+    throw new ValidationError("Deposit amount cannot exceed cash in hand");
+  }
+
+  const validTypes = ['admin_bank', 'admin_upi', 'admin_qr', 'zone_hub', 'quick_zone_hub'];
+  if (!validTypes.includes(depositType)) {
+    throw new ValidationError("Invalid deposit type");
+  }
+
+  let paymentProofUrl = '';
+  // Upload proof file to Cloudinary if provided
+  if (file?.buffer) {
+    paymentProofUrl = await uploadImageBuffer(file.buffer, 'food/delivery/deposits');
+  } else if (depositType !== 'zone_hub' && depositType !== 'quick_zone_hub') {
+    // If not zone hub, proof is required
+    throw new ValidationError("Payment proof/receipt image is required");
+  }
+
+  const paymentMethod = depositType === 'admin_bank' ? 'bank_transfer' : depositType === 'admin_upi' || depositType === 'admin_qr' ? 'upi' : 'cash';
+
+  let finalDepositType = depositType;
+  let finalZoneId = payload?.zoneId && mongoose.Types.ObjectId.isValid(payload.zoneId) ? new mongoose.Types.ObjectId(payload.zoneId) : null;
+  let finalZoneHubRestaurantId = payload?.zoneHubRestaurantId && mongoose.Types.ObjectId.isValid(payload.zoneHubRestaurantId) ? new mongoose.Types.ObjectId(payload.zoneHubRestaurantId) : null;
+  let finalQuickZoneId = null;
+  let finalQuickZoneHubSellerId = null;
+
+  // Smart resolution for Zone Hubs: if designated hub is actually a Q-Commerce Seller
+  if (depositType === 'zone_hub' && finalZoneHubRestaurantId) {
+    const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');
+    const isFoodRestaurant = await FoodRestaurant.exists({ _id: finalZoneHubRestaurantId });
+    if (!isFoodRestaurant) {
+      const { Seller } = await import('../../../quick-commerce/seller/models/seller.model.js');
+      const isSeller = await Seller.exists({ _id: finalZoneHubRestaurantId });
+      if (isSeller) {
+        finalDepositType = 'quick_zone_hub';
+        finalQuickZoneHubSellerId = finalZoneHubRestaurantId;
+        finalQuickZoneId = finalZoneId;
+        finalZoneHubRestaurantId = null;
+        finalZoneId = null;
+      }
+    }
+  }
+
+  const deposit = await FoodDeliveryCashDeposit.create({
+    deliveryPartnerId,
+    amount,
+    paymentMethod,
+    depositType: finalDepositType,
+    paymentProof: paymentProofUrl,
+    status: 'Pending', // Awaiting approval
+    zoneId: finalZoneId,
+    zoneHubRestaurantId: finalZoneHubRestaurantId,
+    quickZoneId: finalQuickZoneId,
+    quickZoneHubSellerId: finalQuickZoneHubSellerId
+  });
 
   return {
     deposit,

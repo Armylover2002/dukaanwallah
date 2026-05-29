@@ -22,6 +22,11 @@ import {
   updateQuickOfferSection,
   deleteQuickOfferSection,
   reorderQuickOfferSections,
+  getAdminQuickCoupons,
+  createAdminQuickCoupon,
+  updateAdminQuickCoupon,
+  deleteAdminQuickCoupon,
+  toggleAdminQuickCouponStatus,
 } from '../services/content.service.js';
 import {
   getQuickCommerceDeliveryWithdrawals,
@@ -1478,3 +1483,184 @@ export const settleAdminRiderCash = async (req, res) => {
     });
   }
 };
+
+// ─── Coupon Management ───────────────────────────────────────────────────────
+
+export const getAdminCoupons = async (req, res) => {
+  try {
+    const { status, search } = req.query || {};
+    const coupons = await getAdminQuickCoupons({ status, search });
+    return res.json({ success: true, results: coupons, result: coupons });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || 'Failed to fetch coupons' });
+  }
+};
+
+export const createCoupon = async (req, res) => {
+  try {
+    const coupon = await createAdminQuickCoupon(req.body || {});
+    return res.status(201).json({ success: true, result: coupon });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message || 'Failed to create coupon' });
+  }
+};
+
+export const updateCoupon = async (req, res) => {
+  try {
+    const { couponId } = req.params;
+    const coupon = await updateAdminQuickCoupon(couponId, req.body || {});
+    if (!coupon) return res.status(404).json({ success: false, message: 'Coupon not found' });
+    return res.json({ success: true, result: coupon });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message || 'Failed to update coupon' });
+  }
+};
+
+export const deleteCoupon = async (req, res) => {
+  try {
+    const { couponId } = req.params;
+    await deleteAdminQuickCoupon(couponId);
+    return res.json({ success: true, result: { deleted: true } });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message || 'Failed to delete coupon' });
+  }
+};
+
+export const toggleCouponStatus = async (req, res) => {
+  try {
+    const { couponId } = req.params;
+    const coupon = await toggleAdminQuickCouponStatus(couponId);
+    return res.json({ success: true, result: coupon });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message || 'Failed to toggle coupon status' });
+  }
+};
+
+export const getAdminQuickZoneSellersController = async (req, res, next) => {
+  try {
+    const { zoneId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(zoneId)) {
+      return res.status(400).json({ success: false, message: "Invalid zone ID" });
+    }
+    const zoneObjId = new mongoose.Types.ObjectId(zoneId);
+    const sellers = await Seller.find({ 
+      "shopInfo.zoneId": zoneObjId, 
+      isDeleted: { $ne: true }, 
+      approved: true 
+    })
+    .select('_id shopName name phone email isActive isZoneHub')
+    .lean();
+
+    return res.json({ success: true, result: sellers });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const assignAdminQuickZoneHubsController = async (req, res, next) => {
+  try {
+    const { zoneId, sellerIds } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(zoneId)) {
+      return res.status(400).json({ success: false, message: "Invalid zone ID" });
+    }
+    const zoneObjId = new mongoose.Types.ObjectId(zoneId);
+    const sellerObjIds = (sellerIds || [])
+      .map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null)
+      .filter(Boolean);
+
+    await Promise.all([
+      Seller.updateMany(
+        { "shopInfo.zoneId": zoneObjId, _id: { $in: sellerObjIds } },
+        { $set: { isZoneHub: true } }
+      ),
+      Seller.updateMany(
+        { "shopInfo.zoneId": zoneObjId, _id: { $nin: sellerObjIds } },
+        { $set: { isZoneHub: false } }
+      )
+    ]);
+
+    return res.json({ success: true, message: "Quick Zone hubs assigned successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminSellerCODVerificationsController = async (req, res, next) => {
+  try {
+    const { FoodDeliveryCashDeposit } = await import("../../food/delivery/models/foodDeliveryCashDeposit.model.js");
+    await import("../../food/delivery/models/deliveryPartner.model.js");
+
+    const verifications = await FoodDeliveryCashDeposit.find({
+      status: 'Seller_Accepted',
+      depositType: 'quick_zone_hub'
+    })
+    .populate('deliveryPartnerId', 'name phone profilePartnerId')
+    .populate('quickZoneHubSellerId', 'shopName name phone')
+    .populate('quickZoneId', 'name zoneName')
+    .sort({ createdAt: -1 })
+    .lean();
+
+    const formatted = verifications.map(v => ({
+      id: v._id,
+      createdAt: v.createdAt,
+      deliveryName: v.deliveryPartnerId?.name || 'N/A',
+      deliveryPhone: v.deliveryPartnerId?.phone || 'N/A',
+      amount: v.amount,
+      paymentMethod: v.paymentMethod,
+      depositType: v.depositType,
+      paymentProof: v.paymentProof || '',
+      status: v.status,
+      zoneId: v.quickZoneId?._id || '',
+      zoneName: v.quickZoneId?.zoneName || v.quickZoneId?.name || 'N/A',
+      sellerName: v.quickZoneHubSellerId?.shopName || 'N/A',
+      sellerOwnerName: v.quickZoneHubSellerId?.name || 'N/A',
+      sellerPhone: v.quickZoneHubSellerId?.phone || 'N/A',
+      sellerProof: v.sellerProof || '',
+      sellerNote: v.sellerNote || '',
+      sellerProcessedAt: v.sellerProcessedAt || null
+    }));
+
+    return res.json({ success: true, results: formatted, result: formatted });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const settleSellerCODVerificationController = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { action, adminNote } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid verification ID" });
+    }
+
+    const { FoodDeliveryCashDeposit } = await import("../../food/delivery/models/foodDeliveryCashDeposit.model.js");
+
+    const deposit = await FoodDeliveryCashDeposit.findById(id);
+    if (!deposit) {
+      return res.status(404).json({ success: false, message: "COD verification request not found" });
+    }
+
+    if (deposit.status !== 'Seller_Accepted') {
+      return res.status(400).json({ success: false, message: `Request cannot be settled because status is: ${deposit.status}` });
+    }
+
+    deposit.adminNote = adminNote || '';
+    deposit.adminId = req.user?.userId || null;
+
+    if (action === 'approve') {
+      deposit.status = 'Completed';
+    } else if (action === 'reject') {
+      deposit.status = 'Failed';
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid action. Must be 'approve' or 'reject'" });
+    }
+
+    await deposit.save();
+    return res.json({ success: true, message: `COD verification settled successfully with action: ${action}`, result: deposit });
+  } catch (error) {
+    next(error);
+  }
+};
+

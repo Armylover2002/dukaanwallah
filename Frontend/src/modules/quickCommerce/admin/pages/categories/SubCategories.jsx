@@ -16,8 +16,56 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminApi } from "../../services/adminApi";
 import { toast } from "sonner";
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
+
 
 const SubCategories = () => {
+  const { user: authUser } = useAuth();
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+  const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser);
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions);
+        return;
+      }
+
+      const roleId = extractAdminRoleId(currentUser);
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId);
+        if (isMounted) setResolvedPermissions(rolePermissions);
+      } catch {
+        if (isMounted) setResolvedPermissions({});
+      }
+    };
+
+    resolvePermissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  const permissionKey = "quick::core_management::categories::sub";
+  const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create");
+  const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
+  const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete");
+
   const [categories, setCategories] = useState([]);
   const [level2Categories, setLevel2Categories] = useState([]);
   const [headerCategories, setHeaderCategories] = useState([]);
@@ -228,12 +276,14 @@ const SubCategories = () => {
             Manage level 3 categories linked to secondary categories
           </p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-          <Plus className="w-5 h-5" />
-          Add New Subcategory
-        </button>
+        {canCreate && (
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+            <Plus className="w-5 h-5" />
+            Add New Subcategory
+          </button>
+        )}
       </div>
 
       <Card className="border-none shadow-sm">
@@ -364,19 +414,23 @@ const SubCategories = () => {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right space-x-2">
-                        <button
-                          onClick={() => openEditModal(cat)}
-                          className="p-1 text-gray-500 hover:text-indigo-600 transition-colors">
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDeleteTarget(cat);
-                            setIsDeleteModalOpen(true);
-                          }}
-                          className="p-1 text-gray-500 hover:text-red-600 transition-colors">
-                          <Trash className="w-5 h-5" />
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => openEditModal(cat)}
+                            className="p-1 text-gray-500 hover:text-indigo-600 transition-colors">
+                            <Edit className="w-5 h-5" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => {
+                              setDeleteTarget(cat);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className="p-1 text-gray-500 hover:text-red-600 transition-colors">
+                            <Trash className="w-5 h-5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

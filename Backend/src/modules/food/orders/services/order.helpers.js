@@ -53,7 +53,25 @@ export function generateFourDigitDeliveryOtp() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-export function sanitizeOrderForExternal(orderDoc) {
+export function shouldShowDeliveryPartnerPhone(order) {
+  if (!order) return false;
+  const status = String(order.orderStatus || order.status || "").toLowerCase();
+  const deliveryStatus = String(order.deliveryState?.status || "").toLowerCase();
+
+  // Robust fallback: if order is already picked up or delivered, show phone number anyway
+  const isPostPickup = ["picked_up", "reached_drop", "delivered"].includes(status) || 
+                       deliveryStatus === "picked_up" || 
+                       deliveryStatus === "reached_drop";
+                       
+  if (isPostPickup) return true;
+
+  const reachedPickup = deliveryStatus === "reached_pickup" || status === "reached_pickup";
+  const photoUploaded = !!order.deliveryState?.billImageUrl;
+
+  return reachedPickup && photoUploaded;
+}
+
+export function sanitizeOrderForExternal(orderDoc, roleContext = "") {
   const o = orderDoc?.toObject ? orderDoc.toObject() : { ...(orderDoc || {}) };
   delete o.deliveryOtp;
   const dv = o.deliveryVerification;
@@ -69,7 +87,40 @@ export function sanitizeOrderForExternal(orderDoc) {
   }
   o.orderMongoId = (o._id || orderDoc?._id || "").toString();
   // Ensure orderId field for UI always contains the pretty ID
-  o.orderId = o.order_id || o.orderMongoId; 
+  o.orderId = o.orderId || o.order_id || o.orderMongoId;
+
+  // Mask Delivery Partner phone for Restaurant panel
+  if (String(roleContext).toUpperCase() === "RESTAURANT") {
+    if (!shouldShowDeliveryPartnerPhone(o)) {
+      if (o.dispatch?.deliveryPartnerId && typeof o.dispatch.deliveryPartnerId === "object") {
+        o.dispatch.deliveryPartnerId = {
+          ...o.dispatch.deliveryPartnerId,
+          phone: "Hidden until photo upload",
+        };
+      }
+      if (o.deliveryPartnerId && typeof o.deliveryPartnerId === "object") {
+        o.deliveryPartnerId = {
+          ...o.deliveryPartnerId,
+          phone: "Hidden until photo upload",
+        };
+      }
+      if (Array.isArray(o.dispatchPlan?.legs)) {
+        o.dispatchPlan.legs = o.dispatchPlan.legs.map((leg) => {
+          if (leg?.deliveryPartnerId && typeof leg.deliveryPartnerId === "object") {
+            return {
+              ...leg,
+              deliveryPartnerId: {
+                ...leg.deliveryPartnerId,
+                phone: "Hidden until photo upload",
+              },
+            };
+          }
+          return leg;
+        });
+      }
+    }
+  }
+
   return o;
 }
 
@@ -154,7 +205,7 @@ export function pushStatusHistory(order, { byRole, byId, from, to, note = "" }) 
 export function normalizeOrderForClient(orderDoc) {
   const order = orderDoc?.toObject ? orderDoc.toObject() : orderDoc || {};
   const mongoId = (order._id || orderDoc?._id || "").toString();
-  const displayId = order.order_id || mongoId;
+  const displayId = order.orderId || order.order_id || mongoId;
   return {
     ...order,
     orderMongoId: mongoId,

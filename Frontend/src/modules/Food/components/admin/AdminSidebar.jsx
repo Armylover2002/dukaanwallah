@@ -840,13 +840,13 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       `}</style>
       <div
         className={cn(
-          "bg-[#ffffffcc] border-r border-[#EDE8E0] h-screen fixed left-0 top-0 z-50 flex flex-col overflow-hidden shadow-xs",
+          "bg-[#ffffffcc] backdrop-blur-md border-r border-[#EDE8E0] h-screen fixed left-0 top-0 z-50 flex flex-col overflow-hidden shadow-xs",
           "transform transition-all duration-300 ease-in-out",
           "lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
           isCollapsed ? "w-20" : "w-80"
         )}
-        style={{ backgroundColor: 'var(--sidebar-theme, #ffffffcc)' }}
+        style={{ backgroundColor: '#ffffffcc' }}
       >
         {/* Header with Logo and Brand */}
         <div

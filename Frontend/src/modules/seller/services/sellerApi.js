@@ -105,6 +105,19 @@ export const sellerApi = {
     call(
       axiosInstance.put(`/seller/returns/${String(orderId)}/reject`, data),
     ),
+
+  getCoupons: () => call(axiosInstance.get("/seller/coupons")),
+  createCoupon: (data = {}) => call(axiosInstance.post("/seller/coupons", data)),
+  updateCoupon: (couponId, data = {}) => call(axiosInstance.put(`/seller/coupons/${String(couponId)}`, data)),
+  deleteCoupon: (couponId) => call(axiosInstance.delete(`/seller/coupons/${String(couponId)}`)),
+  deleteAccount: () => call(axiosInstance.delete("/seller/profile")),
+  getCODDeposits: () => call(axiosInstance.get("/seller/finance/cod-verification")),
+  processCODDeposit: (id, formData) =>
+    call(
+      axiosInstance.post(`/seller/finance/cod-verification/${String(id)}/action`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    ),
 };
 
 export default sellerApi;

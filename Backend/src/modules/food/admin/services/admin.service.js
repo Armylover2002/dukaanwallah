@@ -348,7 +348,7 @@ export async function getRestaurants(query) {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .select('restaurantId restaurantName location area city profileImage coverImages menuImages status ownerName ownerPhone zoneId')
+            .select('restaurantId restaurantName location area city profileImage coverImages menuImages status ownerName ownerPhone zoneId commissionPercentage')
             .populate('zoneId', 'name zoneName')
             .lean(),
         FoodRestaurant.countDocuments(filter)
@@ -477,7 +477,11 @@ export async function getDashboardStats(query = {}) {
                             $cond: [{ $eq: ['$orderStatus', 'delivered'] }, { $ifNull: ['$pricing.total', 0] }, 0] 
                         } 
                     },
-                    commissionTotal: { $sum: 0 },
+                    commissionTotal: { 
+                        $sum: { 
+                            $cond: [{ $eq: ['$orderStatus', 'delivered'] }, { $ifNull: ['$pricing.restaurantCommission', 0] }, 0] 
+                        } 
+                    },
                     platformFeeTotal: { 
                         $sum: { 
                             $cond: [
@@ -1791,6 +1795,10 @@ export async function upsertFeeSettings(body) {
         else if (body.perKmCharge !== undefined) $set.perKmCharge = body.perKmCharge;
 
         if (body.sponsorRules !== undefined) $set.sponsorRules = body.sponsorRules;
+        if (body.deliveryDistanceSlabs !== undefined) {
+            $set.deliveryDistanceSlabs = body.deliveryDistanceSlabs;
+            $set.sponsorRules = []; // Clear sponsorRules to ensure distance-based slabs are authoritative
+        }
 
         if (body.platformFee === null) $unset.platformFee = 1;
         else if (body.platformFee !== undefined) $set.platformFee = body.platformFee;
@@ -1834,6 +1842,10 @@ export async function upsertFeeSettings(body) {
     }
     if (body.perKmCharge !== undefined && body.perKmCharge !== null) payload.perKmCharge = body.perKmCharge;
     if (body.sponsorRules !== undefined) payload.sponsorRules = body.sponsorRules ?? [];
+    if (body.deliveryDistanceSlabs !== undefined) {
+        payload.deliveryDistanceSlabs = body.deliveryDistanceSlabs ?? [];
+        payload.sponsorRules = []; // Clear sponsorRules on new doc creation
+    }
     if (body.platformFee !== undefined && body.platformFee !== null) payload.platformFee = body.platformFee;
     if (body.gstRate !== undefined && body.gstRate !== null) payload.gstRate = body.gstRate;
     if (body.mixedOrderDistanceLimit !== undefined) payload.mixedOrderDistanceLimit = body.mixedOrderDistanceLimit;
@@ -2415,6 +2427,16 @@ export async function updateRestaurantById(id, body = {}) {
             doc.menuImages = body.menuImages.map(m => toStr(getUrl(m))).filter(Boolean);
         } else {
             doc.menuImages = [toStr(getUrl(body.menuImages))].filter(Boolean);
+        }
+    }
+
+    if (body.commissionPercentage !== undefined) {
+        const commission = toFinite(body.commissionPercentage);
+        if (commission !== undefined) {
+            if (commission < 0 || commission > 100) {
+                throw new ValidationError('Commission percentage must be between 0 and 100');
+            }
+            doc.commissionPercentage = commission;
         }
     }
 
@@ -5277,4 +5299,403 @@ export async function processRefund(orderId, refundAmount, refundTo) {
 
     return order.toObject();
 }
+
+export async function getRestaurantCoupons() {
+    const { RestaurantCoupon } = await import('../models/restaurantCoupon.model.js');
+    const { SellerCoupon } = await import('../../../quick-commerce/models/sellerCoupon.model.js');
+
+    const [restaurantCoupons, sellerCoupons] = await Promise.all([
+        RestaurantCoupon.find({}).lean(),
+        SellerCoupon.find({}).lean()
+    ]);
+
+    const mappedRestaurants = restaurantCoupons.map(c => ({ ...c, type: 'restaurant' }));
+    const mappedSellers = sellerCoupons.map(c => ({ ...c, type: 'seller' }));
+
+    return [...mappedRestaurants, ...mappedSellers].sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+    });
+}
+
+export async function updateRestaurantCouponStatus(id, status) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        throw new ValidationError('Invalid coupon request ID');
+    }
+    if (!status || !['Approved', 'Rejected'].includes(status)) {
+        throw new ValidationError('Status must be Approved or Rejected');
+    }
+    const { RestaurantCoupon } = await import('../models/restaurantCoupon.model.js');
+    const { SellerCoupon } = await import('../../../quick-commerce/models/sellerCoupon.model.js');
+
+    let updated = await RestaurantCoupon.findByIdAndUpdate(
+        id,
+        { $set: { status } },
+        { new: true }
+    ).lean();
+
+    let type = 'restaurant';
+
+    if (!updated) {
+        updated = await SellerCoupon.findByIdAndUpdate(
+            id,
+            { $set: { status } },
+            { new: true }
+        ).lean();
+        type = 'seller';
+    }
+
+    if (!updated) {
+        throw new ValidationError('Coupon request not found');
+    }
+
+    try {
+        const { invalidateCache } = await import('../../../../middleware/cache.js');
+        if (type === 'restaurant') {
+            await invalidateCache('offers*');
+        } else {
+            await invalidateCache('quick_coupons*');
+            await invalidateCache('quick_offers*');
+        }
+    } catch (err) {
+        console.error('Failed to invalidate cache on status update:', err);
+    }
+
+    return { ...updated, type };
+}
+
+export async function getDepositPaymentSettings() {
+    const { DepositPaymentSettings } = await import('../models/depositPaymentSettings.model.js');
+    let settings = await DepositPaymentSettings.findOne({});
+    if (!settings) {
+        settings = await DepositPaymentSettings.create({});
+    }
+    return settings;
+}
+
+export async function updateDepositPaymentSettings(body = {}) {
+    const { DepositPaymentSettings } = await import('../models/depositPaymentSettings.model.js');
+    let settings = await DepositPaymentSettings.findOne({});
+    if (!settings) {
+        settings = await DepositPaymentSettings.create(body);
+    } else {
+        Object.assign(settings, body);
+        await settings.save();
+    }
+    return settings;
+}
+
+export async function getCashPayRequests(query = {}) {
+    const limit = parseInt(query.limit, 10) || 20;
+    const page = parseInt(query.page, 10) || 1;
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        depositType: { $in: ['admin_bank', 'admin_upi', 'admin_qr', 'zone_hub'] }
+    };
+
+    if (query.status) {
+        filter.status = query.status;
+    }
+
+    const [requests, total] = await Promise.all([
+        FoodDeliveryCashDeposit.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate('deliveryPartnerId', 'name phone profilePartnerId')
+            .populate('zoneId', 'name zoneName')
+            .populate('zoneHubRestaurantId', 'restaurantName restaurantId')
+            .lean(),
+        FoodDeliveryCashDeposit.countDocuments(filter)
+    ]);
+
+    const formattedRequests = requests.map((r) => ({
+        id: r._id,
+        createdAt: r.createdAt,
+        deliveryId: r.deliveryPartnerId?._id || '',
+        deliveryName: r.deliveryPartnerId?.name || 'N/A',
+        deliveryPhone: r.deliveryPartnerId?.phone || 'N/A',
+        deliveryPartnerIdString: r.deliveryPartnerId?.profilePartnerId || r.deliveryPartnerId?.phone || 'N/A',
+        amount: Number(r.amount || 0),
+        paymentMethod: r.paymentMethod,
+        depositType: r.depositType,
+        paymentProof: r.paymentProof || '',
+        status: r.status,
+        adminNote: r.adminNote || '',
+        zoneName: r.zoneId?.zoneName || r.zoneId?.name || 'N/A',
+        zoneHubName: r.zoneHubRestaurantId?.restaurantName || 'N/A',
+        zoneHubDisplayId: r.zoneHubRestaurantId?.restaurantId || 'N/A'
+    }));
+
+    return {
+        requests: formattedRequests,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit) || 1
+        }
+    };
+}
+
+export async function updateCashPayRequestStatus(id, { status, adminNote, performer }) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) throw new ValidationError('Invalid request ID');
+    
+    const validStatuses = ['Completed', 'Failed'];
+    if (!validStatuses.includes(status)) {
+        throw new ValidationError('Invalid status. Must be Completed or Failed');
+    }
+
+    const existing = await FoodDeliveryCashDeposit.findById(id).lean();
+    if (!existing) throw new ValidationError('Cash pay request not found');
+    if (existing.status !== 'Pending') {
+        throw new ValidationError(`Request has already been processed with status: ${existing.status}`);
+    }
+
+    const updateFields = {
+        status,
+        adminNote,
+        processedAt: new Date()
+    };
+
+    if (performer && performer.id) {
+        updateFields.adminId = performer.id;
+    }
+
+    const updated = await FoodDeliveryCashDeposit.findByIdAndUpdate(
+        id,
+        { $set: updateFields },
+        { new: true }
+    ).populate('deliveryPartnerId', 'name phone profilePartnerId').lean();
+
+    return updated;
+}
+
+export async function getZoneHubs(query = {}) {
+    const limit = parseInt(query.limit, 10) || 50;
+    const page = parseInt(query.page, 10) || 1;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (query.search) {
+        filter.name = { $regex: query.search, $options: 'i' };
+    }
+
+    const [zones, total] = await Promise.all([
+        FoodZone.find(filter)
+            .sort({ name: 1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        FoodZone.countDocuments(filter)
+    ]);
+
+    const zoneHubsPromises = zones.map(async (z) => {
+        const hubs = await FoodRestaurant.find({
+            zoneId: z._id,
+            isZoneHub: true,
+            status: 'approved',
+            isDeleted: { $ne: true }
+        }).select('restaurantName primaryContactNumber ownerPhone ownerName addressLine1 location status city').lean();
+
+        return {
+            id: z._id,
+            zoneId: z._id,
+            name: z.name,
+            zoneName: z.zoneName || z.name,
+            country: z.country,
+            isActive: z.isActive,
+            hubAssigned: hubs.length > 0,
+            hubs: hubs.map(h => ({
+                id: h._id,
+                name: h.restaurantName,
+                phone: h.primaryContactNumber || h.ownerPhone || 'N/A',
+                owner: h.ownerName || 'N/A',
+                address: h.addressLine1 || h.location?.addressLine1 || 'N/A',
+                city: h.city || 'N/A',
+                status: h.status
+            })),
+            hub: hubs.length > 0 ? {
+                id: hubs[0]._id,
+                name: hubs[0].restaurantName,
+                phone: hubs[0].primaryContactNumber || hubs[0].ownerPhone || 'N/A',
+                owner: hubs[0].ownerName || 'N/A',
+                address: hubs[0].addressLine1 || hubs[0].location?.addressLine1 || 'N/A',
+                city: hubs[0].city || 'N/A',
+                status: hubs[0].status
+            } : null
+        };
+    });
+
+    const zoneHubs = await Promise.all(zoneHubsPromises);
+
+    return {
+        zoneHubs,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit) || 1
+        }
+    };
+}
+
+export async function getRestaurantsInZone(zoneId) {
+    if (!zoneId || !mongoose.Types.ObjectId.isValid(zoneId)) {
+        throw new ValidationError('Invalid Zone ID');
+    }
+    const list = await FoodRestaurant.find({ 
+        zoneId: new mongoose.Types.ObjectId(zoneId),
+        status: 'approved',
+        isDeleted: { $ne: true }
+    })
+    .select('restaurantName restaurantId ownerPhone ownerName location addressLine1 city')
+    .sort({ restaurantName: 1 })
+    .lean();
+
+    return list.map(r => ({
+        id: r._id,
+        restaurantId: r._id,
+        displayId: r.restaurantId,
+        name: r.restaurantName,
+        phone: r.ownerPhone || 'N/A',
+        owner: r.ownerName || 'N/A',
+        address: r.addressLine1 || r.location?.addressLine1 || 'N/A'
+    }));
+}
+
+export async function assignZoneHub(zoneId, restaurantId, action = 'assign') {
+    if (!zoneId || !mongoose.Types.ObjectId.isValid(zoneId)) {
+        throw new ValidationError('Invalid Zone ID');
+    }
+    
+    if (!restaurantId) {
+        // If restaurantId is null or empty, unassign ALL hubs in this zone
+        await FoodRestaurant.updateMany(
+            { zoneId: new mongoose.Types.ObjectId(zoneId) },
+            { $set: { isZoneHub: false } }
+        );
+        return { success: true, message: 'All zone hubs unassigned' };
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+        throw new ValidationError('Invalid Restaurant ID');
+    }
+
+    const restaurant = await FoodRestaurant.findById(restaurantId);
+    if (!restaurant) throw new ValidationError('Restaurant not found');
+    if (String(restaurant.zoneId) !== String(zoneId)) {
+        throw new ValidationError('Selected restaurant does not belong to this zone');
+    }
+
+    if (action === 'unassign') {
+        restaurant.isZoneHub = false;
+    } else {
+        if (restaurant.status !== 'approved') {
+            throw new ValidationError('Only approved restaurants can be designated as Zone Hub');
+        }
+        restaurant.isZoneHub = true;
+    }
+
+    await restaurant.save();
+    return restaurant;
+}
+
+export async function getAdminCODVerifications(query = {}) {
+    const limit = parseInt(query.limit, 10) || 20;
+    const page = parseInt(query.page, 10) || 1;
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        depositType: 'zone_hub',
+        status: 'Restaurant_Accepted'
+    };
+
+    const [requests, total] = await Promise.all([
+        FoodDeliveryCashDeposit.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate('deliveryPartnerId', 'name phone profilePartnerId')
+            .populate('zoneId', 'name zoneName')
+            .populate('zoneHubRestaurantId', 'restaurantName restaurantId ownerName ownerPhone')
+            .lean(),
+        FoodDeliveryCashDeposit.countDocuments(filter)
+    ]);
+
+    const formattedRequests = requests.map((r) => ({
+        id: r._id,
+        createdAt: r.createdAt,
+        deliveryId: r.deliveryPartnerId?._id || '',
+        deliveryName: r.deliveryPartnerId?.name || 'N/A',
+        deliveryPhone: r.deliveryPartnerId?.phone || 'N/A',
+        deliveryPartnerIdString: r.deliveryPartnerId?.profilePartnerId || r.deliveryPartnerId?.phone || 'N/A',
+        amount: Number(r.amount || 0),
+        paymentMethod: r.paymentMethod,
+        depositType: r.depositType,
+        paymentProof: r.paymentProof || '',
+        status: r.status,
+        zoneName: r.zoneId?.zoneName || r.zoneId?.name || 'N/A',
+        zoneHubName: r.zoneHubRestaurantId?.restaurantName || 'N/A',
+        zoneHubDisplayId: r.zoneHubRestaurantId?.restaurantId || 'N/A',
+        zoneHubOwnerName: r.zoneHubRestaurantId?.ownerName || 'N/A',
+        zoneHubOwnerPhone: r.zoneHubRestaurantId?.ownerPhone || 'N/A',
+        restaurantProof: r.restaurantProof || '',
+        restaurantNote: r.restaurantNote || '',
+        restaurantProcessedAt: r.restaurantProcessedAt || null
+    }));
+
+    return {
+        requests: formattedRequests,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit) || 1
+        }
+    };
+}
+
+export async function settleCODVerification(id, { action, adminNote, performer }) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) throw new ValidationError('Invalid request ID');
+
+    const deposit = await FoodDeliveryCashDeposit.findById(id);
+    if (!deposit) throw new ValidationError('COD verification request not found');
+
+    if (deposit.status !== 'Restaurant_Accepted') {
+        throw new ValidationError(`Request cannot be processed because status is: ${deposit.status}`);
+    }
+
+    const updateFields = {
+        adminNote,
+        processedAt: new Date()
+    };
+
+    if (action === 'approve') {
+        updateFields.status = 'Completed';
+    } else if (action === 'reject') {
+        updateFields.status = 'Failed'; // Mark as Failed so it is settled as rejected
+    } else {
+        throw new ValidationError('Invalid action. Must be approve or reject');
+    }
+
+    if (performer && performer.id) {
+        updateFields.adminId = performer.id;
+    }
+
+    const updated = await FoodDeliveryCashDeposit.findByIdAndUpdate(
+        id,
+        { $set: updateFields },
+        { new: true }
+    ).populate('deliveryPartnerId', 'name phone profilePartnerId')
+     .populate('zoneHubRestaurantId', 'restaurantName')
+     .lean();
+
+    return updated;
+}
+
+
+
 

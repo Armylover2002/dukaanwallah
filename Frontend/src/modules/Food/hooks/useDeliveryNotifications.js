@@ -215,6 +215,7 @@ export const useDeliveryNotifications = () => {
   const [orderStatusUpdate, setOrderStatusUpdate] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [deliveryPartnerId, setDeliveryPartnerId] = useState(null);
+  const [forcedOfflineEvent, setForcedOfflineEvent] = useState(null);
   const joinedDeliveryRoomRef = useRef(null);
   const ALERT_LOOP_INTERVAL_MS = 4500;
   const ALERT_LOOP_MAX_MS = 120000;
@@ -1000,6 +1001,12 @@ export const useDeliveryNotifications = () => {
       }
     });
 
+    socketRef.current.on('forced_offline', (data) => {
+      debugLog('?? Forced offline received via socket:', data);
+      setForcedOfflineEvent(data || { reason: 'UNKNOWN' });
+      playNotificationSound();
+    });
+
     socketRef.current.on('order_claimed', (data) => {
       debugLog('?? Order claimed by another partner:', data);
       const eventKey = getOrderAlertKey(data || {});
@@ -1103,6 +1110,8 @@ export const useDeliveryNotifications = () => {
     setOrderStatusUpdate(null);
   };
 
+  const clearForcedOfflineEvent = useCallback(() => setForcedOfflineEvent(null), []);
+
   const emitLocation = useCallback((data) => {
     if (socketRef.current && socketRef.current.connected) {
       // debugLog('? Emitting location via socket:', data);
@@ -1121,7 +1130,9 @@ export const useDeliveryNotifications = () => {
     clearOrderStatusUpdate,
     isConnected,
     playNotificationSound,
-    emitLocation
+    emitLocation,
+    forcedOfflineEvent,
+    clearForcedOfflineEvent
   };
 };
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-import { CheckCircle, MapPin, CreditCard, ArrowLeft } from "lucide-react"
+import { CheckCircle, MapPin, CreditCard, ArrowLeft, Percent, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 import AnimatedPage from "@food/components/user/AnimatedPage"
 import ScrollReveal from "@food/components/user/ScrollReveal"
@@ -13,6 +13,7 @@ import { Badge } from "@food/components/ui/badge"
 import { useCart } from "@food/context/CartContext"
 import { useProfile } from "@food/context/ProfileContext"
 import { useOrders } from "@food/context/OrdersContext"
+import { restaurantAPI } from "@food/api"
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -23,6 +24,14 @@ export default function Checkout() {
   const [selectedAddressId, setSelectedAddressId] = useState(getAddressId(getDefaultAddress()))
   const [selectedPayment, setSelectedPayment] = useState(getDefaultPaymentMethod()?.id || "")
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+
+  const [couponCode, setCouponCode] = useState("")
+  const [manualCouponCode, setManualCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [availableCoupons, setAvailableCoupons] = useState([])
+  const [loadingCoupons, setLoadingCoupons] = useState(false)
+  const [showCoupons, setShowCoupons] = useState(false)
+  const [discount, setDiscount] = useState(0)
 
   const selectedAddress = addresses.find(addr => getAddressId(addr) === selectedAddressId) || getDefaultAddress()
   const defaultPayment = paymentMethods.find(pm => pm.id === selectedPayment) || getDefaultPaymentMethod()
@@ -40,8 +49,87 @@ export default function Checkout() {
   const otherPlatformSubtotal = cart.reduce((sum, item) => sum + (item.otherPrice || item.price) * item.quantity * 83, 0)
   const deliveryFee = 2.99 * 83
   const tax = subtotal * 0.08
-  const total = subtotal + deliveryFee + tax
+
+  const restaurantId = cart.length > 0 ? (cart[0]?.restaurantId || null) : null
+
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      if (!restaurantId) return
+      try {
+        setLoadingCoupons(true)
+        const response = await restaurantAPI.getCouponsByItemIdPublic(restaurantId, "")
+        const list = response?.data?.data?.coupons || []
+        setAvailableCoupons(list.map(c => {
+          const discountVal = c.discountPercentage 
+            ? Math.floor(subtotal * (Number(c.discountPercentage) / 100))
+            : Number(c.originalPrice || 0);
+
+          return {
+            code: c.couponCode,
+            discount: discountVal,
+            discountPercentage: c.discountPercentage || 0,
+            minOrder: c.minOrderValue || c.minOrder || 0,
+            description: c.description || (c.discountPercentage ? `${c.discountPercentage}% OFF` : `₹${c.originalPrice} FLAT OFF`)
+          };
+        }))
+      } catch (error) {
+        console.error("Error loading checkout coupons:", error)
+      } finally {
+        setLoadingCoupons(false)
+      }
+    }
+    fetchCoupons()
+  }, [restaurantId, subtotal])
+
+  useEffect(() => {
+    if (!appliedCoupon) {
+      setDiscount(0)
+      return
+    }
+    let calculated = 0
+    if (appliedCoupon.discountPercentage) {
+      calculated = Math.floor(subtotal * (Number(appliedCoupon.discountPercentage) / 100))
+    } else {
+      calculated = Math.floor(appliedCoupon.discount || 0)
+    }
+    setDiscount(Math.min(subtotal, calculated))
+  }, [appliedCoupon, subtotal])
+
+  const total = Math.max(0, subtotal + deliveryFee + tax - discount)
   const otherPlatformSavings = Math.max(0, otherPlatformSubtotal - subtotal)
+
+  const handleApplyCoupon = (coupon) => {
+    if (subtotal < coupon.minOrder) {
+      alert(`Minimum order amount of ₹${coupon.minOrder} is required to use this coupon.`)
+      return
+    }
+    setAppliedCoupon(coupon)
+    setCouponCode(coupon.code)
+    setShowCoupons(false)
+  }
+
+  const handleApplyCouponCode = () => {
+    const code = manualCouponCode.trim().toUpperCase()
+    if (!code) return
+    const matched = availableCoupons.find(c => c.code === code)
+    if (matched) {
+      handleApplyCoupon(matched)
+    } else {
+      setAppliedCoupon({
+        code,
+        discount: 0,
+        minOrder: 0,
+        description: `Promo code ${code}`
+      })
+      setCouponCode(code)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode("")
+    setManualCouponCode("")
+  }
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress || !selectedPayment) {
@@ -72,6 +160,8 @@ export default function Checkout() {
         deliveryFee,
         tax,
         total,
+        discount,
+        couponCode: couponCode || null,
         restaurant: cart[0]?.restaurant || cart[0]?.name || "Multiple Restaurants"
       })
 
@@ -282,6 +372,76 @@ export default function Checkout() {
                     ))}
                   </div>
 
+                  {/* Coupon Section */}
+                  <div className="border-t border-slate-100 dark:border-gray-800 pt-4 mt-2">
+                    <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Coupons & Offers</h4>
+                    {appliedCoupon ? (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30">
+                        <div className="flex items-center gap-2">
+                          <Percent className="h-4 w-4 text-[#FE5502]" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-800 dark:text-gray-200">'{appliedCoupon.code}' Applied</p>
+                            <p className="text-[11px] text-green-600 dark:text-green-400 font-semibold mt-0.5">Saved ₹{discount}</p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={handleRemoveCoupon} className="text-xs text-[#FE5502] hover:text-[#FE5502] p-0 h-auto font-bold bg-transparent hover:bg-transparent">
+                          REMOVE
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Enter coupon code"
+                            value={manualCouponCode}
+                            onChange={(e) => setManualCouponCode(e.target.value.toUpperCase())}
+                            className="h-9 text-xs"
+                          />
+                          <Button size="sm" onClick={handleApplyCouponCode} className="bg-slate-900 hover:bg-slate-800 text-white h-9 px-4">
+                            Apply
+                          </Button>
+                        </div>
+                        {loadingCoupons ? (
+                          <p className="text-[11px] text-slate-400">Loading coupons...</p>
+                        ) : availableCoupons.length > 0 ? (
+                          <div className="space-y-2 max-h-36 overflow-y-auto">
+                            {availableCoupons.map((coupon) => {
+                              const canApply = subtotal >= coupon.minOrder;
+                              return (
+                                <div key={coupon.code} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 dark:border-gray-800 bg-slate-50/50 dark:bg-slate-900/30 text-xs">
+                                  <div className="flex-1 pr-2">
+                                    <span className="font-extrabold text-slate-800 dark:text-gray-200 tracking-wider bg-slate-200/60 dark:bg-slate-800 px-1.5 py-0.5 rounded mr-1.5">
+                                      {coupon.code}
+                                    </span>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">
+                                      {coupon.description}
+                                    </p>
+                                    {!canApply && (
+                                      <p className="text-[9px] text-[#FE5502] font-semibold mt-0.5">
+                                        Add ₹{(coupon.minOrder - subtotal).toFixed(0)} more to unlock
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-[10px] px-2.5 font-bold text-[#FE5502] border-[#FE5502] hover:bg-orange-50"
+                                    onClick={() => handleApplyCoupon(coupon)}
+                                    disabled={!canApply}
+                                  >
+                                    APPLY
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-400 italic">No offers available for this store.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-2 md:space-y-3 pt-4 md:pt-6 border-t dark:border-gray-700">
                     {otherPlatformSavings > 0 && (
                       <div className="flex justify-between text-sm md:text-base text-green-600 font-bold mb-2 p-2 bg-green-50 rounded-lg border border-green-100">
@@ -300,6 +460,12 @@ export default function Checkout() {
                         <span className="dark:text-gray-200">₹{subtotal.toFixed(0)}</span>
                       </div>
                     </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-sm md:text-base text-green-600 font-bold">
+                        <span>Coupon Discount ({appliedCoupon?.code})</span>
+                        <span>-₹{discount}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm md:text-base">
                       <span className="text-muted-foreground">Delivery Fee</span>
                       <span className="dark:text-gray-200">₹{deliveryFee.toFixed(0)}</span>

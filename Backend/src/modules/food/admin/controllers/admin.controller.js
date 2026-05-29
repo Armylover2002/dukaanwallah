@@ -1451,3 +1451,261 @@ export async function updateCustomerRoleRequestStatus(req, res, next) {
     }
 }
 
+export async function getRestaurantCoupons(req, res, next) {
+    try {
+        const data = await adminService.getRestaurantCoupons();
+        res.status(200).json({ success: true, message: 'Restaurant coupons fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateRestaurantCouponStatus(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const data = await adminService.updateRestaurantCouponStatus(id, status);
+        res.status(200).json({ success: true, message: `Restaurant coupon status updated to ${status} successfully`, data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getDeletedAccounts(req, res, next) {
+    try {
+        const FoodUser = mongoose.model('FoodUser');
+        const Seller = mongoose.model('Seller');
+        const FoodRestaurant = mongoose.model('FoodRestaurant');
+        const FoodDeliveryPartner = mongoose.model('FoodDeliveryPartner');
+
+        const [users, sellers, restaurants, deliveryPartners] = await Promise.all([
+            FoodUser.find({ $or: [{ isDeleted: true }, { accountStatus: 'deleted' }] }).select('name phone email updatedAt').lean(),
+            Seller.find({ $or: [{ isDeleted: true }, { accountStatus: 'deleted' }] }).select('name phone email shopName updatedAt').lean(),
+            FoodRestaurant.find({ $or: [{ isDeleted: true }, { accountStatus: 'deleted' }] }).select('restaurantName phone email ownerName ownerPhone updatedAt').lean(),
+            FoodDeliveryPartner.find({ $or: [{ isDeleted: true }, { accountStatus: 'deleted' }] }).select('name phone email vehicleNumber updatedAt').lean(),
+        ]);
+
+        const list = [];
+
+        users.forEach(u => list.push({
+            id: u._id,
+            role: 'User',
+            name: u.name || 'N/A',
+            phone: u.phone || 'N/A',
+            email: u.email || 'N/A',
+            detail: 'Customer Account',
+            deletedAt: u.updatedAt
+        }));
+
+        sellers.forEach(s => list.push({
+            id: s._id,
+            role: 'Seller',
+            name: s.name || 'N/A',
+            phone: s.phone || 'N/A',
+            email: s.email || 'N/A',
+            detail: s.shopName || 'Merchant Shop',
+            deletedAt: s.updatedAt
+        }));
+
+        restaurants.forEach(r => list.push({
+            id: r._id,
+            role: 'Restaurant',
+            name: r.restaurantName || r.ownerName || 'N/A',
+            phone: r.phone || r.ownerPhone || 'N/A',
+            email: r.email || 'N/A',
+            detail: `Owner: ${r.ownerName || 'N/A'}`,
+            deletedAt: r.updatedAt
+        }));
+
+        deliveryPartners.forEach(d => list.push({
+            id: d._id,
+            role: 'Delivery Boy',
+            name: d.name || 'N/A',
+            phone: d.phone || 'N/A',
+            email: d.email || 'N/A',
+            detail: d.vehicleNumber ? `Vehicle: ${d.vehicleNumber}` : 'Delivery Boy',
+            deletedAt: d.updatedAt
+        }));
+
+        list.sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
+
+        res.status(200).json({
+            success: true,
+            message: 'Deleted accounts fetched successfully',
+            data: list
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function reactivateAccount(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+
+        if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: 'Invalid account ID' });
+        }
+        if (!role) {
+            return res.status(400).json({ success: false, message: 'Role is required for reactivation' });
+        }
+
+        let updatedDoc = null;
+
+        if (role === 'User') {
+            const FoodUser = mongoose.model('FoodUser');
+            updatedDoc = await FoodUser.findByIdAndUpdate(
+                id,
+                { $set: { isDeleted: false, accountStatus: 'active', isActive: true } },
+                { new: true }
+            );
+        } else if (role === 'Seller') {
+            const Seller = mongoose.model('Seller');
+            updatedDoc = await Seller.findByIdAndUpdate(
+                id,
+                { $set: { isDeleted: false, accountStatus: 'active', isActive: true } },
+                { new: true }
+            );
+        } else if (role === 'Restaurant') {
+            const FoodRestaurant = mongoose.model('FoodRestaurant');
+            updatedDoc = await FoodRestaurant.findByIdAndUpdate(
+                id,
+                { $set: { isDeleted: false, accountStatus: 'approved', isActive: true, isAcceptingOrders: true } },
+                { new: true }
+            );
+        } else if (role === 'Delivery Boy') {
+            const FoodDeliveryPartner = mongoose.model('FoodDeliveryPartner');
+            updatedDoc = await FoodDeliveryPartner.findByIdAndUpdate(
+                id,
+                { $set: { isDeleted: false, accountStatus: 'approved', isActive: true } },
+                { new: true }
+            );
+        } else {
+            return res.status(400).json({ success: false, message: 'Invalid role specified' });
+        }
+
+        if (!updatedDoc) {
+            return res.status(404).json({ success: false, message: 'Account not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `${role} account reactivated successfully`,
+            data: updatedDoc
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getDepositPaymentSettings(req, res, next) {
+    try {
+        const data = await adminService.getDepositPaymentSettings();
+        res.status(200).json({ success: true, message: 'Deposit payment settings fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateDepositPaymentSettings(req, res, next) {
+    try {
+        const body = { ...req.body };
+        if (req.file) {
+            const { uploadImageBuffer } = await import('../../../../services/cloudinary.service.js');
+            const qrCodeUrl = await uploadImageBuffer(req.file.buffer, 'delivery/deposit');
+            body.qrCodeUrl = qrCodeUrl;
+        }
+        const data = await adminService.updateDepositPaymentSettings(body);
+        res.status(200).json({ success: true, message: 'Deposit payment settings updated successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getDepositPaymentSettingsPublicController(req, res, next) {
+    try {
+        const data = await adminService.getDepositPaymentSettings();
+        res.status(200).json({ success: true, message: 'Deposit payment settings fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getCashPayRequests(req, res, next) {
+    try {
+        const data = await adminService.getCashPayRequests(req.query || {});
+        res.status(200).json({ success: true, message: 'Cash pay requests fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateCashPayRequestStatus(req, res, next) {
+    try {
+        const { id } = req.params;
+        const performer = await resolveActionPerformerSnapshot(req.user);
+        const data = await adminService.updateCashPayRequestStatus(id, {
+            status: req.body.status,
+            adminNote: req.body.adminNote,
+            performer
+        });
+        res.status(200).json({ success: true, message: `Cash pay request ${req.body.status.toLowerCase()} successfully`, data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getZoneHubs(req, res, next) {
+    try {
+        const data = await adminService.getZoneHubs(req.query || {});
+        res.status(200).json({ success: true, message: 'Zone hubs fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getRestaurantsInZone(req, res, next) {
+    try {
+        const { id } = req.params;
+        const data = await adminService.getRestaurantsInZone(id);
+        res.status(200).json({ success: true, message: 'Restaurants fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function assignZoneHub(req, res, next) {
+    try {
+        const { zoneId, restaurantId } = req.body || {};
+        const data = await adminService.assignZoneHub(zoneId, restaurantId);
+        res.status(200).json({ success: true, message: 'Zone hub assigned successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getAdminCODVerifications(req, res, next) {
+    try {
+        const data = await adminService.getAdminCODVerifications(req.query || {});
+        res.status(200).json({ success: true, message: 'COD verifications fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function settleCODVerification(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { action, adminNote } = req.body || {};
+        const performer = await resolveActionPerformerSnapshot(req.user);
+        const data = await adminService.settleCODVerification(id, { action, adminNote, performer });
+        res.status(200).json({ success: true, message: `COD verification ${action === 'approve' ? 'approved' : 'rejected'} successfully`, data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+
+
+

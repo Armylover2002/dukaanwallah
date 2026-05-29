@@ -105,6 +105,8 @@ const pricingSchema = new mongoose.Schema(
         deliverySponsorType: { type: String, default: 'USER_FULL', trim: true },
         platformFee: { type: Number, default: 0, min: 0 },
         discount: { type: Number, default: 0, min: 0 },
+        restaurantCommissionPercentage: { type: Number, default: 0, min: 0 },
+        restaurantCommission: { type: Number, default: 0, min: 0 },
         total: { type: Number, required: true, min: 0 },
         currency: { type: String, default: 'INR' }
     },
@@ -213,7 +215,8 @@ const deliveryStateSchema = new mongoose.Schema(
         reachedPickupAt: { type: Date, default: null },
         reachedDropAt: { type: Date, default: null },
         pickedUpAt: { type: Date, default: null },
-        deliveredAt: { type: Date, default: null }
+        deliveredAt: { type: Date, default: null },
+        billImageUrl: { type: String, default: '' }
     },
     { _id: false }
 );

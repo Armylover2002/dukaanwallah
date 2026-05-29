@@ -44,6 +44,8 @@ const foodTransactionSchema = new mongoose.Schema({
         deliverySponsorType: { type: String, default: 'USER_FULL', trim: true },
         platformFee: { type: Number, default: 0, min: 0 },
         discount: { type: Number, default: 0, min: 0 },
+        restaurantCommissionPercentage: { type: Number, default: 0 },
+        restaurantCommission: { type: Number, default: 0 },
         total: { type: Number, default: 0, min: 0 },
         currency: { type: String, default: 'INR', trim: true },
     },
@@ -72,6 +74,7 @@ const foodTransactionSchema = new mongoose.Schema({
     amounts: {
         totalCustomerPaid: { type: Number, required: true, min: 0 },
         restaurantShare: { type: Number, required: true, min: 0 },
+        restaurantCommission: { type: Number, default: 0, min: 0 },
         sellerShare: { type: Number, default: 0, min: 0 },
         sellerCommission: { type: Number, default: 0, min: 0 },
         riderShare: { type: Number, required: true, min: 0 },

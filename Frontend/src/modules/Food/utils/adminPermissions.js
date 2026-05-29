@@ -33,9 +33,6 @@ export const extractAdminPermissions = (user) => {
   const directPermissions = normalizePermissions(user.permissions);
   if (Object.keys(directPermissions).length > 0) return directPermissions;
 
-  const rolePermissions = normalizePermissions(user.adminRoleId?.permissions);
-  if (Object.keys(rolePermissions).length > 0) return rolePermissions;
-
   return {};
 };
 
@@ -43,13 +40,8 @@ export const fetchAdminRolePermissions = async (roleId) => {
   const normalizedRoleId = String(roleId || "").trim();
   if (!normalizedRoleId) return {};
 
-  if (rolePermissionCache.has(normalizedRoleId)) {
-    return rolePermissionCache.get(normalizedRoleId);
-  }
-
   const response = await axiosInstance.get(`/food/admin/roles/${normalizedRoleId}`);
   const permissions = normalizePermissions(response?.data?.data?.permissions);
-  rolePermissionCache.set(normalizedRoleId, permissions);
   return permissions;
 };
 
@@ -95,10 +87,22 @@ const isModuleDashboardPath = (pathname = "", rootKey = "") => {
 
 export const hasPermissionEntry = (permissions, permissionKey, action = "view") => {
   const normalizedAction = normalizeAction(action);
-  const entry = permissions?.[permissionKey];
-  if (!permissionKey || !entry) return false;
-  if (normalizedAction === "view") return entry.view === true;
-  return entry.view === true && entry[normalizedAction] === true;
+  if (!permissionKey || !permissions) return false;
+
+  // 1. Direct key match
+  const entry = permissions[permissionKey];
+  if (entry) {
+    if (normalizedAction === "view") return entry.view === true;
+    return entry.view === true && entry[normalizedAction] === true;
+  }
+
+  // 2. Child key union/wildcard match
+  const subKeyPrefix = permissionKey + "::";
+  return Object.entries(permissions).some(([key, val]) => {
+    if (!key.startsWith(subKeyPrefix) || !val) return false;
+    if (normalizedAction === "view") return val.view === true;
+    return val.view === true && val[normalizedAction] === true;
+  });
 };
 
 export const hasAnyRootAccess = (permissions, rootKey) => {
@@ -119,8 +123,10 @@ export const findMatchingPermission = (menuList, pathname, parentKey) => {
         pathname,
         item.permissionKey ? `${parentKey}::${item.permissionKey}` : parentKey,
       );
-      if (match && (!bestMatch || match.path.length > bestMatch.path.length)) {
-        bestMatch = match;
+      if (match) {
+        const matchLen = match.path.length;
+        const bestLen = bestMatch ? bestMatch.path.length : -1;
+        if (matchLen > bestLen) bestMatch = match;
       }
       continue;
     }
@@ -131,8 +137,10 @@ export const findMatchingPermission = (menuList, pathname, parentKey) => {
         pathname,
         item.permissionKey ? `${parentKey}::${item.permissionKey}` : parentKey,
       );
-      if (match && (!bestMatch || match.path.length > bestMatch.path.length)) {
-        bestMatch = match;
+      if (match) {
+        const matchLen = match.path.length;
+        const bestLen = bestMatch ? bestMatch.path.length : -1;
+        if (matchLen > bestLen) bestMatch = match;
       }
       continue;
     }
@@ -145,9 +153,9 @@ export const findMatchingPermission = (menuList, pathname, parentKey) => {
 
     if (currentPath === itemPath || currentPath.startsWith(`${itemPath}/`)) {
       const match = { path: item.path, permissionKey: currentKey };
-      if (!bestMatch || match.path.length > bestMatch.path.length) {
-        bestMatch = match;
-      }
+      const matchLen = match.path.length;
+      const bestLen = bestMatch ? bestMatch.path.length : -1;
+      if (matchLen > bestLen) bestMatch = match;
     }
   }
 

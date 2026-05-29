@@ -13,6 +13,8 @@ import {
 } from '../admin/services/billing.service.js';
 import * as foodTransactionService from '../../food/orders/services/foodTransaction.service.js';
 import { emitQuickCommerceStatusUpdate } from '../services/quickStatusRealtime.service.js';
+import { getSellerLocation, getOrderAddressPoint } from '../services/quickOrder.service.js';
+import { haversineKm } from '../../food/orders/services/order.helpers.js';
 
 const approvedProductFilter = {
   $or: [
@@ -243,10 +245,27 @@ export const placeOrder = async (req, res) => {
 
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const discount = Math.max(0, Number(req.body?.discountTotal || 0));
+    const deliveryAddress = normalizeDeliveryAddress(req.body?.address);
+
+    // Calculate precise distance between seller and delivery address
+    const firstProduct = products[0];
+    const sellerId = firstProduct?.sellerId;
+    const seller = sellerId ? await Seller.findById(sellerId).select('location').lean() : null;
+
+    let distanceKm = 0.1; // Default fallback distance if coordinates are missing
+    if (seller && deliveryAddress) {
+      const sellerCoords = getSellerLocation(seller);
+      const deliveryCoords = getOrderAddressPoint({ deliveryAddress });
+      if (sellerCoords && deliveryCoords) {
+        distanceKm = haversineKm(sellerCoords.lat, sellerCoords.lng, deliveryCoords.lat, deliveryCoords.lng);
+      }
+    }
+
     const { pricing } = await calculateQuickPricing({
       subtotal,
       discount,
       products,
+      distanceKm,
     });
     const deliveryFee = Number(pricing.deliveryFee || 0);
     const total = Number(pricing.total || 0);
@@ -257,10 +276,9 @@ export const placeOrder = async (req, res) => {
     // Seller must receive/track every order regardless of payment mode (COD/online).
     // Earnings are based on delivered SellerOrders, so we always create these legs.
     const shouldFanOutSellerOrders = true;
-    const deliveryAddress = normalizeDeliveryAddress(req.body?.address);
 
-    // Calculate rider earning (using base payout if distance is unknown/short)
-    const riderEarning = await getQuickRiderEarning(0.1);
+    // Calculate rider earning using actual distance
+    const riderEarning = await getQuickRiderEarning(distanceKm);
 
     const order = await QuickOrder.create({
       orderType: 'quick',

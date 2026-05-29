@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Card from "@shared/components/ui/Card";
 import PageHeader from "@shared/components/ui/PageHeader";
 import Badge from "@shared/components/ui/Badge";
+import StatCard from "@shared/components/ui/StatCard";
 import {
   DollarSign,
   Truck,
@@ -255,43 +256,19 @@ const Dashboard = () => {
       />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="ds-grid-stats">
         {stats.map((stat) => (
-          <Card key={stat.label} className="hover:shadow-lg transition-shadow">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-base font-medium text-slate-600">
-                  {stat.label}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 mt-2">
-                  {stat.value}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={cn(
-                      "text-xs font-semibold flex items-center gap-1",
-                      stat.changeType === "increase"
-                        ? "text-emerald-600"
-                        : "text-red-600",
-                    )}>
-                    <TrendingUp
-                      className={cn(
-                        "h-3 w-3",
-                        stat.changeType === "decrease" && "rotate-180",
-                      )}
-                    />
-                    {stat.change}
-                  </span>
-                  <span className="text-sm text-slate-600">
-                    {stat.description}
-                  </span>
-                </div>
-              </div>
-              <div className={cn("p-3 rounded-lg", stat.iconBg)}>
-                <stat.icon className={cn("h-6 w-6", stat.iconColor)} />
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            trend={stat.change}
+            trendDirection={stat.changeType === "increase" ? "up" : "down"}
+            description={stat.description}
+            color={stat.iconColor}
+            bg={stat.iconBg}
+          />
         ))}
       </div>
 
@@ -380,8 +357,8 @@ const Dashboard = () => {
                     y1="0"
                     x2="0"
                     y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.05} />
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -422,7 +399,7 @@ const Dashboard = () => {
                 <Area
                   type="monotone"
                   dataKey="sales"
-                  stroke="#4f46e5"
+                  stroke="var(--primary)"
                   strokeWidth={2}
                   fill="url(#revenueGradient)"
                   isAnimationActive={true}
@@ -465,7 +442,7 @@ const Dashboard = () => {
                     color: "#334155",
                   }}
                 />
-                <Bar dataKey="A" fill="#4f46e5" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="A" fill="var(--primary)" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -485,40 +462,38 @@ const Dashboard = () => {
           </button>
         }>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+          <table className="ds-table">
+            <thead className="ds-table-header">
+              <tr>
+                <th className="ds-table-header-cell text-left">
                   Order ID
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="ds-table-header-cell text-left">
                   Customer
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="ds-table-header-cell text-left">
                   Date
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="ds-table-header-cell text-left">
                   Amount
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="ds-table-header-cell text-left">
                   Status
                 </th>
-                <th className="text-center py-3 px-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="ds-table-header-cell text-center">
                   Action
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody>
               {safeOrders.slice(0, 5).map((order) => (
                 <tr
                   key={order.orderId}
-                  className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-4 px-4 align-middle">
-                    <span className="text-sm font-semibold text-slate-900">
-                      {order.orderId}
-                    </span>
+                  className="ds-table-row">
+                  <td className="ds-table-cell font-semibold">
+                    {order.orderId}
                   </td>
-                  <td className="py-4 px-4 align-middle">
+                  <td className="ds-table-cell">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-600">
                         {order.customer?.name
@@ -526,29 +501,25 @@ const Dashboard = () => {
                           .map((n) => n[0])
                           .join("") || "C"}
                       </div>
-                      <span className="text-sm font-medium text-slate-700">
+                      <span className="font-semibold text-slate-700">
                         {order.customer?.name || "Customer"}
                       </span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 align-middle">
-                    <span className="text-sm text-slate-600">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </span>
+                  <td className="ds-table-cell">
+                    {new Date(order.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="py-4 px-4 align-middle">
-                    <span className="text-sm font-semibold text-slate-900">
-                      ₹{order.pricing?.total || 0}
-                    </span>
+                  <td className="ds-table-cell font-semibold">
+                    ₹{order.pricing?.total || 0}
                   </td>
-                  <td className="py-4 px-4 align-middle">
+                  <td className="ds-table-cell">
                     <Badge
                       variant={getStatusColor(order.status)}
                       className="capitalize">
                       {order.status}
                     </Badge>
                   </td>
-                  <td className="py-4 px-4 text-center align-middle">
+                  <td className="ds-table-cell text-center">
                     <button
                       onClick={() => {
                         setSelectedOrder(normalizeOrderForModal(order));
@@ -624,14 +595,11 @@ const Dashboard = () => {
                     <div>
                       <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-2">
                         <HiOutlinePhone className="h-3 w-3 text-emerald-500" />{" "}
-                        Contact Info
+                        Customer Info
                       </h4>
                       <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
                         <p className="text-xs font-bold text-slate-800">
                           {selectedOrder.customer.name}
-                        </p>
-                        <p className="text-[11px] font-semibold text-slate-600 mt-0.5">
-                          {selectedOrder.customer.phone}
                         </p>
                       </div>
                     </div>

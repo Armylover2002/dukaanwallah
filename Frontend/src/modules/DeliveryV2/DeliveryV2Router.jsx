@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import { AuthPageGuard } from '@core/guards/RouteGuard';
 import Loader from "@food/components/Loader";
 import {
   loadBusinessSettings,
@@ -59,10 +60,12 @@ const DeliveryV2Router = () => {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
-        {/* Auth routes */}
-        <Route path="welcome" element={<Welcome />} />
-        <Route path="login" element={<SignIn />} />
-        <Route path="otp" element={<OTP />} />
+        {/* Auth routes — redirect to home if already logged in */}
+        <Route path="welcome" element={<AuthPageGuard module="delivery" home="/food/delivery"><Welcome /></AuthPageGuard>} />
+        <Route path="login" element={<AuthPageGuard module="delivery" home="/food/delivery"><SignIn /></AuthPageGuard>} />
+        {/* Canonical auth path used by RouteGuard */}
+        <Route path="auth/login" element={<AuthPageGuard module="delivery" home="/food/delivery"><SignIn /></AuthPageGuard>} />
+        <Route path="otp" element={<AuthPageGuard module="delivery" home="/food/delivery"><OTP /></AuthPageGuard>} />
         <Route path="signup" element={<Navigate to={`/food/delivery/login${location.search}`} replace />} />
         <Route path="signup/details" element={<SignupStep1 />} />
         <Route path="signup/documents" element={<SignupStep2 />} />
@@ -79,7 +82,7 @@ const DeliveryV2Router = () => {
         <Route path="/profile/details" element={<ProtectedRoute><ProfileDetailsV2 /></ProtectedRoute>} />
         <Route path="/profile/bank" element={<ProtectedRoute><ProfileBankV2 /></ProtectedRoute>} />
         <Route path="/profile/documents" element={<ProtectedRoute><ProfileDocsV2 /></ProtectedRoute>} />
-        <Route path="/subscription" element={<ProtectedRoute><SubscriptionV2 /></ProtectedRoute>} />
+        <Route path="/subscription" element={<Navigate to="/food/delivery" replace />} />
         
         {/* Support Systems */}
         <Route path="/help/tickets" element={<ProtectedRoute><SupportTicketsV2 /></ProtectedRoute>} />

@@ -290,7 +290,7 @@ const DeliveryTrackingMap = ({
     return restaurantCoords || { lat: 0, lng: 0 };
   }, [isOrderPickedUp, restaurantCoords, customerCoords]);
 
-  const zoom = useMemo(() => 15, []);
+  const zoom = 15;
 
   const visibleCloudPolylinePath = useMemo(() => {
     if (!cloudPolyline || !window.google?.maps?.geometry?.encoding) return null;

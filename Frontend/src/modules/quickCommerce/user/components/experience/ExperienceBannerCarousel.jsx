@@ -3,8 +3,6 @@ import { cn } from "@/lib/utils";
 import { getCloudinarySrcSet } from "@/shared/utils/cloudinaryUtils";
 
 const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap = 0, edgeToEdge = false }) => {
-  if (!items.length) return null;
-
   const effectiveSlideGap = fullWidth ? 0 : slideGap;
 
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -42,6 +40,8 @@ const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap 
 
     return () => window.cancelAnimationFrame(frameId);
   }, [isResetting]);
+
+  if (!items.length) return null;
 
   return (
     <div className={cn("overflow-hidden", fullWidth && "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]")}>

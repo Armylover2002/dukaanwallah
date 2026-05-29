@@ -1,5 +1,8 @@
 import { X } from "lucide-react"
 
+// Stable empty defaults — prevent new [] reference per render
+const EMPTY_ARRAY = []
+
 export default function FilterPanel({ 
   isOpen, 
   onClose, 
@@ -7,8 +10,8 @@ export default function FilterPanel({
   setFilters, 
   onApply, 
   onReset, 
-  restaurants = [], 
-  statuses = [],
+  restaurants = EMPTY_ARRAY, 
+  statuses = EMPTY_ARRAY,
   hidePaymentStatus = false,
   hideDeliveryType = false
 }) {

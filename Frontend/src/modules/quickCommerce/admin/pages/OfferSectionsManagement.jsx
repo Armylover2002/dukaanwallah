@@ -17,9 +17,50 @@ import {
   BACKGROUND_COLOR_OPTIONS,
   SIDE_IMAGE_OPTIONS,
 } from "@/shared/constants/offerSectionOptions";
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
 
 const OfferSectionsManagement = () => {
   const { showToast } = useToast();
+  const { user: authUser } = useAuth();
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+  const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+      const existingPermissions = extractAdminPermissions(currentUser);
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions);
+        return;
+      }
+      const roleId = extractAdminRoleId(currentUser);
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId);
+        if (isMounted) setResolvedPermissions(rolePermissions);
+      } catch {
+        if (isMounted) setResolvedPermissions({});
+      }
+    };
+    resolvePermissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  const permissionKey = "quick::core_management::marketing_tools::offer_sections";
+  const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create");
+  const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
+  const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete");
   const [sections, setSections] = useState([]);
   const [categories, setCategories] = useState([]);
   const [sellers, setSellers] = useState([]);
@@ -258,13 +299,15 @@ const OfferSectionsManagement = () => {
             Categories → Sellers → Products. Pick multiple categories and sellers, then choose products. Set banner colour and side image per section.
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
-        >
-          <HiOutlinePlus className="h-5 w-5" />
-          New Section
-        </button>
+        {canCreate && (
+          <button
+            onClick={openCreateModal}
+            className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
+          >
+            <HiOutlinePlus className="h-5 w-5" />
+            New Section
+          </button>
+        )}
       </div>
 
       <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-xl overflow-hidden">
@@ -329,41 +372,47 @@ const OfferSectionsManagement = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
+                  {canEdit && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => handleReorder("up", section)}
+                        className={cn(
+                          "p-1.5 rounded-xl border text-slate-400 hover:text-slate-700 hover:bg-slate-50",
+                          idx === 0 && "opacity-30 cursor-not-allowed"
+                        )}
+                      >
+                        <HiOutlineArrowUpCircle className="h-4 w-4" />
+                      </button>
+                      <button
+                        disabled={idx === sections.length - 1}
+                        onClick={() => handleReorder("down", section)}
+                        className={cn(
+                          "p-1.5 rounded-xl border text-slate-400 hover:text-slate-700 hover:bg-slate-50",
+                          idx === sections.length - 1 &&
+                            "opacity-30 cursor-not-allowed"
+                        )}
+                      >
+                        <HiOutlineArrowDownCircle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  {canEdit && (
                     <button
-                      disabled={idx === 0}
-                      onClick={() => handleReorder("up", section)}
-                      className={cn(
-                        "p-1.5 rounded-xl border text-slate-400 hover:text-slate-700 hover:bg-slate-50",
-                        idx === 0 && "opacity-30 cursor-not-allowed"
-                      )}
+                      onClick={() => openEditModal(section)}
+                      className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl"
                     >
-                      <HiOutlineArrowUpCircle className="h-4 w-4" />
+                      <HiOutlinePencilSquare className="h-5 w-5" />
                     </button>
+                  )}
+                  {canDelete && (
                     <button
-                      disabled={idx === sections.length - 1}
-                      onClick={() => handleReorder("down", section)}
-                      className={cn(
-                        "p-1.5 rounded-xl border text-slate-400 hover:text-slate-700 hover:bg-slate-50",
-                        idx === sections.length - 1 &&
-                          "opacity-30 cursor-not-allowed"
-                      )}
+                      onClick={() => handleDelete(section._id)}
+                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl"
                     >
-                      <HiOutlineArrowDownCircle className="h-4 w-4" />
+                      <HiOutlineTrash className="h-5 w-5" />
                     </button>
-                  </div>
-                  <button
-                    onClick={() => openEditModal(section)}
-                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl"
-                  >
-                    <HiOutlinePencilSquare className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(section._id)}
-                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl"
-                  >
-                    <HiOutlineTrash className="h-5 w-5" />
-                  </button>
+                  )}
                 </div>
               </div>
             );

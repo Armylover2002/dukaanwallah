@@ -39,6 +39,21 @@ import { fetchPolyline } from '../utils/googleMaps.js';
 import { getFirebaseDB } from '../../../../config/firebase.js';
 import * as foodTransactionService from './foodTransaction.service.js';
 import { ensureDailyPassEligibility } from "../../subscriptions/services/wallet.service.js";
+import {
+  tryAutoAssign,
+  processDispatchTimeout,
+  listNearbyOnlineDeliveryPartners,
+  getDispatchSettings,
+  updateDispatchSettings
+} from './order-dispatch.service.js';
+
+export {
+  tryAutoAssign,
+  processDispatchTimeout,
+  listNearbyOnlineDeliveryPartners,
+  getDispatchSettings,
+  updateDispatchSettings
+};
 
 const ORDER_ID_PREFIX = "FOD-";
 const ORDER_ID_LENGTH = 6;
@@ -83,8 +98,26 @@ function generateFourDigitDeliveryOtp() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+function shouldShowDeliveryPartnerPhone(order) {
+  if (!order) return false;
+  const status = String(order.orderStatus || order.status || "").toLowerCase();
+  const deliveryStatus = String(order.deliveryState?.status || "").toLowerCase();
+
+  // Robust fallback: if order is already picked up or delivered, show phone number anyway
+  const isPostPickup = ["picked_up", "reached_drop", "delivered"].includes(status) || 
+                       deliveryStatus === "picked_up" || 
+                       deliveryStatus === "reached_drop";
+                       
+  if (isPostPickup) return true;
+
+  const reachedPickup = deliveryStatus === "reached_pickup" || status === "reached_pickup";
+  const photoUploaded = !!order.deliveryState?.billImageUrl;
+
+  return reachedPickup && photoUploaded;
+}
+
 /** Remove secret fields before returning order JSON to delivery partner / restaurant. */
-function sanitizeOrderForExternal(orderDoc) {
+function sanitizeOrderForExternal(orderDoc, roleContext = "") {
   const o = orderDoc?.toObject ? orderDoc.toObject() : { ...(orderDoc || {}) };
   delete o.deliveryOtp;
   const dv = o.deliveryVerification;
@@ -98,6 +131,46 @@ function sanitizeOrderForExternal(orderDoc) {
       },
     };
   }
+
+  if (!o.orderMongoId) {
+    o.orderMongoId = (o._id || orderDoc?._id || "").toString();
+  }
+  if (!o.orderId) {
+    o.orderId = o.orderId || o.order_id || o.orderMongoId;
+  }
+
+  // Mask Delivery Partner phone for Restaurant panel
+  if (String(roleContext).toUpperCase() === "RESTAURANT") {
+    if (!shouldShowDeliveryPartnerPhone(o)) {
+      if (o.dispatch?.deliveryPartnerId && typeof o.dispatch.deliveryPartnerId === "object") {
+        o.dispatch.deliveryPartnerId = {
+          ...o.dispatch.deliveryPartnerId,
+          phone: "Hidden until photo upload",
+        };
+      }
+      if (o.deliveryPartnerId && typeof o.deliveryPartnerId === "object") {
+        o.deliveryPartnerId = {
+          ...o.deliveryPartnerId,
+          phone: "Hidden until photo upload",
+        };
+      }
+      if (Array.isArray(o.dispatchPlan?.legs)) {
+        o.dispatchPlan.legs = o.dispatchPlan.legs.map((leg) => {
+          if (leg?.deliveryPartnerId && typeof leg.deliveryPartnerId === "object") {
+            return {
+              ...leg,
+              deliveryPartnerId: {
+                ...leg.deliveryPartnerId,
+                phone: "Hidden until photo upload",
+              },
+            };
+          }
+          return leg;
+        });
+      }
+    }
+  }
+
   return o;
 }
 
@@ -298,22 +371,69 @@ function normalizeFoodFeeSettings(feeDoc = null) {
   feeSettings.sponsorRules = Array.isArray(feeSettings.sponsorRules)
     ? feeSettings.sponsorRules
     : [];
+  feeSettings.deliveryDistanceSlabs = Array.isArray(feeSettings.deliveryDistanceSlabs)
+    ? feeSettings.deliveryDistanceSlabs
+    : [];
 
   return feeSettings;
 }
 
 function calculateBaseDeliveryFeeForDistance(distanceKm, feeSettings) {
   const distance = Number(distanceKm);
-  const baseDistance = Number(feeSettings?.baseDistanceKm || 0);
-  const baseFee = Number(feeSettings?.baseDeliveryFee ?? feeSettings?.deliveryFee ?? 0);
-  const perKmCharge = Number(feeSettings?.perKmCharge || 0);
+  if (!Number.isFinite(distance) || distance < 0) return 0;
 
-  if (!Number.isFinite(distance) || distance <= baseDistance) {
-    return roundCurrency(Math.max(0, baseFee));
+  if (Array.isArray(feeSettings?.deliveryDistanceSlabs) && feeSettings.deliveryDistanceSlabs.length > 0) {
+    const baseSlab = feeSettings.deliveryDistanceSlabs.find((s) => Number(s.fromKm || 0) === 0);
+    
+    if (!baseSlab) {
+      // Fallback: If no base slab exists starting at 0, do traditional range matching
+      const matchedSlab = feeSettings.deliveryDistanceSlabs.find(
+        (slab) => distance >= Number(slab.fromKm) && distance <= Number(slab.toKm)
+      );
+      if (matchedSlab) {
+        return roundCurrency(Number(matchedSlab.deliveryFee));
+      }
+      const sortedSlabs = [...feeSettings.deliveryDistanceSlabs].sort((a, b) => Number(b.toKm) - Number(a.toKm));
+      if (sortedSlabs.length > 0 && distance > Number(sortedSlabs[0].toKm)) {
+        return roundCurrency(Number(sortedSlabs[0].deliveryFee));
+      }
+      return 60;
+    }
+
+    const baseFee = Number(baseSlab.deliveryFee || 0);
+    const baseMax = Number(baseSlab.toKm || 0);
+
+    // If distance is within the base slab (e.g. 0-5 km)
+    if (distance <= baseMax) {
+      return roundCurrency(baseFee);
+    }
+
+    // Distance is greater than baseMax (e.g. > 5 km).
+    const sorted = [...feeSettings.deliveryDistanceSlabs].sort((a, b) => Number(a.fromKm || 0) - Number(b.fromKm || 0));
+    let totalFee = baseFee;
+
+    for (const slab of sorted) {
+      const slabMin = Number(slab.fromKm || 0);
+      if (slabMin === 0) continue; // Skip base slab as it is already included
+
+      const slabMax = slab.toKm == null ? null : Number(slab.toKm);
+      const rate = Number(slab.deliveryFee || 0);
+
+      if (distance <= slabMin) continue;
+
+      const upper = slabMax == null ? distance : Math.min(distance, slabMax);
+      const kmInSlab = Math.max(0, upper - slabMin);
+
+      if (kmInSlab > 0) {
+        totalFee += kmInSlab * rate;
+      }
+    }
+
+    return roundCurrency(totalFee);
   }
 
-  const extraKm = Math.max(0, distance - baseDistance);
-  return roundCurrency(Math.max(0, baseFee + extraKm * perKmCharge));
+  // Pure distance-based default: 60 delivery fee
+  return 60;
 }
 
 function resolveSponsorRule(subtotal, distanceKm, sponsorRules = []) {
@@ -375,7 +495,9 @@ function calculateFoodDeliveryPricing({
       ? Number(distanceKm)
       : 0;
   const totalDeliveryFee = calculateBaseDeliveryFeeForDistance(safeDistance, feeSettings);
-  const matchedRule = resolveSponsorRule(subtotal, safeDistance, feeSettings?.sponsorRules);
+  const matchedRule = (Array.isArray(feeSettings?.deliveryDistanceSlabs) && feeSettings.deliveryDistanceSlabs.length > 0)
+    ? null
+    : resolveSponsorRule(subtotal, safeDistance, feeSettings?.sponsorRules);
 
   let userDeliveryFee = totalDeliveryFee;
   let restaurantDeliveryFee = 0;
@@ -446,7 +568,7 @@ async function fetchPickupSourcesByType(items = []) {
             ...(foodReadableIds.length ? [{ restaurantId: { $in: foodReadableIds } }] : []),
           ],
         })
-          .select("restaurantId restaurantName location addressLine1 area city state zoneId status")
+          .select("restaurantId restaurantName location addressLine1 area city state zoneId status commissionPercentage")
           .lean()
       : [],
     quickSourceIds.length
@@ -465,6 +587,7 @@ async function fetchPickupSourcesByType(items = []) {
       status: restaurant.status,
       location: restaurant.location,
       zoneId: restaurant.zoneId || null,
+      commissionPercentage: restaurant.commissionPercentage || 0,
       address:
         restaurant.location?.address ||
         restaurant.location?.formattedAddress ||
@@ -625,8 +748,12 @@ function pushStatusHistory(order, { byRole, byId, from, to, note = "" }) {
 
 function normalizeOrderForClient(orderDoc) {
   const order = orderDoc?.toObject ? orderDoc.toObject() : orderDoc || {};
+  const mongoId = (order._id || orderDoc?._id || "").toString();
+  const displayId = order.orderId || order.order_id || mongoId;
   return {
     ...order,
+    orderMongoId: mongoId,
+    orderId: displayId,
     status: order?.orderStatus || order?.status || "",
     deliveredAt:
       order?.deliveryState?.deliveredAt || order?.deliveredAt || null,
@@ -1403,69 +1530,7 @@ async function notifySellerOrderCancelled(orderDoc, sellerOrders, reason) {
 }
 
 
-async function listNearbyOnlineDeliveryPartners(
-  restaurantId,
-  { maxKm = 15, limit = 25 } = {},
-) {
-  const restaurant = await FoodRestaurant.findById(restaurantId)
-    .select("location")
-    .lean();
-  if (!restaurant?.location?.coordinates?.length) {
-    // Fallback: if restaurant location is missing, notify any online approved partners.
-    const partners = await FoodDeliveryPartner.find({
-      status: "approved",
-      availabilityStatus: "online",
-    })
-      .select("_id")
-      .limit(Math.max(1, limit))
-      .lean();
-    return {
-      restaurant: null,
-      partners: partners.map((p) => ({ partnerId: p._id, distanceKm: null })),
-    };
-  }
-
-  const [rLng, rLat] = restaurant.location.coordinates;
-  const partners = await FoodDeliveryPartner.find({
-    status: "approved",
-    availabilityStatus: "online",
-    lastLat: { $exists: true, $ne: null },
-    lastLng: { $exists: true, $ne: null },
-  })
-    .select("_id lastLat lastLng")
-    .lean();
-
-  console.log(
-    `[DEBUG] listNearby: Restaurant [${rLat}, ${rLng}] found ${partners.length} online approved partners with GPS`,
-  );
-
-  const scored = [];
-  for (const p of partners) {
-    const d = haversineKm(rLat, rLng, p.lastLat, p.lastLng);
-    if (Number.isFinite(d) && d <= maxKm)
-      scored.push({ partnerId: p._id, distanceKm: d });
-  }
-
-  scored.sort((a, b) => a.distanceKm - b.distanceKm);
-  const picked = scored.slice(0, Math.max(1, limit));
-
-  // Fallback: if no one has GPS yet, still notify online partners (common right after login).
-  if (picked.length === 0) {
-    const anyOnline = await FoodDeliveryPartner.find({
-      status: "approved",
-      availabilityStatus: "online",
-    })
-      .select("_id")
-      .limit(Math.max(1, limit))
-      .lean();
-    return {
-      restaurant,
-      partners: anyOnline.map((p) => ({ partnerId: p._id, distanceKm: null })),
-    };
-  }
-
-  return { restaurant, partners: picked };
-}
+// Stale listNearbyOnlineDeliveryPartners removed (now imported from order-dispatch.service.js)
 
 async function refreshSplitDispatchLegCandidates(order) {
   if (!isSplitDispatchOrder(order)) return false;
@@ -1678,29 +1743,7 @@ export async function processScheduledOrderNotification(orderMongoId) {
   return { success: true };
 }
 
-// ----- Settings -----
-export async function getDispatchSettings() {
-  let doc = await FoodSettings.findOne({ key: "dispatch" }).lean();
-  if (!doc) {
-    await FoodSettings.create({ key: "dispatch", dispatchMode: "manual" });
-    doc = await FoodSettings.findOne({ key: "dispatch" }).lean();
-  }
-  return { dispatchMode: doc?.dispatchMode || "manual" };
-}
-
-export async function updateDispatchSettings(dispatchMode, adminId) {
-  await FoodSettings.findOneAndUpdate(
-    { key: "dispatch" },
-    {
-      $set: {
-        dispatchMode,
-        updatedBy: { role: "ADMIN", adminId, at: new Date() },
-      },
-    },
-    { upsert: true, new: true },
-  );
-  return getDispatchSettings();
-}
+// Stale getDispatchSettings and updateDispatchSettings removed (now imported from order-dispatch.service.js)
 
 // ----- Calculate (validation + return pricing from payload) -----
 export async function calculateOrder(userId, dto) {
@@ -1864,9 +1907,52 @@ export async function calculateOrder(userId, dto) {
     : "";
   if (codeRaw) {
     const now = new Date();
-    const offer = await FoodOffer.findOne({ couponCode: codeRaw }).lean();
+    let offer = await FoodOffer.findOne({ couponCode: codeRaw }).lean();
     if (!offer) {
-      discount = 0;
+      const { RestaurantCoupon } = await import('../../admin/models/restaurantCoupon.model.js');
+      let resolvedRestaurantId = primaryRestaurantId;
+      if (primaryRestaurantId && !mongoose.Types.ObjectId.isValid(primaryRestaurantId)) {
+        const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');
+        const rest = await FoodRestaurant.findOne({ restaurantId: primaryRestaurantId }).select('_id').lean();
+        if (rest) {
+          resolvedRestaurantId = rest._id;
+        }
+      }
+      const isIdValid = mongoose.Types.ObjectId.isValid(resolvedRestaurantId);
+      const restCoupon = isIdValid ? await RestaurantCoupon.findOne({
+        couponCode: codeRaw,
+        status: 'Approved',
+        restaurantId: new mongoose.Types.ObjectId(resolvedRestaurantId)
+      }).lean() : null;
+
+      if (restCoupon) {
+        const endOk = !restCoupon.expiryDate || now < new Date(restCoupon.expiryDate);
+        const minOk = subtotal >= (Number(restCoupon.minOrderAmount) || 0);
+        let usageOk = true;
+        if (
+          Number(restCoupon.usageLimit) > 0 &&
+          Number(restCoupon.usedCount || 0) >= Number(restCoupon.usageLimit)
+        ) {
+          usageOk = false;
+        }
+
+        const allowed = endOk && minOk && usageOk;
+
+        if (allowed) {
+          if (restCoupon.discountType === "percentage") {
+            const raw = subtotal * (Number(restCoupon.discountValue) / 100);
+            discount = Math.max(0, Math.min(subtotal, Math.floor(raw)));
+          } else {
+            discount = Math.max(
+              0,
+              Math.min(subtotal, Math.floor(Number(restCoupon.discountValue) || 0)),
+            );
+          }
+          appliedCoupon = { code: codeRaw, discount };
+        }
+      } else {
+        discount = 0;
+      }
     } else {
       const statusOk = offer.status === "active";
       const startOk = !offer.startDate || now >= new Date(offer.startDate);
@@ -2045,7 +2131,8 @@ export async function createOrder(userId, dto) {
     if (primaryRestaurant.status !== "approved")
       throw new ValidationError("Restaurant not accepting orders");
 
-    // PHASE 3D: SUBSCRIPTION GUARD (READ-ONLY VALIDATION)
+    // PHASE 3D: SUBSCRIPTION GUARD (READ-ONLY VALIDATION) (Bypassed)
+    /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
     // CRITICAL: Use primaryRestaurant.sourceId (MongoDB _id) instead of primaryRestaurantId (which could be custom ID)
     console.log("[TRACE] calling eligibility", { sourceId: primaryRestaurant.sourceId });
     const eligibility = await ensureDailyPassEligibility(primaryRestaurant.sourceId, 'RESTAURANT');
@@ -2060,6 +2147,7 @@ export async function createOrder(userId, dto) {
         ? "Restaurant is not accepting new orders due to insufficient subscription balance." 
         : "Restaurant is not accepting new orders at this time.");
     }
+    */
   }
   const inactiveQuickSource = [...sourceMap.values()].find(
     (source) =>
@@ -2112,6 +2200,9 @@ export async function createOrder(userId, dto) {
     if (!Number.isFinite(price) || !Number.isFinite(qty)) return sum;
     return sum + Math.max(0, price) * Math.max(0, qty);
   }, 0);
+  const commissionPercentage = primaryRestaurant ? Number(primaryRestaurant.commissionPercentage || 0) : 0;
+  const restaurantCommission = Math.round(computedSubtotal * (commissionPercentage / 100) * 100) / 100;
+
   const normalizedPricing = {
     subtotal: Number(dto.pricing?.subtotal ?? computedSubtotal),
     tax: Number(dto.pricing?.tax ?? 0),
@@ -2136,6 +2227,8 @@ export async function createOrder(userId, dto) {
     ),
     platformFee: Number(dto.pricing?.platformFee ?? 0),
     discount: Number(dto.pricing?.discount ?? 0),
+    restaurantCommissionPercentage: Number(dto.pricing?.restaurantCommissionPercentage ?? commissionPercentage),
+    restaurantCommission: Number(dto.pricing?.restaurantCommission ?? restaurantCommission),
     total: Number(dto.pricing?.total ?? 0),
     currency: String(dto.pricing?.currency || "INR"),
   };
@@ -2261,7 +2354,8 @@ export async function createOrder(userId, dto) {
       : Number.isFinite(normalizedPricing.deliveryFee)
         ? normalizedPricing.deliveryFee
         : 0) +
-      (Number.isFinite(normalizedPricing.platformFee) ? normalizedPricing.platformFee : 0) -
+      (Number.isFinite(normalizedPricing.platformFee) ? normalizedPricing.platformFee : 0) +
+      (Number(normalizedPricing.restaurantCommission) || 0) -
       riderEarning,
   );
 
@@ -2465,6 +2559,22 @@ export async function createOrder(userId, dto) {
           { upsert: true },
         );
       }
+    } else {
+      let resolvedRestaurantId = primaryRestaurantId;
+      if (primaryRestaurantId && !mongoose.Types.ObjectId.isValid(primaryRestaurantId)) {
+        const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');
+        const rest = await FoodRestaurant.findOne({ restaurantId: primaryRestaurantId }).select('_id').lean();
+        if (rest) {
+          resolvedRestaurantId = rest._id;
+        }
+      }
+      if (mongoose.Types.ObjectId.isValid(resolvedRestaurantId)) {
+        const { RestaurantCoupon } = await import('../../admin/models/restaurantCoupon.model.js');
+        await RestaurantCoupon.updateOne(
+          { couponCode, restaurantId: new mongoose.Types.ObjectId(resolvedRestaurantId) },
+          { $inc: { usedCount: 1 } }
+        );
+      }
     }
   }
 
@@ -2591,125 +2701,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-/**
- * Start or continue a smart cascading dispatch.
- * @param {string} orderId - Mongo ID of the order.
- * @param {object} options - Options (retry count, etc)
- */
-export async function tryAutoAssign(orderId, options = {}) {
-    const order = await FoodOrder.findById(orderId).populate(['restaurantId', 'userId']);
-    if (!order) return null;
-
-    // Guard: only dispatch if unassigned OR if we are doing a timeout-reassign.
-    const isUnassigned = order.dispatch?.status === 'unassigned';
-    const isAssignedButUnaccepted = order.dispatch?.status === 'assigned' && !order.dispatch?.acceptedAt;
-    
-    if (!isUnassigned && !isAssignedButUnaccepted) {
-        return order;
-    }
-
-    // Find ineligible partners (who already rejected it or were already offered if we want fresh ones)
-    const offeredIds = (order.dispatch?.offeredTo || []).map(o => o.partnerId.toString());
-    
-    // Find nearby online partners
-    const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, { maxKm: 15, limit: 10 });
-    
-    // Filter out already offered/rejected partners
-    const eligible = partners.filter(p => !offeredIds.includes(p.partnerId.toString()));
-
-    if (eligible.length === 0) {
-        // No more specific partners to offer to? 
-        // If it's still unassigned, we leave it in the marketplace pool (broadcast was already sent)
-        // or we could expand the search radius.
-        logger.info(`SmartDispatch: No more eligible partners for order ${order.orderId}. Leaving in marketplace.`);
-        return order;
-    }
-
-    // Pick the best (first in sorted list)
-    const best = eligible[0];
-    
-    // Assign to this partner
-    order.dispatch.status = 'assigned';
-    order.dispatch.deliveryPartnerId = best.partnerId;
-    order.dispatch.assignedAt = new Date();
-    
-    // Record in history
-    order.dispatch.offeredTo.push({
-        partnerId: best.partnerId,
-        at: new Date(),
-        action: 'offered'
-    });
-
-    await order.save();
-
-    // 🚀 Notify the specific partner instantly
-    try {
-        const io = getIO();
-        if (io) {
-            const restaurant = order.restaurantId;
-            const payload = buildDeliverySocketPayload(order, restaurant);
-            io.to(rooms.delivery(best.partnerId)).emit('new_order', payload);
-            io.to(rooms.delivery(best.partnerId)).emit('play_notification_sound', {
-                orderId: payload.orderId,
-                orderMongoId: payload.orderMongoId
-            });
-        }
-        await notifyOwnerSafely(
-            { ownerType: 'DELIVERY_PARTNER', ownerId: best.partnerId },
-            {
-                title: 'New order assigned! 🛵',
-                body: `You have 60 seconds to accept Order #${order.orderId}.`,
-                data: {
-                    type: 'new_order',
-                    orderId: order.orderId,
-                    orderMongoId: order._id.toString(),
-                    link: '/delivery'
-                }
-            }
-        );
-    } catch (err) {
-        logger.error(`SmartDispatch: Failed to notify partner ${best.partnerId}: ${err.message}`);
-    }
-
-    // ⏱️ Schedule a timeout check in 60 seconds
-    await addOrderJob({
-        action: 'DISPATCH_TIMEOUT_CHECK',
-        orderMongoId: order._id.toString(),
-        orderId: order.orderId,
-        partnerId: best.partnerId.toString()
-    }, { delay: 60000 }); // 60 seconds
-
-    return order;
-}
-
-/**
- * Triggered by worker after 60 seconds of zero response.
- */
-export async function processDispatchTimeout(orderId, partnerId) {
-    const order = await FoodOrder.findById(orderId);
-    if (!order) return;
-
-    // Check if the order is still assigned to this specific partner and not accepted
-    const stillAssigned = order.dispatch?.status === 'assigned' && 
-                          String(order.dispatch?.deliveryPartnerId) === String(partnerId) &&
-                          !order.dispatch?.acceptedAt;
-
-    if (stillAssigned) {
-        logger.info(`SmartDispatch: Timeout for order ${order.orderId} (Partner: ${partnerId}). Moving to next.`);
-        
-        // Mark as timeout in history
-        const offer = order.dispatch.offeredTo.find(o => String(o.partnerId) === String(partnerId) && o.action === 'offered');
-        if (offer) offer.action = 'timeout';
-
-        // Unassign and trigger next step
-        order.dispatch.status = 'unassigned';
-        order.dispatch.deliveryPartnerId = null;
-        await order.save();
-
-        // 🔄 Recursively try next partner
-        await tryAutoAssign(orderId);
-    }
-}
+// Stale tryAutoAssign and processDispatchTimeout removed (now imported from order-dispatch.service.js)
 
 // ----- User: list, get, cancel -----
 export async function listOrdersUser(userId, query) {
@@ -2781,7 +2773,8 @@ export async function getOrderById(
         assignedDispatchLeg: getAssignedDispatchLeg(order, deliveryPartnerId),
       });
     }
-    return sanitizeOrderForExternal(order);
+    const normalized = normalizeOrderForClient(order);
+    return sanitizeOrderForExternal(normalized, "RESTAURANT");
   }
 
   if (userId) {
@@ -3070,13 +3063,19 @@ export async function listOrdersRestaurant(restaurantId, query) {
   const [docs, total] = await Promise.all([
     FoodOrder.find(filter)
       .populate("userId", "name phone email profileImage")
+      .populate("dispatch.deliveryPartnerId", "name phone rating totalRatings")
+      .populate("dispatchPlan.legs.deliveryPartnerId", "name phone rating totalRatings")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
     FoodOrder.countDocuments(filter),
   ]);
-  return buildPaginatedResult({ docs, total, page, limit });
+  const sanitizedDocs = docs.map(doc => {
+    const normalized = normalizeOrderForClient(doc);
+    return sanitizeOrderForExternal(normalized, "RESTAURANT");
+  });
+  return buildPaginatedResult({ docs: sanitizedDocs, total, page, limit });
 }
 
 export async function updateOrderStatusRestaurant(

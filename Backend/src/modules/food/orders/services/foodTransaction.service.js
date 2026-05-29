@@ -99,11 +99,15 @@ export async function createInitialTransaction(order) {
     const totalDeliveryFee =
         Number(order.pricing?.totalDeliveryFee ?? order.pricing?.deliveryFee ?? 0) || 0;
 
+    const restaurantCommission = Number(order.pricing?.restaurantCommission || 0) || 0;
+
     if (restaurantDeliveryFee > 0) {
         restaurantNet = Math.max(0, restaurantNet - restaurantDeliveryFee);
     }
 
-    const platformNetProfit = (order.pricing?.platformFee || 0) + totalDeliveryFee - riderShare;
+    restaurantNet = Math.max(0, restaurantNet - restaurantCommission);
+
+    const platformNetProfit = (order.pricing?.platformFee || 0) + totalDeliveryFee - riderShare + restaurantCommission;
 
     const transaction = new FoodTransaction({
         orderId: order._id,
@@ -149,12 +153,15 @@ export async function createInitialTransaction(order) {
             deliverySponsorType: String(order.pricing?.deliverySponsorType || 'USER_FULL'),
             platformFee: Number(order.pricing?.platformFee || 0) || 0,
             discount: Number(order.pricing?.discount || 0) || 0,
+            restaurantCommissionPercentage: Number(order.pricing?.restaurantCommissionPercentage || 0) || 0,
+            restaurantCommission: Number(order.pricing?.restaurantCommission || 0) || 0,
             total: Number(order.pricing?.total || 0) || 0,
             currency: String(order.pricing?.currency || order.currency || 'INR'),
         },
         amounts: {
             totalCustomerPaid,
             restaurantShare: Math.max(0, restaurantNet),
+            restaurantCommission,
             sellerShare: Math.max(0, sellerShare),
             sellerCommission: Math.max(0, sellerCommission),
             riderShare,

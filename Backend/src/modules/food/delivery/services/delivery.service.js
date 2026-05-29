@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { FoodDeliveryPartner } from '../models/deliveryPartner.model.js';
+import { FoodDeliveryCashDeposit } from '../models/foodDeliveryCashDeposit.model.js';
 import { DeliverySupportTicket } from '../models/supportTicket.model.js';
 import { DeliveryBonusTransaction } from '../../admin/models/deliveryBonusTransaction.model.js';
 import { FoodEarningAddon } from '../../admin/models/earningAddon.model.js';
@@ -343,7 +344,8 @@ export const updateDeliveryAvailability = async (userId, payload) => {
     if (status === 'online' || status === true) validStatus = 'online';
     else if (status === 'offline' || status === false) validStatus = 'offline';
     
-    // PHASE 3C-1: SUBSCRIPTION TRIGGER (OFFLINE -> ONLINE ONLY)
+    // PHASE 3C-1: SUBSCRIPTION TRIGGER (OFFLINE -> ONLINE ONLY) (Bypassed)
+    /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
     if (partner.availabilityStatus === 'offline' && validStatus === 'online') {
         const eligibility = await ensureDailyPassEligibility(userId, 'DELIVERY_PARTNER');
         
@@ -360,6 +362,17 @@ export const updateDeliveryAvailability = async (userId, payload) => {
                     ? 'Insufficient subscription balance for daily pass.' 
                     : 'Failed to activate daily pass.');
             }
+        }
+    }
+    */
+    // CASH LIMIT ENFORCEMENT
+    if (partner.availabilityStatus === 'offline' && validStatus === 'online') {
+        const { getDeliveryPartnerWalletEnhanced } = await import('./deliveryFinance.service.js');
+        const wallet = await getDeliveryPartnerWalletEnhanced(userId);
+        // Block if: (1) admin set limit to 0 OR (2) delivery boy has exhausted their limit
+        const cashLimitHit = wallet.totalCashLimit === 0 || wallet.availableCashLimit <= 0;
+        if (cashLimitHit) {
+            throw new ValidationError('CASH_LIMIT_EXCEEDED');
         }
     }
 
@@ -421,14 +434,32 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
             {
                 $group: {
                     _id: null,
-                    cashInHand: { $sum: { $ifNull: ['$riderEarning', 0] } }
+                    cashInHand: { $sum: { $ifNull: ['$payment.amountDue', { $ifNull: ['$pricing.total', 0] }] } }
                 }
             }
         ])
     ]);
 
     const totalEarned = Number(earningsAgg?.[0]?.totalEarned) || 0;
-    const cashInHand = Number(cashAgg?.[0]?.cashInHand) || 0;
+    const rawCashInHand = Number(cashAgg?.[0]?.cashInHand) || 0;
+
+    // Subtract deposits already made by this partner (admin records deposit → reduces cashInHand)
+    const depositAgg = await FoodDeliveryCashDeposit.aggregate([
+        {
+            $match: {
+                deliveryPartnerId: partnerId,
+                status: 'Completed'
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                totalDeposited: { $sum: { $ifNull: ['$amount', 0] } }
+            }
+        }
+    ]);
+    const totalDeposited = Number(depositAgg?.[0]?.totalDeposited) || 0;
+    const cashInHand = Math.max(0, rawCashInHand - totalDeposited);
 
     // Admin-set delivery bonuses / earning addons
     const bonusAgg = await DeliveryBonusTransaction.aggregate([
@@ -444,7 +475,7 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
             orderStatus: 'delivered',
         })
             .sort({ 'deliveryState.deliveredAt': -1, createdAt: -1 })
-            .select('orderId riderEarning payment orderStatus deliveryState createdAt deliveryState.deliveredAt')
+            .select('orderId riderEarning payment orderStatus deliveryState createdAt')
             .limit(2000)
             .lean(),
         DeliveryBonusTransaction.find({ deliveryPartnerId: partnerId })
@@ -864,5 +895,25 @@ export const getActiveEarningAddonsForPartner = async (deliveryPartnerId) => {
         activeOffer: offers[0] || null,
         offers
     };
+};
+
+export const deleteDeliveryPartnerAccount = async (userId) => {
+    const partner = await FoodDeliveryPartner.findById(userId);
+    if (!partner) {
+        throw new ValidationError('Delivery partner not found');
+    }
+
+    // Soft delete
+    partner.isDeleted = true;
+    partner.accountStatus = 'deleted';
+    partner.isActive = false;
+    partner.availabilityStatus = 'offline';
+    await partner.save();
+
+    // Invalidate refresh tokens
+    const { FoodRefreshToken } = await import('../../../../core/refreshTokens/refreshToken.model.js');
+    await FoodRefreshToken.deleteMany({ userId });
+
+    return { success: true, message: 'Delivery account soft deleted successfully' };
 };
 

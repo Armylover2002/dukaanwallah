@@ -1,4 +1,4 @@
-﻿const debugLog = (...args) => {}
+const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
@@ -166,7 +166,9 @@ export const useGigStore = create(
               gigDate.setHours(0, 0, 0, 0)
               return gigDate >= now && gig.status === 'booked'
             })
-            .sort((a, b) => new Date(a.date) - new Date(b.date))[0]
+            .reduce((earliest, gig) =>
+              !earliest || new Date(gig.date) < new Date(earliest.date) ? gig : earliest
+            , null)
           
           if (upcomingGig) {
             gigToActivate = upcomingGig

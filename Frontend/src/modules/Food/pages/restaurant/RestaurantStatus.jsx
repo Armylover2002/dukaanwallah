@@ -269,7 +269,8 @@ export default function RestaurantStatus() {
       return
     }
 
-    // Check subscription eligibility before toggling ON
+    // Check subscription eligibility before toggling ON (Bypassed)
+    /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
     try {
       const eligibilityRes = await restaurantAPI.checkSubscriptionEligibility()
       const eligibility = eligibilityRes?.data?.data
@@ -308,6 +309,18 @@ export default function RestaurantStatus() {
     } catch (error) {
       debugError("Error checking eligibility:", error)
       toast.error("Failed to check subscription status")
+    }
+    */
+    try {
+      setDeliveryStatus(true)
+      await restaurantAPI.updateAcceptingOrders(true)
+      persistRestaurantOnlineStatus(true)
+      window.dispatchEvent(new CustomEvent('restaurantStatusChanged', { detail: { isOnline: true } }))
+    } catch (error) {
+      debugError("Error going online:", error)
+      toast.error("Failed to update delivery status")
+      setDeliveryStatus(false)
+      persistRestaurantOnlineStatus(false)
     }
   }
 

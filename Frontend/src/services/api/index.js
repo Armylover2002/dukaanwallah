@@ -843,6 +843,37 @@ export const adminAPI = {
       params,
       contextModule: "admin",
     }),
+  getCashPayRequests: (params = {}) =>
+    apiClient.get("/food/admin/delivery/cash-pay-requests", {
+      params,
+      contextModule: "admin",
+    }),
+  updateCashPayRequestStatus: (id, body) =>
+    apiClient.patch(`/food/admin/delivery/cash-pay-requests/${String(id)}`, body, {
+      contextModule: "admin",
+    }),
+  getZoneHubs: (params = {}) =>
+    apiClient.get("/food/admin/zone-hubs", {
+      params,
+      contextModule: "admin",
+    }),
+  getRestaurantsInZone: (id) =>
+    apiClient.get(`/food/admin/zones/${String(id)}/restaurants`, {
+      contextModule: "admin",
+    }),
+  createZoneHub: (body) =>
+    apiClient.post("/food/admin/zone-hubs", body ?? {}, {
+      contextModule: "admin",
+    }),
+  getCODVerifications: (params = {}) =>
+    apiClient.get("/food/admin/zone-hubs/cod-verification", {
+      params,
+      contextModule: "admin",
+    }),
+  settleCODVerification: (id, body) =>
+    apiClient.post(`/food/admin/zone-hubs/cod-verification/${String(id)}/action`, body ?? {}, {
+      contextModule: "admin",
+    }),
 
   /** Backward-compatible alias used in UI */
   getApprovedRestaurants: (params = {}) =>
@@ -992,6 +1023,14 @@ export const adminAPI = {
   /** PATCH /food/admin/customer-role-requests/:id/status (Bearer ADMIN) */
   updateCustomerRoleRequestStatus: (id, status) =>
     apiClient.patch(`/food/admin/customer-role-requests/${id}/status`, { status }, { contextModule: "admin" }),
+  getRestaurantCoupons: () =>
+    apiClient.get("/food/admin/restaurant-coupons", { contextModule: "admin" }),
+  updateRestaurantCouponStatus: (id, status) =>
+    apiClient.patch(`/food/admin/restaurant-coupons/${id}/status`, { status }, { contextModule: "admin" }),
+  getDeletedAccounts: () =>
+    apiClient.get("/food/admin/deleted-accounts", { contextModule: "admin" }),
+  reactivateAccount: (id, role) =>
+    apiClient.post(`/food/admin/deleted-accounts/${id}/reactivate`, { role }, { contextModule: "admin" }),
 };
 
 /** Restaurant API - OTP login via new backend; no email/password. */
@@ -1057,6 +1096,16 @@ export const restaurantAPI = {
   getWithdrawalHistory: () =>
     apiClient.get("/food/restaurant/withdrawals", {
       contextModule: "restaurant"
+    }),
+  getCODDeposits: (params = {}) =>
+    apiClient.get("/food/restaurant/finance/cod-verification", {
+      contextModule: "restaurant",
+      params: params || {},
+    }),
+  processCODDeposit: (id, formData) =>
+    apiClient.post(`/food/restaurant/finance/cod-verification/${String(id)}/action`, formData, {
+      contextModule: "restaurant",
+      headers: { "Content-Type": "multipart/form-data" },
     }),
   /** Update restaurant profile fields (name/cuisines/location/menuImages). */
   updateProfile: (body) =>
@@ -1148,7 +1197,7 @@ export const restaurantAPI = {
   getPublicOffers: () => apiClient.get("/food/restaurant/offers"),
   /** Backward-compat helper used by Cart: returns coupons array for an item by adapting public offers */
   getCouponsByItemIdPublic: (restaurantId, _itemId) =>
-    apiClient.get("/food/restaurant/offers").then((res) => {
+    apiClient.get("/food/restaurant/offers", { params: { restaurantId } }).then((res) => {
       const list = res?.data?.data?.allOffers || res?.data?.allOffers || [];
       const now = Date.now();
       const coupons = list
@@ -1166,7 +1215,7 @@ export const restaurantAPI = {
             couponCode: o.couponCode,
             discountType: o.discountType,
             discountPercentage: isPct ? Number(o.discountValue) || 0 : 0,
-            originalPrice: 0,
+            originalPrice: isPct ? 0 : Number(o.discountValue) || 0,
             discountedPrice: 0,
             minOrderValue: Number(o.minOrderValue || 0),
             minOrder: Number(o.minOrderValue || 0),
@@ -1505,6 +1554,22 @@ export const restaurantAPI = {
     }),
   getReferralDetails: () =>
     apiClient.get("/food/restaurant/referral-details", {
+      contextModule: "restaurant",
+    }),
+  getCoupons: () =>
+    apiClient.get("/food/restaurant/coupons", {
+      contextModule: "restaurant",
+    }),
+  createCoupon: (body) =>
+    apiClient.post("/food/restaurant/coupons", body ?? {}, {
+      contextModule: "restaurant",
+    }),
+  updateCoupon: (id, body) =>
+    apiClient.put(`/food/restaurant/coupons/${String(id)}`, body ?? {}, {
+      contextModule: "restaurant",
+    }),
+  deleteCoupon: (id) =>
+    apiClient.delete(`/food/restaurant/coupons/${String(id)}`, {
       contextModule: "restaurant",
     }),
 };
@@ -2109,6 +2174,15 @@ export const deliveryAPI = {
     apiClient.post("/food/delivery/wallet/deposit/verify", body ?? {}, {
       contextModule: "delivery"
     }),
+  submitManualDeposit: (formData) =>
+    apiClient.post("/food/delivery/wallet/deposit/manual", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      contextModule: "delivery"
+    }),
+  getDepositZones: () =>
+    apiClient.get("/food/delivery/wallet/deposit/zones", { contextModule: "delivery" }),
+  getDepositZoneHubs: (zoneId) =>
+    apiClient.get(`/food/delivery/wallet/deposit/zones/${String(zoneId)}/hubs`, { contextModule: "delivery" }),
   /** Wallet transactions - from wallet response (no separate backend endpoint) */
   getWalletTransactions: (params) =>
     apiClient
@@ -2131,6 +2205,9 @@ export const deliveryAPI = {
       params: { lat, lng, radius: radiusKm },
       contextModule: "delivery",
     }),
+  /** DELETE /food/delivery/profile (Bearer DELIVERY_PARTNER) */
+  deleteAccount: () =>
+    apiClient.delete("/food/delivery/profile", { contextModule: "delivery" }),
 };
 
 export const userAPI = {
@@ -2324,6 +2401,9 @@ export const userAPI = {
   /** DELETE /food/user/role-requests/:id (Bearer USER) */
   deleteRoleRequest: (id) =>
     apiClient.delete(`/food/user/role-requests/${id}`, { contextModule: "user" }),
+  /** DELETE /food/user/profile (Bearer USER) */
+  deleteAccount: () =>
+    apiClient.delete("/food/user/profile", { contextModule: "user" }),
 };
 export const locationAPI = createStubAPI();
 export const zoneAPI = {

@@ -7,6 +7,8 @@ import {
   Edit,
   LogOut,
   ShieldCheck,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react"
 import { restaurantAPI } from "@food/api"
 import { clearModuleAuth, clearAuthData, getCurrentUser } from "@food/utils/auth"
@@ -20,6 +22,8 @@ export default function RestaurantProfile({ isOpen, onClose }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [restaurantData, setRestaurantData] = useState(null)
   const [loadingRestaurant, setLoadingRestaurant] = useState(true)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Handle back button to close the sheet
   useEffect(() => {
@@ -192,6 +196,35 @@ export default function RestaurantProfile({ isOpen, onClose }) {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    if (isDeleting) return
+    setIsDeleting(true)
+
+    try {
+      await restaurantAPI.deleteAccount()
+      clearModuleAuth("restaurant")
+      localStorage.removeItem("restaurant_onboarding")
+      localStorage.removeItem("restaurant_accessToken")
+      localStorage.removeItem("restaurant_authenticated")
+      localStorage.removeItem("restaurant_user")
+      sessionStorage.removeItem("restaurantAuthData")
+      window.dispatchEvent(new Event("restaurantAuthChanged"))
+
+      setTimeout(() => {
+        onClose()
+        navigate("/food/restaurant/login", { replace: true })
+      }, 300)
+    } catch (error) {
+      debugError("Error during restaurant account deletion:", error)
+      clearModuleAuth("restaurant")
+      window.dispatchEvent(new Event("restaurantAuthChanged"))
+      navigate("/food/restaurant/login", { replace: true })
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -306,6 +339,17 @@ export default function RestaurantProfile({ isOpen, onClose }) {
               >
                 Logout from all devices
               </button>
+
+              {userData.role !== "ADMIN" && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={isLoggingOut || isDeleting}
+                  className="w-full bg-red-50 text-red-600 hover:bg-red-100/80 disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 px-4 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-red-100"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Delete Account
+                </button>
+              )}
             </div>
 
             {/* Footer Links */}
@@ -317,6 +361,40 @@ export default function RestaurantProfile({ isOpen, onClose }) {
               </div>
             </div>
           </motion.div>
+
+          {showDeleteConfirm && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 backdrop-blur-xs">
+              <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl border border-gray-100 text-center">
+                <div className="mx-auto w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4 text-red-600">
+                  <AlertTriangle className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Delete Restaurant Account?
+                </h3>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">
+                  Are you sure you want to delete your restaurant account? All your outlet menus, active orders, and sales history will be disabled. This action is soft-delete.
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-2xl transition-all"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-100"
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </AnimatePresence>

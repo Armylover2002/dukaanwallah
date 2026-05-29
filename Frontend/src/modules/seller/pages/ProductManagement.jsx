@@ -460,7 +460,7 @@ const ProductManagement = () => {
                 className="border-none shadow-sm ring-1 ring-slate-100 p-0 overflow-hidden group bg-white"
                 gradientColor={
                   stat.bg.includes("indigo")
-                    ? "#eef2ff"
+                    ? "#FFF3EC"
                     : stat.bg.includes("emerald")
                       ? "#ecfdf5"
                       : stat.bg.includes("amber")
@@ -546,36 +546,95 @@ const ProductManagement = () => {
       {/* Product Table */}
       <BlurFade delay={0.3}>
         <Card className="relative z-10 border-none shadow-xl ring-1 ring-slate-100 overflow-hidden rounded-3xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border border-slate-200 border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-left">
+          {/* Mobile Card List */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {filteredProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <HiOutlineFolderOpen className="h-10 w-10 text-slate-300 mb-3" />
+                <p className="text-sm font-bold text-slate-600">No products found</p>
+                <p className="text-xs text-slate-400 mt-1">Try adjusting your filters</p>
+              </div>
+            ) : filteredProducts.map((p) => {
+              const totalStock = p.variants?.length > 0
+                ? p.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+                : p.stock;
+              return (
+                <div key={p._id || p.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors">
+                  <div className="h-14 w-14 rounded-xl overflow-hidden bg-slate-100 ring-1 ring-slate-200 shrink-0">
+                    <img
+                      src={p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2"}
+                      alt={p.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{p.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-xs text-slate-500 font-medium">{p.categoryId?.name || "N/A"}</span>
+                      <span className="text-[10px] text-slate-400">•</span>
+                      <span className="text-xs font-bold text-slate-900">₹{p.salePrice || p.price}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={cn(
+                        "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                        totalStock === 0 ? "bg-rose-50 text-rose-600" : totalStock <= 10 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                      )}>Stock: {totalStock}</span>
+                      {p.variants?.length > 0 && (
+                        <button
+                          onClick={() => { setViewingVariants(p); setIsVariantsViewModalOpen(true); }}
+                          className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                          {p.variants.length} variants
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => openEditModal(p)}
+                      className="p-2 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-200">
+                      <HiOutlinePencilSquare className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(p)}
+                      className="p-2 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-200">
+                      <HiOutlineTrash className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="ds-table">
+              <thead className="ds-table-header">
+                <tr>
+                  <th className="ds-table-header-cell text-left">
                     Product
                   </th>
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-left">
+                  <th className="ds-table-header-cell text-left">
                     Product Code
                   </th>
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-left">
+                  <th className="ds-table-header-cell text-left">
                     Header
                   </th>
-
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-left">
+                  <th className="ds-table-header-cell text-left">
                     Category
                   </th>
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-left">
+                  <th className="ds-table-header-cell text-left">
                     Reg. Price
                   </th>
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-left">
+                  <th className="ds-table-header-cell text-left">
                     Discounted Price
                   </th>
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-center">
+                  <th className="ds-table-header-cell text-center">
                     Variant
                   </th>
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-center">
+                  <th className="ds-table-header-cell text-center">
                     Stock
                   </th>
-                  <th className="px-6 py-4 text-sm font-black text-slate-900 uppercase tracking-widest text-right">
+                  <th className="ds-table-header-cell text-right">
                     Actions
                   </th>
                 </tr>
@@ -584,8 +643,8 @@ const ProductManagement = () => {
                 {filteredProducts.map((p) => (
                   <tr
                     key={p._id || p.id}
-                    className="hover:bg-slate-50 transition-colors group border-b border-slate-200 last:border-b-0">
-                    <td className="px-6 py-4">
+                    className="ds-table-row">
+                    <td className="ds-table-cell">
                       <div className="flex items-center gap-4">
                         <div className="h-16 w-16 rounded-xl overflow-hidden bg-slate-100 ring-1 ring-slate-200">
                           <img
@@ -595,43 +654,36 @@ const ProductManagement = () => {
                           />
                         </div>
                         <div>
-                          <p className="text-base font-medium text-slate-900">
+                          <p className="font-semibold text-slate-900">
                             {p.name}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-slate-900">
-                        {p.sku ||
-                          (Array.isArray(p.variants) && p.variants.length > 0 && p.variants[0]?.sku) ||
-                          "—"}
-                      </span>
+                    <td className="ds-table-cell font-semibold">
+                      {p.sku ||
+                        (Array.isArray(p.variants) && p.variants.length > 0 && p.variants[0]?.sku) ||
+                        "—"}
                     </td>
-                    <td className="px-6 py-4 text-left">
+                    <td className="ds-table-cell text-left">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-slate-900 uppercase tracking-tight bg-slate-100 px-3 py-0.5 rounded-full w-fit">
+                        <span className="text-xs font-semibold text-slate-900 uppercase tracking-tight bg-slate-100 px-3 py-0.5 rounded-full w-fit">
                           {p.headerId?.name || "N/A"}
                         </span>
                       </div>
                     </td>
-
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-slate-900">
+                    <td className="ds-table-cell">
+                      <span className="font-medium text-slate-700">
                         {p.categoryId?.name || "N/A"}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-base font-medium text-slate-900">
-                        ₹{p.price}
-                      </span>
+                    <td className="ds-table-cell font-bold text-slate-900">
+                      ₹{p.price}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-base font-medium text-emerald-700">
-                        ₹{p.salePrice || p.price}
-                      </span>
+                    <td className="ds-table-cell font-bold text-emerald-700">
+                      ₹{p.salePrice || p.price}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="ds-table-cell text-center">
                       {p.variants?.length > 0 ? (
                         <div
                           onClick={() => {
@@ -642,18 +694,18 @@ const ProductManagement = () => {
                         >
                           <Badge
                             variant="indigo"
-                            className="text-sm font-medium px-3 py-0.5 group-hover:shadow-sm transition-all"
+                            className="text-[10px] font-bold px-3 py-0.5 group-hover:shadow-sm transition-all animate-pulse"
                           >
                             {p.variants.length} VARIANTS
                           </Badge>
                         </div>
                       ) : (
-                        <span className="text-sm font-medium text-slate-400 bg-slate-50 border border-slate-100 px-2 py-1 rounded italic">
+                        <span className="text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100 px-2 py-1 rounded italic">
                           None
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="ds-table-cell text-center">
                       {(() => {
                         const totalStock = p.variants?.length > 0
                           ? p.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
@@ -661,7 +713,7 @@ const ProductManagement = () => {
                         return (
                           <span
                             className={cn(
-                              "text-base font-medium",
+                              "font-bold",
                               totalStock === 0
                                 ? "text-rose-600"
                                 : totalStock <= 10
@@ -673,7 +725,7 @@ const ProductManagement = () => {
                         );
                       })()}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="ds-table-cell text-right">
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => openEditModal(p)}
@@ -698,7 +750,8 @@ const ProductManagement = () => {
       {isFilterOpen && (
         <div
           ref={filterDropdownRef}
-          className="absolute z-[9999] right-36 top-[350px] w-64 rounded-xl border border-slate-200 bg-white shadow-xl p-4 space-y-3"
+          className="fixed z-[9999] right-4 top-auto w-[calc(100vw-2rem)] sm:w-64 sm:absolute sm:right-4 sm:top-auto rounded-xl border border-slate-200 bg-white shadow-xl p-4 space-y-3"
+          style={{ maxWidth: '320px' }}
         >
           <div>
             <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">

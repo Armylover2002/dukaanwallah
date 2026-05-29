@@ -34,8 +34,7 @@ const getProfileEndpoint = (role) => {
 
 export const AuthProvider = ({ children }) => {
     // Current role based on URL
-    const getCurrentRoleFromUrl = () => {
-        const path = window.location.pathname;
+    const getCurrentRoleFromUrl = (path) => {
         if (path.startsWith('/seller')) return 'seller';
         if (path.startsWith('/admin')) return 'admin';
         if (path.startsWith('/delivery')) return 'delivery';
@@ -56,6 +55,8 @@ export const AuthProvider = ({ children }) => {
         return normalizedVal;
     };
 
+    const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
     const [authData, setAuthData] = useState({
         customer: getSafeToken('customer'),
         seller: getSafeToken('seller'),
@@ -63,11 +64,67 @@ export const AuthProvider = ({ children }) => {
         delivery: getSafeToken('delivery'),
     });
 
-    const currentRole = getCurrentRoleFromUrl();
+    const currentRole = getCurrentRoleFromUrl(currentPath);
     const [user, setUser] = useState(null);
     const token = authData[currentRole];
     const [isLoading, setIsLoading] = useState(Boolean(authData[currentRole]));
     const isAuthenticated = !!token && !isTokenExpired(token);
+
+    // Sync auth tokens on custom login events or cross-tab/storage changes, and track URL path changes since Provider is mounted outside Router
+    useEffect(() => {
+        const syncAuthData = () => {
+            setAuthData({
+                customer: getSafeToken('customer'),
+                seller: getSafeToken('seller'),
+                admin: getSafeToken('admin'),
+                delivery: getSafeToken('delivery'),
+            });
+        };
+
+        const handlePathChange = () => {
+            setCurrentPath(window.location.pathname);
+        };
+
+        // Custom events sent from login pages
+        window.addEventListener('storage', syncAuthData);
+        window.addEventListener('userAuthChanged', syncAuthData);
+        window.addEventListener('restaurantAuthChanged', syncAuthData);
+        window.addEventListener('adminAuthChanged', syncAuthData);
+        window.addEventListener('deliveryAuthChanged', syncAuthData);
+        window.addEventListener('sellerAuthChanged', syncAuthData);
+
+        // Track navigation changes reactively
+        window.addEventListener('popstate', handlePathChange);
+        window.addEventListener('hashchange', handlePathChange);
+
+        const originalPushState = window.history.pushState;
+        const originalReplaceState = window.history.replaceState;
+
+        window.history.pushState = function (...args) {
+            originalPushState.apply(this, args);
+            handlePathChange();
+        };
+
+        window.history.replaceState = function (...args) {
+            originalReplaceState.apply(this, args);
+            handlePathChange();
+        };
+
+        return () => {
+            window.removeEventListener('storage', syncAuthData);
+            window.removeEventListener('userAuthChanged', syncAuthData);
+            window.removeEventListener('restaurantAuthChanged', syncAuthData);
+            window.removeEventListener('adminAuthChanged', syncAuthData);
+            window.removeEventListener('deliveryAuthChanged', syncAuthData);
+            window.removeEventListener('sellerAuthChanged', syncAuthData);
+
+            window.removeEventListener('popstate', handlePathChange);
+            window.removeEventListener('hashchange', handlePathChange);
+
+            window.history.pushState = originalPushState;
+            window.history.replaceState = originalReplaceState;
+        };
+    }, []);
 
     // Fetch user profile on mount or token change
     useEffect(() => {

@@ -181,6 +181,42 @@ const LowBalanceBlockingModal = ({ isOpen, onClose, onRecharge, data }) => {
   );
 };
 
+const CashLimitBlockingModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="relative bg-white rounded-[40px] p-8 max-w-sm w-full text-center shadow-2xl overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 w-full h-2 bg-rose-500" />
+        
+        <div className="w-20 h-20 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto mb-6 text-rose-600 shadow-inner">
+           <AlertTriangle className="w-10 h-10" />
+        </div>
+        
+        <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Cash Limit Reached</h3>
+        <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+          Please deposit your pending cash amount before going online to receive new orders.
+        </p>
+
+        <div className="space-y-3">
+          <button 
+            onClick={onClose}
+            className="w-full h-15 bg-slate-900 hover:bg-black text-white rounded-[24px] font-black text-base shadow-xl shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2 py-3"
+          >
+            Acknowledge
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 /**
  * DeliveryHomeV2 - Premium 1:1 Match with Original App UI.
  * Featuring logical tab switching for Feed, Pocket, History, and Profile.
@@ -190,10 +226,21 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   const { isOnline, setOnline, toggleOnline, activeOrder, tripStatus, setRiderLocation, setActiveOrder, updateTripStatus, clearActiveOrder } = useDeliveryStore();
   const { isWithinRange, distanceToTarget } = useProximityCheck();
   const { acceptOrder, reachPickup, pickUpOrder, reachDrop, completeDelivery, resetTrip } = useOrderManager();
-  const { newOrder, clearNewOrder, orderStatusUpdate, clearOrderStatusUpdate, isConnected: isSocketConnected, emitLocation } = useDeliveryNotifications();
+  const { newOrder, clearNewOrder, orderStatusUpdate, clearOrderStatusUpdate, isConnected: isSocketConnected, emitLocation, forcedOfflineEvent, clearForcedOfflineEvent } = useDeliveryNotifications();
   const [isProcessingToggle, setIsProcessingToggle] = useState(false);
+
+  useEffect(() => {
+    if (forcedOfflineEvent) {
+      if (forcedOfflineEvent.reason === 'CASH_LIMIT_EXCEEDED') {
+        setOnline(false);
+        setShowCashLimitModal(true);
+      }
+      clearForcedOfflineEvent();
+    }
+  }, [forcedOfflineEvent, setOnline, clearForcedOfflineEvent]);
   const [showSubModal, setShowSubModal] = useState(false);
   const [showLowBalanceModal, setShowLowBalanceModal] = useState(false);
+  const [showCashLimitModal, setShowCashLimitModal] = useState(false);
   const [eligibilityData, setEligibilityData] = useState(null);
   const companyName = useCompanyName();
   const { unreadCount: notificationUnreadCount } = useNotificationInbox("delivery", { limit: 20 });
@@ -766,7 +813,8 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                     return;
                   }
 
-                  // Turning ON: Check Eligibility
+                  // Turning ON: Check Eligibility (Bypassed)
+                  /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
                   setIsProcessingToggle(true);
                   try {
                     const eligRes = await subscriptionAPI.getEligibility("DELIVERY_PARTNER");
@@ -797,6 +845,24 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                     }
                   } catch (err) {
                     toast.error("Failed to verify subscription");
+                    setIsProcessingToggle(false);
+                  }
+                  */
+                  setIsProcessingToggle(true);
+                  try {
+                    await deliveryAPI.updateOnlineStatus(true);
+                    setOnline(true);
+                    setIsProcessingToggle(false);
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        deliveryAPI.updateLocation(pos.coords.latitude, pos.coords.longitude, true).catch(() => {});
+                    }, (err) => console.warn('Online sync position failed:', err), { enableHighAccuracy: true });
+                  } catch (err) {
+                    const errMsg = err?.response?.data?.message || err?.message || '';
+                    if (errMsg === 'CASH_LIMIT_EXCEEDED') {
+                      setShowCashLimitModal(true);
+                    } else {
+                      toast.error("Failed to go online");
+                    }
                     setIsProcessingToggle(false);
                   }
                 }}
@@ -915,8 +981,13 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
           data={eligibilityData}
           onRecharge={() => {
             setShowLowBalanceModal(false);
-            navigate('/food/delivery/subscription');
+            navigate('/food/delivery/profile');
           }}
+        />
+
+        <CashLimitBlockingModal
+          isOpen={showCashLimitModal}
+          onClose={() => setShowCashLimitModal(false)}
         />
       </div>
       )}

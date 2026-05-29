@@ -6,8 +6,50 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
 import { adminApi } from "../services/adminApi"
 import { toast } from "sonner"
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
 
 export default function SellerCommission() {
+  const { user: authUser } = useAuth();
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+  const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+      const existingPermissions = extractAdminPermissions(currentUser);
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions);
+        return;
+      }
+      const roleId = extractAdminRoleId(currentUser);
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId);
+        if (isMounted) setResolvedPermissions(rolePermissions);
+      } catch {
+        if (isMounted) setResolvedPermissions({});
+      }
+    };
+    resolvePermissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  const permissionKey = "quick::core_management::sellers::commission";
+  const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create");
+  const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
+  const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete");
+
   const [searchQuery, setSearchQuery] = useState("")
   const [commissions, setCommissions] = useState([])
   const [approvedSellers, setApprovedSellers] = useState([])
@@ -213,13 +255,15 @@ export default function SellerCommission() {
                 {filteredCommissions.length}
               </span>
             </div>
-            <button 
-              onClick={handleAdd}
-              className="px-4 py-2.5 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2 transition-all shadow-md"
-            >
-              <Plus className="w-4 h-4" />
-              Add Commission
-            </button>
+            {canCreate && (
+              <button 
+                onClick={handleAdd}
+                className="px-4 py-2.5 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2 transition-all shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                Add Commission
+              </button>
+            )}
           </div>
 
           <div className="mb-4 flex items-center gap-3">
@@ -271,17 +315,33 @@ export default function SellerCommission() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => handleToggleStatus(commission)}
-                            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${commission.status ? "bg-emerald-500" : "bg-slate-300"}`}
-                          >
-                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${commission.status ? "translate-x-6" : "translate-x-1"}`} />
-                          </button>
+                          {canEdit ? (
+                            <button
+                              onClick={() => handleToggleStatus(commission)}
+                              className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${commission.status ? "bg-emerald-500" : "bg-slate-300"}`}
+                            >
+                              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${commission.status ? "translate-x-6" : "translate-x-1"}`} />
+                            </button>
+                          ) : (
+                            <span
+                              className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors opacity-70 cursor-not-allowed ${commission.status ? "bg-emerald-500" : "bg-slate-300"}`}
+                            >
+                              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${commission.status ? "translate-x-6" : "translate-x-1"}`} />
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => handleEdit(commission)} className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"><Edit className="w-4 h-4" /></button>
-                            <button onClick={() => handleDelete(commission)} className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                            {canEdit && (
+                              <button onClick={() => handleEdit(commission)} className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button onClick={() => handleDelete(commission)} className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

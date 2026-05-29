@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { getIO, rooms } from "../../../config/socket.js";
 import { logger } from "../../../utils/logger.js";
 import { SellerOrder } from "../seller/models/sellerOrder.model.js";
+import { FoodDeliveryPartner } from "../../food/delivery/models/deliveryPartner.model.js";
 
 const toObjectIdString = (value) => (value ? String(value) : "");
 
@@ -34,11 +35,48 @@ export async function emitQuickCommerceStatusUpdate(orderDoc, options = {}) {
     const orderId = String(order?.orderId || order?.order_id || orderMongoId).trim();
     if (!orderId) return;
 
+    const deliveryPartnerId = order?.dispatch?.deliveryPartnerId;
+    let deliveryPartnerPayload = null;
+    if (deliveryPartnerId) {
+      try {
+        const partner = await FoodDeliveryPartner.findById(deliveryPartnerId)
+          .select("_id name phone vehicleType vehicleNumber")
+          .lean();
+        if (partner) {
+          const orderStatus = String(order?.orderStatus || "").toLowerCase();
+          const deliveryStatus = String(order?.deliveryState?.status || "").toLowerCase();
+          const reachedPickup =
+            deliveryStatus === "reached_pickup" ||
+            deliveryStatus === "picked_up" ||
+            ["picked_up", "reached_drop", "delivered"].includes(orderStatus);
+          const photoUploaded = !!order?.deliveryState?.billImageUrl;
+
+          const riderPhone = (reachedPickup && photoUploaded)
+            ? (partner.phone || "")
+            : "Hidden until photo upload";
+
+          deliveryPartnerPayload = {
+            _id: partner._id,
+            name: partner.name || "Delivery Partner",
+            phone: riderPhone,
+            vehicleType: partner.vehicleType || "",
+            vehicleNumber: partner.vehicleNumber || "",
+          };
+        }
+      } catch (partnerErr) {
+        logger.warn(`emitQuickCommerceStatusUpdate: failed to fetch partner: ${partnerErr.message}`);
+      }
+    }
+
     const payload = {
       orderMongoId,
       orderId,
       orderStatus: order?.orderStatus,
       workflowStatus: order?.workflowStatus || "",
+      dispatchStatus: order?.dispatch?.status || "unassigned",
+      deliveryPartner: deliveryPartnerPayload,
+      deliveryState: order?.deliveryState,
+      deliveryVerification: order?.deliveryVerification,
       ...(options.message ? { message: String(options.message) } : {}),
       ...(options.sellerId ? { sellerId: String(options.sellerId) } : {}),
       ...(options.sellerStatus ? { sellerStatus: String(options.sellerStatus) } : {}),
@@ -56,7 +94,6 @@ export async function emitQuickCommerceStatusUpdate(orderDoc, options = {}) {
       io.to(rooms.user(order.userId)).emit("order:status:update", payload);
     }
 
-    const deliveryPartnerId = order?.dispatch?.deliveryPartnerId;
     if (deliveryPartnerId) {
       io.to(rooms.delivery(deliveryPartnerId)).emit("order_status_update", payload);
       io.to(rooms.delivery(deliveryPartnerId)).emit("order:status:update", payload);

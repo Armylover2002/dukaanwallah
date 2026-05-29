@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { adminAPI } from "@food/api";
 import { API_BASE_URL } from "@food/api/config";
 import io from "socket.io-client";
+import { getCurrentUser } from "@food/utils/auth";
+import {
+  resolveAdminPermissionsForUser,
+  canPerformAdminPermissionAction,
+} from "@food/utils/adminPermissions";
 
 const STORAGE_KEY = "admin_notifications_dismissed_v1";
 const UPDATE_EVENT = "adminNotificationsUpdated";
@@ -242,6 +247,91 @@ export default function useAdminNotifications(options = {}) {
       setLoading(true);
       const dismissed = new Set(getDismissedIds());
 
+      const user = getCurrentUser("admin");
+      const permissions = await resolveAdminPermissionsForUser(user);
+
+      const hasRestaurantApprovalPerm = canPerformAdminPermissionAction(
+        user,
+        permissions,
+        "food::restaurant_management::restaurants::joining_request",
+        "view"
+      );
+
+      const hasDeliveryJoinPerm = canPerformAdminPermissionAction(
+        user,
+        permissions,
+        "food::deliveryman_management::deliveryman::join_request",
+        "view"
+      );
+
+      const hasFoodApprovalPerm = canPerformAdminPermissionAction(
+        user,
+        permissions,
+        "food::food_management::food_approval",
+        "view"
+      );
+
+      const hasSupportPerm = canPerformAdminPermissionAction(
+        user,
+        permissions,
+        "food::customer_management::support_tickets",
+        "view"
+      );
+
+      const hasDeliverySupportPerm = canPerformAdminPermissionAction(
+        user,
+        permissions,
+        "food::deliveryman_management::support_tickets",
+        "view"
+      );
+
+      const hasFssaiPerm = canPerformAdminPermissionAction(
+        user,
+        permissions,
+        "food::restaurant_management::restaurants::list",
+        "view"
+      );
+
+      const hasDiningPerm = canPerformAdminPermissionAction(
+        user,
+        permissions,
+        "food::dining_management::list",
+        "view"
+      ) || canPerformAdminPermissionAction(
+        user,
+        permissions,
+        "food::dining_management::banners",
+        "view"
+      );
+
+      const restaurantsPromise = hasRestaurantApprovalPerm
+        ? adminAPI.getPendingRestaurants()
+        : Promise.resolve({ data: { success: true, data: [], restaurants: [] } });
+
+      const deliveryJoinPromise = hasDeliveryJoinPerm
+        ? adminAPI.getDeliveryPartnerJoinRequests({ page: 1, limit: 50 })
+        : Promise.resolve({ data: { success: true, data: [], partners: [] } });
+
+      const foodApprovalPromise = hasFoodApprovalPerm
+        ? adminAPI.getPendingFoodApprovals({ page: 1, limit: 50 })
+        : Promise.resolve({ data: { success: true, data: [], requests: [] } });
+
+      const supportPromise = hasSupportPerm
+        ? adminAPI.getSupportTicketsAdmin({ page: 1, limit: 50, source: "all" })
+        : Promise.resolve({ data: { success: true, data: [], tickets: [] } });
+
+      const deliverySupportPromise = hasDeliverySupportPerm
+        ? adminAPI.getDeliverySupportTickets({ page: 1, limit: 50 })
+        : Promise.resolve({ data: { success: true, data: [], tickets: [] } });
+
+      const fssaiExpiredPromise = hasFssaiPerm
+        ? adminAPI.getExpiredFssaiNotifications()
+        : Promise.resolve({ data: { success: true, data: [] } });
+
+      const diningApprovalPromise = hasDiningPerm
+        ? adminAPI.getDiningRestaurants()
+        : Promise.resolve({ data: { success: true, data: [], restaurants: [] } });
+
       const [
         restaurantsRes,
         deliveryJoinRes,
@@ -251,13 +341,13 @@ export default function useAdminNotifications(options = {}) {
         fssaiExpiredRes,
         diningApprovalRes,
       ] = await Promise.all([
-        adminAPI.getPendingRestaurants(),
-        adminAPI.getDeliveryPartnerJoinRequests({ page: 1, limit: 50 }),
-        adminAPI.getPendingFoodApprovals({ page: 1, limit: 50 }),
-        adminAPI.getSupportTicketsAdmin({ page: 1, limit: 50, source: "all" }),
-        adminAPI.getDeliverySupportTickets({ page: 1, limit: 50 }),
-        adminAPI.getExpiredFssaiNotifications(),
-        adminAPI.getDiningRestaurants(),
+        restaurantsPromise,
+        deliveryJoinPromise,
+        foodApprovalPromise,
+        supportPromise,
+        deliverySupportPromise,
+        fssaiExpiredPromise,
+        diningApprovalPromise,
       ]);
 
       const restaurantRows =

@@ -266,7 +266,7 @@ export default function CreateRole() {
       <div key={node.permissionKey} className="flex flex-col">
         <div 
           className={cn(
-            "flex items-center justify-between py-3 px-4 border-b border-neutral-50 hover:bg-neutral-50/80 transition-all duration-200 group",
+            "flex items-center justify-between py-3 px-4 border-b border-neutral-50 hover:bg-neutral-50/80 transition-all duration-200 group min-w-[720px]",
             depth === 0 && "bg-neutral-100/50 border-neutral-200/50 backdrop-blur-sm",
             depth === 1 && "bg-white"
           )}
@@ -294,7 +294,7 @@ export default function CreateRole() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-4 md:gap-8 shrink-0 justify-end w-[280px] md:w-[320px]">
             {["view", "create", "edit", "delete"].map(action => {
               const isAllowed = !node.allowedActions || node.allowedActions.includes(action);
               return (
@@ -304,7 +304,9 @@ export default function CreateRole() {
                       {actionIcons[action].label}
                     </span>
                   ) : (
-                    isAllowed ? (
+                    hasChildren ? (
+                      <div className="w-4.5 h-4.5" />
+                    ) : isAllowed ? (
                       <Checkbox 
                         checked={permissions[action]}
                         onCheckedChange={(checked) => handlePermissionChange(node, action, checked)}
@@ -499,7 +501,7 @@ export default function CreateRole() {
             </div>
 
             {/* Tree Container */}
-            <div className="bg-white min-h-[600px] max-h-[800px] overflow-y-auto custom-scrollbar flex flex-col">
+            <div className="bg-white min-h-[600px] max-h-[800px] overflow-x-auto overflow-y-auto custom-scrollbar flex flex-col">
               {permissionTree.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-neutral-400 gap-4">
                   <Search className="w-12 h-12 opacity-20" />

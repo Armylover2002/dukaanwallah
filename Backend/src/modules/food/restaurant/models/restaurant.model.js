@@ -208,6 +208,11 @@ const restaurantSchema = new mongoose.Schema(
       ref: "FoodZone",
       index: true,
     },
+    isZoneHub: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     businessModel: {
       type: String,
       trim: true,
@@ -286,6 +291,21 @@ const restaurantSchema = new mongoose.Schema(
       previousZone: { type: String },
       updatedZone: { type: String },
       reVerificationReason: { type: String, trim: true }
+    },
+    commissionPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
+    accountStatus: {
+      type: String,
+      enum: ['active', 'deleted'],
+      default: 'active'
     },
   },
   {

@@ -199,6 +199,11 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
+        accountStatus: {
+            type: String,
+            enum: ['active', 'deleted'],
+            default: 'active'
+        },
         addresses: {
             type: [userAddressSchema],
             default: []

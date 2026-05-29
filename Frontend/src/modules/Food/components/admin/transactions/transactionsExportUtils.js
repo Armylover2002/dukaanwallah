@@ -74,8 +74,10 @@ export const exportTransactionsToExcel = (transactions, headers, filename = "tra
 
 export const exportTransactionsToPDF = async (transactions, headers, filename = "transactions", title = "Transaction Report") => {
   // Instant PDF download using jsPDF + autoTable (no print dialog)
-  const { default: jsPDF } = await import('jspdf')
-  const { default: autoTable } = await import('jspdf-autotable')
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
 
   const doc = new jsPDF({
     orientation: 'landscape',

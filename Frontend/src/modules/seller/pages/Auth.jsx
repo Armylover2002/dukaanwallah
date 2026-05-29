@@ -133,7 +133,7 @@ export default function SellerAuth() {
       </div>
 
       <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-6xl overflow-hidden rounded-[36px] border border-white/70 bg-white shadow-[0_40px_120px_rgba(15,23,42,0.08)]">
-        <div className="hidden w-[42%] flex-col justify-between bg-[linear-gradient(160deg,#0f172a_0%,#14532d_60%,#22c55e_100%)] p-10 text-white md:flex">
+        <div className="hidden w-[42%] flex-col justify-between bg-[linear-gradient(160deg,#0f172a_0%,#431407_60%,#f26522_100%)] p-10 text-white md:flex">
           <div>
             <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em]">
               <Store className="h-4 w-4" />
@@ -160,7 +160,7 @@ export default function SellerAuth() {
           >
             <div className="mb-8 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#16a34a]">Partner Access</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Partner Access</p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">
                   {companyName} seller login
                 </h2>
@@ -169,7 +169,7 @@ export default function SellerAuth() {
                 </p>
               </div>
               <div className="hidden h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 md:flex">
-                <ShieldCheck className="h-8 w-8 text-[#16a34a]" />
+                <ShieldCheck className="h-8 w-8 text-primary" />
               </div>
             </div>
 
@@ -212,7 +212,7 @@ export default function SellerAuth() {
                     <label className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">
                       Verify OTP
                     </label>
-                    <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                    <div className="rounded-[24px] border border-orange-100 bg-orange-50/50 text-sm font-semibold text-primary">
                       Code sent to {maskedPhone}
                     </div>
                     <div className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-4">
@@ -246,7 +246,7 @@ export default function SellerAuth() {
                       type="button"
                       onClick={handleVerifyOtp}
                       disabled={isLoading}
-                      className="h-14 flex-[1.4] rounded-[24px] bg-[#16a34a] text-sm font-black uppercase tracking-[0.18em] text-white hover:bg-[#15803d]"
+                      className="h-14 flex-[1.4] rounded-[24px] bg-primary text-sm font-black uppercase tracking-[0.18em] text-white hover:bg-primary/90"
                     >
                       {isLoading ? "Verifying..." : "Continue"}
                     </Button>

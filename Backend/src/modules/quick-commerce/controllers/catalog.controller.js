@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { QuickCategory } from '../models/category.model.js';
 import { QuickProduct } from '../models/product.model.js';
 import { QuickReview } from '../models/review.model.js';
@@ -235,24 +236,84 @@ export const getHomeData = async (req, res) => {
   });
 };
 
-export const getCoupons = async (_req, res) => {
+export const getCoupons = async (req, res) => {
   setNoCache(res);
-  const coupons = await getQuickCoupons();
-  return res.json({ success: true, results: coupons });
+  try {
+    const adminCoupons = await getQuickCoupons();
+    let results = Array.isArray(adminCoupons) ? [...adminCoupons] : [];
+
+    const { sellerId } = req.query;
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+      const { SellerCoupon } = await import('../models/sellerCoupon.model.js');
+      const now = new Date();
+      const sellerCoupons = await SellerCoupon.find({
+        sellerId: new mongoose.Types.ObjectId(sellerId),
+        status: 'Approved',
+        expiryDate: { $gt: now }
+      }).lean();
+
+      const mappedSellerCoupons = sellerCoupons.map(c => ({
+        ...c,
+        id: c._id,
+        code: c.couponCode,
+        minOrderValue: c.minOrderAmount,
+        title: c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT OFF`,
+        validTill: c.expiryDate,
+        isSellerCoupon: true
+      }));
+
+      results = [...results, ...mappedSellerCoupons];
+    }
+
+    return res.json({ success: true, results });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || 'Failed to fetch coupons' });
+  }
 };
 
 export const applyCoupon = async (req, res) => {
   setNoCache(res);
-  const { code, cartTotal } = req.body;
+  const { code, cartTotal, items } = req.body;
 
   if (!code) {
     return res.status(400).json({ success: false, message: 'Coupon code is required' });
   }
 
-  const coupons = await getQuickCoupons();
-  const coupon = coupons.find(
+  // Look up in admin coupons first
+  const adminCoupons = await getQuickCoupons();
+  let coupon = adminCoupons.find(
     (c) => String(c.code || '').toUpperCase() === String(code).toUpperCase()
   );
+
+  // If not found in admin coupons, check seller coupons
+  if (!coupon) {
+    let sellerId = null;
+    if (Array.isArray(items) && items.length > 0) {
+      const firstItem = items.find(item => item.sellerId || item.seller?._id || item.sellerId?._id);
+      sellerId = firstItem?.sellerId?._id || firstItem?.sellerId || firstItem?.seller?._id;
+    }
+
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+      const { SellerCoupon } = await import('../models/sellerCoupon.model.js');
+      const now = new Date();
+      const sellerCoupon = await SellerCoupon.findOne({
+        sellerId: new mongoose.Types.ObjectId(sellerId),
+        couponCode: String(code).toUpperCase().trim(),
+        status: 'Approved',
+        expiryDate: { $gt: now }
+      }).lean();
+
+      if (sellerCoupon) {
+        coupon = {
+          ...sellerCoupon,
+          code: sellerCoupon.couponCode,
+          minOrderValue: sellerCoupon.minOrderAmount,
+          expiryDate: sellerCoupon.expiryDate,
+          isSellerCoupon: true
+        };
+      }
+    }
+  }
 
   if (!coupon) {
     return res.status(404).json({ success: false, message: 'Coupon not found or expired' });
@@ -459,4 +520,31 @@ export const submitProductReview = async (req, res) => {
     });
   }
 };
+
+export const getStoreDetails = async (req, res) => {
+  setPublicCache(res, 300);
+  try {
+    const { storeId } = req.params;
+    if (!storeId || !mongoose.Types.ObjectId.isValid(storeId)) {
+      return res.status(400).json({ success: false, message: 'Invalid store ID' });
+    }
+    const seller = await Seller.findById(storeId).select('_id name shopName location').lean();
+    if (!seller) {
+      return res.status(404).json({ success: false, message: 'Store not found' });
+    }
+    return res.json({
+      success: true,
+      result: {
+        _id: seller._id,
+        id: seller._id,
+        name: seller.name || '',
+        shopName: seller.shopName || seller.name || 'Store',
+        location: seller.location || null,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || 'Failed to fetch store details' });
+  }
+};
+
 

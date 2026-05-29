@@ -196,12 +196,13 @@ export default function EditOwner() {
       }
 
       // First, upload profile image if changed
+      let uploadedPhotoUrl = null
       if (profileImageFile) {
         try {
           const imageResponse = await restaurantAPI.uploadProfileImage(profileImageFile)
           const imageData = imageResponse?.data?.data?.image || imageResponse?.data?.image
           if (imageData?.url) {
-            formData.photo = imageData.url
+            uploadedPhotoUrl = imageData.url
           }
         } catch (error) {
           debugError("Error uploading profile image:", error)
@@ -219,7 +220,7 @@ export default function EditOwner() {
       }
 
       // If profile image was uploaded, include it
-      if (profileImageFile && formData.photo) {
+      if (profileImageFile && uploadedPhotoUrl) {
         // Extract publicId from the uploaded image response if available
         // For now, we'll let the backend handle it via the profileImage field
         // The uploadProfileImage already updates it, so we might not need to send it again
@@ -228,9 +229,13 @@ export default function EditOwner() {
       const response = await restaurantAPI.updateProfile(updatePayload)
       
       if (response?.data?.success) {
+        // Merge uploaded photo URL into the saved snapshot
+        const savedFormData = uploadedPhotoUrl
+          ? { ...formData, photo: uploadedPhotoUrl }
+          : { ...formData }
         // Save to localStorage as backup
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(formData))
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(savedFormData))
         } catch (e) {
           debugError("Error saving to localStorage:", e)
         }
@@ -239,7 +244,7 @@ export default function EditOwner() {
         window.dispatchEvent(new Event("ownerDataUpdated"))
         
         // Update local state
-        setOwnerData({ ...formData })
+        setOwnerData(savedFormData)
         setProfileImageFile(null)
         setHasChanges(false)
         

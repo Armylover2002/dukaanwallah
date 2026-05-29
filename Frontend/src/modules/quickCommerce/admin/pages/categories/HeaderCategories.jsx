@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Card from "@shared/components/ui/Card";
 import Badge from "@shared/components/ui/Badge";
 import {
@@ -19,6 +19,10 @@ import { toast } from "sonner";
 import IconSelector from "@shared/components/IconSelector";
 import Pagination from "@shared/components/ui/Pagination";
 import { getIconSvg } from "@shared/constants/categoryIcons";
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
+
 
 // MUI icon library (shared with customer app & icon selector)
 import HomeIcon from "@mui/icons-material/Home";
@@ -45,6 +49,50 @@ import BuildIcon from "@mui/icons-material/Build";
 import LuggageIcon from "@mui/icons-material/Luggage";
 
 const HeaderCategories = () => {
+  const { user: authUser } = useAuth();
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+  const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser);
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions);
+        return;
+      }
+
+      const roleId = extractAdminRoleId(currentUser);
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId);
+        if (isMounted) setResolvedPermissions(rolePermissions);
+      } catch {
+        if (isMounted) setResolvedPermissions({});
+      }
+    };
+
+    resolvePermissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  const permissionKey = "quick::core_management::categories::header";
+  const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create");
+  const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
+  const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete");
+
   const [categories, setCategories] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -259,17 +307,19 @@ const HeaderCategories = () => {
           </h1>
           <p className="text-gray-500 mt-1">Manage top-level categories</p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-          <Plus className="w-5 h-5" />
-          Add New Header
-        </button>
+        {canCreate && (
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+            <Plus className="w-5 h-5" />
+            Add New Header
+          </button>
+        )}
       </div>
 
       <Card className="border-none shadow-sm">
         <div className="p-4 border-b border-gray-100 flex gap-4 items-center">
-          {selectedItems.length > 0 && (
+          {selectedItems.length > 0 && canDelete && (
             <button
               onClick={handleBulkDelete}
               className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors text-sm font-medium">
@@ -400,19 +450,23 @@ const HeaderCategories = () => {
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-right space-x-2">
-                      <button
-                        onClick={() => openEditModal(cat)}
-                        className="p-1 text-gray-500 hover:text-indigo-600 transition-colors">
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDeleteTarget(cat);
-                          setIsDeleteModalOpen(true);
-                        }}
-                        className="p-1 text-gray-500 hover:text-red-600 transition-colors">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => openEditModal(cat)}
+                          className="p-1 text-gray-500 hover:text-indigo-600 transition-colors">
+                          <Edit className="w-5 h-5" />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => {
+                            setDeleteTarget(cat);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="p-1 text-gray-500 hover:text-red-600 transition-colors">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

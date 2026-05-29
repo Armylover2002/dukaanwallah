@@ -85,6 +85,7 @@ const normalizeDetailsFormFromRestaurant = (restaurant) => {
     openingTime: restaurant?.openingTime || restaurant?.deliveryTimings?.openingTime || "",
     closingTime: restaurant?.closingTime || restaurant?.deliveryTimings?.closingTime || "",
     isActive: restaurant?.isActive !== false,
+    commissionPercentage: restaurant?.commissionPercentage ?? "",
   }
 }
 
@@ -317,6 +318,10 @@ export default function EditRestaurant() {
         openingTime: detailsForm.openingTime,
         closingTime: detailsForm.closingTime,
         isActive: detailsForm.isActive !== false,
+        commissionPercentage:
+          detailsForm.commissionPercentage === ""
+            ? 0
+            : Number(detailsForm.commissionPercentage),
       }
 
       const res = await adminAPI.updateRestaurant(restaurantId, payload)
@@ -494,6 +499,31 @@ export default function EditRestaurant() {
                 <div>
                   <Label>Offer</Label>
                   <Input value={detailsForm.offer} onChange={(e) => setDetailsForm((p) => ({ ...p, offer: e.target.value }))} />
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-xl border border-slate-200 p-6">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">Restaurant Commission</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Set a custom commission percentage to deduct automatically from each order subtotal.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Commission Percentage (%)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="10"
+                    value={detailsForm.commissionPercentage}
+                    onChange={(e) => setDetailsForm((p) => ({ ...p, commissionPercentage: e.target.value }))}
+                  />
                 </div>
               </div>
             </section>

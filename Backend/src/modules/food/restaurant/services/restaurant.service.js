@@ -645,7 +645,8 @@ export const updateRestaurantAcceptingOrders = async (restaurantId, isAcceptingO
 
     const value = Boolean(isAcceptingOrders);
 
-    // PHASE 3C-2: SUBSCRIPTION TRIGGER (CLOSED -> OPEN ONLY)
+    // PHASE 3C-2: SUBSCRIPTION TRIGGER (CLOSED -> OPEN ONLY) (Bypassed)
+    /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
     if (currentRestaurant.isAcceptingOrders === false && value === true) {
         const eligibility = await ensureDailyPassEligibility(restaurantId, 'RESTAURANT');
         
@@ -664,6 +665,7 @@ export const updateRestaurantAcceptingOrders = async (restaurantId, isAcceptingO
             }
         }
     }
+    */
 
     const doc = await FoodRestaurant.findByIdAndUpdate(
         restaurantId,
@@ -1588,7 +1590,7 @@ export const getApprovedRestaurantByIdOrSlug = async (idOrSlug) => {
     };
 };
 
-export const listPublicOffers = async () => {
+export const listPublicOffers = async (query = {}) => {
     const now = new Date();
     const filter = {
         status: 'active',
@@ -1638,7 +1640,69 @@ export const listPublicOffers = async () => {
         };
     });
 
-    return { allOffers, groupedByOffer: {} };
+    // Also fetch approved, active, and non-expired restaurant-specific coupons
+    let restaurantCouponsMapped = [];
+    try {
+        const { RestaurantCoupon } = await import('../../admin/models/restaurantCoupon.model.js');
+        const couponFilter = {
+            status: 'Approved',
+            expiryDate: { $gt: now }
+        };
+
+        if (query?.restaurantId) {
+            const rIdStr = String(query.restaurantId).trim();
+            if (mongoose.Types.ObjectId.isValid(rIdStr)) {
+                couponFilter.restaurantId = new mongoose.Types.ObjectId(rIdStr);
+            } else {
+                const rest = await FoodRestaurant.findOne({ restaurantId: rIdStr }).select('_id').lean();
+                if (rest) {
+                    couponFilter.restaurantId = rest._id;
+                } else {
+                    couponFilter.restaurantId = new mongoose.Types.ObjectId(); // force empty results
+                }
+            }
+        }
+
+        const dbCoupons = await RestaurantCoupon.find(couponFilter).sort({ createdAt: -1 }).lean();
+        
+        // Resolve custom restaurantIds for mapped objects so frontend comparisons match
+        const restIds = [...new Set(dbCoupons.map(c => String(c.restaurantId)))];
+        const restDocs = await FoodRestaurant.find({ _id: { $in: restIds } }).select('_id restaurantId').lean();
+        const customIdMap = new Map(restDocs.map(r => [String(r._id), r.restaurantId]));
+        
+        restaurantCouponsMapped = dbCoupons.map((c) => {
+            const title = c.discountType === 'percentage'
+                ? `${Number(c.discountValue) || 0}% OFF`
+                : `Flat ₹${Number(c.discountValue) || 0} OFF`;
+
+            return {
+                id: String(c._id),
+                offerId: String(c._id),
+                couponCode: c.couponCode,
+                title,
+                discountType: c.discountType,
+                discountValue: c.discountValue,
+                maxDiscount: null,
+                customerScope: 'all',
+                restaurantScope: 'selected',
+                restaurantId: customIdMap.get(String(c.restaurantId)) || String(c.restaurantId),
+                restaurantName: c.restaurantName || 'Selected Restaurant',
+                restaurantSlug: undefined,
+                restaurantImage: null,
+                deliveryTime: null,
+                restaurantRating: 0,
+                endDate: c.expiryDate || null,
+                showInCart: true,
+                minOrderValue: c.minOrderAmount ?? 0,
+                usageLimit: c.usageLimit ?? null,
+                usedCount: c.usedCount ?? 0
+            };
+        });
+    } catch (err) {
+        console.error("Error fetching restaurant coupons in listPublicOffers:", err);
+    }
+
+    return { allOffers: [...allOffers, ...restaurantCouponsMapped], groupedByOffer: {} };
 };
 
 /**
@@ -1649,49 +1713,41 @@ export const deleteRestaurantAccount = async (restaurantId) => {
         throw new ValidationError('Invalid restaurant id');
     }
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-        const restaurant = await FoodRestaurant.findById(restaurantId).session(session);
-        if (!restaurant) {
-            throw new ValidationError('Restaurant not found');
-        }
-
-        const restaurantName = restaurant.restaurantName;
-
-        // Delete associated data
-        await FoodRestaurantOutletTimings.deleteMany({ restaurantId }).session(session);
-        // Note: You might want to delete foods, categories, etc. as well depending on business rules.
-        // For now, we'll stick to the core profile and timings.
-        
-        await FoodRestaurant.findByIdAndDelete(restaurantId).session(session);
-
-        await session.commitTransaction();
-
-        // Notify admins about the deletion
-        try {
-            const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
-            void notifyAdminsSafely({
-                title: 'Restaurant Account Deleted 🗑️',
-                body: `The restaurant "${restaurantName}" has deleted its account.`,
-                data: {
-                    type: 'account_deleted',
-                    subType: 'restaurant',
-                    id: String(restaurantId)
-                }
-            });
-        } catch (e) {
-            console.error('Failed to notify admins of restaurant account deletion:', e);
-        }
-
-        return { success: true, message: 'Account deleted successfully' };
-    } catch (error) {
-        await session.abortTransaction();
-        throw error;
-    } finally {
-        session.endSession();
+    const restaurant = await FoodRestaurant.findById(restaurantId);
+    if (!restaurant) {
+        throw new ValidationError('Restaurant not found');
     }
+
+    const restaurantName = restaurant.restaurantName;
+
+    // Soft delete profile details
+    restaurant.isDeleted = true;
+    restaurant.accountStatus = 'deleted';
+    restaurant.isActive = false;
+    restaurant.isAcceptingOrders = false;
+    await restaurant.save();
+
+    // Purge/invalidate all active refresh tokens for this restaurant
+    const { FoodRefreshToken } = await import('../../../../core/refreshTokens/refreshToken.model.js');
+    await FoodRefreshToken.deleteMany({ userId: restaurantId });
+
+    // Notify admins about the deletion
+    try {
+        const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
+        void notifyAdminsSafely({
+            title: 'Restaurant Account Deleted 🗑️',
+            body: `The restaurant "${restaurantName}" has soft deleted its account.`,
+            data: {
+                type: 'account_deleted',
+                subType: 'restaurant',
+                id: String(restaurantId)
+            }
+        });
+    } catch (e) {
+        console.error('Failed to notify admins of restaurant account deletion:', e);
+    }
+
+    return { success: true, message: 'Account soft deleted successfully' };
 };
 
 /**
@@ -1700,5 +1756,106 @@ export const deleteRestaurantAccount = async (restaurantId) => {
 export const getRestaurantComplaints = async (restaurantId, query = {}) => {
     const { getRestaurantComplaints: getComplaintsInternal } = await import('../../admin/services/admin.service.js');
     return getComplaintsInternal({ ...query, restaurantId });
+};
+
+/**
+ * Get COD deposit verification requests for a Zone Hub restaurant.
+ */
+export const getRestaurantCODDeposits = async (restaurantId, query = {}) => {
+    const limit = parseInt(query.limit, 10) || 20;
+    const page = parseInt(query.page, 10) || 1;
+    const skip = (page - 1) * limit;
+
+    const { FoodDeliveryCashDeposit } = await import('../../delivery/models/foodDeliveryCashDeposit.model.js');
+
+    const filter = {
+        zoneHubRestaurantId: new mongoose.Types.ObjectId(restaurantId),
+        depositType: 'zone_hub'
+    };
+
+    if (query.status) {
+        filter.status = query.status;
+    }
+
+    const [requests, total] = await Promise.all([
+        FoodDeliveryCashDeposit.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate('deliveryPartnerId', 'name phone profilePartnerId')
+            .lean(),
+        FoodDeliveryCashDeposit.countDocuments(filter)
+    ]);
+
+    const formattedRequests = requests.map((r) => ({
+        id: r._id,
+        createdAt: r.createdAt,
+        deliveryId: r.deliveryPartnerId?._id || '',
+        deliveryName: r.deliveryPartnerId?.name || 'N/A',
+        deliveryPhone: r.deliveryPartnerId?.phone || 'N/A',
+        amount: Number(r.amount || 0),
+        paymentMethod: r.paymentMethod,
+        depositType: r.depositType,
+        paymentProof: r.paymentProof || '',
+        status: r.status,
+        restaurantProof: r.restaurantProof || '',
+        restaurantNote: r.restaurantNote || '',
+        restaurantProcessedAt: r.restaurantProcessedAt || null
+    }));
+
+    return {
+        requests: formattedRequests,
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit) || 1
+        }
+    };
+};
+
+/**
+ * Accept or Reject a COD deposit request as a Zone Hub restaurant.
+ */
+export const processRestaurantCODDeposit = async (restaurantId, depositId, { action, restaurantNote }, file) => {
+    if (!depositId || !mongoose.Types.ObjectId.isValid(depositId)) {
+        throw new ValidationError('Invalid request ID');
+    }
+
+    const { FoodDeliveryCashDeposit } = await import('../../delivery/models/foodDeliveryCashDeposit.model.js');
+
+    const deposit = await FoodDeliveryCashDeposit.findOne({
+        _id: depositId,
+        zoneHubRestaurantId: new mongoose.Types.ObjectId(restaurantId)
+    });
+
+    if (!deposit) {
+        throw new ValidationError('COD deposit request not found');
+    }
+
+    if (deposit.status !== 'Pending') {
+        throw new ValidationError(`Request has already been processed with status: ${deposit.status}`);
+    }
+
+    if (action === 'accept') {
+        let restaurantProofUrl = '';
+        if (file?.buffer) {
+            restaurantProofUrl = await uploadImageBuffer(file.buffer, 'food/restaurants/cod-deposits');
+        }
+        
+        deposit.status = 'Restaurant_Accepted';
+        deposit.restaurantProof = restaurantProofUrl;
+        deposit.restaurantNote = restaurantNote || '';
+        deposit.restaurantProcessedAt = new Date();
+    } else if (action === 'reject') {
+        deposit.status = 'Restaurant_Rejected';
+        deposit.restaurantNote = restaurantNote || '';
+        deposit.restaurantProcessedAt = new Date();
+    } else {
+        throw new ValidationError('Invalid action. Must be accept or reject');
+    }
+
+    await deposit.save();
+    return deposit.toObject();
 };
 

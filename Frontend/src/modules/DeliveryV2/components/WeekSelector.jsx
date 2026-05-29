@@ -1,5 +1,8 @@
 import React from "react";
 import { addDays, startOfWeek, endOfWeek } from "date-fns";
+
+// Hoisted formatter — created once at module load, never recreated per call
+const weekDayFormatter = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" });
 import { cn } from "@food/utils/utils";
 import { Button } from "@food/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@food/components/ui/popover";
@@ -51,10 +54,7 @@ export default function WeekSelector({ weekStartsOn = 0, onChange, className }) 
     if (onChange) onChange(r);
   };
 
-  const fmt = (d) =>
-    new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" })
-      .format(d)
-      .replace(" ", " ");
+  const fmt = (d) => weekDayFormatter.format(d).replace(" ", " ");
 
   return (
     <div className={cn("w-full", className)}>

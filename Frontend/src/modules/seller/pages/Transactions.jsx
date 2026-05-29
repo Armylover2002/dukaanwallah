@@ -147,7 +147,7 @@ const Transactions = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2 flex-wrap">
               Transaction Ledger
               <Badge
                 variant="primary"
@@ -193,17 +193,18 @@ const Transactions = () => {
                   setIsDownloading(false);
                 }
               }}
-              className="rounded-lg px-4 py-2 shadow-lg shadow-primary/20 disabled:opacity-50"
+              className="rounded-lg px-3 py-2 sm:px-4 text-xs sm:text-sm shadow-lg shadow-primary/20 disabled:opacity-50"
               disabled={isDownloading || filteredTransactions.length === 0}>
-              <HiOutlineDocumentText className="h-4 w-4 mr-2" />
-              {isDownloading ? "DOWNLOADING..." : "DOWNLOAD STATEMENTS"}
+              <HiOutlineDocumentText className="h-4 w-4 mr-1.5" />
+              <span className="hidden sm:inline">{isDownloading ? "DOWNLOADING..." : "DOWNLOAD STATEMENTS"}</span>
+              <span className="sm:hidden">{isDownloading ? "..." : "Export"}</span>
             </Button>
           </div>
         </div>
       </BlurFade>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
         {stats.map((stat, i) => (
           <BlurFade key={i} delay={0.1 + i * 0.05}>
             <MagicCard
@@ -235,23 +236,25 @@ const Transactions = () => {
       <BlurFade delay={0.4}>
         <Card className="border-none shadow-xl shadow-slate-200/50 overflow-hidden rounded-lg p-0 bg-white">
           {/* Toolbar */}
-          <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row gap-4 items-center justify-between bg-white">
-            <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
-              {["All", "Order Payment", "Withdrawal", "Refund"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
-                    activeTab === tab
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-600 hover:text-slate-700",
-                  )}>
-                  {tab === "Order Payment" ? "Payments" : tab}
-                </button>
-              ))}
+          <div className="p-4 sm:p-6 border-b border-slate-50 flex flex-col gap-3 bg-white">
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0 min-w-max">
+                {["All", "Order Payment", "Withdrawal", "Refund"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={cn(
+                      "px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                      activeTab === tab
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-600 hover:text-slate-700",
+                    )}>
+                    {tab === "Order Payment" ? "Payments" : tab}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="relative w-full md:w-80">
+            <div className="relative w-full">
               <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
               <Input
                 placeholder="Search by customer..."

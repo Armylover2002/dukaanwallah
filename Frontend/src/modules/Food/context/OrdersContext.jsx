@@ -69,7 +69,7 @@ export function OrdersProvider({ children }) {
   }, [orders])
 
   const getAllOrders = useCallback(() => {
-    return [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    return orders.toSorted((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [orders])
 
   const updateOrderStatus = useCallback((orderId, status) => {

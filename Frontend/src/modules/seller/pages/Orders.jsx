@@ -115,6 +115,12 @@ const Orders = () => {
               ...(payload?.deliveryState
                 ? { deliveryState: payload.deliveryState }
                 : {}),
+              ...(payload?.dispatchStatus
+                ? { dispatchStatus: payload.dispatchStatus }
+                : {}),
+              ...(payload?.deliveryPartner !== undefined
+                ? { deliveryPartner: payload.deliveryPartner }
+                : {}),
             };
             return {
               ...updatedOrder,
@@ -141,6 +147,12 @@ const Orders = () => {
           ...(payload?.deliveredAt ? { deliveredAt: payload.deliveredAt } : {}),
           ...(payload?.deliveryState
             ? { deliveryState: payload.deliveryState }
+            : {}),
+          ...(payload?.dispatchStatus
+            ? { dispatchStatus: payload.dispatchStatus }
+            : {}),
+          ...(payload?.deliveryPartner !== undefined
+            ? { deliveryPartner: payload.deliveryPartner }
             : {}),
         };
         return {
@@ -785,7 +797,7 @@ const Orders = () => {
                               </div>
                               <p className="text-[11px] font-bold mt-2 text-slate-600">
                                 {order.deliveryPartner
-                                  ? `${order.dispatchStatus === "accepted" ? "Rider accepted" : "Rider notified"}: ${order.deliveryPartner.name}`
+                                  ? `${order.dispatchStatus === "accepted" ? "Rider accepted" : "Rider notified"}: ${order.deliveryPartner.name} ${order.deliveryPartner.phone === "Hidden until photo upload" ? "(🔒 Phone Hidden)" : ""}`
                                   : order.dispatchStatus === "assigned"
                                     ? "Closest rider notified, waiting for acceptance"
                                     : "No rider accepted yet"}
@@ -890,9 +902,6 @@ const Orders = () => {
                                   <p className="text-xs font-bold text-slate-900">
                                     {order.customer.name}
                                   </p>
-                                  <p className="text-xs font-semibold text-slate-600">
-                                    {order.customer.phone}
-                                  </p>
                                 </div>
                               </div>
                             </td>
@@ -903,10 +912,12 @@ const Orders = () => {
                                     {order.deliveryPartner.name}
                                   </span>
                                   <span className="text-xs font-semibold text-slate-600">
-                                    {order.deliveryPartner.phone ||
-                                      (order.dispatchStatus === "accepted"
-                                        ? "Accepted"
-                                        : "Notified")}
+                                    {order.deliveryPartner.phone === "Hidden until photo upload"
+                                      ? "🔒 Phone Hidden"
+                                      : (order.deliveryPartner.phone ||
+                                        (order.dispatchStatus === "accepted"
+                                          ? "Accepted"
+                                          : "Notified"))}
                                   </span>
                                 </div>
                               ) : (
@@ -1020,12 +1031,16 @@ const Orders = () => {
                 <div className="flex gap-1 justify-center sm:justify-end">
                   <button
                     className="p-1.5 rounded-lg border border-slate-200 text-slate-600 opacity-50 cursor-not-allowed"
-                    aria-hidden>
+                    aria-hidden="true"
+                    disabled
+                    tabIndex={-1}>
                     <HiOutlineChevronRight className="h-3.5 w-3.5 rotate-180" />
                   </button>
                   <button
                     className="p-1.5 rounded-lg border border-slate-200 text-slate-600 opacity-50 cursor-not-allowed"
-                    aria-hidden>
+                    aria-hidden="true"
+                    disabled
+                    tabIndex={-1}>
                     <HiOutlineChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -1229,14 +1244,11 @@ const Orders = () => {
                         <div>
                           <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-2">
                             <HiOutlinePhone className="h-3 w-3 text-emerald-500" />{" "}
-                            Contact Info
+                            Customer Info
                           </h4>
                           <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
                             <p className="text-xs font-bold text-slate-800">
                               {selectedOrder.customer.name}
-                            </p>
-                            <p className="text-xs font-semibold text-slate-600 mt-0.5">
-                              {selectedOrder.customer.phone}
                             </p>
                           </div>
                         </div>
@@ -1251,12 +1263,29 @@ const Orders = () => {
                                 <p className="text-xs font-bold text-slate-800">
                                   {selectedOrder.deliveryPartner.name}
                                 </p>
-                                <p className="text-xs font-semibold text-slate-600 mt-0.5">
-                                  {selectedOrder.deliveryPartner.phone ||
-                                    (selectedOrder.dispatchStatus === "accepted"
-                                      ? "Accepted rider"
-                                      : "Notified rider")}
-                                </p>
+                                {selectedOrder.deliveryPartner.phone === "Hidden until photo upload" ? (
+                                  <div className="mt-2 p-2 bg-amber-50 border border-amber-200/50 rounded-xl flex flex-col gap-1 text-[10px] text-amber-800 font-medium">
+                                    <span className="font-bold flex items-center gap-1">🔒 Phone Hidden</span>
+                                    <span>Rider phone will be visible once they arrive at your shop and upload the photo.</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-xs font-semibold text-slate-700">
+                                      {selectedOrder.deliveryPartner.phone ||
+                                        (selectedOrder.dispatchStatus === "accepted"
+                                          ? "Accepted rider"
+                                          : "Notified rider")}
+                                    </p>
+                                    {selectedOrder.deliveryPartner.phone && (
+                                      <a
+                                        href={`tel:${selectedOrder.deliveryPartner.phone}`}
+                                        className="text-xs text-primary hover:underline font-bold flex items-center gap-0.5 ml-1"
+                                      >
+                                        Call Rider
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
                                 {selectedOrder.deliveryPartner.vehicleType && (
                                   <p className="text-[11px] font-semibold text-slate-500 mt-1">
                                     {selectedOrder.deliveryPartner.vehicleType}{" "}

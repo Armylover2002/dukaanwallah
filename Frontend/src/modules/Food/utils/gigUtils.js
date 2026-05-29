@@ -113,7 +113,7 @@ export const getTimeRangeString = (slots) => {
   if (slots.length === 0) return ''
   
   // Sort slots by start time
-  const sorted = [...slots].sort((a, b) => a.startTime.localeCompare(b.startTime))
+  const sorted = slots.toSorted((a, b) => a.startTime.localeCompare(b.startTime))
   const first = sorted[0]
   const last = sorted[sorted.length - 1]
   
@@ -187,7 +187,7 @@ export const getGigStatusColor = (status) => {
  * Sort gigs by date (most recent first)
  */
 export const sortGigsByDate = (gigs) => {
-  return [...gigs].sort((a, b) => {
+  return gigs.toSorted((a, b) => {
     const dateA = new Date(a.date)
     const dateB = new Date(b.date)
     return dateB - dateA
@@ -261,7 +261,7 @@ export const generatePayRate = (slot) => {
 export const getCategoryTimeRange = (category) => {
   if (category.slots.length === 0) return ''
   
-  const sorted = category.slots.sort((a, b) => a.startTime.localeCompare(b.startTime))
+  const sorted = category.slots.toSorted((a, b) => a.startTime.localeCompare(b.startTime))
   const first = sorted[0]
   const last = sorted[sorted.length - 1]
   

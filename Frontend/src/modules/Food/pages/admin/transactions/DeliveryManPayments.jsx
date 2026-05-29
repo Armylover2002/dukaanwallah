@@ -81,7 +81,7 @@ export default function DeliveryManPayments() {
         method: formData.method,
         reference: formData.reference || "N/A",
       }
-      setPayments([newPayment, ...payments])
+      setPayments(prev => [newPayment, ...prev])
       setIsSubmitting(false)
       setShowSuccessDialog(true)
       handleReset()

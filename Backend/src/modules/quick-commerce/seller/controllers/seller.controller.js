@@ -892,6 +892,13 @@ export const verifySellerOtpController = async (req, res) => {
         lastLogin: new Date(),
       });
     } else {
+      if (seller.isActive === false || seller.isDeleted === true || seller.accountStatus === 'deleted') {
+        return sendError(
+          res,
+          403,
+          "Your account has been deleted/deactivated. Please contact support."
+        );
+      }
       seller.isVerified = true;
       seller.lastLogin = new Date();
       await seller.save();
@@ -1661,8 +1668,26 @@ export const getSellerOrdersController = async (req, res) => {
       const receivable =
         num(item.pricing?.receivable) || Math.max(0, subtotal - commission);
 
+      let riderPhone = "";
+      if (acceptedPartner) {
+        const orderStatus = String(quickOrder?.orderStatus || "").toLowerCase();
+        const deliveryStatus = String(quickOrder?.deliveryState?.status || "").toLowerCase();
+        const reachedPickup =
+          deliveryStatus === "reached_pickup" ||
+          deliveryStatus === "picked_up" ||
+          ["picked_up", "reached_drop", "delivered"].includes(orderStatus);
+        const photoUploaded = !!quickOrder?.deliveryState?.billImageUrl;
+
+        riderPhone = (reachedPickup && photoUploaded)
+          ? (acceptedPartner.phone || "")
+          : "Hidden until photo upload";
+      }
+
       return {
         ...item,
+        customer: {
+          name: item.customer?.name || "Customer",
+        },
         pricing: {
           ...item.pricing,
           receivable,
@@ -1673,7 +1698,7 @@ export const getSellerOrdersController = async (req, res) => {
           ? {
               _id: acceptedPartner._id,
               name: acceptedPartner.name || "Delivery Partner",
-              phone: acceptedPartner.phone || "",
+              phone: riderPhone,
               vehicleType: acceptedPartner.vehicleType || "",
               vehicleNumber: acceptedPartner.vehicleNumber || "",
             }
@@ -2344,3 +2369,141 @@ export const getSellerStatsController = async (req, res) => {
     return sendError(res, 500, error.message || "Failed to load stats");
   }
 };
+
+export const listSellerCouponsController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const { listSellerCoupons } = await import("../services/sellerCoupon.service.js");
+    const coupons = await listSellerCoupons(sellerId);
+    return sendResponse(res, 200, "Coupons fetched successfully", coupons);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createSellerCouponController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const { createSellerCoupon } = await import("../services/sellerCoupon.service.js");
+    const coupon = await createSellerCoupon(sellerId, req.body || {});
+    return sendResponse(res, 201, "Coupon created and pending approval", coupon);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateSellerCouponController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const couponId = req.params.id;
+    const { updateSellerCoupon } = await import("../services/sellerCoupon.service.js");
+    const coupon = await updateSellerCoupon(sellerId, couponId, req.body || {});
+    return sendResponse(res, 200, "Coupon updated and pending approval", coupon);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteSellerCouponController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const couponId = req.params.id;
+    const { deleteSellerCoupon } = await import("../services/sellerCoupon.service.js");
+    const result = await deleteSellerCoupon(sellerId, couponId);
+    return sendResponse(res, 200, "Coupon deleted successfully", result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteSellerAccountController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const seller = await Seller.findById(sellerId);
+    if (!seller) {
+      return sendError(res, 404, "Seller profile not found");
+    }
+
+    // Soft delete
+    seller.isDeleted = true;
+    seller.accountStatus = "deleted";
+    seller.isActive = false;
+    await seller.save();
+
+    // Invalidate/delete all active refresh tokens for this seller
+    const { FoodRefreshToken } = await import("../../../../core/refreshTokens/refreshToken.model.js");
+    await FoodRefreshToken.deleteMany({ userId: sellerId });
+
+    return sendResponse(res, 200, "Seller account soft deleted successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSellerCODDepositsController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const { FoodDeliveryCashDeposit } = await import("../../../food/delivery/models/foodDeliveryCashDeposit.model.js");
+    
+    const deposits = await FoodDeliveryCashDeposit.find({ 
+      quickZoneHubSellerId: sellerId, 
+      depositType: 'quick_zone_hub' 
+    })
+    .populate('deliveryPartnerId', 'name phone')
+    .sort({ createdAt: -1 })
+    .lean();
+
+    return sendResponse(res, 200, "COD deposits fetched successfully", deposits);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const processSellerCODDepositController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const { id } = req.params;
+    const { action, sellerNote } = req.body;
+    const file = req.file;
+
+    const { FoodDeliveryCashDeposit } = await import("../../../food/delivery/models/foodDeliveryCashDeposit.model.js");
+
+    const deposit = await FoodDeliveryCashDeposit.findOne({ 
+      _id: id, 
+      quickZoneHubSellerId: sellerId 
+    });
+
+    if (!deposit) {
+      return sendError(res, 404, "COD deposit request not found");
+    }
+
+    if (deposit.status !== 'Pending') {
+      return sendError(res, 400, `Request has already been processed with status: ${deposit.status}`);
+    }
+
+    if (action === 'accept') {
+      if (!file?.buffer) {
+        return sendError(res, 400, "Confirmation proof receipt image is required");
+      }
+      const proofUrl = await uploadImageBuffer(file.buffer, 'quick/sellers/cod-deposits');
+      deposit.status = 'Seller_Accepted';
+      deposit.sellerProof = proofUrl;
+      deposit.sellerNote = sellerNote || '';
+      deposit.sellerProcessedAt = new Date();
+      await deposit.save();
+      return sendResponse(res, 200, "COD deposit accepted successfully", deposit);
+    } else if (action === 'reject') {
+      deposit.status = 'Seller_Rejected';
+      deposit.sellerNote = sellerNote || 'Rejected by seller';
+      deposit.sellerProcessedAt = new Date();
+      await deposit.save();
+      return sendResponse(res, 200, "COD deposit rejected successfully", deposit);
+    } else {
+      return sendError(res, 400, "Invalid action, must be 'accept' or 'reject'");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+
