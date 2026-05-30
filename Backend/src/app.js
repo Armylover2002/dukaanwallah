@@ -10,7 +10,7 @@ import { apiRateLimiter } from './middleware/rateLimit.js';
 import { responseTimeLogger } from './middleware/responseTimeLogger.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { healthCheck } from './config/health.js';
-import { config } from './config/env.js';
+import { config, env } from './config/env.js';
 
 const app = express();
 
@@ -19,6 +19,48 @@ app.set('trust proxy', 1);
 
 // Request ID tracing (before other middlewares so all logs can use it)
 app.use(requestIdMiddleware);
+
+// CORS configuration (MUST be placed before helmet and other middlewares to handle preflight OPTIONS requests)
+const allowedOrigins = [
+    'https://dukaanwallah.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000'
+];
+
+if (config.corsOrigin && config.corsOrigin !== '*') allowedOrigins.push(config.corsOrigin);
+if (env.corsOrigin && env.corsOrigin !== '*') allowedOrigins.push(env.corsOrigin);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, postman)
+        if (!origin) return callback(null, true);
+        
+        const isAllowed = allowedOrigins.includes(origin) || 
+                          origin.startsWith('http://localhost:') || 
+                          origin.startsWith('http://127.0.0.1:') ||
+                          /\.vercel\.app$/.test(origin);
+                          
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'x-context-module',
+        'x-request-id',
+        'X-Requested-With',
+        'Accept',
+        'Origin'
+    ],
+    optionsSuccessStatus: 200
+}));
 
 // Health endpoints (no rate limit, minimal JSON, no secrets)
 app.get('/health', async (_req, res) => {
@@ -41,7 +83,6 @@ app.use(helmet({
     noSniff: true,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
-app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json({
     limit: config.requestBodyLimit,
