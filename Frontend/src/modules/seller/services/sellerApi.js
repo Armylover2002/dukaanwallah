@@ -118,6 +118,14 @@ export const sellerApi = {
         headers: { "Content-Type": "multipart/form-data" },
       }),
     ),
+
+  // Product catalog browser — lists other sellers' products (no seller info)
+  browseProductCatalog: (params = {}) =>
+    call(axiosInstance.get("/seller/catalog/browse", { params })),
+
+  // Lookup a product by its SKU/Product ID for auto-fill
+  lookupProductBySku: (sku) =>
+    call(axiosInstance.get("/seller/catalog/lookup", { params: { sku } })),
 };
 
 export default sellerApi;

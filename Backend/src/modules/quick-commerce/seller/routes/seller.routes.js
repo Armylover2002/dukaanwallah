@@ -34,6 +34,8 @@ import {
   deleteSellerAccountController,
   getSellerCODDepositsController,
   processSellerCODDepositController,
+  browseSellerCatalogController,
+  lookupProductBySkuController,
 } from "../controllers/seller.controller.js";
 
 const router = express.Router();
@@ -54,6 +56,10 @@ router.get("/categories/tree", ...sellerOnly, getSellerCategoryTreeController);
 
 router.get("/products", ...sellerOnly, getSellerProductsController);
 router.get("/products/:productId", ...sellerOnly, getSellerProductByIdController);
+
+// Catalog browsing & SKU lookup (read-only, no seller info exposed)
+router.get("/catalog/browse", ...sellerOnly, browseSellerCatalogController);
+router.get("/catalog/lookup", ...sellerOnly, lookupProductBySkuController);
 router.post("/products", ...sellerOnly, productUpload, createSellerProductController);
 router.put(
   "/products/:productId",

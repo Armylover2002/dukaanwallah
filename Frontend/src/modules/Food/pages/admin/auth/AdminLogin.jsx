@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@food/components/ui/select"
 import { z } from "zod"
-import { toast } from "react-hot-toast"
+import { toast } from "sonner"
 
 const emailLoginSchema = z.object({
   email: z.string()

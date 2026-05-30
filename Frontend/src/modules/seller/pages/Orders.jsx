@@ -72,6 +72,17 @@ const Orders = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isQuickViewModalOpen, setIsQuickViewModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [cancelReasonPreset, setCancelReasonPreset] = useState("Out of stock");
+  const [cancelReason, setCancelReason] = useState("");
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+
+  const canCancelOrder = (order) => {
+    if (!order) return false;
+    const sellerStatus = String(order.status || "").toLowerCase();
+    return ["pending", "confirmed", "packed", "ready_for_pickup"].includes(sellerStatus);
+  };
   const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -982,10 +993,10 @@ const Orders = () => {
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleStatusUpdate(
-                                          order.id,
-                                          "Cancelled",
-                                        );
+                                        setCancellingOrder(order);
+                                        setCancelReasonPreset("Out of stock");
+                                        setCancelReason("");
+                                        setIsCancelModalOpen(true);
                                       }}
                                       className="p-1.5 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
                                       <HiOutlineXMark className="h-4 w-4" />
@@ -1390,6 +1401,18 @@ const Orders = () => {
                   {/* Modal Footer */}
                   <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row gap-3 sm:gap-0 sm:items-center justify-end">
                     <div className="flex gap-2 items-center">
+                      {canCancelOrder(selectedOrder) && (
+                        <button
+                          onClick={() => {
+                            setCancellingOrder(selectedOrder);
+                            setCancelReasonPreset("Out of stock");
+                            setCancelReason("");
+                            setIsCancelModalOpen(true);
+                          }}
+                          className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all">
+                          Cancel Order
+                        </button>
+                      )}
                       {canResendDispatch(selectedOrder) && (
                         <button
                           onClick={() => handleResendDispatch(selectedOrder.id)}
@@ -1410,6 +1433,116 @@ const Orders = () => {
           </AnimatePresence>
         </>
       )}
+
+      {/* ── Cancel Order Modal ────────────────────────────────────────── */}
+      <AnimatePresence>
+        {isCancelModalOpen && cancellingOrder && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => setIsCancelModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-md relative z-10 bg-white rounded-3xl shadow-2xl p-6 overflow-hidden flex flex-col"
+            >
+              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                <span className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
+                  <HiOutlineXMark className="h-5 w-5" />
+                </span>
+                Cancel Order #{cancellingOrder.id}
+              </h3>
+              <p className="text-xs text-slate-600 font-medium mt-2 leading-relaxed">
+                Please select a reason for cancelling this order. This reason will be shared with the customer and recorded in the system.
+              </p>
+
+              {/* Presets */}
+              <div className="mt-4 space-y-2">
+                {[
+                  "Out of stock",
+                  "Shop closed / busy",
+                  "Incorrect item pricing or weight",
+                  "Unable to fulfill due to delivery issues",
+                  "Other"
+                ].map((reason) => (
+                  <label
+                    key={reason}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-2xl border text-xs font-bold cursor-pointer transition-all hover:bg-slate-50",
+                      cancelReasonPreset === reason
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-slate-100 text-slate-700 bg-white"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="cancelPreset"
+                      checked={cancelReasonPreset === reason}
+                      onChange={() => setCancelReasonPreset(reason)}
+                      className="accent-primary h-4 w-4"
+                    />
+                    {reason}
+                  </label>
+                ))}
+              </div>
+
+              {/* Custom Textarea */}
+              {cancelReasonPreset === "Other" && (
+                <div className="mt-4">
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Describe your reason in detail..."
+                    rows={3}
+                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-primary/5 outline-none transition-all resize-none"
+                  />
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="mt-6 flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsCancelModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all"
+                >
+                  DISMISS
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const finalReason = cancelReasonPreset === "Other" ? cancelReason.trim() : cancelReasonPreset;
+                    if (!finalReason) {
+                      showToast("Please provide a reason", "error");
+                      return;
+                    }
+                    try {
+                      await sellerApi.updateOrderStatus(cancellingOrder.id, {
+                        status: "cancelled",
+                        reason: finalReason
+                      });
+                      showToast(`Order #${cancellingOrder.id} has been cancelled`, "success");
+                      setIsCancelModalOpen(false);
+                      setIsDetailsModalOpen(false);
+                      fetchOrders(page, false);
+                    } catch (error) {
+                      showToast(error.response?.data?.message || "Failed to cancel order", "error");
+                    }
+                  }}
+                  className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-rose-600 hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/10 active:scale-95"
+                >
+                  CONFIRM CANCELLATION
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

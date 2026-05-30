@@ -612,6 +612,25 @@ const reconcileSellerDeliveredOrders = async (sellerId) => {
 const parseProductPayload = (req, existingProduct = null) => {
   const mainUpload = arr(req.files?.mainImage)[0];
   const galleryUploads = arr(req.files?.galleryImages);
+  
+  let bodyGallery = [];
+  if (req.body?.galleryImages) {
+    if (Array.isArray(req.body.galleryImages)) {
+      bodyGallery = req.body.galleryImages.map(img => String(img || "").trim()).filter(Boolean);
+    } else if (typeof req.body.galleryImages === "string") {
+      try {
+        const parsed = JSON.parse(req.body.galleryImages);
+        if (Array.isArray(parsed)) {
+          bodyGallery = parsed.map(img => String(img || "").trim()).filter(Boolean);
+        } else if (parsed && typeof parsed === "string") {
+          bodyGallery = parsed.split(",").map(img => img.trim()).filter(Boolean);
+        }
+      } catch {
+        bodyGallery = req.body.galleryImages.split(",").map(img => img.trim()).filter(Boolean);
+      }
+    }
+  }
+
   const variants = parseVariants(req.body?.variants, {
     price: req.body?.price,
     salePrice: req.body?.salePrice,
@@ -667,6 +686,8 @@ const parseProductPayload = (req, existingProduct = null) => {
     galleryImages:
       galleryUploads.length > 0
         ? galleryUploads.map(toDataUrl).filter(Boolean)
+        : bodyGallery.length > 0
+        ? bodyGallery
         : arr(existingProduct?.galleryImages),
     mrp: num(
       req.body?.mrp,
@@ -982,6 +1003,85 @@ export const getSellerProductByIdController = async (req, res) => {
   }
 };
 
+// ── NEW: Browse catalog of other sellers' products (no seller info exposed) ─────
+export const browseSellerCatalogController = async (req, res) => {
+  try {
+    const sellerId = sellerScope(req);
+    const page = Math.max(1, num(req.query?.page, 1));
+    const limit = Math.max(1, Math.min(50, num(req.query?.limit, 20)));
+    const skip = (page - 1) * limit;
+    const searchTerm = str(req.query?.search);
+
+    const query = { sellerId: { $ne: sellerId } };
+    if (searchTerm) {
+      query.$or = [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { sku: { $regex: searchTerm, $options: 'i' } },
+        { brand: { $regex: searchTerm, $options: 'i' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      populateProductQuery(
+        SellerProduct.find(query)
+          .select('name slug sku description price salePrice brand weight tags mainImage galleryImages headerId categoryId subcategoryId variants status')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit),
+      ).lean(),
+      SellerProduct.countDocuments(query),
+    ]);
+
+    // Strip sellerId from output for safety
+    const safeItems = items.map(({ sellerId: _sid, ...rest }) => ({ ...rest, id: rest._id }));
+
+    return res.json({
+      success: true,
+      result: {
+        items: safeItems,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
+  } catch (error) {
+    return sendError(res, 500, error.message || 'Failed to browse catalog');
+  }
+};
+
+// ── NEW: Lookup a product by SKU for auto-fill (excludes own products) ──────────
+export const lookupProductBySkuController = async (req, res) => {
+  try {
+    const sellerId = sellerScope(req);
+    const sku = str(req.query?.sku);
+
+    if (!sku) {
+      return sendError(res, 400, 'SKU is required');
+    }
+
+    const product = await populateProductQuery(
+      SellerProduct.findOne({ sku })
+        .select('name slug sku description price salePrice brand weight tags mainImage galleryImages headerId categoryId subcategoryId variants status'),
+    ).lean();
+
+    if (!product) {
+      return sendError(res, 404, 'Product ID not found');
+    }
+
+    // Block seller from importing their own product via SKU
+    if (String(product.sellerId) === String(sellerId)) {
+      return sendError(res, 403, 'This Product ID belongs to your own store');
+    }
+
+    // Strip seller identity before returning
+    const { sellerId: _sid, ...safeProduct } = product;
+    return res.json({ success: true, result: { ...safeProduct, id: safeProduct._id } });
+  } catch (error) {
+    return sendError(res, 500, error.message || 'Failed to lookup product');
+  }
+};
+
 export const createSellerProductController = async (req, res) => {
   try {
     const sellerId = sellerScope(req);
@@ -1009,7 +1109,14 @@ export const createSellerProductController = async (req, res) => {
       .json({ success: true, result: serializeProduct(populated) });
   } catch (error) {
     if (error?.code === 11000) {
-      return sendError(res, 400, "Product slug or SKU already exists");
+      const keys = error.keyPattern ? Object.keys(error.keyPattern) : [];
+      if (keys.includes("slug")) {
+        return sendError(res, 400, "Product slug already exists in your store");
+      }
+      if (keys.includes("sku")) {
+        return sendError(res, 400, "SKU already exists in your store");
+      }
+      return sendError(res, 400, "Product slug or SKU already exists in your store");
     }
     return sendError(res, 500, error.message || "Failed to create product");
   }
@@ -1047,7 +1154,14 @@ export const updateSellerProductController = async (req, res) => {
     return res.json({ success: true, result: serializeProduct(populated) });
   } catch (error) {
     if (error?.code === 11000) {
-      return sendError(res, 400, "Product slug or SKU already exists");
+      const keys = error.keyPattern ? Object.keys(error.keyPattern) : [];
+      if (keys.includes("slug")) {
+        return sendError(res, 400, "Product slug already exists in your store");
+      }
+      if (keys.includes("sku")) {
+        return sendError(res, 400, "SKU already exists in your store");
+      }
+      return sendError(res, 400, "Product slug or SKU already exists in your store");
     }
     return sendError(res, 500, error.message || "Failed to update product");
   }
@@ -1728,6 +1842,7 @@ export const updateSellerOrderStatusController = async (req, res) => {
       req.body?.status || req.body?.orderStatus,
     ).toLowerCase();
     const orderId = req.params.orderId;
+    const reason = str(req.body?.reason || req.body?.cancellationReason);
 
     if (!nextStatus) {
       return sendError(res, 400, "Status is required");
@@ -1748,6 +1863,7 @@ export const updateSellerOrderStatusController = async (req, res) => {
       orderId,
       sellerId,
       nextStatus,
+      reason,
     );
     return sendResponse(res, 200, "Order status updated", result);
   } catch (error) {

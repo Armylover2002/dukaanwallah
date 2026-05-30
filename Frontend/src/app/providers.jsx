@@ -1,5 +1,6 @@
 import { BrowserRouter, HashRouter } from 'react-router-dom'
 import { Toaster } from 'sonner'
+import { Toaster as HotToaster } from 'react-hot-toast'
 import { StrictMode } from 'react'
 import { Provider as ReduxProvider } from 'react-redux'
 import { store } from './store'
@@ -41,6 +42,7 @@ export function AppProviders({ children }) {
                 <Router>
                   {children}
                   <Toaster position="top-center" richColors offset="80px" />
+                  <HotToaster position="top-center" reverseOrder={false} />
                 </Router>
               </ReduxProvider>
             </ToastProvider>

@@ -22,6 +22,11 @@ import {
   HiOutlineFolderOpen,
   HiOutlineSwatch,
   HiOutlineSquaresPlus,
+  HiOutlineQrCode,
+  HiOutlineClipboardDocument,
+  HiOutlineClipboardDocumentCheck,
+  HiOutlineChevronLeft,
+  HiOutlineInformationCircle,
 } from "react-icons/hi2";
 import Modal from "@shared/components/ui/Modal";
 import { cn } from "@/lib/utils";
@@ -115,9 +120,69 @@ const ProductManagement = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [modalTab, setModalTab] = useState("general");
 
+  // ── Product IDs catalog browser state ────────────────────────────────────
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [catalogProducts, setCatalogProducts] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogTotal, setCatalogTotal] = useState(0);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogSearchInput, setCatalogSearchInput] = useState("");
+  const [viewingCatalogProduct, setViewingCatalogProduct] = useState(null);
+  const [copiedSku, setCopiedSku] = useState(false);
+  const catalogSearchRef = useRef(null);
+
+  // ── Fetch catalog products whenever drawer opens or search/page changes ──
+  useEffect(() => {
+    if (!isCatalogOpen) return;
+    let cancelled = false;
+    const fetchCatalog = async () => {
+      setCatalogLoading(true);
+      try {
+        const res = await sellerApi.browseProductCatalog({ page: catalogPage, limit: 20, search: catalogSearch });
+        if (!cancelled && res.data.success) {
+          const payload = res.data.result || {};
+          setCatalogProducts(Array.isArray(payload.items) ? payload.items : []);
+          setCatalogTotal(typeof payload.total === 'number' ? payload.total : 0);
+        }
+      } catch (_) {
+        if (!cancelled) setCatalogProducts([]);
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    };
+    fetchCatalog();
+    return () => { cancelled = true; };
+  }, [isCatalogOpen, catalogPage, catalogSearch]);
+
+  // Debounce search input to update catalogSearch automatically
+  useEffect(() => {
+    if (!isCatalogOpen) return;
+    const handler = setTimeout(() => {
+      setCatalogPage(1);
+      setCatalogSearch(catalogSearchInput.trim());
+    }, 400);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [catalogSearchInput, isCatalogOpen]);
+
+  const handleCatalogSearch = () => {
+    setCatalogPage(1);
+    setCatalogSearch(catalogSearchInput.trim());
+  };
+
+  const handleCopySku = (sku) => {
+    navigator.clipboard.writeText(sku).then(() => {
+      setCopiedSku(true);
+      setTimeout(() => setCopiedSku(false), 2000);
+    });
+  };
+
   // Lock body scroll when any modal is open
   useEffect(() => {
-    const anyOpen = isProductModalOpen || isDeleteModalOpen || isVariantsViewModalOpen;
+    const anyOpen = isProductModalOpen || isDeleteModalOpen || isVariantsViewModalOpen || isCatalogOpen || !!viewingCatalogProduct;
     if (anyOpen) {
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = "hidden";
@@ -130,7 +195,7 @@ const ProductManagement = () => {
       document.body.style.overflow = "";
       document.body.style.paddingRight = "";
     };
-  }, [isProductModalOpen, isDeleteModalOpen, isVariantsViewModalOpen]);
+  }, [isProductModalOpen, isDeleteModalOpen, isVariantsViewModalOpen, isCatalogOpen, viewingCatalogProduct]);
 
   // Close filter dropdown on outside click
   React.useEffect(() => {
@@ -254,9 +319,13 @@ const ProductManagement = () => {
 
       if (formData.mainImageFile) {
         data.append("mainImage", formData.mainImageFile);
+      } else if (formData.mainImage) {
+        data.append("mainImage", formData.mainImage);
       }
       if (formData.galleryFiles && formData.galleryFiles.length > 0) {
         formData.galleryFiles.forEach((file) => data.append("galleryImages", file));
+      } else if (formData.galleryImages && formData.galleryImages.length > 0) {
+        data.append("galleryImages", JSON.stringify(formData.galleryImages));
       }
 
       if (editingItem) {
@@ -401,13 +470,23 @@ const ProductManagement = () => {
               Track your items, prices, and how many are left in stock.
             </p>
           </div>
-          <ShimmerButton
-            onClick={() => navigate("/seller/products/add")}
-            className="px-6 py-2.5 rounded-lg text-xs font-bold shadow-xl flex items-center space-x-2 text-white"
-            background="#0f172a">
-            <HiOutlinePlus className="h-4 w-4 mr-2" />
-            <span>ADD NEW PRODUCT</span>
-          </ShimmerButton>
+          <div className="flex items-center gap-3">
+            {/* Product IDs browser button */}
+            <button
+              onClick={() => { setIsCatalogOpen(true); setCatalogPage(1); setCatalogSearch(""); setCatalogSearchInput(""); }}
+              className="px-5 py-2.5 rounded-lg text-xs font-bold border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-all flex items-center gap-2 shadow-sm"
+            >
+              <HiOutlineQrCode className="h-4 w-4" />
+              <span>PRODUCT IDs</span>
+            </button>
+            <ShimmerButton
+              onClick={() => navigate("/seller/products/add")}
+              className="px-6 py-2.5 rounded-lg text-xs font-bold shadow-xl flex items-center space-x-2 text-white"
+              background="#0f172a">
+              <HiOutlinePlus className="h-4 w-4 mr-2" />
+              <span>ADD NEW PRODUCT</span>
+            </ShimmerButton>
+          </div>
         </div>
       </BlurFade>
 
@@ -1407,6 +1486,315 @@ const ProductManagement = () => {
           </div>
         </div>
       </Modal>
+
+      {/* ── Product IDs Catalog Drawer ───────────────────────────────────── */}
+      <AnimatePresence>
+        {isCatalogOpen && (
+          <motion.div
+            key="catalog-overlay"
+            className="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsCatalogOpen(false)}
+          />
+        )}
+        {isCatalogOpen && (
+          <motion.div
+            key="catalog-drawer"
+            className="fixed right-0 top-0 h-full z-[9999] w-full max-w-2xl bg-white shadow-2xl flex flex-col"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 220 }}
+          >
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <HiOutlineQrCode className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold">Product ID Browser</h2>
+                  <p className="text-xs text-indigo-200 font-medium">{catalogTotal} products in catalog</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCatalogOpen(false)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <HiOutlineXMark className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Info Banner */}
+            <div className="flex items-start gap-2 px-6 py-3 bg-indigo-50 border-b border-indigo-100">
+              <HiOutlineInformationCircle className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+              <p className="text-[11px] font-medium text-indigo-700 leading-relaxed">
+                Browse products from the shared catalog. Click <strong>View</strong> to see details and copy the Product ID to auto-fill your new product form.
+              </p>
+            </div>
+
+            {/* Search Bar */}
+            <div className="px-6 py-3 border-b border-slate-100 flex gap-2">
+              <div className="relative flex-1">
+                <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  ref={catalogSearchRef}
+                  value={catalogSearchInput}
+                  onChange={e => setCatalogSearchInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleCatalogSearch()}
+                  placeholder="Search by name, SKU, or brand…"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-300 transition-all"
+                />
+              </div>
+              <button
+                onClick={handleCatalogSearch}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors"
+              >
+                Search
+              </button>
+            </div>
+
+            {/* Product List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
+              {catalogLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <div className="h-8 w-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+                  <p className="text-xs font-semibold text-slate-500">Loading products…</p>
+                </div>
+              ) : catalogProducts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <HiOutlineFolderOpen className="h-10 w-10 text-slate-300" />
+                  <p className="text-sm font-bold text-slate-600">No products found</p>
+                  <p className="text-xs text-slate-400">Try a different search term</p>
+                </div>
+              ) : (
+                catalogProducts.map((product) => (
+                  <div key={product._id || product.id} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors">
+                    <div className="h-14 w-14 rounded-xl overflow-hidden bg-slate-100 ring-1 ring-slate-200 shrink-0">
+                      <img
+                        src={product.mainImage || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2"}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {product.brand && <span className="text-xs text-slate-500">{product.brand}</span>}
+                        <span className="text-xs font-bold text-slate-900">₹{product.salePrice || product.price}</span>
+                        <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">
+                          {product.sku || '—'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setViewingCatalogProduct(product)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50 transition-all shadow-sm"
+                    >
+                      <HiOutlineEye className="h-3.5 w-3.5" />
+                      View
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Pagination Footer */}
+            {catalogTotal > 20 && !catalogLoading && (
+              <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50">
+                <p className="text-xs font-medium text-slate-500">Page {catalogPage} of {Math.ceil(catalogTotal / 20)}</p>
+                <div className="flex gap-2">
+                  <button
+                    disabled={catalogPage === 1}
+                    onClick={() => setCatalogPage(p => Math.max(1, p - 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    <HiOutlineChevronLeft className="h-4 w-4 text-slate-600" />
+                  </button>
+                  <button
+                    disabled={catalogPage >= Math.ceil(catalogTotal / 20)}
+                    onClick={() => setCatalogPage(p => p + 1)}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    <HiOutlineChevronRight className="h-4 w-4 text-slate-600" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Catalog Product Detail Modal ──────────────────────────────────── */}
+      <AnimatePresence>
+        {viewingCatalogProduct && (
+          <motion.div
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setViewingCatalogProduct(null)} />
+            <motion.div
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              initial={{ scale: 0.92, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 20 }}
+              transition={{ type: "spring", damping: 24, stiffness: 200 }}
+            >
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-white/95 backdrop-blur z-10 flex items-center justify-between px-6 py-4 border-b border-slate-100 rounded-t-3xl">
+                <h3 className="text-sm font-bold text-slate-900">Product Details</h3>
+                <button
+                  onClick={() => setViewingCatalogProduct(null)}
+                  className="p-1.5 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <HiOutlineXMark className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {/* Product ID chip — prominent, copyable */}
+                <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3">
+                  <div>
+                    <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mb-0.5">Product ID</p>
+                    <p className="text-base font-black text-indigo-700 font-mono tracking-wide">
+                      {viewingCatalogProduct.sku || '—'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCopySku(viewingCatalogProduct.sku)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm"
+                  >
+                    {copiedSku ? (
+                      <><HiOutlineClipboardDocumentCheck className="h-4 w-4" /><span>Copied!</span></>
+                    ) : (
+                      <><HiOutlineClipboardDocument className="h-4 w-4" /><span>Copy ID</span></>
+                    )}
+                  </button>
+                </div>
+
+                {/* Product Image */}
+                {viewingCatalogProduct.mainImage && (
+                  <div className="rounded-2xl overflow-hidden bg-slate-100 aspect-video">
+                    <img
+                      src={viewingCatalogProduct.mainImage}
+                      alt={viewingCatalogProduct.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Name */}
+                <div>
+                  <h4 className="text-lg font-black text-slate-900">{viewingCatalogProduct.name}</h4>
+                  {viewingCatalogProduct.brand && (
+                    <p className="text-xs font-semibold text-slate-500 mt-0.5">by {viewingCatalogProduct.brand}</p>
+                  )}
+                </div>
+
+                {/* Pricing */}
+                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Price</p>
+                    <p className="text-lg font-black text-slate-900">₹{viewingCatalogProduct.price}</p>
+                  </div>
+                  {viewingCatalogProduct.salePrice > 0 && (
+                    <div>
+                      <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Sale Price</p>
+                      <p className="text-lg font-black text-emerald-600">₹{viewingCatalogProduct.salePrice}</p>
+                    </div>
+                  )}
+                  {viewingCatalogProduct.weight && (
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Weight</p>
+                      <p className="text-sm font-bold text-slate-700">{viewingCatalogProduct.weight}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Category */}
+                {(viewingCatalogProduct.headerId?.name || viewingCatalogProduct.categoryId?.name) && (
+                  <div className="flex flex-wrap gap-2">
+                    {viewingCatalogProduct.headerId?.name && (
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
+                        {viewingCatalogProduct.headerId.name}
+                      </span>
+                    )}
+                    {viewingCatalogProduct.categoryId?.name && (
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+                        {viewingCatalogProduct.categoryId.name}
+                      </span>
+                    )}
+                    {viewingCatalogProduct.subcategoryId?.name && (
+                      <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">
+                        {viewingCatalogProduct.subcategoryId.name}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Description */}
+                {viewingCatalogProduct.description && (
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    {viewingCatalogProduct.description}
+                  </p>
+                )}
+
+                {/* Tags */}
+                {Array.isArray(viewingCatalogProduct.tags) && viewingCatalogProduct.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewingCatalogProduct.tags.map((tag, i) => (
+                      <span key={i} className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">#{tag}</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Variants */}
+                {Array.isArray(viewingCatalogProduct.variants) && viewingCatalogProduct.variants.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Variants ({viewingCatalogProduct.variants.length})</p>
+                    <div className="space-y-2">
+                      {viewingCatalogProduct.variants.map((v, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                          <span className="text-xs font-bold text-slate-700">{v.name}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-slate-900">₹{v.price}</span>
+                            {v.salePrice > 0 && <span className="text-xs font-bold text-emerald-600">₹{v.salePrice}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Gallery */}
+                {Array.isArray(viewingCatalogProduct.galleryImages) && viewingCatalogProduct.galleryImages.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Gallery</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {viewingCatalogProduct.galleryImages.map((img, i) => (
+                        <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100">
+                          <img src={img} alt={`Gallery ${i+1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* CTA */}
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] text-slate-400 text-center font-medium">
+                    Copy the Product ID above and paste it in the <strong>Add New Product</strong> form to auto-fill all details.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div >
   );
 };

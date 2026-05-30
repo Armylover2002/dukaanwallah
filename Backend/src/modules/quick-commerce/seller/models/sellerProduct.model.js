@@ -116,7 +116,7 @@ const sellerProductSchema = new mongoose.Schema(
 
 sellerProductSchema.index({ sellerId: 1, createdAt: -1 });
 sellerProductSchema.index({ sellerId: 1, slug: 1 }, { unique: true });
-sellerProductSchema.index({ sellerId: 1, sku: 1 }, { sparse: true });
+sellerProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true, sparse: true });
 sellerProductSchema.index({ sellerId: 1, stock: 1, status: 1 });
 sellerProductSchema.index({ sellerId: 1, categoryId: 1, subcategoryId: 1 });
 
