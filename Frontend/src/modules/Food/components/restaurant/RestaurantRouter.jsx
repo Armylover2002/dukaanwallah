@@ -4,6 +4,7 @@ import { loadBusinessSettings, setAppType } from "@common/utils/businessSettings
 import ProtectedRoute from "@food/components/ProtectedRoute"
 import { AuthPageGuard } from "@core/guards/RouteGuard"
 import Loader from "@food/components/Loader"
+import ErrorBoundary from "@food/components/ErrorBoundary"
 
 // Lazy Loading Components
 const AllOrdersPage = lazy(() => import("@food/pages/restaurant/AllOrdersPage"))
@@ -63,7 +64,8 @@ export default function RestaurantRouter() {
   }, [])
 
   return (
-    <Suspense fallback={<Loader />}>
+    <ErrorBoundary>
+      <Suspense fallback={<Loader />}>
       <Routes>
         {/* Auth Routes — redirect to dashboard if already logged in */}
         <Route path="welcome" element={<AuthPageGuard module="restaurant" home="/food/restaurant"><Welcome /></AuthPageGuard>} />
@@ -120,5 +122,6 @@ export default function RestaurantRouter() {
         <Route path="*" element={<Navigate to="/food/restaurant" replace />} />
       </Routes>
     </Suspense>
+    </ErrorBoundary>
   )
 }
