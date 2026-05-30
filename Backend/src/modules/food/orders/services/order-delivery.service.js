@@ -4,6 +4,7 @@ import { FoodOrder } from '../models/order.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodTransaction } from '../models/foodTransaction.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
+import { getDeliveryPartnerWallet } from "../../delivery/services/delivery.service.js";
 import { SellerOrder } from '../../../quick-commerce/seller/models/sellerOrder.model.js';
 import {
   ValidationError,
@@ -180,8 +181,7 @@ async function syncRazorpayQrPayment(orderDoc) {
     link = await fetchRazorpayPaymentLink(paymentLinkId);
   } catch (error) {
     logger.warn(
-      `Razorpay payment-link fetch failed for ${paymentLinkId}: ${
-        error?.message || error
+      `Razorpay payment-link fetch failed for ${paymentLinkId}: ${error?.message || error
       }`,
     );
     return orderDoc.payment;
@@ -304,11 +304,13 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
 
-  // Subscription Guard: Re-check eligibility before accepting
+  // Subscription Guard: Re-check eligibility before accepting (Bypassed)
+  /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
   const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
   if (!eligibility.eligible || eligibility.shouldDeduct) {
     throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
   }
+  */
 
   const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
   const now = new Date();
@@ -435,8 +437,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
       await foodTransactionService.updateTransactionRider(order._id, deliveryPartnerId);
     } catch (error) {
       logger.error(
-        `Error updating delivery rider transaction for ${order._id}: ${
-          error?.message || error
+        `Error updating delivery rider transaction for ${order._id}: ${error?.message || error
         }`,
       );
     }
@@ -468,6 +469,9 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
           }
         }
         logger.info(`[DeliveryDispatch] Broadcasted order_claimed to ${offeredPartners.length - 1} other partners for order ${order._id.toString()}`);
+        if (order.orderType === 'quick' || order.orderType === 'mixed') {
+          void emitQuickCommerceStatusUpdate(order);
+        }
       }
 
       await notifyOwnersSafely(
@@ -490,8 +494,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
       );
     } catch (error) {
       logger.error(
-        `Error notifying delivery acceptance for ${order._id}: ${
-          error?.message || error
+        `Error notifying delivery acceptance for ${order._id}: ${error?.message || error
         }`,
       );
     }
@@ -512,11 +515,13 @@ export async function rejectOrderDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
 
-  // Subscription Guard: Re-check eligibility before accepting
+  // Subscription Guard: Re-check eligibility before accepting (Bypassed)
+  /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
   const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
   if (!eligibility.eligible || eligibility.shouldDeduct) {
     throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
   }
+  */
 
   const order = await FoodOrder.findOne(identity).select('+deliveryOtp');
   if (!order) throw new NotFoundError('Order not found');
@@ -563,11 +568,13 @@ export async function confirmReachedPickupDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
 
-  // Subscription Guard: Re-check eligibility before accepting
+  // Subscription Guard: Re-check eligibility before accepting (Bypassed)
+  /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
   const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
   if (!eligibility.eligible || eligibility.shouldDeduct) {
     throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
   }
+  */
 
   const order = await FoodOrder.findOne(identity).select('+deliveryOtp');
   if (!order) throw new NotFoundError('Order not found');
@@ -616,9 +623,8 @@ export async function confirmReachedPickupDelivery(orderId, deliveryPartnerId) {
       [{ ownerType: 'RESTAURANT', ownerId: order.restaurantId }],
       {
         title: 'Rider arrived!',
-        body: `${partner?.name || 'The delivery partner'} has arrived at ${
-          restaurant?.restaurantName || 'your restaurant'
-        } to pick up Order #${order._id.toString()}.`,
+        body: `${partner?.name || 'The delivery partner'} has arrived at ${restaurant?.restaurantName || 'your restaurant'
+          } to pick up Order #${order._id.toString()}.`,
         data: {
           type: 'rider_arrived',
           orderId: String(order._id.toString()),
@@ -648,8 +654,7 @@ export async function confirmReachedPickupDelivery(orderId, deliveryPartnerId) {
     }
   } catch (error) {
     logger.error(
-      `Error notifying restaurant about rider arrival for ${order._id}: ${
-        error?.message || error
+      `Error notifying restaurant about rider arrival for ${order._id}: ${error?.message || error
       }`,
     );
   }
@@ -678,7 +683,7 @@ export async function confirmPickupDelivery(orderId, deliveryPartnerId, billImag
   const from = order.orderStatus;
   const nextStatus = 'picked_up';
   if (!isStatusAdvance(from, nextStatus)) {
-      throw new ValidationError(`Order is already at status '${from}'. Cannot re-mark as '${nextStatus}'.`);
+    throw new ValidationError(`Order is already at status '${from}'. Cannot re-mark as '${nextStatus}'.`);
   }
   order.orderStatus = nextStatus;
   order.deliveryState = {
@@ -731,11 +736,13 @@ export async function confirmReachedDropDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
 
-  // Subscription Guard: Re-check eligibility before accepting
+  // Subscription Guard: Re-check eligibility before accepting (Bypassed)
+  /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
   const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
   if (!eligibility.eligible || eligibility.shouldDeduct) {
     throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
   }
+  */
 
   const order = await FoodOrder.findOne(identity).select('+deliveryOtp');
   if (!order) throw new NotFoundError('Order not found');
@@ -884,9 +891,9 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
   const from = order.orderStatus;
   const nextStatus = 'delivered';
   if (!isStatusAdvance(from, nextStatus)) {
-      throw new ValidationError(`Order is already at status '${from}'. Cannot re-mark as '${nextStatus}'.`);
+    throw new ValidationError(`Order is already at status '${from}'. Cannot re-mark as '${nextStatus}'.`);
   }
-  
+
   const tx = await FoodTransaction.findOne({ orderId: order._id }).lean();
   const prevPayStatus = String(tx?.payment?.status || order?.payment?.status || '');
   const payMethod = String(tx?.payment?.method || order?.payment?.method || order?.paymentMethod || '');
@@ -941,6 +948,17 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
   }
 
   emitOrderUpdate(order, deliveryPartnerId);
+  // CASH LIMIT ENFORCEMENT: After every delivery, run full sweep to force offline
+  // any rider whose cash-in-hand has now exceeded the admin-set cash limit.
+  try {
+    const { enforceCashLimitForAllOnlinePartners } = await import('./order-dispatch.service.js');
+    void enforceCashLimitForAllOnlinePartners().catch(e =>
+      logger.warn(`[CashLimit] Post-delivery sweep failed: ${e.message}`)
+    );
+  } catch (e) {
+    logger.error(`Error running post-delivery cash limit sweep: ${e.message}`);
+  }
+
   enqueueOrderEvent('delivery_completed', {
     orderMongoId: order._id?.toString?.(),
     orderId: order._id.toString(),
@@ -960,11 +978,13 @@ export async function updateOrderStatusDelivery(orderId, deliveryPartnerId, orde
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
 
-  // Subscription Guard: Re-check eligibility before accepting
+  // Subscription Guard: Re-check eligibility before accepting (Bypassed)
+  /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
   const eligibility = await walletService.ensureDailyPassEligibility(deliveryPartnerId, 'DELIVERY_PARTNER');
   if (!eligibility.eligible || eligibility.shouldDeduct) {
     throw new ValidationError(eligibility.message || 'Subscription expired. Please recharge or activate a pass to accept orders.');
   }
+  */
 
   const order = await FoodOrder.findOne(identity).select('+deliveryOtp');
   if (!order) throw new NotFoundError('Order not found');
@@ -974,7 +994,7 @@ export async function updateOrderStatusDelivery(orderId, deliveryPartnerId, orde
 
   const from = order.orderStatus;
   if (!isStatusAdvance(from, orderStatus)) {
-      throw new ValidationError(`Current order status '${from}' is further ahead than '${orderStatus}'. Order cannot be moved backwards.`);
+    throw new ValidationError(`Current order status '${from}' is further ahead than '${orderStatus}'. Order cannot be moved backwards.`);
   }
   order.orderStatus = orderStatus;
   pushStatusHistory(order, {

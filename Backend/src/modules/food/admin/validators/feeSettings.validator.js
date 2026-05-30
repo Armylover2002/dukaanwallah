@@ -9,11 +9,18 @@ const sponsorRuleSchema = z.object({
     sponsoredKm: z.number().min(0).nullable().optional()
 });
 
+const deliveryDistanceSlabSchema = z.object({
+    fromKm: z.number().min(0),
+    toKm: z.number().min(0),
+    deliveryFee: z.number().min(0)
+});
+
 const feeSettingsUpsertSchema = z.object({
     baseDistanceKm: z.number().min(0).nullable().optional(),
     baseDeliveryFee: z.number().min(0).nullable().optional(),
     perKmCharge: z.number().min(0).nullable().optional(),
     sponsorRules: z.array(sponsorRuleSchema).optional(),
+    deliveryDistanceSlabs: z.array(deliveryDistanceSlabSchema).optional(),
     platformFee: z.number().min(0).nullable().optional(),
     gstRate: z.number().min(0).max(100).nullable().optional(),
     mixedOrderDistanceLimit: z.number().min(0).nullable().optional(),
@@ -56,6 +63,13 @@ export const validateFeeSettingsUpsertDto = (body) => {
                         : Number(rule.sponsoredKm)
             }))
             : undefined,
+        deliveryDistanceSlabs: Array.isArray(body?.deliveryDistanceSlabs)
+            ? body.deliveryDistanceSlabs.map((slab) => ({
+                fromKm: Number(slab?.fromKm),
+                toKm: Number(slab?.toKm),
+                deliveryFee: Number(slab?.deliveryFee)
+            }))
+            : undefined,
         platformFee:
             body?.platformFee === null ? null : body?.platformFee !== undefined ? Number(body.platformFee) : undefined,
         gstRate:
@@ -73,6 +87,14 @@ export const validateFeeSettingsUpsertDto = (body) => {
     }
 
     const sponsorRules = Array.isArray(result.data.sponsorRules) ? result.data.sponsorRules : undefined;
+    const slabs = Array.isArray(result.data.deliveryDistanceSlabs) ? result.data.deliveryDistanceSlabs : undefined;
+    if (slabs) {
+        for (const slab of slabs) {
+            if (slab.toKm < slab.fromKm) {
+                throw new ValidationError('To KM must be greater than or equal to From KM');
+            }
+        }
+    }
     if (sponsorRules) {
         for (const rule of sponsorRules) {
             if (

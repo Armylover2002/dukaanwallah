@@ -37,8 +37,7 @@ export default function CreateRole() {
 
   const buildSubmitPermissions = (permissions) => {
     const nextPermissions = { ...(permissions || {}) };
-    delete nextPermissions["food::dashboard"];
-    delete nextPermissions["quick::dashboard"];
+    // Preserving dashboard permissions as explicitly requested by user
     return nextPermissions;
   };
 
@@ -217,6 +216,43 @@ export default function CreateRole() {
     setRoleData(prev => ({ ...prev, permissions: newPermissions }));
   };
 
+  const getModuleState = (moduleKey) => {
+    const rootNode = rawPermissionTree.find(n => n.permissionKey === moduleKey);
+    if (!rootNode) return { checked: false, indeterminate: false };
+
+    let totalApplicable = 0;
+    let totalSelected = 0;
+
+    const traverse = (n) => {
+      if (!n.children || n.children.length === 0) {
+        const permissions = roleData.permissions[n.permissionKey] || { view: false, create: false, edit: false, delete: false };
+        const actions = ["view", "create", "edit", "delete"];
+        actions.forEach(a => {
+          const isAllowed = !n.allowedActions || n.allowedActions.includes(a);
+          if (isAllowed) {
+            totalApplicable++;
+            if (permissions[a]) {
+              totalSelected++;
+            }
+          }
+        });
+      } else {
+        n.children.forEach(traverse);
+      }
+    };
+
+    traverse(rootNode);
+
+    if (totalApplicable === 0) return { checked: false, indeterminate: false };
+    return {
+      checked: totalSelected === totalApplicable,
+      indeterminate: totalSelected > 0 && totalSelected < totalApplicable
+    };
+  };
+
+  const foodState = useMemo(() => getModuleState("food"), [roleData.permissions, rawPermissionTree]);
+  const quickState = useMemo(() => getModuleState("quick"), [roleData.permissions, rawPermissionTree]);
+
   const selectedCount = useMemo(() => {
     let count = 0;
     Object.values(roleData.permissions).forEach(p => {
@@ -266,7 +302,7 @@ export default function CreateRole() {
       <div key={node.permissionKey} className="flex flex-col">
         <div 
           className={cn(
-            "flex items-center justify-between py-3 px-4 border-b border-neutral-50 hover:bg-neutral-50/80 transition-all duration-200 group",
+            "flex items-center justify-between py-3 px-4 border-b border-neutral-50 hover:bg-neutral-50/80 transition-all duration-200 group min-w-[720px]",
             depth === 0 && "bg-neutral-100/50 border-neutral-200/50 backdrop-blur-sm",
             depth === 1 && "bg-white"
           )}
@@ -284,6 +320,21 @@ export default function CreateRole() {
               ) : (
                 <div className="w-4 shrink-0" />
               )}
+              {depth === 0 && (node.permissionKey === "food" || node.permissionKey === "quick") && (
+                <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center mr-1">
+                  <Checkbox 
+                    checked={
+                      node.permissionKey === "food" 
+                        ? (foodState.checked ? true : foodState.indeterminate ? "indeterminate" : false)
+                        : (quickState.checked ? true : quickState.indeterminate ? "indeterminate" : false)
+                    }
+                    onCheckedChange={(checked) => {
+                      handleSectionSelectAll(node, checked === true || checked === "indeterminate");
+                    }}
+                    className="w-4.5 h-4.5 border-2 border-neutral-800 transition-all duration-200"
+                  />
+                </div>
+              )}
               <span className={cn(
                 "text-sm truncate",
                 depth === 0 ? "font-black text-neutral-800 uppercase text-[11px] tracking-widest" : 
@@ -294,7 +345,7 @@ export default function CreateRole() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-4 md:gap-8 shrink-0 justify-end w-[280px] md:w-[320px]">
             {["view", "create", "edit", "delete"].map(action => {
               const isAllowed = !node.allowedActions || node.allowedActions.includes(action);
               return (
@@ -304,7 +355,9 @@ export default function CreateRole() {
                       {actionIcons[action].label}
                     </span>
                   ) : (
-                    isAllowed ? (
+                    hasChildren ? (
+                      <div className="w-4.5 h-4.5" />
+                    ) : isAllowed ? (
                       <Checkbox 
                         checked={permissions[action]}
                         onCheckedChange={(checked) => handlePermissionChange(node, action, checked)}
@@ -495,11 +548,48 @@ export default function CreateRole() {
                  <Button type="button" size="sm" onClick={collapseAll} className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold text-[10px]">
                    <Minimize2 className="w-3 h-3 mr-1.5" /> COLLAPSE ALL
                  </Button>
-               </div>
+                </div>
+             </div>
+
+            {/* Module Quick Access Toggles */}
+            <div className="p-4 bg-neutral-50/60 border-b border-neutral-200/60 flex flex-wrap items-center gap-6 px-6">
+              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Quick Section Toggles:</span>
+              <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-neutral-200 shadow-xs hover:shadow-md transition-all duration-200">
+                <Checkbox 
+                  id="toggle-food-module"
+                  checked={foodState.checked ? true : foodState.indeterminate ? "indeterminate" : false}
+                  onCheckedChange={(checked) => {
+                    const rootNode = rawPermissionTree.find(n => n.permissionKey === "food");
+                    if (rootNode) {
+                      handleSectionSelectAll(rootNode, checked === true || checked === "indeterminate");
+                    }
+                  }}
+                  className="w-4.5 h-4.5 border-2 border-neutral-800 transition-all duration-200"
+                />
+                <label htmlFor="toggle-food-module" className="text-xs font-bold text-neutral-700 cursor-pointer select-none flex items-center gap-1.5">
+                  🍔 Food Section
+                </label>
+              </div>
+              <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-neutral-200 shadow-xs hover:shadow-md transition-all duration-200">
+                <Checkbox 
+                  id="toggle-quick-module"
+                  checked={quickState.checked ? true : quickState.indeterminate ? "indeterminate" : false}
+                  onCheckedChange={(checked) => {
+                    const rootNode = rawPermissionTree.find(n => n.permissionKey === "quick");
+                    if (rootNode) {
+                      handleSectionSelectAll(rootNode, checked === true || checked === "indeterminate");
+                    }
+                  }}
+                  className="w-4.5 h-4.5 border-2 border-neutral-800 transition-all duration-200"
+                />
+                <label htmlFor="toggle-quick-module" className="text-xs font-bold text-neutral-700 cursor-pointer select-none flex items-center gap-1.5">
+                  ⚡ Quick Commerce Section
+                </label>
+              </div>
             </div>
 
-            {/* Tree Container */}
-            <div className="bg-white min-h-[600px] max-h-[800px] overflow-y-auto custom-scrollbar flex flex-col">
+             {/* Tree Container */}
+            <div className="bg-white min-h-[600px] max-h-[800px] overflow-x-auto overflow-y-auto custom-scrollbar flex flex-col">
               {permissionTree.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-neutral-400 gap-4">
                   <Search className="w-12 h-12 opacity-20" />

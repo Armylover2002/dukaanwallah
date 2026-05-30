@@ -344,6 +344,108 @@ export const getQuickCoupons = async () => {
   return collection.find(normalizeStatusQuery()).sort({ updatedAt: -1, createdAt: -1 }).toArray();
 };
 
+export const getAdminQuickCoupons = async (params = {}) => {
+  const collection = getCollection('quick_coupons');
+  if (!collection) return [];
+  const filter = {};
+  if (params.status && params.status !== 'all') {
+    filter.isActive = params.status === 'active';
+  }
+  if (params.search) {
+    filter.$or = [
+      { code: { $regex: params.search, $options: 'i' } },
+      { title: { $regex: params.search, $options: 'i' } },
+      { description: { $regex: params.search, $options: 'i' } },
+    ];
+  }
+  return collection.find(filter).sort({ updatedAt: -1, createdAt: -1 }).toArray();
+};
+
+export const createAdminQuickCoupon = async (data) => {
+  const collection = getCollection('quick_coupons');
+  if (!collection) throw new Error('Collection not found');
+
+  if (!data.code) throw new Error('Coupon code is required');
+  if (!data.discountValue || Number(data.discountValue) <= 0) throw new Error('Discount value must be greater than 0');
+
+  const existing = await collection.findOne({ code: String(data.code).toUpperCase().trim() });
+  if (existing) throw new Error('A coupon with this code already exists');
+
+  const coupon = {
+    ...data,
+    code: String(data.code).toUpperCase().trim(),
+    discountValue: Number(data.discountValue),
+    minOrderValue: data.minOrderValue ? Number(data.minOrderValue) : 0,
+    maxDiscount: data.maxDiscount ? Number(data.maxDiscount) : undefined,
+    usageLimit: data.usageLimit ? Number(data.usageLimit) : undefined,
+    perUserLimit: data.perUserLimit ? Number(data.perUserLimit) : 1,
+    usedCount: 0,
+    isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+    status: 'active',
+    validFrom: data.validFrom || null,
+    validTill: data.validTill || null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const result = await collection.insertOne(coupon);
+  return { ...coupon, _id: result.insertedId };
+};
+
+export const updateAdminQuickCoupon = async (id, data) => {
+  const collection = getCollection('quick_coupons');
+  if (!collection) throw new Error('Collection not found');
+
+  const update = {
+    ...data,
+    updatedAt: new Date(),
+  };
+  if (update.code) update.code = String(update.code).toUpperCase().trim();
+  if (update.discountValue !== undefined) update.discountValue = Number(update.discountValue);
+  if (update.minOrderValue !== undefined) update.minOrderValue = Number(update.minOrderValue);
+  if (update.maxDiscount !== undefined) update.maxDiscount = update.maxDiscount ? Number(update.maxDiscount) : undefined;
+  delete update._id;
+
+  const { ObjectId } = mongoose.Types;
+  const objId = ObjectId.isValid(id) ? new ObjectId(id) : null;
+  if (!objId) throw new Error('Invalid coupon ID');
+
+  const result = await collection.findOneAndUpdate(
+    { _id: objId },
+    { $set: update },
+    { returnDocument: 'after' }
+  );
+  return result;
+};
+
+export const deleteAdminQuickCoupon = async (id) => {
+  const collection = getCollection('quick_coupons');
+  if (!collection) throw new Error('Collection not found');
+
+  const { ObjectId } = mongoose.Types;
+  const objId = ObjectId.isValid(id) ? new ObjectId(id) : null;
+  if (!objId) throw new Error('Invalid coupon ID');
+
+  await collection.deleteOne({ _id: objId });
+  return true;
+};
+
+export const toggleAdminQuickCouponStatus = async (id) => {
+  const collection = getCollection('quick_coupons');
+  if (!collection) throw new Error('Collection not found');
+
+  const { ObjectId } = mongoose.Types;
+  const objId = ObjectId.isValid(id) ? new ObjectId(id) : null;
+  if (!objId) throw new Error('Invalid coupon ID');
+
+  const existing = await collection.findOne({ _id: objId });
+  if (!existing) throw new Error('Coupon not found');
+
+  const newStatus = !existing.isActive;
+  await collection.updateOne({ _id: objId }, { $set: { isActive: newStatus, updatedAt: new Date() } });
+  return { ...existing, isActive: newStatus };
+};
+
 export const getQuickOffers = async () => {
   const collection = getCollection('quick_offers');
   if (!collection) return [];

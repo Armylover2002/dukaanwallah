@@ -356,6 +356,7 @@ export async function ensureDailyPassEligibility(userId, userType) {
         throw new ValidationError('Invalid user type for eligibility check');
     }
 
+    /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
     // 1. Priority Check: MONTH/WEEK Subscription (MONTH > WEEK)
     const activeSub = await getActiveSubscription(userId, userType);
     if (activeSub && activeSub.planId) {
@@ -447,6 +448,17 @@ export async function ensureDailyPassEligibility(userId, userType) {
         threshold: 1000,
         deductionAmount
     };
+    */
+
+    return {
+        eligible: true,
+        reason: 'BYPASSED',
+        shouldDeduct: false,
+        subscriptionType: 'DAY',
+        balance: 9999,
+        threshold: 1000,
+        deductionAmount: 0
+    };
 }
 export async function getWalletLedger(ownerId, ownerType, { limit = 20, skip = 0 } = {}) {
     if (!['RESTAURANT', 'DELIVERY_PARTNER'].includes(ownerType)) throw new ValidationError('Invalid owner type');
@@ -480,6 +492,7 @@ export async function checkRestaurantEligibilityReadOnly(userId, userType) {
         return { eligible: false, shouldDeduct: false, shouldAppearOnline: false, reason: 'INVALID_USER_TYPE' };
     }
 
+    /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
     // 1. Check Recurring Subscription (Month/Week)
     const activeSub = await getActiveSubscription(userId, userType);
     if (activeSub && activeSub.planId) {
@@ -529,6 +542,15 @@ export async function checkRestaurantEligibilityReadOnly(userId, userType) {
         shouldDeduct: true,
         shouldAppearOnline: false,
         reason: 'REQUIRES_DAY_DEDUCTION',
+        subscriptionType: 'DAY'
+    };
+    */
+
+    return {
+        eligible: true,
+        shouldDeduct: false,
+        shouldAppearOnline: true,
+        reason: 'BYPASSED',
         subscriptionType: 'DAY'
     };
 }

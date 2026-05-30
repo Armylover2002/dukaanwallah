@@ -98,8 +98,8 @@ export const customerApi = {
   getOfferSections: (params) => quickGetWithDedupe("/quick-commerce/offer-sections", params),
   getHomeData: () => quickGetWithDedupe("/quick-commerce/home", {}),
 
-  getCoupons: () => quickGetWithDedupe("/quick-commerce/coupons", {}),
-  getActiveCoupons: () => quickGetWithDedupe("/quick-commerce/coupons", {}),
+  getCoupons: (params = {}) => quickGetWithDedupe("/quick-commerce/coupons", params),
+  getActiveCoupons: (params = {}) => quickGetWithDedupe("/quick-commerce/coupons", params),
   applyCoupon: (data) => axiosInstance.post("/quick-commerce/coupons/apply", data, withQuickSession()),
   validateCoupon: (data) => axiosInstance.post("/quick-commerce/coupons/apply", data, withQuickSession()),
   getOffers: () => quickGetWithDedupe("/quick-commerce/offers", {}),

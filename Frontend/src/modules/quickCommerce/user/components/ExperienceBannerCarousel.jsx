@@ -3,27 +3,25 @@ import { cn } from "@/lib/utils";
 import { resolveQuickImageUrl } from "../utils/image";
 
 const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap = 0 }) => {
-  if (!items || !items.length) return null;
-
   const effectiveSlideGap = fullWidth ? 0 : slideGap;
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isResetting, setIsResetting] = useState(false);
-  const loopedItems = items.length > 1 ? [...items, items[0]] : items;
-  const stepPercent = 100 / loopedItems.length;
+  const loopedItems = items?.length > 1 ? [...items, items[0]] : items || [];
+  const stepPercent = loopedItems.length > 0 ? 100 / loopedItems.length : 100;
 
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (!items || items.length <= 1) return;
 
     const intervalId = setInterval(() => {
       setActiveIndex((prev) => prev + 1);
     }, 4000);
 
     return () => clearInterval(intervalId);
-  }, [items.length]);
+  }, [items?.length]);
 
   useEffect(() => {
-    if (items.length <= 1 || activeIndex !== items.length) return;
+    if (!items || items.length <= 1 || activeIndex !== items.length) return;
 
     const timeoutId = window.setTimeout(() => {
       setIsResetting(true);
@@ -31,7 +29,7 @@ const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap 
     }, 500);
 
     return () => window.clearTimeout(timeoutId);
-  }, [activeIndex, items.length]);
+  }, [activeIndex, items?.length]);
 
   useEffect(() => {
     if (!isResetting) return;
@@ -42,6 +40,8 @@ const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap 
 
     return () => window.cancelAnimationFrame(frameId);
   }, [isResetting]);
+
+  if (!items || !items.length) return null;
 
   return (
     <div className={cn("overflow-hidden", fullWidth && "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]")}>

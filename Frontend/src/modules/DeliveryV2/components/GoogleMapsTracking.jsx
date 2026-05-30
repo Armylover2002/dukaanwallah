@@ -5,6 +5,10 @@ const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
+// Stable empty array references — prevents new [] reference on every render
+const EMPTY_SELLER_LOCATIONS = []
+const EMPTY_WAYPOINTS = []
+
 
 /**
  * GoogleMapsTracking Component
@@ -53,14 +57,14 @@ const mapContainerStyle = {
 
 export default function GoogleMapsTracking({
   storeLocation,
-  sellerLocations = [],
+  sellerLocations = EMPTY_SELLER_LOCATIONS,
   customerLocation,
   deliveryLocation,
   isTracking,
   showRoute = false,
   routeOrigin,
   routeDestination,
-  routeWaypoints = [],
+  routeWaypoints = EMPTY_WAYPOINTS,
   destinationName,
   onRouteInfoUpdate,
   lastUpdate

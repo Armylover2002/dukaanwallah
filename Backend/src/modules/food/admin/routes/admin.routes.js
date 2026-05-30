@@ -110,6 +110,8 @@ router.get('/offers', adminController.getAllOffers);
 router.post('/offers', checkPermission('food::promotions_management::coupons', 'create'), adminController.createAdminOffer);
 router.patch('/offers/:id/cart-visibility', checkPermission('food::promotions_management::coupons', 'edit'), adminController.updateAdminOfferCartVisibility);
 router.delete('/offers/:id', checkPermission('food::promotions_management::coupons', 'delete'), adminController.deleteAdminOffer);
+router.get('/restaurant-coupons', checkPermission('food::promotions_management::coupons', 'view'), adminController.getRestaurantCoupons);
+router.patch('/restaurant-coupons/:id/status', checkPermission('food::promotions_management::coupons', 'edit'), adminController.updateRestaurantCouponStatus);
 
 // ----- Feedback Experience (Admin) -----
 router.get('/feedback-experiences', feedbackExperienceController.getFeedbackExperiences);
@@ -139,6 +141,10 @@ router.get('/subscription/analytics', subscriptionPlanController.getSubscription
 router.get('/delivery-cash-limit', checkPermission('food::deliveryman_management::cash_limit', 'view'), adminController.getDeliveryCashLimit);
 router.patch('/delivery-cash-limit', checkPermission('food::deliveryman_management::cash_limit', 'edit'), adminController.updateDeliveryCashLimit);
 
+// ----- Deposit Payment Settings -----
+router.get('/deposit-payment-settings', adminController.getDepositPaymentSettings);
+router.patch('/deposit-payment-settings', checkPermission('food::deliveryman_management::cash_limit', 'edit'), upload.single('qrCodeImage'), adminController.updateDepositPaymentSettings);
+
 // ----- Delivery Emergency Help -----
 router.get('/delivery-emergency-help', adminController.getEmergencyHelp);
 router.put('/delivery-emergency-help', checkPermission('food::deliveryman_management::emergency_help', 'edit'), adminController.createOrUpdateEmergencyHelp);
@@ -149,6 +155,9 @@ router.patch('/withdrawals/:id', checkPermission('food::transaction_management::
 router.get('/delivery/withdrawals', checkPermission('food::deliveryman_management::withdrawal', 'view'), adminController.getDeliveryWithdrawals);
 router.patch('/delivery/withdrawals/:id', checkPermission('food::deliveryman_management::withdrawal', 'edit'), adminController.updateDeliveryWithdrawalStatus);
 router.get('/delivery/cash-limit-settlements', checkPermission('food::deliveryman_management::settlement', 'view'), adminController.getCashLimitSettlements);
+router.get('/delivery/cash-pay-requests', checkPermission('food::deliveryman_management::settlement', 'view'), adminController.getCashPayRequests);
+router.patch('/delivery/cash-pay-requests/:id', checkPermission('food::deliveryman_management::settlement', 'edit'), adminController.updateCashPayRequestStatus);
+
 
 // ----- Delivery partners & general -----
 router.get('/delivery/join-requests', checkPermission('food::deliveryman_management::deliveryman::join_request', 'view'), adminController.getDeliveryJoinRequests);
@@ -188,6 +197,12 @@ router.get('/zones/:id', adminController.getZoneById);
 router.post('/zones', checkPermission('food::restaurant_management::zone_setup', 'create'), adminController.createZone);
 router.patch('/zones/:id', checkPermission('food::restaurant_management::zone_setup', 'edit'), adminController.updateZone);
 router.delete('/zones/:id', checkPermission('food::restaurant_management::zone_setup', 'delete'), adminController.deleteZone);
+router.get('/zone-hubs', checkPermission('food::restaurant_management::zone_setup', 'view'), adminController.getZoneHubs);
+router.get('/zones/:id/restaurants', checkPermission('food::restaurant_management::zone_setup', 'view'), adminController.getRestaurantsInZone);
+router.post('/zone-hubs', checkPermission('food::restaurant_management::zone_setup', 'create'), adminController.assignZoneHub);
+router.get('/zone-hubs/cod-verification', checkPermission('food::restaurant_management::zone_setup', 'view'), adminController.getAdminCODVerifications);
+router.post('/zone-hubs/cod-verification/:id/action', checkPermission('food::restaurant_management::zone_setup', 'edit'), adminController.settleCODVerification);
+
 
 // ----- Dining -----
 router.get('/dining/categories', diningAdminController.getDiningCategories);
@@ -209,6 +224,10 @@ router.put('/pages-social-media/:key', checkPermission('food::pages_social_media
 
 router.get('/sidebar-badges', adminController.getSidebarBadges);
 router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifications);
+
+// ----- Deleted Accounts -----
+router.get('/deleted-accounts', adminController.getDeletedAccounts);
+router.post('/deleted-accounts/:id/reactivate', adminController.reactivateAccount);
 
 // ----- RBAC Roles -----
 router.use('/roles', roleRoutes);

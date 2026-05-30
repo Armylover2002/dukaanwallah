@@ -34,7 +34,8 @@ export default function EmployeeList() {
     const query = searchQuery.toLowerCase().trim()
     return employees.filter(employee =>
       employee.name.toLowerCase().includes(query) ||
-      employee.email.toLowerCase().includes(query)
+      employee.email.toLowerCase().includes(query) ||
+      (employee.employeeId && employee.employeeId.toLowerCase().includes(query))
     )
   }, [employees, searchQuery])
 
@@ -172,7 +173,7 @@ export default function EmployeeList() {
   }
 
   const columnsConfig = {
-    si: "Serial Number",
+    si: "Employee ID",
     name: "Employee Name",
     phone: "Phone",
     email: "Email",
@@ -277,7 +278,7 @@ export default function EmployeeList() {
                   {visibleColumns.si && (
                     <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                       <div className="flex items-center gap-2">
-                        <span>SI</span>
+                        <span>Employee ID</span>
                         <ArrowUpDown className="w-3 h-3 text-slate-400 cursor-pointer hover:text-slate-600" />
                       </div>
                     </th>
@@ -335,7 +336,7 @@ export default function EmployeeList() {
                     >
                       {visibleColumns.si && (
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-medium text-slate-700">{index + 1}</span>
+                          <span className="text-sm font-medium text-slate-700">{employee.employeeId || '-'}</span>
                         </td>
                       )}
                       {visibleColumns.name && (
@@ -437,6 +438,9 @@ export default function EmployeeList() {
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="text-slate-500 font-medium">Employee ID:</div>
+                  <div className="text-slate-900 font-semibold">{selectedEmployee.employeeId || '-'}</div>
+
                   <div className="text-slate-500 font-medium">Name:</div>
                   <div className="text-slate-900 font-semibold">{selectedEmployee.name}</div>
                   
@@ -445,6 +449,9 @@ export default function EmployeeList() {
                   
                   <div className="text-slate-500 font-medium">Phone:</div>
                   <div className="text-slate-900">{selectedEmployee.phone}</div>
+
+                  <div className="text-slate-500 font-medium">Work Type:</div>
+                  <div className="text-slate-955 font-semibold">{selectedEmployee.workType || 'Work From Office'}</div>
                   
                   <div className="text-slate-500 font-medium">Role:</div>
                   <div className="text-slate-900 capitalize bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded inline-block w-max">

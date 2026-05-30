@@ -302,8 +302,9 @@
 }
 }
 
-/* Admin Theme Scope Global Consistency Overrides */
-.admin-theme-scope {
+/* Admin & Seller Theme Scope Global Consistency Overrides */
+.admin-theme-scope,
+.seller-theme-scope {
   /* Set theme properties for components that use Tailwind v4 CSS variables directly */
   --background: #ffffffcc !important;
   --border: #EDE8E0 !important;
@@ -353,44 +354,60 @@
   --color-gray-900: #1A1A1A !important;
 }
 
-/* Base button and text behavior overrides for standard blue and indigo styles inside Admin */
+/* Base button and text behavior overrides for standard blue and indigo styles inside Admin & Seller */
 .admin-theme-scope [class*="bg-blue-600"],
-.admin-theme-scope [class*="bg-indigo-600"] {
+.admin-theme-scope [class*="bg-indigo-600"],
+.seller-theme-scope [class*="bg-blue-600"],
+.seller-theme-scope [class*="bg-indigo-600"] {
   background-color: #F26522 !important;
 }
 
 .admin-theme-scope [class*="hover:bg-blue-700"]:hover,
-.admin-theme-scope [class*="hover:bg-indigo-700"]:hover {
+.admin-theme-scope [class*="hover:bg-indigo-700"]:hover,
+.seller-theme-scope [class*="hover:bg-blue-700"]:hover,
+.seller-theme-scope [class*="hover:bg-indigo-700"]:hover {
   background-color: #D94F18 !important;
 }
 
 .admin-theme-scope [class*="text-blue-600"],
-.admin-theme-scope [class*="text-indigo-600"] {
+.admin-theme-scope [class*="text-indigo-600"],
+.seller-theme-scope [class*="text-blue-600"],
+.seller-theme-scope [class*="text-indigo-600"] {
   color: #F26522 !important;
 }
 
 .admin-theme-scope [class*="hover:text-blue-600"]:hover,
-.admin-theme-scope [class*="hover:text-indigo-600"]:hover {
+.admin-theme-scope [class*="hover:text-indigo-600"]:hover,
+.seller-theme-scope [class*="hover:text-blue-600"]:hover,
+.seller-theme-scope [class*="hover:text-indigo-600"]:hover {
   color: #F26522 !important;
 }
 
 .admin-theme-scope [class*="bg-blue-50"],
-.admin-theme-scope [class*="bg-indigo-50"] {
+.admin-theme-scope [class*="bg-indigo-50"],
+.seller-theme-scope [class*="bg-blue-50"],
+.seller-theme-scope [class*="bg-indigo-50"] {
   background-color: #FFF3EC !important;
 }
 
 .admin-theme-scope [class*="hover:bg-blue-50"]:hover,
-.admin-theme-scope [class*="hover:bg-indigo-50"]:hover {
+.admin-theme-scope [class*="hover:bg-indigo-50"]:hover,
+.seller-theme-scope [class*="hover:bg-blue-50"]:hover,
+.seller-theme-scope [class*="hover:bg-indigo-50"]:hover {
   background-color: #FFF3EC !important;
 }
 
 .admin-theme-scope [class*="border-blue-"],
-.admin-theme-scope [class*="border-indigo-"] {
+.admin-theme-scope [class*="border-indigo-"],
+.seller-theme-scope [class*="border-blue-"],
+.seller-theme-scope [class*="border-indigo-"] {
   border-color: #EDE8E0 !important;
 }
 
-.admin-theme-scope [class*="focus:ring-blue-"]:focus,
-.admin-theme-scope [class*="focus:ring-indigo-"]:focus {
+.admin-theme-scope [class*="focus:ring-blue-"],
+.admin-theme-scope [class*="focus:ring-indigo-"],
+.seller-theme-scope [class*="focus:ring-blue-"],
+.seller-theme-scope [class*="focus:ring-indigo-"] {
   --tw-ring-color: #F26522 !important;
 }
 

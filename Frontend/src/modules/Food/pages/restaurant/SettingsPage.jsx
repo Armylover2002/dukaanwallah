@@ -136,45 +136,35 @@ export default function SettingsPage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.2, delay: sectionIndex * 0.1 + itemIndex * 0.05 }}
                     >
-                      <button
-                        onClick={() => {
-                          if (item.action) {
-                            item.action()
-                          } else if (item.route) {
-                            navigate(item.route)
-                          }
-                        }}
-                        className={`w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors ${
-                          item.isDestructive ? "text-red-600" : "text-gray-900"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`flex-shrink-0 p-1.5 rounded-lg ${
-                            item.isDestructive 
-                              ? "bg-red-100" 
-                              : "bg-[#ff8100]/10"
-                          }`}>
-                            <item.icon className={`w-4 h-4 ${
-                              item.isDestructive 
-                                ? "text-red-600" 
-                                : "text-[#ff8100]"
-                            }`} />
-                          </div>
-                          <span className="text-sm font-medium flex-1 text-left">
-                            {item.label}
-                          </span>
-                          {item.value && (
-                            <span className="text-xs text-gray-500 mr-2">
-                              {item.value}
+                      {item.hasToggle ? (
+                        /* Toggle row — outer must NOT be a button to avoid nested <button> */
+                        <div
+                          className={`w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors ${
+                            item.isDestructive ? "text-red-600" : "text-gray-900"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`flex-shrink-0 p-1.5 rounded-lg ${
+                              item.isDestructive
+                                ? "bg-red-100"
+                                : "bg-[#ff8100]/10"
+                            }`}>
+                              <item.icon className={`w-4 h-4 ${
+                                item.isDestructive
+                                  ? "text-red-600"
+                                  : "text-[#ff8100]"
+                              }`} />
+                            </div>
+                            <span className="text-sm font-medium flex-1 text-left">
+                              {item.label}
                             </span>
-                          )}
-                        </div>
-
-                        {item.hasToggle ? (
+                          </div>
                           <div className="flex-shrink-0">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation()
+                              type="button"
+                              role="switch"
+                              aria-checked={item.toggleValue}
+                              onClick={() => {
                                 if (item.onToggle) {
                                   item.onToggle(!item.toggleValue)
                                 }
@@ -190,12 +180,47 @@ export default function SettingsPage() {
                               />
                             </button>
                           </div>
-                        ) : (
-                          !item.isDestructive && (
+                        </div>
+                      ) : (
+                        /* Nav / action row */
+                        <button
+                          onClick={() => {
+                            if (item.action) {
+                              item.action()
+                            } else if (item.route) {
+                              navigate(item.route)
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors ${
+                            item.isDestructive ? "text-red-600" : "text-gray-900"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`flex-shrink-0 p-1.5 rounded-lg ${
+                              item.isDestructive
+                                ? "bg-red-100"
+                                : "bg-[#ff8100]/10"
+                            }`}>
+                              <item.icon className={`w-4 h-4 ${
+                                item.isDestructive
+                                  ? "text-red-600"
+                                  : "text-[#ff8100]"
+                              }`} />
+                            </div>
+                            <span className="text-sm font-medium flex-1 text-left">
+                              {item.label}
+                            </span>
+                            {item.value && (
+                              <span className="text-xs text-gray-500 mr-2">
+                                {item.value}
+                              </span>
+                            )}
+                          </div>
+                          {!item.isDestructive && (
                             <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                          )
-                        )}
-                      </button>
+                          )}
+                        </button>
+                      )}
                     </motion.div>
                   ))}
                 </div>

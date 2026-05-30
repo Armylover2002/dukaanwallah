@@ -117,8 +117,19 @@ export const checkPermission = (permissionKey, action) => {
                 if (permissionKey.includes('[key]') && req.params.key) {
                     resolvedKey = permissionKey.replace('[key]', req.params.key);
                 }
+                
+                let hasPerm = false;
                 const nodePermissions = permissions[resolvedKey];
-                if (!nodePermissions || nodePermissions[action] !== true) {
+                if (nodePermissions && nodePermissions[action] === true) {
+                    hasPerm = true;
+                } else {
+                    const subKeyPrefix = resolvedKey + "::";
+                    hasPerm = Object.entries(permissions).some(([key, val]) => {
+                        return key.startsWith(subKeyPrefix) && val && val[action] === true;
+                    });
+                }
+
+                if (!hasPerm) {
                     console.warn(`[RBAC FAILURE] Action Denied: userId=${user.userId}, roleId=${employee.adminRoleId}, permissionKey=${resolvedKey}, action=${action}, endpoint=${req.originalUrl || req.url}, timestamp=${new Date().toISOString()}`);
                     return sendError(res, 403, `Access denied: missing ${action} permission for ${resolvedKey}`);
                 }

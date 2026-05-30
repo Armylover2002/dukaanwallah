@@ -145,31 +145,8 @@ export default function Cart() {
   const hasRestoredNoteRef = useRef(false)
 
   // Defensive check: Ensure CartProvider is available
-  let cartContext;
-  try {
-    cartContext = useCart();
-  } catch (error) {
-    debugError('? CartProvider not found. Make sure Cart component is rendered within UserLayout.');
-    // Return early with error message
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5] dark:bg-[#0a0a0a]">
-        <div className="text-center p-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Cart Error</h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Cart functionality is not available. Please refresh the page.
-          </p>
-          <button
-            onClick={() => navigate('/')}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          >
-            Go to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const { cart, updateQuantity, addToCart, getCartCount, clearCart, cleanCartForRestaurant } = cartContext;
+  const cartContext = useCart() || {};
+  const { cart = [], updateQuantity, addToCart, getCartCount = () => 0, clearCart, cleanCartForRestaurant } = cartContext;
   const hasQuickItems = cart.some((item) => (item?.orderType || "food") === "quick")
   const hasFoodItems = cart.some((item) => (item?.orderType || "food") === "food")
   const isQuickCart = cart.length > 0 && cart.every((item) => (item?.orderType || "food") === "quick")
@@ -1989,6 +1966,27 @@ export default function Cart() {
     })
   }
 
+  const isCartContextMissing = !cartContext || Object.keys(cartContext).length === 0;
+  if (isCartContextMissing) {
+    debugError('? CartProvider not found. Make sure Cart component is rendered within UserLayout.');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5] dark:bg-[#0a0a0a]">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Cart Error</h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Cart functionality is not available. Please refresh the page.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (hasQuickItems && hasFoodItems) {
     return (
       <MixedSharedCart 
@@ -2413,89 +2411,73 @@ export default function Cart() {
                 ) : (
                   /* Available / Input View */
                   <div className="px-4 py-3 md:px-6 md:py-4 flex flex-col gap-3">
+                    {/* Input for manual code */}
+                    <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={manualCouponCode}
+                        onChange={(e) => setManualCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Enter coupon code"
+                        className="flex-1 h-10 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0a0a0a] px-3 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#FE5502]"
+                      />
+                      <button
+                        className="bg-white dark:bg-[#1a1a1a] border border-[#FE5502] text-[#FE5502] rounded-xl px-5 h-10 text-xs font-semibold uppercase hover:bg-orange-50 dark:hover:bg-orange-900/10 active:scale-[0.98] transition-all"
+                        onClick={handleApplyCouponCode}
+                      >
+                        APPLY
+                      </button>
+                    </div>
+
                     {loadingCoupons ? (
                       <p className="text-sm text-gray-500">Loading offers...</p>
                     ) : availableCoupons.length > 0 ? (
-                      <div className="flex items-start justify-between w-full">
-                        <div className="flex items-start gap-3 flex-1">
-                          <Percent className="h-5 w-5 text-gray-700 dark:text-gray-300 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-tight mb-0.5">
-                              {availableCoupons[0].discountDisplay || `Save ${RUPEE_SYMBOL}${availableCoupons[0].discount}`} with '{availableCoupons[0].code}'
-                            </p>
-                            {availableCoupons[0].customerGroup === "new" ? (
-                              <p className="text-[11px] text-[#FE5502] mb-1">First-time users only</p>
-                            ) : subtotal < availableCoupons[0].minOrder ? (
-                              <p className="text-xs text-blue-600 font-medium mb-1">Add items worth {RUPEE_SYMBOL}{(availableCoupons[0].minOrder - subtotal).toFixed(0)} more to unlock</p>
-                            ) : null}
-
-                            {availableCoupons.length > 1 && (
-                              <button onClick={() => setShowCoupons(!showCoupons)} className="text-[11px] text-[#FE5502] hover:underline flex items-center mt-1">
-                                View all coupons <ChevronRight className="h-3 w-3 ml-0.5" />
-                              </button>
-                            )}
-                          </div>
+                      <div className="space-y-3 mt-1">
+                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Available Coupons</p>
+                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                          {availableCoupons.map((coupon) => {
+                            const canApply = subtotal >= coupon.minOrder && !(coupon.customerGroup === "new" && userOrderCount > 0);
+                            return (
+                              <div key={coupon.code} className="flex items-start justify-between p-3 rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50/50 dark:bg-slate-900/30">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <Percent className="h-5 w-5 text-gray-700 dark:text-gray-300 mt-0.5 opacity-80" />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-extrabold text-gray-800 dark:text-gray-200 leading-tight mb-1">
+                                      <span className="bg-slate-200/60 dark:bg-slate-800 px-2 py-0.5 rounded text-xs tracking-wider border border-slate-300/40 mr-2">
+                                        {coupon.code}
+                                      </span>
+                                      {coupon.discountDisplay || `Save ${RUPEE_SYMBOL}${coupon.discount}`}
+                                    </p>
+                                    {coupon.customerGroup === "new" ? (
+                                      <p className="text-[11px] text-[#FE5502] mb-1 font-medium">First-time users only</p>
+                                    ) : subtotal < coupon.minOrder ? (
+                                      <p className="text-xs text-blue-600 font-semibold mb-1">
+                                        Add items worth {RUPEE_SYMBOL}{(coupon.minOrder - subtotal).toFixed(0)} more to unlock
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">{coupon.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <button
+                                  className={`border rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider shadow-sm transition-all duration-200 ${
+                                    canApply 
+                                      ? "border-[#FE5502] text-[#FE5502] hover:bg-orange-50"
+                                      : "border-gray-300 text-gray-400 cursor-not-allowed bg-gray-50/50"
+                                  }`}
+                                  onClick={() => handleApplyCoupon(coupon)}
+                                  disabled={!canApply}
+                                >
+                                  APPLY
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <button
-                          className="border border-[#FE5502] text-[#FE5502] dark:hover:bg-[#FE5502]/10 rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ml-2 shadow-sm"
-                          onClick={() => handleApplyCoupon(availableCoupons[0])}
-                          disabled={subtotal < availableCoupons[0].minOrder || (availableCoupons[0].customerGroup === "new" && userOrderCount > 0)}
-                        >
-                          APPLY
-                        </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 py-2">
                         <Percent className="h-5 w-5 text-gray-400" />
-                        <p className="text-sm text-gray-500">No offers available</p>
-                      </div>
-                    )}
-
-                    {/* Show All Coupons List */}
-                    {showCoupons && !appliedCoupon && availableCoupons.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-dashed border-gray-200 dark:border-gray-800 space-y-4">
-                        {/* Input for manual code */}
-                        <div className="flex flex-col sm:flex-row gap-2 mb-4">
-                          <input
-                            type="text"
-                            value={manualCouponCode}
-                            onChange={(e) => setManualCouponCode(e.target.value.toUpperCase())}
-                            placeholder="Enter coupon code"
-                            className="flex-1 h-9 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0a0a0a] px-3 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#FE5502]"
-                          />
-                          <button
-                            className="bg-white dark:bg-[#1a1a1a] border border-[#FE5502] text-[#FE5502] rounded px-4 h-9 text-xs font-semibold uppercase hover:bg-orange-50 dark:hover:bg-orange-900/10"
-                            onClick={handleApplyCouponCode}
-                          >
-                            APPLY
-                          </button>
-                        </div>
-                        {availableCoupons.slice(1).map((coupon) => (
-                          <div key={coupon.code} className="flex items-start justify-between">
-                            <div className="flex items-start gap-3 flex-1">
-                              <Percent className="h-5 w-5 text-gray-700 dark:text-gray-300 mt-0.5 opacity-50" />
-                              <div className="flex-1">
-                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-tight mb-0.5">
-                                  {coupon.discountDisplay || `Save ${RUPEE_SYMBOL}${coupon.discount}`} with '{coupon.code}'
-                                </p>
-                                {coupon.customerGroup === "new" ? (
-                                  <p className="text-[11px] text-[#FE5502] mb-1">First-time users only</p>
-                                ) : subtotal < coupon.minOrder ? (
-                                  <p className="text-xs text-blue-600 font-medium mb-1 line-clamp-1">Add items worth {RUPEE_SYMBOL}{(coupon.minOrder - subtotal).toFixed(0)} more to unlock</p>
-                                ) : (
-                                  <p className="text-xs text-gray-500 mb-1 line-clamp-1">{coupon.description}</p>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              className="border border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-400 rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed ml-2"
-                              onClick={() => handleApplyCoupon(coupon)}
-                              disabled={subtotal < coupon.minOrder || (coupon.customerGroup === "new" && userOrderCount > 0)}
-                            >
-                              APPLY
-                            </button>
-                          </div>
-                        ))}
+                        <p className="text-sm text-gray-500">No offers available for this restaurant currently</p>
                       </div>
                     )}
                   </div>

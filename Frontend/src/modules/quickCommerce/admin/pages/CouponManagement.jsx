@@ -21,8 +21,56 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminApi } from '../services/adminApi';
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
+
 
 const CouponManagement = () => {
+    const { user: authUser } = useAuth();
+    const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+    const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const resolvePermissions = async () => {
+            if (!currentUser || currentUser.role === "ADMIN") {
+                if (isMounted) setResolvedPermissions({});
+                return;
+            }
+
+            const existingPermissions = extractAdminPermissions(currentUser);
+            if (Object.keys(existingPermissions).length > 0) {
+                if (isMounted) setResolvedPermissions(existingPermissions);
+                return;
+            }
+
+            const roleId = extractAdminRoleId(currentUser);
+            if (!roleId) {
+                if (isMounted) setResolvedPermissions({});
+                return;
+            }
+
+            try {
+                const rolePermissions = await fetchAdminRolePermissions(roleId);
+                if (isMounted) setResolvedPermissions(rolePermissions);
+            } catch {
+                if (isMounted) setResolvedPermissions({});
+            }
+        };
+
+        resolvePermissions();
+        return () => {
+            isMounted = false;
+        };
+    }, [currentUser]);
+
+    const permissionKey = "quick::core_management::marketing_tools::coupons";
+    const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create");
+    const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
+    const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete");
+
     const { showToast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -173,6 +221,18 @@ const CouponManagement = () => {
         }
     };
 
+    const handleToggleStatus = async (coupon) => {
+        try {
+            const res = await adminApi.toggleCouponStatus(coupon._id);
+            if (res?.data?.success) {
+                setCoupons(prev => prev.map(c => c._id === coupon._id ? { ...c, isActive: !c.isActive } : c));
+                showToast(`Coupon ${!coupon.isActive ? 'activated' : 'deactivated'}`, 'success');
+            }
+        } catch (error) {
+            showToast('Failed to toggle coupon status', 'error');
+        }
+    };
+
     return (
         <div className="ds-section-spacing animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
             {/* Header Area */}
@@ -184,13 +244,15 @@ const CouponManagement = () => {
                     </h1>
                     <p className="ds-description mt-1">Design, deploy, and track high-conversion discount campaigns.</p>
                 </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
-                >
-                    <HiOutlinePlus className="h-5 w-5" />
-                    CREATE NEW PROMO
-                </button>
+                {canCreate && (
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                        <HiOutlinePlus className="h-5 w-5" />
+                        CREATE NEW PROMO
+                    </button>
+                )}
             </div>
 
             {/* Stats Grid */}
@@ -325,18 +387,31 @@ const CouponManagement = () => {
                                     </td>
                                     <td className="px-4 py-6">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={() => handleOpenModal(c)}
-                                                className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
-                                            >
-                                                <HiOutlinePencilSquare className="h-5 w-5" />
-                                            </button>
-                                            <button
-                                                onClick={() => setDeleteTarget(c)}
-                                                className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                                            >
-                                                <HiOutlineTrash className="h-5 w-5" />
-                                            </button>
+                                            {canEdit && (
+                                                <button
+                                                    onClick={() => handleToggleStatus(c)}
+                                                    className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${c.isActive ? 'bg-green-500' : 'bg-slate-300'}`}
+                                                    title={c.isActive ? 'Deactivate' : 'Activate'}
+                                                >
+                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${c.isActive ? 'translate-x-7' : 'translate-x-1'}`} />
+                                                </button>
+                                            )}
+                                            {canEdit && (
+                                                <button
+                                                    onClick={() => handleOpenModal(c)}
+                                                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                                                >
+                                                    <HiOutlinePencilSquare className="h-5 w-5" />
+                                                </button>
+                                            )}
+                                            {canDelete && (
+                                                <button
+                                                    onClick={() => setDeleteTarget(c)}
+                                                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                                >
+                                                    <HiOutlineTrash className="h-5 w-5" />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -383,7 +458,7 @@ const CouponManagement = () => {
                                         Cancel
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(deleteTarget.id)}
+                                        onClick={() => handleDelete(deleteTarget._id)}
                                         className="px-4 py-2.5 bg-rose-600 text-white rounded-xl font-medium hover:bg-rose-700 transition-colors"
                                     >
                                         Delete

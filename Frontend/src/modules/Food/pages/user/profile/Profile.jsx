@@ -451,7 +451,9 @@ export default function Profile() {
   const [vegModeOpen, setVegModeOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [referralReward, setReferralReward] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
 
@@ -771,6 +773,36 @@ export default function Profile() {
       navigate("/user/auth/login", { replace: true });
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+
+    try {
+      // Call soft delete API on backend
+      await userAPI.deleteAccount();
+      
+      // Cleanup locally
+      clearModuleAuth("user");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user_authenticated");
+      localStorage.removeItem("user_user");
+      localStorage.removeItem("user");
+      localStorage.removeItem("cart");
+      USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
+      window.dispatchEvent(new Event("userAuthChanged"));
+
+      toast.success("Account deleted successfully");
+
+      // Redirect to login page
+      navigate("/user/auth/login", { replace: true });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast.error(error?.response?.data?.message || "Failed to delete account. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1230,11 +1262,7 @@ export default function Profile() {
             </Link>
           </div>
         </div>
-
-
-
         {/* Quick Commerce Section */}
-        {profileSource !== "food" && (
         <div className="mb-3">
           <div className="flex items-center gap-2 mb-2 px-1">
             <div className="w-1 h-4 bg-[#0c831f] rounded"></div>
@@ -1319,7 +1347,6 @@ export default function Profile() {
             </Link>
           </div>
         </div>
-        )}
 
         {/* More Section */}
         <div className="mb-8 pb-8">
@@ -1517,6 +1544,37 @@ export default function Profile() {
                 </CardContent>
               </Card>
             </motion.div>
+
+            {userProfile?.role !== "ADMIN" && (
+              <motion.div
+                whileHover={{ x: 4, scale: 1.01 }}
+                transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
+                <Card
+                  className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setDeleteConfirmOpen(true)}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <motion.div
+                        className="bg-rose-50 dark:bg-rose-950/30 rounded-full p-2"
+                        whileHover={{ rotate: 15, scale: 1.1 }}
+                        transition={{ duration: 0.3 }}>
+                        <AlertTriangle
+                          className={`h-5 w-5 text-rose-600 dark:text-rose-400 ${isDeleting ? "animate-pulse" : ""}`}
+                        />
+                      </motion.div>
+                      <span className="text-base font-medium text-rose-600 dark:text-rose-400">
+                        {isDeleting ? "Deleting account..." : "Delete Account"}
+                      </span>
+                    </div>
+                    <motion.div
+                      whileHover={{ x: 4 }}
+                      transition={{ duration: 0.2 }}>
+                      <ChevronRight className="h-5 w-5 text-rose-400 dark:text-rose-500" />
+                    </motion.div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
@@ -1710,6 +1768,42 @@ export default function Profile() {
                 disabled={isLoggingOut}
               >
                 Yes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Popup */}
+      {deleteConfirmOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#1a1a1a] p-5 shadow-2xl border border-gray-200 dark:border-gray-800">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Delete Account?
+            </h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Are you sure you want to delete your account? This action is irreversible. All your profile settings, transactions, and balance will be disabled.
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 rounded-xl"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={isDeleting}
+              >
+                No, Keep it
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                onClick={() => {
+                  setDeleteConfirmOpen(false);
+                  handleDeleteAccount();
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Yes, Delete"}
               </Button>
             </div>
           </div>

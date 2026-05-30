@@ -10,6 +10,7 @@ import {
   getProductReviews,
   submitProductReview,
   getProducts,
+  getStoreDetails,
 } from "../controllers/catalog.controller.js";
 import {
   addToCart,
@@ -82,6 +83,15 @@ import {
   getAdminRiderCashDetails,
   settleAdminRiderCash,
   updateAdminWithdrawalStatus,
+  getAdminCoupons,
+  createCoupon,
+  updateCoupon,
+  deleteCoupon,
+  toggleCouponStatus,
+  getAdminQuickZoneSellersController,
+  assignAdminQuickZoneHubsController,
+  getAdminSellerCODVerificationsController,
+  settleSellerCODVerificationController,
 } from "../controllers/admin.controller.js";
 import {
   getSellerCommissionBootstrap,
@@ -107,7 +117,7 @@ import {
   reverseGeocode,
 } from "../controllers/location.controller.js";
 
-import { authMiddleware } from "../../../core/auth/auth.middleware.js";
+import { authMiddleware, checkPermission } from "../../../core/auth/auth.middleware.js";
 import { requireRoles } from "../../../core/roles/role.middleware.js";
 import { verifyAccessToken } from "../../../core/auth/token.util.js";
 
@@ -129,6 +139,7 @@ const optionalAuth = (req, res, next) => {
 
 const router = express.Router();
 const adminOnly = [authMiddleware, requireRoles("ADMIN")];
+const adminOrEmployee = [authMiddleware, requireRoles("ADMIN", "EMPLOYEE")];
 
 router.get("/health", (_req, res) =>
   res.json({ success: true, module: "quick-commerce", status: "ok" }),
@@ -148,6 +159,7 @@ router.post("/products/reviews", optionalAuth, submitProductReview);
 router.get("/products/:productId", getProductById);
 router.get("/zones/public", listPublicZones);
 router.get("/billing/settings", getPublicBillingSettings);
+router.get("/stores/:storeId", getStoreDetails);
 
 // Location endpoints
 router.get("/location/geocode", geocodeAddress);
@@ -172,25 +184,28 @@ router.delete("/wishlist/remove/:productId", optionalAuth, removeFromWishlist);
 router.post("/wishlist/toggle", optionalAuth, toggleWishlist);
 
 // Admin endpoints (quick-commerce dashboard)
-router.get("/admin/stats", ...adminOnly, getAdminStats);
-router.get("/admin/categories", ...adminOnly, getAdminCategories);
+router.get("/admin/stats", ...adminOrEmployee, checkPermission("quick", "view"), getAdminStats);
+router.get("/admin/categories", ...adminOrEmployee, checkPermission("quick::core_management::categories", "view"), getAdminCategories);
 router.post(
   "/admin/categories",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::categories", "create"),
   upload.single("image"),
   createCategory,
 );
 router.put(
   "/admin/categories/:categoryId",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::categories", "edit"),
   upload.single("image"),
   updateCategory,
 );
-router.delete("/admin/categories/:categoryId", ...adminOnly, removeCategory);
-router.get("/admin/products", ...adminOnly, getAdminProducts);
+router.delete("/admin/categories/:categoryId", ...adminOrEmployee, checkPermission("quick::core_management::categories", "delete"), removeCategory);
+router.get("/admin/products", ...adminOrEmployee, checkPermission("quick::core_management::products", "view"), getAdminProducts);
 router.post(
   "/admin/products",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::products", "create"),
   upload.fields([
     { name: "mainImage", maxCount: 1 },
     { name: "galleryImages", maxCount: 8 },
@@ -199,185 +214,249 @@ router.post(
 );
 router.put(
   "/admin/products/:productId",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::products", "edit"),
   upload.fields([
     { name: "mainImage", maxCount: 1 },
     { name: "galleryImages", maxCount: 8 },
   ]),
   updateProduct,
 );
-router.delete("/admin/products/:productId", ...adminOnly, removeProduct);
-router.get("/admin/orders", ...adminOnly, getAdminOrders);
-router.get("/admin/orders/:orderId", ...adminOnly, getAdminOrderById);
-router.delete("/admin/orders/:orderId", ...adminOnly, deleteAdminOrder);
+router.delete("/admin/products/:productId", ...adminOrEmployee, checkPermission("quick::core_management::products", "delete"), removeProduct);
+router.get("/admin/orders", ...adminOrEmployee, checkPermission("quick::core_management::orders", "view"), getAdminOrders);
+router.get("/admin/orders/:orderId", ...adminOrEmployee, checkPermission("quick::core_management::orders", "view"), getAdminOrderById);
+router.delete("/admin/orders/:orderId", ...adminOrEmployee, checkPermission("quick::core_management::orders", "delete"), deleteAdminOrder);
 
 // Finance (quick-commerce admin wallet & ledger)
-router.get("/admin/finance/summary", ...adminOnly, getAdminFinanceSummary);
-router.get("/admin/finance/ledger", ...adminOnly, getAdminFinanceLedger);
-router.get("/admin/finance/payouts", ...adminOnly, getAdminFinancePayouts);
+router.get("/admin/finance/summary", ...adminOrEmployee, checkPermission("quick::core_management::wallet", "view"), getAdminFinanceSummary);
+router.get("/admin/finance/ledger", ...adminOrEmployee, checkPermission("quick::core_management::wallet", "view"), getAdminFinanceLedger);
+router.get("/admin/finance/payouts", ...adminOrEmployee, checkPermission("quick::core_management::wallet", "view"), getAdminFinancePayouts);
 router.get(
   "/admin/withdrawals/sellers",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::withdrawals", "view"),
   getAdminSellerWithdrawals,
 );
 router.get(
   "/admin/withdrawals/delivery",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::withdrawals", "view"),
   getAdminDeliveryWithdrawals,
 );
 router.patch(
   "/admin/withdrawals/:withdrawalId",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::withdrawals", "edit"),
   updateAdminWithdrawalStatus,
 );
 router.get(
   "/admin/cash-collection/balances",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::cash_collection", "view"),
   getAdminDeliveryCashBalances,
 );
 router.get(
   "/admin/cash-collection/history",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::cash_collection", "view"),
   getAdminCashSettlementHistory,
 );
 router.get(
   "/admin/cash-collection/riders/:riderId",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::cash_collection", "view"),
   getAdminRiderCashDetails,
 );
 router.post(
   "/admin/cash-collection/settle",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::cash_collection", "edit"),
   settleAdminRiderCash,
 );
-router.get("/admin/customers", ...adminOnly, getAdminCustomers);
-router.get("/admin/customers/:id", ...adminOnly, getAdminCustomerById);
+
+// Quick Sellers COD Deposit Verification
+router.get(
+  "/admin/sellers/cod-verification",
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::cash_collection", "view"),
+  getAdminSellerCODVerificationsController,
+);
+router.post(
+  "/admin/sellers/cod-verification/:id/action",
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::cash_collection", "edit"),
+  settleSellerCODVerificationController,
+);
+router.get("/admin/customers", ...adminOrEmployee, checkPermission("quick::core_management::customers", "view"), getAdminCustomers);
+router.get("/admin/customers/:id", ...adminOrEmployee, checkPermission("quick::core_management::customers", "view"), getAdminCustomerById);
 router.get(
   "/admin/support-tickets",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::customer_support::tickets", "view"),
   getAdminSupportTicketsController,
 );
 router.patch(
   "/admin/support-tickets/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::customer_support::tickets", "edit"),
   updateAdminSupportTicketController,
 );
-router.get("/admin/seller-requests", ...adminOnly, getAdminSellerRequests);
+router.get("/admin/seller-requests", ...adminOrEmployee, checkPermission("quick::core_management::seller_requests", "view"), getAdminSellerRequests);
 router.put(
   "/admin/seller-requests/:sellerId/approve",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::seller_requests", "edit"),
   approveAdminSellerRequest,
 );
 router.put(
   "/admin/seller-requests/:sellerId/reject",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::seller_requests", "edit"),
   rejectAdminSellerRequest,
 );
-router.get("/admin/zones", ...adminOnly, getAdminZones);
-router.get("/admin/zones/:zoneId", ...adminOnly, getAdminZoneById);
-router.post("/admin/zones", ...adminOnly, createAdminZone);
-router.patch("/admin/zones/:zoneId", ...adminOnly, updateAdminZone);
-router.delete("/admin/zones/:zoneId", ...adminOnly, deleteAdminZone);
+router.get("/admin/zones", ...adminOrEmployee, checkPermission("quick::core_management::zone_setup", "view"), getAdminZones);
+router.get("/admin/zones/:zoneId", ...adminOrEmployee, checkPermission("quick::core_management::zone_setup", "view"), getAdminZoneById);
+router.post("/admin/zones", ...adminOrEmployee, checkPermission("quick::core_management::zone_setup", "create"), createAdminZone);
+router.patch("/admin/zones/:zoneId", ...adminOrEmployee, checkPermission("quick::core_management::zone_setup", "edit"), updateAdminZone);
+router.delete("/admin/zones/:zoneId", ...adminOrEmployee, checkPermission("quick::core_management::zone_setup", "delete"), deleteAdminZone);
+
+// Quick Zone Hub Setup
+router.get(
+  "/admin/quick-zone-hubs/sellers/:zoneId",
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::zone_setup", "view"),
+  getAdminQuickZoneSellersController,
+);
+router.post(
+  "/admin/quick-zone-hubs",
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::zone_setup", "edit"),
+  assignAdminQuickZoneHubsController,
+);
 
 // Experience Sections Management
 router.get(
   "/admin/experience/sections",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::marketing_tools::experience_studio", "view"),
   getAdminExperienceSections,
 );
 router.post(
   "/admin/experience/sections",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::marketing_tools::experience_studio", "edit"),
   createAdminExperienceSection,
 );
 router.put(
   "/admin/experience/sections/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::marketing_tools::experience_studio", "edit"),
   updateAdminExperienceSection,
 );
 router.delete(
   "/admin/experience/sections/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::marketing_tools::experience_studio", "edit"),
   deleteAdminExperienceSection,
 );
 router.post(
   "/admin/experience/sections/reorder",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::marketing_tools::experience_studio", "edit"),
   reorderAdminExperienceSections,
 );
 
-router.get("/admin/experience/hero", ...adminOnly, getAdminHeroConfig);
-router.post("/admin/experience/hero", ...adminOnly, setAdminHeroConfig);
+router.get("/admin/experience/hero", ...adminOrEmployee, checkPermission("quick::core_management::marketing_tools::hero_categories", "view"), getAdminHeroConfig);
+router.post("/admin/experience/hero", ...adminOrEmployee, checkPermission("quick::core_management::marketing_tools::hero_categories", "edit"), setAdminHeroConfig);
 
 // Offer Sections Management
-router.get("/admin/offer-sections", ...adminOnly, getAdminOfferSections);
-router.post("/admin/offer-sections", ...adminOnly, createAdminOfferSection);
-router.put("/admin/offer-sections/:id", ...adminOnly, updateAdminOfferSection);
+router.get("/admin/offer-sections", ...adminOrEmployee, checkPermission("quick::core_management::marketing_tools::offer_sections", "view"), getAdminOfferSections);
+router.post("/admin/offer-sections", ...adminOrEmployee, checkPermission("quick::core_management::marketing_tools::offer_sections", "edit"), createAdminOfferSection);
+router.put("/admin/offer-sections/:id", ...adminOrEmployee, checkPermission("quick::core_management::marketing_tools::offer_sections", "edit"), updateAdminOfferSection);
 router.delete(
   "/admin/offer-sections/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::marketing_tools::offer_sections", "edit"),
   deleteAdminOfferSection,
 );
 router.post(
   "/admin/offer-sections/reorder",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::marketing_tools::offer_sections", "edit"),
   reorderAdminOfferSections,
 );
 
 // Seller Commission Management
 router.get(
   "/admin/seller-commissions/bootstrap",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::sellers::commission", "view"),
   getSellerCommissionBootstrap,
 );
-router.get("/admin/seller-commissions", ...adminOnly, getSellerCommissions);
+router.get("/admin/seller-commissions", ...adminOrEmployee, checkPermission("quick::core_management::sellers::commission", "view"), getSellerCommissions);
 router.get(
   "/admin/seller-commissions/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::sellers::commission", "view"),
   getSellerCommissionById,
 );
-router.post("/admin/seller-commissions", ...adminOnly, createSellerCommission);
+router.post("/admin/seller-commissions", ...adminOrEmployee, checkPermission("quick::core_management::sellers::commission", "create"), createSellerCommission);
 router.put(
   "/admin/seller-commissions/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::sellers::commission", "edit"),
   updateSellerCommission,
 );
 router.delete(
   "/admin/seller-commissions/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::sellers::commission", "delete"),
   deleteSellerCommission,
 );
 router.patch(
   "/admin/seller-commissions/:id/toggle-status",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::sellers::commission", "edit"),
   toggleSellerCommissionStatus,
 );
-router.get("/admin/fee-settings", ...adminOnly, getFeeSettings);
-router.put("/admin/fee-settings", ...adminOnly, createOrUpdateFeeSettings);
+router.get("/admin/fee-settings", ...adminOrEmployee, checkPermission("quick::core_management::billing", "view"), getFeeSettings);
+router.put("/admin/fee-settings", ...adminOrEmployee, checkPermission("quick::core_management::billing", "edit"), createOrUpdateFeeSettings);
 router.get(
   "/admin/delivery/commission-rules",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::billing", "view"),
   getDeliveryCommissionRules,
 );
 router.post(
   "/admin/delivery/commission-rules",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::billing", "edit"),
   createDeliveryCommissionRule,
 );
 router.patch(
   "/admin/delivery/commission-rules/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::billing", "edit"),
   updateDeliveryCommissionRule,
 );
 router.delete(
   "/admin/delivery/commission-rules/:id",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::billing", "delete"),
   deleteDeliveryCommissionRule,
 );
 router.patch(
   "/admin/delivery/commission-rules/:id/status",
-  ...adminOnly,
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::billing", "edit"),
   toggleDeliveryCommissionRuleStatus,
 );
+
+// Admin Coupon Management
+router.get('/admin/coupons', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'view'), getAdminCoupons);
+router.post('/admin/coupons', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'create'), createCoupon);
+router.put('/admin/coupons/:couponId', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'edit'), updateCoupon);
+router.delete('/admin/coupons/:couponId', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'delete'), deleteCoupon);
+router.patch('/admin/coupons/:couponId/toggle-status', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'edit'), toggleCouponStatus);
 
 export default router;

@@ -18,23 +18,17 @@ const toNullableNumber = (value) =>
 
 export default function FeeSettings() {
   const [feeSettings, setFeeSettings] = useState({
-    baseDistanceKm: "",
-    baseDeliveryFee: "",
-    perKmCharge: "",
-    sponsorRules: [],
+    deliveryDistanceSlabs: [],
     platformFee: "",
     gstRate: "",
   })
   const [loadingFeeSettings, setLoadingFeeSettings] = useState(false)
   const [savingFeeSettings, setSavingFeeSettings] = useState(false)
-  const [editingRuleIndex, setEditingRuleIndex] = useState(null)
-  const [ruleDraft, setRuleDraft] = useState(EMPTY_RULE)
+  const [editingSlabIndex, setEditingSlabIndex] = useState(null)
+  const [slabDraft, setSlabDraft] = useState({ fromKm: "", toKm: "", deliveryFee: "", maxDistanceUnlimited: false })
 
   const hydrateFeeSettings = (settings) => ({
-    baseDistanceKm: toInputValue(settings?.baseDistanceKm),
-    baseDeliveryFee: toInputValue(settings?.baseDeliveryFee ?? settings?.deliveryFee),
-    perKmCharge: toInputValue(settings?.perKmCharge),
-    sponsorRules: Array.isArray(settings?.sponsorRules) ? settings.sponsorRules : [],
+    deliveryDistanceSlabs: Array.isArray(settings?.deliveryDistanceSlabs) ? settings.deliveryDistanceSlabs : [],
     platformFee: toInputValue(settings?.platformFee),
     gstRate: toInputValue(settings?.gstRate),
   })
@@ -59,121 +53,91 @@ export default function FeeSettings() {
     fetchFeeSettings()
   }, [])
 
-  const validateRuleDraft = () => {
-    const minOrderAmount = Number(ruleDraft.minOrderAmount)
-    const maxOrderAmount =
-      ruleDraft.maxOrderAmount === "" ? null : Number(ruleDraft.maxOrderAmount)
-    const maxDistanceKm = Number(ruleDraft.maxDistanceKm)
-    const sponsoredKm =
-      ruleDraft.sponsoredKm === "" ? null : Number(ruleDraft.sponsoredKm)
+  const validateSlabDraft = () => {
+    const fromKm = Number(slabDraft.fromKm)
+    const toKm = slabDraft.maxDistanceUnlimited ? 9999 : Number(slabDraft.toKm)
+    const deliveryFee = Number(slabDraft.deliveryFee)
 
-    if (!Number.isFinite(minOrderAmount) || minOrderAmount < 0) {
-      toast.error("Minimum order amount must be 0 or more")
+    if (!Number.isFinite(fromKm) || fromKm < 0) {
+      toast.error("Min Distance (KM) must be 0 or more")
       return null
     }
-    if (maxOrderAmount != null && (!Number.isFinite(maxOrderAmount) || maxOrderAmount < minOrderAmount)) {
-      toast.error("Maximum order amount must be greater than or equal to minimum order amount")
+    if (!Number.isFinite(toKm) || toKm < fromKm) {
+      toast.error("To KM must be greater than or equal to Min Distance (KM)")
       return null
     }
-    if (!Number.isFinite(maxDistanceKm) || maxDistanceKm < 0) {
-      toast.error("Maximum distance must be 0 or more")
-      return null
-    }
-    if (ruleDraft.sponsorType === "SPLIT" && (!Number.isFinite(sponsoredKm) || sponsoredKm < 0)) {
-      toast.error("Sponsored KM is required for split rules")
+    if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
+      toast.error("Delivery fee must be 0 or more")
       return null
     }
 
-    return {
-      minOrderAmount,
-      maxOrderAmount,
-      maxDistanceKm,
-      sponsorType: ruleDraft.sponsorType,
-      sponsoredKm: ruleDraft.sponsorType === "SPLIT" ? sponsoredKm : null,
-    }
+    return { fromKm, toKm, deliveryFee }
   }
 
-  const handleAddRule = () => {
-    const nextRule = validateRuleDraft()
-    if (!nextRule) return
+  const handleAddSlab = () => {
+    const nextSlab = validateSlabDraft()
+    if (!nextSlab) return
 
     setFeeSettings((prev) => ({
       ...prev,
-      sponsorRules: [...prev.sponsorRules, nextRule],
+      deliveryDistanceSlabs: [...(prev.deliveryDistanceSlabs || []), nextSlab],
     }))
-    setRuleDraft(EMPTY_RULE)
-    toast.success("Rule added successfully")
+    setSlabDraft({ fromKm: "", toKm: "", deliveryFee: "", maxDistanceUnlimited: false })
+    toast.success("Distance slab added successfully")
   }
 
-  const handleEditRule = (index) => {
-    const rule = feeSettings.sponsorRules[index]
-    if (!rule) return
-    setEditingRuleIndex(index)
-    setRuleDraft({
-      minOrderAmount: toInputValue(rule.minOrderAmount),
-      maxOrderAmount: toInputValue(rule.maxOrderAmount),
-      maxDistanceKm: toInputValue(rule.maxDistanceKm),
-      sponsorType: rule.sponsorType || "USER_FULL",
-      sponsoredKm: toInputValue(rule.sponsoredKm),
+  const handleEditSlab = (index) => {
+    const slab = feeSettings.deliveryDistanceSlabs[index]
+    if (!slab) return
+    setEditingSlabIndex(index)
+    const isUnlimited = Number(slab.toKm) >= 9999
+    setSlabDraft({
+      fromKm: toInputValue(slab.fromKm),
+      toKm: isUnlimited ? "" : toInputValue(slab.toKm),
+      deliveryFee: toInputValue(slab.deliveryFee),
+      maxDistanceUnlimited: isUnlimited,
     })
   }
 
-  const handleSaveRule = () => {
-    const nextRule = validateRuleDraft()
-    if (!nextRule) return
+  const handleSaveSlab = () => {
+    const nextSlab = validateSlabDraft()
+    if (!nextSlab) return
     setFeeSettings((prev) => ({
       ...prev,
-      sponsorRules: prev.sponsorRules.map((rule, index) =>
-        index === editingRuleIndex ? nextRule : rule,
+      deliveryDistanceSlabs: prev.deliveryDistanceSlabs.map((slab, index) =>
+        index === editingSlabIndex ? nextSlab : slab,
       ),
     }))
-    setEditingRuleIndex(null)
-    setRuleDraft(EMPTY_RULE)
-    toast.success("Rule updated successfully")
+    setEditingSlabIndex(null)
+    setSlabDraft({ fromKm: "", toKm: "", deliveryFee: "", maxDistanceUnlimited: false })
+    toast.success("Distance slab updated successfully")
   }
 
-  const handleDeleteRule = (index) => {
+  const handleDeleteSlab = (index) => {
     setFeeSettings((prev) => ({
       ...prev,
-      sponsorRules: prev.sponsorRules.filter((_, ruleIndex) => ruleIndex !== index),
+      deliveryDistanceSlabs: prev.deliveryDistanceSlabs.filter((_, slabIndex) => slabIndex !== index),
     }))
-    if (editingRuleIndex === index) {
-      setEditingRuleIndex(null)
-      setRuleDraft(EMPTY_RULE)
+    if (editingSlabIndex === index) {
+      setEditingSlabIndex(null)
+      setSlabDraft({ fromKm: "", toKm: "", deliveryFee: "", maxDistanceUnlimited: false })
     }
-    toast.success("Rule deleted successfully")
+    toast.success("Distance slab deleted successfully")
   }
 
-  const handleCancelEdit = () => {
-    setEditingRuleIndex(null)
-    setRuleDraft(EMPTY_RULE)
+  const handleCancelSlabEdit = () => {
+    setEditingSlabIndex(null)
+    setSlabDraft({ fromKm: "", toKm: "", deliveryFee: "", maxDistanceUnlimited: false })
   }
 
   const handleSaveFeeSettings = async () => {
-    const baseDistanceKm = toNullableNumber(feeSettings.baseDistanceKm)
-    const baseDeliveryFee = toNullableNumber(feeSettings.baseDeliveryFee)
-    const perKmCharge = toNullableNumber(feeSettings.perKmCharge)
-
-    if (baseDistanceKm === undefined || baseDistanceKm < 0) {
-      toast.error("Base distance is required")
-      return
-    }
-    if (baseDeliveryFee === undefined || baseDeliveryFee < 0) {
-      toast.error("Base delivery fee is required")
-      return
-    }
-    if (perKmCharge === undefined || perKmCharge < 0) {
-      toast.error("Per KM charge is required")
-      return
-    }
-
     try {
       setSavingFeeSettings(true)
       const response = await adminAPI.createOrUpdateFeeSettings({
-        baseDistanceKm,
-        baseDeliveryFee,
-        perKmCharge,
-        sponsorRules: feeSettings.sponsorRules,
+        baseDistanceKm: null,
+        baseDeliveryFee: null,
+        perKmCharge: null,
+        deliveryDistanceSlabs: feeSettings.deliveryDistanceSlabs,
         platformFee: toNullableNumber(feeSettings.platformFee),
         gstRate: toNullableNumber(feeSettings.gstRate),
         isActive: true,
@@ -192,13 +156,6 @@ export default function FeeSettings() {
     }
   }
 
-  const previewBaseDistance = Number(feeSettings.baseDistanceKm || 0)
-  const previewBaseFee = Number(feeSettings.baseDeliveryFee || 0)
-  const previewPerKmCharge = Number(feeSettings.perKmCharge || 0)
-  const previewLongDistanceFee =
-    previewBaseFee +
-    Math.max(0, 5 - Math.max(0, previewBaseDistance)) * previewPerKmCharge
-
   return (
     <div className="p-4 lg:p-6 bg-slate-50 min-h-screen">
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
@@ -209,7 +166,7 @@ export default function FeeSettings() {
           <h1 className="text-2xl font-bold text-slate-900">Delivery & Platform Fee</h1>
         </div>
         <p className="text-sm text-slate-600">
-          Configure distance-based delivery pricing, sponsor rules, platform fee, and GST.
+          Configure distance-based delivery pricing slabs, platform fee, and GST.
         </p>
       </div>
 
@@ -247,111 +204,47 @@ export default function FeeSettings() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="lg:col-span-2 border border-slate-200 rounded-xl p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Truck className="w-5 h-5 text-green-600" />
-                    <h3 className="text-lg font-semibold text-slate-900">Base Delivery Config</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Base Distance (KM)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value={feeSettings.baseDistanceKm}
-                        onChange={(e) => setFeeSettings((prev) => ({ ...prev, baseDistanceKm: e.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                        placeholder="3"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Base Delivery Fee (₹)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={feeSettings.baseDeliveryFee}
-                        onChange={(e) => setFeeSettings((prev) => ({ ...prev, baseDeliveryFee: e.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                        placeholder="40"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Per KM Charge (₹)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={feeSettings.perKmCharge}
-                        onChange={(e) => setFeeSettings((prev) => ({ ...prev, perKmCharge: e.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                        placeholder="10"
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-5">
-                  <h4 className="text-sm font-bold text-emerald-900 uppercase tracking-[0.14em] mb-3">Preview</h4>
-                  <div className="space-y-2 text-sm text-emerald-900">
-                    <p>0-{previewBaseDistance || 0} KM: ₹{previewBaseFee.toFixed(2)}</p>
-                    <p>
-                      5 KM example: ₹{previewLongDistanceFee.toFixed(2)}
-                    </p>
-                    <p className="text-emerald-700">
-                      Formula: base fee + extra distance × per KM charge
-                    </p>
-                  </div>
-                </div>
-              </div>
 
               <div className="border border-slate-200 rounded-xl p-5 mb-8">
                 <div className="flex items-center gap-2 mb-2">
-                  <Store className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-slate-900">Dynamic Delivery Sponsor Rules</h3>
+                  <Truck className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-slate-900">Distance-Based Delivery Fee Slabs</h3>
                 </div>
                 <p className="text-sm text-slate-500 mb-4">
-                  If no rule matches, the default behavior is <strong className="text-slate-700">USER_FULL</strong>.
+                  Define delivery fee slabs based on the delivery distance. The user will be charged the exact fee configured for their distance slab.
                 </p>
 
-                {feeSettings.sponsorRules.length > 0 && (
+                {feeSettings.deliveryDistanceSlabs.length > 0 && (
                   <div className="overflow-x-auto mb-5">
                     <table className="w-full border border-slate-200 rounded-lg">
                       <thead className="bg-slate-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 border-b border-slate-200">Min Order</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 border-b border-slate-200">Max Order</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 border-b border-slate-200">Max Distance</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 border-b border-slate-200">Sponsor Type</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 border-b border-slate-200">Sponsored KM</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 border-b border-slate-200">Min Distance (KM)</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 border-b border-slate-200">To distance (KM)</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 border-b border-slate-200">Delivery Fee (₹)</th>
                           <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 border-b border-slate-200">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {feeSettings.sponsorRules.map((rule, index) => (
-                          <tr key={`${rule.sponsorType}-${index}`} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 text-sm border-b border-slate-100">₹{Number(rule.minOrderAmount || 0).toFixed(2)}</td>
+                        {feeSettings.deliveryDistanceSlabs.map((slab, index) => (
+                          <tr key={`${slab.fromKm}-${slab.toKm}-${index}`} className="hover:bg-slate-50">
+                            <td className="px-4 py-3 text-sm border-b border-slate-100">{Number(slab.fromKm).toFixed(1)} KM</td>
                             <td className="px-4 py-3 text-sm border-b border-slate-100">
-                              {rule.maxOrderAmount == null ? "No limit" : `₹${Number(rule.maxOrderAmount).toFixed(2)}`}
+                              {Number(slab.toKm) >= 9999 ? "Unlimited" : `${Number(slab.toKm).toFixed(1)} KM`}
                             </td>
-                            <td className="px-4 py-3 text-sm border-b border-slate-100">{Number(rule.maxDistanceKm || 0).toFixed(2)} KM</td>
-                            <td className="px-4 py-3 text-sm border-b border-slate-100">{rule.sponsorType}</td>
-                            <td className="px-4 py-3 text-sm border-b border-slate-100">
-                              {rule.sponsorType === "SPLIT" ? `${Number(rule.sponsoredKm || 0).toFixed(2)} KM` : "--"}
-                            </td>
+                            <td className="px-4 py-3 text-sm border-b border-slate-100">₹{Number(slab.deliveryFee).toFixed(2)}</td>
                             <td className="px-4 py-3 text-center border-b border-slate-100">
                               <div className="flex items-center justify-center gap-2">
                                 <button
-                                  onClick={() => handleEditRule(index)}
+                                  onClick={() => handleEditSlab(index)}
                                   className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                   title="Edit"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteRule(index)}
+                                  onClick={() => handleDeleteSlab(index)}
                                   className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
                                   title="Delete"
                                 >
@@ -370,76 +263,67 @@ export default function FeeSettings() {
                   <div className="flex items-center gap-2 mb-3">
                     <Plus className="w-4 h-4 text-green-600" />
                     <h4 className="text-sm font-semibold text-slate-700">
-                      {editingRuleIndex === null ? "Add Sponsor Rule" : "Edit Sponsor Rule"}
+                      {editingSlabIndex === null ? "Add Distance Slab" : "Edit Distance Slab"}
                     </h4>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Min Order Amount (₹)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={ruleDraft.minOrderAmount}
-                        onChange={(e) => setRuleDraft((prev) => ({ ...prev, minOrderAmount: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                        placeholder="200"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Max Order Amount (optional)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={ruleDraft.maxOrderAmount}
-                        onChange={(e) => setRuleDraft((prev) => ({ ...prev, maxOrderAmount: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                        placeholder="Leave empty"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Max Distance (KM)</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Min Distance (KM)</label>
                       <input
                         type="number"
                         min="0"
                         step="0.1"
-                        value={ruleDraft.maxDistanceKm}
-                        onChange={(e) => setRuleDraft((prev) => ({ ...prev, maxDistanceKm: e.target.value }))}
+                        value={slabDraft.fromKm}
+                        onChange={(e) => setSlabDraft((prev) => ({ ...prev, fromKm: e.target.value }))}
                         className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                        placeholder="7"
+                        placeholder="0"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Sponsor Type</label>
-                      <select
-                        value={ruleDraft.sponsorType}
-                        onChange={(e) => setRuleDraft((prev) => ({ ...prev, sponsorType: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                      >
-                        <option value="USER_FULL">USER_FULL</option>
-                        <option value="RESTAURANT_FULL">RESTAURANT_FULL</option>
-                        <option value="SPLIT">SPLIT</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Sponsored KM</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">To Distance (KM)</label>
                       <input
                         type="number"
                         min="0"
                         step="0.1"
-                        value={ruleDraft.sponsoredKm}
-                        onChange={(e) => setRuleDraft((prev) => ({ ...prev, sponsoredKm: e.target.value }))}
-                        disabled={ruleDraft.sponsorType !== "SPLIT"}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-slate-100"
-                        placeholder={ruleDraft.sponsorType === "SPLIT" ? "7" : "Only for split"}
+                        value={slabDraft.maxDistanceUnlimited ? "" : slabDraft.toKm}
+                        disabled={slabDraft.maxDistanceUnlimited}
+                        onChange={(e) => setSlabDraft((prev) => ({ ...prev, toKm: e.target.value }))}
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-green-500 outline-none ${slabDraft.maxDistanceUnlimited ? "border-slate-100 bg-slate-100/50 text-slate-400 cursor-not-allowed" : "border-slate-300 bg-white"}`}
+                        placeholder="5"
+                      />
+                      <label className="flex items-center gap-2 mt-2 text-xs font-medium text-slate-500 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={slabDraft.maxDistanceUnlimited || false}
+                          onChange={(e) =>
+                            setSlabDraft((prev) => ({
+                              ...prev,
+                              maxDistanceUnlimited: e.target.checked,
+                              toKm: e.target.checked ? "" : prev.toKm,
+                            }))
+                          }
+                          className="rounded border-slate-300 text-green-600 focus:ring-green-500 w-3.5 h-3.5"
+                        />
+                        Max distance unlimited
+                      </label>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Delivery Fee (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={slabDraft.deliveryFee}
+                        onChange={(e) => setSlabDraft((prev) => ({ ...prev, deliveryFee: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                        placeholder="60"
                       />
                     </div>
                   </div>
                   <div className="flex justify-end gap-3 mt-4">
-                    {editingRuleIndex !== null && (
+                    {editingSlabIndex !== null && (
                       <Button
-                        onClick={handleCancelEdit}
+                        onClick={handleCancelSlabEdit}
                         variant="outline"
                         className="border-slate-300 text-slate-700"
                       >
@@ -448,18 +332,18 @@ export default function FeeSettings() {
                       </Button>
                     )}
                     <Button
-                      onClick={editingRuleIndex === null ? handleAddRule : handleSaveRule}
+                      onClick={editingSlabIndex === null ? handleAddSlab : handleSaveSlab}
                       className="bg-green-600 hover:bg-green-700 text-white"
                     >
-                      {editingRuleIndex === null ? (
+                      {editingSlabIndex === null ? (
                         <>
                           <Plus className="w-4 h-4 mr-2" />
-                          Add Rule
+                          Add Slab
                         </>
                       ) : (
                         <>
                           <Check className="w-4 h-4 mr-2" />
-                          Save Rule
+                          Save Slab
                         </>
                       )}
                     </Button>

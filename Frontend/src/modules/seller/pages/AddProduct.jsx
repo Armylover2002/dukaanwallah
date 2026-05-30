@@ -15,10 +15,13 @@ import {
   HiOutlinePlus,
   HiOutlineSquaresPlus,
   HiOutlineCurrencyRupee,
+  HiOutlineQrCode,
+  HiOutlineCheckCircle,
 } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import toast2 from "react-hot-toast";
 import { sellerApi } from "../services/sellerApi";
 
 
@@ -27,6 +30,11 @@ const AddProduct = () => {
   const [modalTab, setModalTab] = useState("general");
   const [isSaving, setIsSaving] = useState(false);
   const mainImageInputRef = React.useRef(null);
+
+  // ── Product ID auto-fill state ───────────────────────────────────────
+  const [productIdInput, setProductIdInput] = useState("");
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -57,6 +65,57 @@ const AddProduct = () => {
       },
     ],
   });
+
+  // ── Handle Product ID lookup & auto-fill ──────────────────────────────
+  const handleProductIdLookup = async () => {
+    const sku = productIdInput.trim();
+    if (!sku) return;
+    setIsLookingUp(true);
+    try {
+      const res = await sellerApi.lookupProductBySku(sku);
+      if (res.data.success) {
+        const p = res.data.result || {};
+        setFormData(prev => ({
+          ...prev,
+          name: p.name || prev.name,
+          description: p.description || prev.description,
+          brand: p.brand || prev.brand,
+          weight: p.weight || prev.weight,
+          tags: Array.isArray(p.tags) ? p.tags.join(', ') : (p.tags || prev.tags),
+          price: p.price || prev.price,
+          salePrice: p.salePrice || prev.salePrice,
+          stock: p.stock || prev.stock,
+          lowStockAlert: p.lowStockAlert || prev.lowStockAlert,
+          // Category IDs from populated objects
+          header: p.headerId?._id || p.headerId || prev.header,
+          category: p.categoryId?._id || p.categoryId || prev.category,
+          subcategory: p.subcategoryId?._id || p.subcategoryId || prev.subcategory,
+          // Images — pre-populate URL strings (seller can re-upload if needed)
+          mainImage: p.mainImage || prev.mainImage,
+          galleryImages: Array.isArray(p.galleryImages) && p.galleryImages.length > 0
+            ? p.galleryImages
+            : prev.galleryImages,
+          // Variants
+          variants: Array.isArray(p.variants) && p.variants.length > 0
+            ? p.variants.map((v, i) => ({ ...v, id: v._id || Date.now() + i }))
+            : prev.variants,
+        }));
+        setAutoFilled(true);
+        toast2.success('Product data loaded! Review and save as your own.');
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 404) {
+        toast2.error('Product ID not found. Check the ID and try again.');
+      } else if (status === 403) {
+        toast2.error('This Product ID belongs to your own store.');
+      } else {
+        toast2.error('Could not fetch product. Please try again.');
+      }
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
 
   const [dbCategories, setDbCategories] = useState([]);
   const [isLoadingCats, setIsLoadingCats] = useState(true);
@@ -151,12 +210,16 @@ const AddProduct = () => {
       // Images
       if (formData.mainImageFile) {
         data.append("mainImage", formData.mainImageFile);
+      } else if (formData.mainImage) {
+        data.append("mainImage", formData.mainImage);
       }
 
       if (formData.galleryFiles && formData.galleryFiles.length > 0) {
         formData.galleryFiles.forEach(file => {
           data.append("galleryImages", file);
         });
+      } else if (formData.galleryImages && formData.galleryImages.length > 0) {
+        data.append("galleryImages", JSON.stringify(formData.galleryImages));
       }
 
       // Variants
@@ -272,6 +335,51 @@ const AddProduct = () => {
         <div className="flex-1 p-8 overflow-y-auto">
           {modalTab === "general" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
+
+              {/* ── Product ID Auto-Fill field ────────────────────────────── */}
+              <div className={cn(
+                "flex flex-col space-y-2 p-4 rounded-2xl border transition-all",
+                autoFilled
+                  ? "bg-indigo-50 border-indigo-200"
+                  : "bg-slate-50 border-slate-100",
+              )}>
+                <label className="text-[10px] sm:text-xs font-bold text-indigo-600 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                  <HiOutlineQrCode className="h-3.5 w-3.5" />
+                  Import from Product ID
+                  <span className="text-[9px] font-medium text-slate-400 normal-case tracking-normal">(optional)</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    value={productIdInput}
+                    onChange={e => { setProductIdInput(e.target.value); setAutoFilled(false); }}
+                    onKeyDown={e => e.key === 'Enter' && handleProductIdLookup()}
+                    placeholder="Paste Product ID (e.g. SKU-S17VXD)"
+                    className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono font-semibold outline-none focus:ring-2 focus:ring-indigo-300 transition-all placeholder:text-slate-400 placeholder:font-sans"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleProductIdLookup}
+                    disabled={!productIdInput.trim() || isLookingUp}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shrink-0"
+                  >
+                    {isLookingUp ? (
+                      <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                    ) : autoFilled ? (
+                      <HiOutlineCheckCircle className="h-4 w-4" />
+                    ) : (
+                      <HiOutlineQrCode className="h-4 w-4" />
+                    )}
+                    <span>{isLookingUp ? 'Loading…' : autoFilled ? 'Loaded' : 'Fetch'}</span>
+                  </button>
+                </div>
+                {autoFilled && (
+                  <p className="text-[10px] font-semibold text-indigo-600 ml-1 flex items-center gap-1">
+                    <HiOutlineCheckCircle className="h-3 w-3" />
+                    Product data auto-filled. Review and edit below, then save.
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-1.5 flex flex-col">
                 <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
                   Product Title

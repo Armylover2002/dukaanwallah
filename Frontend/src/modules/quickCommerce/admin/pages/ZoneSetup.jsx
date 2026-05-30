@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { MapPin, Plus, Search, Edit, Trash2, Eye } from "lucide-react"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
+
 import { adminApi } from "../services/adminApi"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -9,6 +13,50 @@ const debugError = (...args) => {}
 
 export default function ZoneSetup() {
   const navigate = useNavigate()
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const permissionKey = "quick::core_management::zone_setup"
+  const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create")
+  const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit")
+  const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete")
+
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -66,15 +114,17 @@ export default function ZoneSetup() {
               <p className="text-sm text-slate-600">Manage delivery zones for quick commerce</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/admin/quick-commerce/zone-setup/add")}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Add Zone</span>
-            </button>
-          </div>
+          {canCreate && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate("/admin/quick-commerce/zone-setup/add")}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Zone</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -104,7 +154,7 @@ export default function ZoneSetup() {
             <p className="text-slate-600 mb-6">
               {searchQuery ? "Try adjusting your search query" : "Create your first quick-commerce delivery zone to get started"}
             </p>
-            {!searchQuery && (
+            {!searchQuery && canCreate && (
               <button
                 onClick={() => navigate("/admin/quick-commerce/zone-setup/add")}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -134,20 +184,24 @@ export default function ZoneSetup() {
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => navigate(`/admin/quick-commerce/zone-setup/edit/${zone._id || zone.id}`)}
-                      className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteZone(zone._id || zone.id)}
-                      className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => navigate(`/admin/quick-commerce/zone-setup/edit/${zone._id || zone.id}`)}
+                        className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteZone(zone._id || zone.id)}
+                        className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">

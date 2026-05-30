@@ -259,6 +259,7 @@ const Analytics = () => {
             <ShimmerButton
               onClick={handleDownloadReport}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 rounded-lg text-xs sm:text-sm sm:text-xs font-bold text-white shadow-lg disabled:opacity-50 shrink-0"
+              background="var(--primary)"
               disabled={isExporting}>
               <HiOutlineArrowDownTray className="h-4 w-4 shrink-0" />
               <span>{isExporting ? "DOWNLOADING..." : "DOWNLOAD REPORT"}</span>
@@ -373,8 +374,8 @@ const Analytics = () => {
                   margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient
                       id="colorTraffic"
@@ -382,8 +383,8 @@ const Analytics = () => {
                       y1="0"
                       x2="0"
                       y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1} />
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--color-orange-tint)" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="var(--color-orange-tint)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -415,7 +416,7 @@ const Analytics = () => {
                     }}
                     itemStyle={{ fontSize: "11px", fontWeight: 900 }}
                     cursor={{
-                      stroke: "#3b82f6",
+                      stroke: "var(--primary)",
                       strokeWidth: 1,
                       strokeDasharray: "4 4",
                     }}
@@ -423,7 +424,7 @@ const Analytics = () => {
                   <Area
                     type="monotone"
                     dataKey="sales"
-                    stroke="#3b82f6"
+                    stroke="var(--primary)"
                     strokeWidth={4}
                     fillOpacity={1}
                     fill="url(#colorSales)"
@@ -431,7 +432,7 @@ const Analytics = () => {
                   <Area
                     type="monotone"
                     dataKey="traffic"
-                    stroke="#8b5cf6"
+                    stroke="#f97316"
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     fillOpacity={1}
@@ -475,9 +476,9 @@ const Analytics = () => {
                   <Radar
                     name="Volume"
                     dataKey="A"
-                    stroke="#10b981"
+                    stroke="var(--primary)"
                     strokeWidth={3}
-                    fill="#10b981"
+                    fill="var(--primary)"
                     fillOpacity={0.15}
                   />
                 </RadarChart>

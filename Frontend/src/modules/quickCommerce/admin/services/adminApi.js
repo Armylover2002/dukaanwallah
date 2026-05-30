@@ -73,17 +73,26 @@ const normalizeProduct = (item = {}) => ({
 });
 
 async function getQuickStatsPayload() {
+  const safeGet = async (url, config = {}) => {
+    try {
+      return await axiosInstance.get(url, config);
+    } catch (err) {
+      console.warn(`QuickCommerce Stats: Safe GET failed for ${url}:`, err.message);
+      return { data: { success: false, result: {}, results: [] } };
+    }
+  };
+
   const [statsRes, categoriesRes, productsRes, ordersRes] = await Promise.all([
-    axiosInstance.get('/quick-commerce/admin/stats'),
-    axiosInstance.get('/quick-commerce/admin/categories', { params: { limit: 100, flat: true } }),
-    axiosInstance.get('/quick-commerce/admin/products', { params: { limit: 100 } }),
-    axiosInstance.get('/quick-commerce/admin/orders', { params: { limit: 20 } }),
+    safeGet('/quick-commerce/admin/stats'),
+    safeGet('/quick-commerce/admin/categories', { params: { limit: 100, flat: true } }),
+    safeGet('/quick-commerce/admin/products', { params: { limit: 100 } }),
+    safeGet('/quick-commerce/admin/orders', { params: { limit: 20 } }),
   ]);
 
   const stats = statsRes.data?.result || {};
-  const categories = categoriesRes.data?.results || categoriesRes.data?.result?.items || [];
-  const products = productsRes.data?.result?.items || [];
-  const orders = ordersRes.data?.result?.items || [];
+  const categories = Array.isArray(categoriesRes.data?.results) ? categoriesRes.data.results : (Array.isArray(categoriesRes.data?.result?.items) ? categoriesRes.data.result.items : []);
+  const products = Array.isArray(productsRes.data?.result?.items) ? productsRes.data.result.items : (Array.isArray(productsRes.data?.result) ? productsRes.data.result : []);
+  const orders = Array.isArray(ordersRes.data?.result?.items) ? ordersRes.data.result.items : (Array.isArray(ordersRes.data?.result) ? ordersRes.data.result : []);
 
   const revenueHistory = [...Array(6)].map((_, index) => ({
     name: `M${index + 1}`,
@@ -416,10 +425,11 @@ export const adminApi = {
   updateOfferSection: (id, payload) => axiosInstance.put(`/quick-commerce/admin/offer-sections/${id}`, payload),
   deleteOfferSection: (id) => axiosInstance.delete(`/quick-commerce/admin/offer-sections/${id}`),
   reorderOfferSections: (items) => axiosInstance.post('/quick-commerce/admin/offer-sections/reorder', items),
-  getCoupons: () => emptyResponse([]),
-  createCoupon: () => emptyResponse({}),
-  updateCoupon: () => emptyResponse({}),
-  deleteCoupon: () => emptyResponse({}),
+  getCoupons: (params) => axiosInstance.get('/quick-commerce/admin/coupons', { params }),
+  createCoupon: (payload) => axiosInstance.post('/quick-commerce/admin/coupons', payload),
+  updateCoupon: (id, payload) => axiosInstance.put(`/quick-commerce/admin/coupons/${id}`, payload),
+  deleteCoupon: (id) => axiosInstance.delete(`/quick-commerce/admin/coupons/${id}`),
+  toggleCouponStatus: (id) => axiosInstance.patch(`/quick-commerce/admin/coupons/${id}/toggle-status`),
 
   // Seller Commission Management
   getSellerCommissionBootstrap: () => axiosInstance.get('/quick-commerce/admin/seller-commissions/bootstrap'),
@@ -429,4 +439,8 @@ export const adminApi = {
   updateSellerCommission: (id, payload) => axiosInstance.put(`/quick-commerce/admin/seller-commissions/${id}`, payload),
   deleteSellerCommission: (id) => axiosInstance.delete(`/quick-commerce/admin/seller-commissions/${id}`),
   toggleSellerCommissionStatus: (id) => axiosInstance.patch(`/quick-commerce/admin/seller-commissions/${id}/toggle-status`),
+  getQuickZoneSellers: (zoneId) => axiosInstance.get(`/quick-commerce/admin/quick-zone-hubs/sellers/${zoneId}`),
+  assignQuickZoneHubs: (body) => axiosInstance.post('/quick-commerce/admin/quick-zone-hubs', body),
+  getSellerCODVerifications: () => axiosInstance.get('/quick-commerce/admin/sellers/cod-verification'),
+  settleSellerCODVerification: (id, body) => axiosInstance.post(`/quick-commerce/admin/sellers/cod-verification/${id}/action`, body),
 };

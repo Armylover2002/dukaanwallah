@@ -73,7 +73,7 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
           <div className="py-3 px-1 flex flex-col items-center text-center">
             <span
               style={{
-                fontSize: '8px',
+                fontSize: '10px',
                 fontWeight: 800,
                 color: promo.subTextColor,
                 letterSpacing: '0.12em',

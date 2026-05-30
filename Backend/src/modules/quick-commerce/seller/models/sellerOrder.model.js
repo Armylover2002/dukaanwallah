@@ -68,6 +68,10 @@ const sellerOrderSchema = new mongoose.Schema(
       ],
       default: "pending",
     },
+    cancellationReason: {
+      type: String,
+      default: "",
+    },
     workflowStatus: {
       type: String,
       default: "SELLER_PENDING",

@@ -12,7 +12,9 @@ import {
     uploadRestaurantMenuImages,
     listPublicOffers,
     getRestaurantComplaints,
-    deleteRestaurantAccount
+    deleteRestaurantAccount,
+    getRestaurantCODDeposits,
+    processRestaurantCODDeposit
 } from '../services/restaurant.service.js';
 import { 
     getRestaurantReferralStats, 
@@ -186,6 +188,28 @@ export const getRestaurantReferralDetailsController = async (req, res, next) => 
         const restaurantId = req.user?.userId;
         const data = await getRestaurantReferralDetails(restaurantId);
         return sendResponse(res, 200, 'Referral details fetched successfully', data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getRestaurantCODDepositsController = async (req, res, next) => {
+    try {
+        const restaurantId = req.user?.userId;
+        const data = await getRestaurantCODDeposits(restaurantId, req.query || {});
+        return sendResponse(res, 200, 'COD deposit requests fetched successfully', data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const processRestaurantCODDepositController = async (req, res, next) => {
+    try {
+        const restaurantId = req.user?.userId;
+        const { id } = req.params;
+        const { action, restaurantNote } = req.body || {};
+        const data = await processRestaurantCODDeposit(restaurantId, id, { action, restaurantNote }, req.file);
+        return sendResponse(res, 200, `COD deposit request ${action === 'accept' ? 'accepted' : 'rejected'} successfully`, data);
     } catch (error) {
         next(error);
     }

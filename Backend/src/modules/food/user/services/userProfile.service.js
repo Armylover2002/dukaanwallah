@@ -64,3 +64,20 @@ export const uploadCurrentUserProfileImage = async (userId, file) => {
     return { profileImage: user.profileImage, user: user.toObject() };
 };
 
+export const deleteCurrentUserAccount = async (userId) => {
+    const user = await FoodUser.findById(userId);
+    if (!user) throw new AuthError('Profile not found');
+
+    // Soft delete
+    user.isDeleted = true;
+    user.accountStatus = 'deleted';
+    user.isActive = false;
+    await user.save();
+
+    // Invalidate/delete all active refresh tokens for this user
+    const { FoodRefreshToken } = await import('../../../../core/refreshTokens/refreshToken.model.js');
+    await FoodRefreshToken.deleteMany({ userId });
+
+    return { success: true, message: 'Account soft deleted successfully' };
+};
+

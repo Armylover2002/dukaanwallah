@@ -13,6 +13,8 @@ import {
   HiOutlineChartBarSquare,
   HiOutlineCreditCard,
   HiOutlineMapPin,
+  HiOutlineTag,
+  HiOutlineInbox,
 } from "react-icons/hi2";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
@@ -30,6 +32,8 @@ const Profile = React.lazy(() => import("../pages/Profile"));
 const Withdrawals = React.lazy(() => import("../pages/Withdrawals"));
 const Onboarding = React.lazy(() => import("../pages/Onboarding"));
 const PendingApproval = React.lazy(() => import("../pages/PendingApproval"));
+const Coupons = React.lazy(() => import("../pages/Coupons"));
+const CODDepositRequests = React.lazy(() => import("../pages/CODDepositRequests"));
 
 const navItems = [
   { label: "Dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
@@ -49,9 +53,19 @@ const navItems = [
     icon: HiOutlineCurrencyDollar,
   },
   {
+    label: "COD Deposit Requests",
+    path: "/seller/cod-deposits",
+    icon: HiOutlineInbox,
+  },
+  {
     label: "Payment History",
     path: "/seller/transactions",
     icon: HiOutlineCreditCard,
+  },
+  {
+    label: "Coupons",
+    path: "/seller/coupons",
+    icon: HiOutlineTag,
   },
   {
     label: "Earnings",
@@ -79,8 +93,10 @@ const SellerWorkspace = () => (
       <Route path="tracking" element={<DeliveryTracking />} />
       <Route path="analytics" element={<Analytics />} />
       <Route path="transactions" element={<Transactions />} />
+      <Route path="cod-deposits" element={<CODDepositRequests />} />
       <Route path="earnings" element={<Earnings />} />
       <Route path="withdrawals" element={<Withdrawals />} />
+      <Route path="coupons" element={<Coupons />} />
       <Route path="profile" element={<Profile />} />
       <Route path="*" element={<Navigate to="/seller" replace />} />
     </Routes>

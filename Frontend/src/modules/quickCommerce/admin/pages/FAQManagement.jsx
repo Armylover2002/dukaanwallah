@@ -1,5 +1,5 @@
 // Ultimate FAQ Management System - Functional Version
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import Modal from '@shared/components/ui/Modal';
@@ -31,9 +31,56 @@ import { useToast } from '@shared/components/ui/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@shared/components/ui/Pagination';
 import { adminApi } from '../services/adminApi';
-import { useEffect } from 'react';
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
+
 
 const FAQManagement = () => {
+    const { user: authUser } = useAuth();
+    const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+    const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const resolvePermissions = async () => {
+            if (!currentUser || currentUser.role === "ADMIN") {
+                if (isMounted) setResolvedPermissions({});
+                return;
+            }
+
+            const existingPermissions = extractAdminPermissions(currentUser);
+            if (Object.keys(existingPermissions).length > 0) {
+                if (isMounted) setResolvedPermissions(existingPermissions);
+                return;
+            }
+
+            const roleId = extractAdminRoleId(currentUser);
+            if (!roleId) {
+                if (isMounted) setResolvedPermissions({});
+                return;
+            }
+
+            try {
+                const rolePermissions = await fetchAdminRolePermissions(roleId);
+                if (isMounted) setResolvedPermissions(rolePermissions);
+            } catch {
+                if (isMounted) setResolvedPermissions({});
+            }
+        };
+
+        resolvePermissions();
+        return () => {
+            isMounted = false;
+        };
+    }, [currentUser]);
+
+    const permissionKey = "quick::core_management::faqs";
+    const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create");
+    const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
+    const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete");
+
     const { showToast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
@@ -204,20 +251,24 @@ const FAQManagement = () => {
                     <p className="ds-description mt-1">Manage categories and help customers with common questions.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setIsCategoryModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-3 bg-white ring-1 ring-slate-200 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm"
-                    >
-                        <Layers className="h-4 w-4 text-sky-500" />
-                        CATEGORIES
-                    </button>
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-3 bg-pink-600 text-white rounded-2xl text-xs font-bold hover:bg-pink-700 transition-all shadow-lg active:scale-95 shadow-pink-200"
-                    >
-                        <Plus className="h-4 w-4" />
-                        ADD FAQ
-                    </button>
+                    {(canCreate || canDelete) && (
+                        <button
+                            onClick={() => setIsCategoryModalOpen(true)}
+                            className="flex items-center gap-2 px-5 py-3 bg-white ring-1 ring-slate-200 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm"
+                        >
+                            <Layers className="h-4 w-4 text-sky-500" />
+                            CATEGORIES
+                        </button>
+                    )}
+                    {canCreate && (
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="flex items-center gap-2 px-5 py-3 bg-pink-600 text-white rounded-2xl text-xs font-bold hover:bg-pink-700 transition-all shadow-lg active:scale-95 shadow-pink-200"
+                        >
+                            <Plus className="h-4 w-4" />
+                            ADD FAQ
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -346,25 +397,31 @@ const FAQManagement = () => {
                                                                 <Eye className="h-3.5 w-3.5 text-slate-300" />
                                                                 <span className="text-[10px] font-bold text-slate-400">{faq.views.toLocaleString()}</span>
                                                             </div>
-                                                            <button
-                                                                onClick={() => handleToggleStatus(faq)}
-                                                                title={faq.status === 'published' ? 'Set as Draft' : 'Publish Now'}
-                                                                className="p-2 transition-all text-slate-400 hover:text-sky-500 hover:bg-sky-50 rounded-lg"
-                                                            >
-                                                                {faq.status === 'published' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleEditClick(faq)}
-                                                                className="p-2 transition-all text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg"
-                                                            >
-                                                                <Edit3 className="h-4 w-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteFaq(faq._id)}
-                                                                className="p-2 transition-all text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </button>
+                                                            {canEdit && (
+                                                                <button
+                                                                    onClick={() => handleToggleStatus(faq)}
+                                                                    title={faq.status === 'published' ? 'Set as Draft' : 'Publish Now'}
+                                                                    className="p-2 transition-all text-slate-400 hover:text-sky-500 hover:bg-sky-50 rounded-lg"
+                                                                >
+                                                                    {faq.status === 'published' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                                </button>
+                                                            )}
+                                                            {canEdit && (
+                                                                <button
+                                                                    onClick={() => handleEditClick(faq)}
+                                                                    className="p-2 transition-all text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg"
+                                                                >
+                                                                    <Edit3 className="h-4 w-4" />
+                                                                </button>
+                                                            )}
+                                                            {canDelete && (
+                                                                <button
+                                                                    onClick={() => handleDeleteFaq(faq._id)}
+                                                                    className="p-2 transition-all text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div

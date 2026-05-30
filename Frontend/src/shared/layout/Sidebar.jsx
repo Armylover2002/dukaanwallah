@@ -57,6 +57,8 @@ const SidebarItem = ({
     hasChildren &&
     item.children.some((child) => location.pathname === child.path);
 
+  const isSellerPanel = location.pathname.startsWith("/seller");
+
   if (hasChildren) {
     return (
       <div className="space-y-1">
@@ -67,14 +69,16 @@ const SidebarItem = ({
           className={cn(
             "w-full flex items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-300 group relative overflow-hidden",
             isChildActive || isOpen
-              ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] ring-1 ring-white/10"
-              : "text-gray-400 hover:text-white",
+              ? (isSellerPanel
+                  ? "bg-white/40 text-[#1A1A1A] shadow-sm ring-1 ring-slate-200"
+                  : "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] ring-1 ring-white/10")
+              : (isSellerPanel ? "text-[#5C5247] hover:text-[#1A1A1A]" : "text-gray-400 hover:text-white"),
           )}>
           <AnimatePresence>
             {isHovered && (
               <motion.div
                 layoutId="hover-highlight"
-                className="absolute inset-0 bg-white/5 rounded-lg -z-10"
+                className={cn("absolute inset-0 rounded-lg -z-10", isSellerPanel ? "bg-white/50" : "bg-white/5")}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -93,7 +97,9 @@ const SidebarItem = ({
                 "p-1.5 rounded-lg transition-all duration-500 shadow-lg",
                 isChildActive || isOpen
                   ? "bg-primary text-white shadow-primary/40 ring-2 ring-primary/20"
-                  : "bg-white/5 text-gray-500 group-hover:bg-white/10 group-hover:text-gray-300",
+                  : (isSellerPanel
+                      ? "bg-white/60 text-slate-400 group-hover:bg-white group-hover:text-primary"
+                      : "bg-white/5 text-gray-500 group-hover:bg-white/10 group-hover:text-gray-300"),
               )}>
               {item.icon && <item.icon className="h-4 w-4" />}
             </div>
@@ -110,7 +116,7 @@ const SidebarItem = ({
               "transition-all duration-300 z-10",
               isOpen
                 ? "rotate-180 text-primary"
-                : "rotate-0 text-gray-600 group-hover:text-gray-400",
+                : (isSellerPanel ? "rotate-0 text-slate-400 group-hover:text-slate-600" : "rotate-0 text-gray-600 group-hover:text-gray-400"),
             )}>
             <HiChevronDown className="h-4 w-4" />
           </div>
@@ -126,8 +132,10 @@ const SidebarItem = ({
                   cn(
                     "block text-xs py-1.5 px-2.5 rounded-lg transition-all duration-300 relative",
                     isActive
-                      ? "text-white font-bold bg-white/10 shadow-sm ring-1 ring-white/5"
-                      : "text-gray-500 hover:text-gray-300 hover:bg-white/5",
+                      ? (isSellerPanel
+                          ? "text-primary font-bold bg-white/40 shadow-sm ring-1 ring-slate-200"
+                          : "text-white font-bold bg-white/10 shadow-sm ring-1 ring-white/5")
+                      : (isSellerPanel ? "text-[#5C5247] hover:text-[#1A1A1A] hover:bg-white/20" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"),
                   )
                 }>
                 {({ isActive }) => (
@@ -157,7 +165,7 @@ const SidebarItem = ({
           "flex items-center space-x-2.5 rounded-lg px-3 py-2.5 transition-all duration-300 group relative overflow-hidden",
           isActive
             ? "bg-primary text-white shadow-[0_10px_30px_rgba(var(--primary),0.3)]"
-            : "text-gray-400 hover:text-white",
+            : (isSellerPanel ? "text-[#5C5247] hover:text-[#1A1A1A]" : "text-gray-400 hover:text-white"),
         )
       }>
       {({ isActive }) => (
@@ -166,7 +174,7 @@ const SidebarItem = ({
             {isHovered && !isActive && (
               <motion.div
                 layoutId="hover-highlight"
-                className="absolute inset-0 bg-white/5 rounded-lg -z-10"
+                className={cn("absolute inset-0 rounded-lg -z-10", isSellerPanel ? "bg-white/50" : "bg-white/5")}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -184,7 +192,9 @@ const SidebarItem = ({
               "p-1.5 rounded-lg transition-all duration-500 shadow-md z-10",
               isActive
                 ? "bg-white/20 text-white"
-                : "bg-white/5 text-gray-500 group-hover:bg-white/10 group-hover:text-gray-300",
+                : (isSellerPanel
+                    ? "bg-white/60 text-slate-400 group-hover:bg-white group-hover:text-primary"
+                    : "bg-white/5 text-gray-500 group-hover:bg-white/10 group-hover:text-gray-300"),
             )}>
             {item.icon && <item.icon className="h-4 w-4" />}
           </div>
@@ -252,7 +262,10 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex-shrink-0 flex h-16 items-center justify-between px-5 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent z-10">
+      <div className={cn(
+        "flex-shrink-0 flex h-16 items-center justify-between px-5 border-b z-10",
+        isSellerPanel ? "border-slate-200 bg-white/10" : "border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent"
+      )}>
         <div className="flex items-center space-x-2.5">
           {logoUrl ? (
             <img src={logoUrl} alt={companyName} className="h-9 w-auto object-contain" />
@@ -262,7 +275,7 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
             </div>
           )}
           <div>
-            <h1 className="text-base font-black tracking-tight text-white leading-none">
+            <h1 className={cn("text-base font-black tracking-tight leading-none", isSellerPanel ? "text-[#1A1A1A]" : "text-white")}>
               {companyName || 'App'}
             </h1>
             <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mt-1 block">
@@ -274,7 +287,7 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
         {/* Mobile Close Button */}
         <button
           onClick={onClose}
-          className="p-2 md:hidden text-gray-500 hover:text-white transition-colors"
+          className={cn("p-2 md:hidden transition-colors", isSellerPanel ? "text-[#5C5247] hover:text-[#1A1A1A]" : "text-gray-500 hover:text-white")}
         >
           <X className="h-5 w-5" />
         </button>
@@ -283,7 +296,10 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
       <nav
         data-lenis-prevent
         onMouseLeave={() => setHoveredIdx(null)}
-        className="mt-4 px-3 space-y-1.5 flex-1 overflow-y-auto overscroll-contain custom-scrollbar-dark min-h-0 pb-6 relative z-20"
+        className={cn(
+          "mt-4 px-3 space-y-1.5 flex-1 overflow-y-auto overscroll-contain min-h-0 pb-6 relative z-20",
+          isSellerPanel ? "custom-scrollbar" : "custom-scrollbar-dark"
+        )}
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {isAdminPanel && (
@@ -294,7 +310,7 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
             <AdminModuleSwitcher className="grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/5 p-1 shadow-none [&>button]:justify-center [&>button]:px-2 [&>button]:py-2 [&>button]:text-[10px] [&>button]:tracking-[0.18em]" />
           </div>
         )}
-        <p className="px-3 text-[9px] font-black text-gray-600 uppercase tracking-[0.3em] mb-3">
+        <p className={cn("px-3 text-[9px] font-black uppercase tracking-[0.3em] mb-3", isSellerPanel ? "text-[#7C7062]" : "text-gray-600")}>
           Core Management
         </p>
         <AnimatePresence>
@@ -315,20 +331,31 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
         </AnimatePresence>
       </nav>
 
-      <div className="p-4 border-t border-white/5 bg-gradient-to-t from-white/[0.02] to-transparent flex-shrink-0">
-        <div className="bg-white/5 rounded-lg p-3 shadow-sm border border-white/5 hover:bg-white/[0.08] hover:border-white/10 transition-all group cursor-pointer">
+      <div className={cn(
+        "p-4 border-t flex-shrink-0",
+        isSellerPanel ? "border-slate-200 bg-white/10" : "border-white/5 bg-gradient-to-t from-white/[0.02] to-transparent"
+      )}>
+        <div className={cn(
+          "rounded-lg p-3 shadow-sm border transition-all group cursor-pointer",
+          isSellerPanel
+            ? "bg-white/40 border-slate-200 hover:bg-white/60 hover:border-slate-300"
+            : "bg-white/5 border-white/5 hover:bg-white/[0.08] hover:border-white/10"
+        )}>
           <div className="flex items-center space-x-2.5">
             <div className="relative group">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary via-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-xs shadow-lg group-hover:scale-110 transition-all duration-500">
                 A
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 rounded-full border-2 border-[#0a0c10] shadow-sm animate-pulse"></div>
+              <div className={cn(
+                "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 shadow-sm animate-pulse",
+                isSellerPanel ? "bg-emerald-500 border-white" : "bg-emerald-500 border-[#0a0c10]"
+              )}></div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-white truncate group-hover:text-primary transition-colors">
+              <p className={cn("text-xs font-bold truncate group-hover:text-primary transition-colors", isSellerPanel ? "text-[#1A1A1A]" : "text-white")}>
                 {title?.toLowerCase().includes('seller') ? 'Seller Console' : 'Admin Console'}
               </p>
-              <p className="text-[9px] text-gray-500 truncate font-black uppercase tracking-widest">
+              <p className={cn("text-[9px] truncate font-black uppercase tracking-widest", isSellerPanel ? "text-[#7C7062]" : "text-gray-500")}>
                 {title?.toLowerCase().includes('seller') ? 'Seller' : 'Super Admin'}
               </p>
             </div>
@@ -341,6 +368,8 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
 
 const Sidebar = ({ items, title, isOpen, onClose }) => {
   const { role } = useAuth();
+  const location = useLocation();
+  const isSellerPanel = location.pathname.startsWith("/seller");
   const [openMenu, setOpenMenu] = useState(null);
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
@@ -361,10 +390,16 @@ const Sidebar = ({ items, title, isOpen, onClose }) => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className={cn(
-        "fixed left-0 inset-y-0 w-80 bg-[#0a0c10] text-gray-400 border-r border-white/5 shadow-[20px_0_60px_rgba(0,0,0,0.4)] md:flex flex-col z-50 transition-all duration-300",
-        (role === "admin" || role === "seller") ? "hidden md:flex" : "flex",
-      )}>
+      <aside 
+        className={cn(
+          "fixed left-0 inset-y-0 w-80 border-r shadow-[20px_0_60px_rgba(0,0,0,0.06)] md:flex flex-col z-50 transition-all duration-300",
+          isSellerPanel 
+            ? "bg-[#ffffffcc] backdrop-blur-md text-[#5C5247] border-slate-200" 
+            : "bg-[#0a0c10] text-gray-400 border-white/5",
+          (role === "admin" || role === "seller") ? "hidden md:flex" : "flex",
+        )}
+        style={isSellerPanel ? { backgroundColor: '#ffffffcc' } : undefined}
+      >
         <SidebarContent {...commonProps} />
       </aside>
 
@@ -389,7 +424,13 @@ const Sidebar = ({ items, title, isOpen, onClose }) => {
                 animate={{ x: 0 }}
                 exit={{ x: "-100%" }}
                 transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
-                className="flex-1 bg-[#0a0c10] shadow-2xl flex flex-col pointer-events-auto min-h-0"
+                className={cn(
+                  "flex-1 shadow-2xl flex flex-col pointer-events-auto min-h-0",
+                  isSellerPanel
+                    ? "bg-[#ffffffcc] backdrop-blur-md text-[#5C5247]"
+                    : "bg-[#0a0c10] text-gray-400"
+                )}
+                style={isSellerPanel ? { backgroundColor: '#ffffffcc' } : undefined}
               >
                 <SidebarContent {...commonProps} />
               </motion.div>

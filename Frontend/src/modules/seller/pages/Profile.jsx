@@ -13,12 +13,15 @@ import {
   Globe,
   MapPin,
   CheckCircle,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
 import Card from "@shared/components/ui/Card";
 import Button from "@shared/components/ui/Button";
 import MapPicker from "../../../shared/components/MapPicker";
+import { clearModuleAuth } from "@food/utils/auth";
 
 const SellerProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -27,6 +30,8 @@ const SellerProfile = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLocationSaving, setIsLocationSaving] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     shopName: "",
@@ -183,6 +188,23 @@ const SellerProfile = () => {
       toast.error(error.response?.data?.message || "Failed to update profile");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await sellerApi.deleteAccount();
+      clearModuleAuth("seller");
+      toast.success("Account deleted successfully");
+      window.location.href = "/seller/auth";
+    } catch (error) {
+      console.error("Error deleting seller account:", error);
+      toast.error(error?.response?.data?.message || "Failed to delete account. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -508,8 +530,60 @@ const SellerProfile = () => {
               </div>
             </div>
           </Card>
+
+          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-red-50/50 border border-red-100/50">
+            <h4 className="text-[10px] font-black uppercase tracking-[4px] text-red-600 mb-6">
+              Danger Zone
+            </h4>
+            <div className="space-y-6">
+              <p className="text-xs text-red-700/80 font-medium leading-relaxed">
+                Once you delete your seller account, you will lose access to all products, active orders, and shop history. This action is soft-delete and cannot be undone unless reactivated by an admin.
+              </p>
+              <Button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-black tracking-[2px] text-xs py-4 rounded-xl shadow-lg hover:shadow-red-600/20 transition-all flex items-center justify-center gap-3">
+                <Trash2 size={16} /> DELETE ACCOUNT
+              </Button>
+            </div>
+          </Card>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-gray-100 font-['Outfit']">
+            <div className="flex items-center gap-3 mb-3 text-red-600">
+              <AlertTriangle size={24} />
+              <h3 className="text-lg font-black text-slate-900">
+                Delete Seller Account?
+              </h3>
+            </div>
+            <p className="text-sm text-slate-500 font-medium leading-relaxed">
+              Are you sure you want to delete your merchant account? This will disable your shop and active catalog listings. Your transaction records will remain archived.
+            </p>
+            <div className="mt-6 flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 rounded-xl py-3 text-xs font-black tracking-[2px] border-slate-200 hover:bg-slate-50"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                KEEP IT
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black tracking-[2px] text-xs py-3 shadow-md hover:shadow-red-600/20"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "DELETING..." : "YES, DELETE"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isMapOpen && (
         <MapPicker

@@ -23,15 +23,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@food/components/ui/select"
+import { z } from "zod"
+import { toast } from "sonner"
 
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const emailLoginSchema = z.object({
+  email: z.string()
+    .trim()
+    .min(1, "Email Address is required")
+    .max(100, "Email must not exceed 100 characters")
+    .email("Please enter a valid email address"),
+  password: z.string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters")
+    .max(50, "Password must not exceed 50 characters"),
+})
+
+const employeeLoginSchema = z.object({
+  employeeId: z.string()
+    .trim()
+    .min(1, "Employee ID is required")
+    .max(20, "Employee ID must not exceed 20 characters")
+    .regex(/^EMPL\d+$/i, "Please enter a valid Employee ID format (e.g., EMPL0001)"),
+  password: z.string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters")
+    .max(50, "Password must not exceed 50 characters"),
+})
+
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 export default function AdminLogin() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [activeTab, setActiveTab] = useState("email")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -47,7 +74,7 @@ export default function AdminLogin() {
   useEffect(() => {
     const message = location.state?.message
     if (message) {
-      setSuccessMessage(message)
+      toast.success(message)
       window.history.replaceState({}, document.title, location.pathname)
     }
   }, [location.state?.message, location.pathname])
@@ -100,34 +127,36 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError("")
-    setSuccessMessage("")
     if (submittingRef.current) return
 
     const trimmedEmail = email.trim()
-    if (!trimmedEmail) {
-      setError("Email is required")
-      return
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(trimmedEmail)) {
-      setError("Please enter a valid email address")
-      return
-    }
-    if (!password) {
-      setError("Password is required")
-      return
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters")
-      return
+    const trimmedPassword = password.trim()
+
+    if (activeTab === "email") {
+      const validation = emailLoginSchema.safeParse({
+        email: trimmedEmail,
+        password: trimmedPassword
+      })
+      if (!validation.success) {
+        toast.error(validation.error.errors[0].message)
+        return
+      }
+    } else {
+      const validation = employeeLoginSchema.safeParse({
+        employeeId: trimmedEmail,
+        password: trimmedPassword
+      })
+      if (!validation.success) {
+        toast.error(validation.error.errors[0].message)
+        return
+      }
     }
 
     submittingRef.current = true
     setIsLoading(true)
 
     try {
-      const response = await adminAPI.login(trimmedEmail, password, selectedRoleId)
+      const response = await adminAPI.login(trimmedEmail, trimmedPassword, selectedRoleId)
       const data = response?.data?.data || response?.data || {}
 
       const accessToken = data.accessToken
@@ -140,17 +169,18 @@ export default function AdminLogin() {
       if (!refreshToken) {
         throw new Error("Invalid response from server: missing refresh token")
       }
+      toast.success("Login successful")
       setAuthData("admin", accessToken, adminUser, refreshToken)
       const resolvedPermissions = await resolveAdminPermissionsForUser(adminUser)
       const landingPath = getDefaultAdminLandingPath(adminUser, resolvedPermissions)
-      navigate(landingPath, { replace: true })
+      window.location.href = landingPath
     } catch (err) {
       const message =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
         "Login failed. Please check your credentials."
-      setError(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
       submittingRef.current = false
@@ -168,23 +198,11 @@ export default function AdminLogin() {
         <Card className="w-full max-w-lg bg-white/90 backdrop-blur border-neutral-200 shadow-2xl">
           <CardHeader className="pb-4">
             <div className="flex w-full items-center gap-4 sm:gap-5">
-              <div className="flex h-14 w-28 shrink-0 items-center justify-center rounded-xl bg-gray-900/5 ring-1 ring-neutral-200">
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={companyName || "Logo"}
-                    className="h-10 w-24 object-contain"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.target.style.display = 'none'
-                    }}
-                  />
-                ) : (
-                  <span className="text-xs font-bold text-gray-900 truncate px-2">
-                    {companyName || "Appzeto"}
-                  </span>
-                )}
-              </div>
+              <img
+                src="/logo.jpg"
+                alt="Dukaanwallah"
+                className="h-16 w-auto shrink-0 rounded-lg object-contain"
+              />
               <div className="flex flex-col gap-1">
                 <CardTitle className="text-3xl leading-tight text-gray-900">Admin Login</CardTitle>
                 <CardDescription className="text-base text-gray-600">
@@ -196,16 +214,34 @@ export default function AdminLogin() {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {successMessage && (
-                <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                  {successMessage}
-                </div>
-              )}
-              {error && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
+
+              {/* Login Method Tabs */}
+              <div className="flex border-b border-gray-200 mb-6 bg-slate-50/50 rounded-t-lg p-1">
+                <button
+                  type="button"
+                  className={`flex-1 py-3 text-center text-sm font-semibold transition-all border-b-2 rounded-t-md ${activeTab === 'email' ? 'border-neutral-900 text-neutral-950 font-bold bg-white shadow-xs' : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-slate-100/50'}`}
+                  onClick={() => {
+                    setActiveTab('email');
+                    setEmail('');
+                    setError('');
+                  }}
+                  disabled={isLoading}
+                >
+                  Login Using Email
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-3 text-center text-sm font-semibold transition-all border-b-2 rounded-t-md ${activeTab === 'employee' ? 'border-neutral-900 text-neutral-950 font-bold bg-white shadow-xs' : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-slate-100/50'}`}
+                  onClick={() => {
+                    setActiveTab('employee');
+                    setEmail('');
+                    setError('');
+                  }}
+                  disabled={isLoading}
+                >
+                  Login Using Employee ID
+                </button>
+              </div>
 
               <div className="space-y-2">
                 <Label className="text-base font-medium text-gray-900">Select Role</Label>
@@ -233,20 +269,39 @@ export default function AdminLogin() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-base font-medium text-gray-900">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@domain.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  autoComplete="off"
-                  required
-                  className="h-12 text-base"
-                />
-              </div>
+              {activeTab === 'email' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-base font-medium text-gray-900">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="text"
+                    placeholder="admin@domain.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    autoComplete="off"
+                    required
+                    maxLength={100}
+                    className="h-12 text-base"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="employeeId" className="text-base font-medium text-gray-900">Employee ID</Label>
+                  <Input
+                    id="employeeId"
+                    type="text"
+                    placeholder="EMPL00**"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    autoComplete="off"
+                    required
+                    maxLength={20}
+                    className="h-12 text-base"
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-base font-medium text-gray-900">Password</Label>
@@ -260,6 +315,7 @@ export default function AdminLogin() {
                     disabled={isLoading}
                     autoComplete="new-password"
                     required
+                    maxLength={50}
                     className="h-12 pr-12 text-base [&::-ms-reveal]:hidden [&::-webkit-password-reveal-button]:hidden"
                   />
                   <button

@@ -290,26 +290,6 @@ export default function AdminNavbar({ onMenuClick }) {
             >
               <Menu className="w-5 h-5" />
             </button>
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-24 h-12 rounded-lg bg-white border border-[#EDE8E0] flex items-center justify-center shadow-xs">
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={companyName || "Company"}
-                    className="w-24 h-10 object-contain"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <span className="text-sm font-semibold text-neutral-700 px-2 truncate">
-                    {companyName || "Appzeto"}
-                  </span>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Center: Search Bar */}

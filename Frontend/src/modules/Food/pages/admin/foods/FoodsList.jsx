@@ -99,7 +99,7 @@ export default function FoodsList() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showFoodFormModal, setShowFoodFormModal] = useState(false)
   const [foodFormMode, setFoodFormMode] = useState("add")
-  const [foodForm, setFoodForm] = useState(createFoodForm())
+  const [foodForm, setFoodForm] = useState(() => createFoodForm())
   const [editingFood, setEditingFood] = useState(null)
   const [submittingFood, setSubmittingFood] = useState(false)
   const [categoryOptions, setCategoryOptions] = useState([])
@@ -109,7 +109,7 @@ export default function FoodsList() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [imageVersion, setImageVersion] = useState(Date.now())
+  const [imageVersion, setImageVersion] = useState(() => Date.now())
 
   const getItemCreatedMs = (item = {}) => {
     const direct = [item.createdAt, item.addedAt, item.requestedAt, item.updatedAt]

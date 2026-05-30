@@ -43,6 +43,9 @@ const QuickZoneSetup = React.lazy(() => import("../pages/ZoneSetup"))
 const QuickAddZone = React.lazy(() => import("../pages/AddZone"))
 const QuickViewZone = React.lazy(() => import("../pages/ViewZone"))
 const SellerCommission = React.lazy(() => import("../pages/SellerCommission"))
+const SellerCouponRequest = React.lazy(() => import("../pages/SellerCouponRequest"))
+const QuickZoneHubs = React.lazy(() => import("../pages/QuickZoneHubs"))
+const CODDepositVerification = React.lazy(() => import("../pages/CODDepositVerification"))
 
 
 
@@ -62,10 +65,12 @@ function QuickCommerceAdminRoutesInner() {
       <Route path="/zone-setup/add" element={<QuickAddZone />} />
       <Route path="/zone-setup/edit/:id" element={<QuickAddZone />} />
       <Route path="/zone-setup/view/:id" element={<QuickViewZone />} />
+      <Route path="/quick-zone-hubs" element={<QuickZoneHubs />} />
       <Route path="/seller-requests" element={<PendingSellers />} />
       <Route path="/sellers/active" element={<ActiveSellers />} />
       <Route path="/sellers/active/:id" element={<SellerDetail />} />
       <Route path="/sellers/commission" element={<SellerCommission />} />
+      <Route path="/sellers/cod-deposit-verification" element={<CODDepositVerification />} />
       <Route path="/support-tickets" element={<SupportTickets />} />
       <Route path="/moderation" element={<ReviewModeration />} />
       <Route path="/experience-studio" element={<ContentManager />} />
@@ -90,6 +95,7 @@ function QuickCommerceAdminRoutesInner() {
       <Route path="/orders/:status" element={<OrdersList />} />
       <Route path="/orders/view/:orderId" element={<OrderDetail />} />
       <Route path="/billing" element={<BillingCharges />} />
+      <Route path="/seller-coupon-request" element={<SellerCouponRequest />} />
       <Route path="*" element={<Navigate to="/admin/quick-commerce" replace />} />
     </Routes>
   )

@@ -8,6 +8,7 @@ import {
 
 import ProtectedRoute from '@core/guards/ProtectedRoute'
 import RoleGuard from '@core/guards/RoleGuard'
+import { AuthPageGuard } from '@core/guards/RouteGuard'
 import { UserRole } from '@core/constants/roles'
 import SellerAuthPage from '../modules/seller/pages/Auth'
 
@@ -120,6 +121,16 @@ const AdminRouter = lazy(() => import('../modules/Food/components/admin/AdminRou
 
 const AppRoutes = () => {
   const location = useLocation()
+
+  useEffect(() => {
+    // Eagerly prefetch the quick commerce routes and user app routes chunk after initial mount
+    const prefetchTimeout = setTimeout(() => {
+      import('../modules/quickCommerce/routes').catch(() => {});
+      import('../modules/Food/routes').catch(() => {});
+    }, 2000);
+
+    return () => clearTimeout(prefetchTimeout);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -252,7 +263,15 @@ const AppRoutes = () => {
 
         {/* Seller Module */}
         <Route path="/seller" element={<SellerAppWrapper />} />
-        <Route path="/seller/auth" element={<SellerAuthEntry />} />
+        {/* Seller auth — redirect to /seller if already logged in */}
+        <Route
+          path="/seller/auth"
+          element={
+            <AuthPageGuard module="seller" home="/seller">
+              <SellerAuthEntry />
+            </AuthPageGuard>
+          }
+        />
         <Route path="/seller/*" element={<SellerAppWrapper />} />
 
         {/* Global Admin Portal - wrap lazy router in Suspense to avoid blank/crash on direct admin URLs */}

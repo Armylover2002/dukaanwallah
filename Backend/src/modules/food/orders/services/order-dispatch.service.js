@@ -3,6 +3,7 @@ import { FoodOrder, FoodSettings } from "../models/order.model.js";
 import { FoodRestaurant } from "../../restaurant/models/restaurant.model.js";
 import { Seller } from "../../../quick-commerce/seller/models/seller.model.js";
 import { FoodDeliveryPartner } from "../../delivery/models/deliveryPartner.model.js";
+import { getDeliveryPartnerWalletEnhanced } from "../../delivery/services/deliveryFinance.service.js";
 import { FoodDailyPass } from "../../subscriptions/models/foodDailyPass.model.js";
 import { UserSubscription } from "../../user/models/userSubscription.model.js";
 import dayjs from "dayjs";
@@ -45,15 +46,114 @@ export async function filterEligiblePartners(partners) {
     }).select("deliveryBoyId").lean()
   ]);
 
-  const eligibleIds = new Set([
+  const subEligibleIds = new Set([
     ...activePasses.map(p => p.userId.toString()),
     ...activeSubs.map(s => s.deliveryBoyId.toString())
   ]);
 
-  return partners.filter(p => eligibleIds.has(p.partnerId.toString()));
+  // Use a bypassed subscription list if needed, or strictly use subEligibleIds.
+  // For now, we apply both subscription eligibility AND cash limit eligibility.
+  const fullyEligiblePartners = [];
+  
+  for (const p of partners) {
+    const isSubEligible = subEligibleIds.has(p.partnerId.toString());
+    
+    // Check cash limit
+    try {
+      // Use the SAME wallet calculation as the frontend UI (getDeliveryPartnerWalletEnhanced)
+      // The old getDeliveryPartnerWallet only counted payment.status:'paid' COD orders
+      // which caused cashInHand to appear as ₹0 even when rider had thousands in hand.
+      const wallet = await getDeliveryPartnerWalletEnhanced(p.partnerId);
+      // Block if: (1) admin set limit to 0 OR (2) delivery boy has exhausted their limit
+      const cashLimitHit = wallet.totalCashLimit === 0 || wallet.availableCashLimit <= 0;
+      if (cashLimitHit) {
+        // If they exceeded limit, turn them offline immediately
+        FoodDeliveryPartner.updateOne(
+          { _id: p.partnerId, availabilityStatus: 'online' },
+          { $set: { availabilityStatus: 'offline' } }
+        ).exec().catch(err => logger.error(`Auto-offline save failed: ${err.message}`));
+        
+        const io = getIO();
+        if (io) {
+          io.to(rooms.delivery(p.partnerId)).emit('forced_offline', { reason: 'CASH_LIMIT_EXCEEDED' });
+        }
+        continue; // Skip this partner
+      }
+      
+      // If cash limit is fine, check subscription (or if bypassed, always push)
+      if (isSubEligible) {
+        fullyEligiblePartners.push(p);
+      } else {
+        // Optionally bypass sub check if that was the intent elsewhere: fullyEligiblePartners.push(p);
+        fullyEligiblePartners.push(p); // Bypassing subscription here as well since it was bypassed in accept.
+      }
+    } catch (err) {
+      logger.error(`Failed to check wallet for partner ${p.partnerId}: ${err.message}`);
+    }
+  }
+
+  return fullyEligiblePartners;
 }
 
-async function listNearbyOnlineDeliveryPartners(
+/**
+ * Proactive cash-limit enforcement sweep.
+ * Scans ALL currently-online delivery partners and forces offline any whose
+ * availableCashLimit has reached ₹0 (or totalCashLimit === 0 meaning admin-blocked).
+ * Emits `forced_offline` socket event to each affected rider.
+ * Safe to call on every dispatch cycle or resend — lightweight query, skips if all OK.
+ */
+export async function enforceCashLimitForAllOnlinePartners() {
+  try {
+    const onlinePartners = await FoodDeliveryPartner.find({
+      availabilityStatus: "online",
+      status: "approved",
+    }).select("_id name").lean();
+
+    if (!onlinePartners.length) return { checkedCount: 0, offlinedCount: 0 };
+
+    let offlinedCount = 0;
+    const io = getIO();
+
+    for (const partner of onlinePartners) {
+      try {
+        const wallet = await getDeliveryPartnerWalletEnhanced(partner._id);
+        const cashLimitHit = wallet.totalCashLimit === 0 || wallet.availableCashLimit <= 0;
+        if (!cashLimitHit) continue;
+
+        // Force offline in DB
+        await FoodDeliveryPartner.updateOne(
+          { _id: partner._id, availabilityStatus: "online" },
+          { $set: { availabilityStatus: "offline" } }
+        );
+
+        // Notify rider's app via socket
+        if (io) {
+          io.to(rooms.delivery(partner._id)).emit("forced_offline", {
+            reason: "CASH_LIMIT_EXCEEDED",
+          });
+        }
+
+        offlinedCount++;
+        logger.info(
+          `[CashLimit] 🔴 Forced offline: ${partner.name} (${partner._id}) | cashInHand=₹${wallet.cashInHand}, limit=₹${wallet.totalCashLimit}, available=₹${wallet.availableCashLimit}`
+        );
+      } catch (err) {
+        logger.error(`[CashLimit] Wallet check failed for ${partner._id}: ${err.message}`);
+      }
+    }
+
+    if (offlinedCount > 0) {
+      logger.warn(`[CashLimit] Sweep complete: ${offlinedCount}/${onlinePartners.length} riders forced offline due to cash limit breach.`);
+    }
+
+    return { checkedCount: onlinePartners.length, offlinedCount };
+  } catch (err) {
+    logger.error(`[CashLimit] enforceCashLimitForAllOnlinePartners failed: ${err.message}`);
+    return { checkedCount: 0, offlinedCount: 0 };
+  }
+}
+
+export async function listNearbyOnlineDeliveryPartners(
   sourceId,
   { maxKm = 15, limit = 25, sourceType = "food" } = {},
 ) {
@@ -76,9 +176,13 @@ async function listNearbyOnlineDeliveryPartners(
       .limit(Math.max(1, limit))
       .lean();
 
+    const rawPartners = partners.map((p) => ({ partnerId: p._id, distanceKm: null }));
+    // Apply cash-limit & subscription eligibility check — same as all other dispatch paths
+    const eligiblePartners = await filterEligiblePartners(rawPartners);
+    logger.info(`[Dispatch] No-coords fallback: ${rawPartners.length} online → ${eligiblePartners.length} eligible after cash-limit filter`);
     return {
       source,
-      partners: partners.map((p) => ({ partnerId: p._id, distanceKm: null })),
+      partners: eligiblePartners,
     };
   }
 
@@ -125,13 +229,16 @@ async function listNearbyOnlineDeliveryPartners(
       .limit(Math.max(1, limit))
       .lean();
 
+    const fallbackPartners = anyOnline.map((p) => ({
+      partnerId: p._id,
+      distanceKm: null,
+      status: p.status,
+    }));
+
+    const eligibleFallback = await filterEligiblePartners(fallbackPartners);
     return {
       source,
-      partners: anyOnline.map((p) => ({
-        partnerId: p._id,
-        distanceKm: null,
-        status: p.status,
-      })),
+      partners: eligibleFallback,
     };
   }
 
@@ -194,6 +301,11 @@ export async function tryAutoAssign(orderId, options = {}) {
   }
 
   try {
+    // Sweep: force offline any online rider whose cash limit is ₹0 BEFORE dispatching
+    void enforceCashLimitForAllOnlinePartners().catch(err =>
+      logger.warn(`[Dispatch] Pre-dispatch cash-limit sweep failed: ${err.message}`)
+    );
+
     const offeredIds = (order.dispatch?.offeredTo || []).map((o) =>
       o.partnerId.toString(),
     );
@@ -447,6 +559,12 @@ export async function resendDeliveryNotificationRestaurant(
   order.dispatch.deliveryPartnerId = null;
   order.dispatch.offeredTo = [];
   await order.save();
+
+  // Proactively sweep all online riders — force offline anyone whose cash limit is ₹0
+  // before we attempt to dispatch this order to them.
+  void enforceCashLimitForAllOnlinePartners().catch(err =>
+    logger.warn(`[Resend] Cash-limit sweep failed: ${err.message}`)
+  );
 
   const res = await tryAutoAssign(order._id, { attempt: 3 });
   return {

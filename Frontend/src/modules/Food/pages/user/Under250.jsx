@@ -109,7 +109,7 @@ export default function Under250() {
     { id: 'distance-low', label: 'Distance: Low to High' },
   ]
 
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     setSelectedSort(null)
     setDraftSelectedSort(null)
     setUnder30MinsFilter(false)
@@ -117,12 +117,12 @@ export default function Under250() {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(UNDER_250_FILTERS_STORAGE_KEY)
     }
-  }
+  }, [])
 
-  const handleApply = () => {
+  const handleApply = useCallback(() => {
     setSelectedSort(draftSelectedSort)
     setShowSortPopup(false)
-  }
+  }, [draftSelectedSort])
 
   // Helper function to parse delivery time (e.g., "12-15 mins" -> 12 or average)
   const parseDeliveryTime = (deliveryTime) => {
@@ -713,7 +713,7 @@ export default function Under250() {
     setShowShareOptions(false)
   }, [])
 
-  const handleItemClick = (item, restaurant) => {
+  const handleItemClick = useCallback((item, restaurant) => {
     // Add restaurant info to item for display
     const itemWithRestaurant = {
       ...item,
@@ -729,9 +729,9 @@ export default function Under250() {
     setSelectedItemImageIndex(0)
     setShowShareOptions(false)
     setShowItemDetail(true)
-  }
+  }, [quantities])
 
-  const handleBookmarkClick = (itemId) => {
+  const handleBookmarkClick = useCallback((itemId) => {
     setBookmarkedItems((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(itemId)) {
@@ -741,9 +741,9 @@ export default function Under250() {
       }
       return newSet
     })
-  }
+  }, [])
 
-  const handleShareItem = async (item) => {
+  const handleShareItem = useCallback(async (item) => {
     if (!item) return
 
     const itemId = item.id || item._id
@@ -766,7 +766,7 @@ export default function Under250() {
     }
 
     setShowShareOptions(true)
-  }
+  }, [])
 
   const handleShareOption = async (type) => {
     if (!selectedItem) return

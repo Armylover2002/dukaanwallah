@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@food/components/ui/card"
 import {
@@ -28,8 +28,8 @@ import { adminAPI } from "@food/api"
 import { useAuth } from "@core/context/AuthContext"
 import { getCurrentUser } from "@food/utils/auth"
 import { canAccessAdminPath, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
-const debugLog = () => {}
-const debugError = () => {}
+const debugLog = () => { }
+const debugError = () => { }
 
 const INR_SYMBOL = "\u20B9"
 
@@ -49,7 +49,6 @@ export default function AdminHome() {
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState(null)
   const [zones, setZones] = useState([])
-  const [subOverview, setSubOverview] = useState(null)
   const [resolvedPermissions, setResolvedPermissions] = useState({})
 
   useEffect(() => {
@@ -87,21 +86,12 @@ export default function AdminHome() {
     }
   }, [user])
 
-  const canAccessPath = (path) => canAccessAdminPath(user, resolvedPermissions, path)
+  const canAccessPath = useCallback(
+    (path) => canAccessAdminPath(user, resolvedPermissions, path),
+    [user, resolvedPermissions]
+  );
 
-  useEffect(() => {
-    const fetchSubOverview = async () => {
-      try {
-        const response = await adminAPI.getSubscriptionOverview()
-        if (response.data?.success && response.data?.data) {
-          setSubOverview(response.data.data)
-        }
-      } catch (err) {
-        // debugError
-      }
-    }
-    fetchSubOverview()
-  }, [])
+
 
   // Fetch zone list for filter
   useEffect(() => {
@@ -148,7 +138,7 @@ export default function AdminHome() {
   }, [selectedZone, selectedPeriod])
 
   // Get order stats from real data
-  const getOrderStats = () => {
+  const orderStats = useMemo(() => {
     if (!dashboardData?.orders?.byStatus) {
       return [
         { label: "Delivered", value: 0, color: "#0ea5e9" },
@@ -165,10 +155,10 @@ export default function AdminHome() {
       { label: "Cancelled", value: byStatus.cancelled || 0, color: "#ef4444" },
       { label: "Pending", value: byStatus.pending || 0, color: "#10b981" },
     ]
-  }
+  }, [dashboardData]);
 
   // Get monthly data from real data
-  const getMonthlyData = () => {
+  const monthlyData = useMemo(() => {
     if (!dashboardData?.monthlyData || dashboardData.monthlyData.length === 0) {
       // Return empty data structure if no data
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -182,10 +172,7 @@ export default function AdminHome() {
       revenue: item.revenue || 0,
       orders: item.orders || 0
     }))
-  }
-
-  const orderStats = getOrderStats()
-  const monthlyData = getMonthlyData()
+  }, [dashboardData]);
 
   // Calculate totals from real data
   const revenueTotal = dashboardData?.revenue?.total || 0
@@ -208,16 +195,18 @@ export default function AdminHome() {
   const completedOrders = dashboardData?.orderStats?.completed || 0
   const activeOrdersTotal = processingOrders
 
-  const pieData = orderStats.map((item) => ({
-    name: item.label,
-    value: item.value,
-    fill: item.color,
-  }))
+  const pieData = useMemo(() => {
+    return orderStats.map((item) => ({
+      name: item.label,
+      value: item.value,
+      fill: item.color,
+    }));
+  }, [orderStats]);
 
   const deliveryProfit = dashboardData?.deliveryProfit || 0
-  const periodLabel = selectedPeriod === "overall" ? "Overall" : 
-                    selectedPeriod === "today" ? "Today's" : 
-                    `This ${selectedPeriod}'s`
+  const periodLabel = selectedPeriod === "overall" ? "Overall" :
+    selectedPeriod === "today" ? "Today's" :
+      `This ${selectedPeriod}'s`
 
   const activityFeed = dashboardData?.liveSignals || []
   const totalRevenueHelper = [
@@ -284,6 +273,7 @@ export default function AdminHome() {
               icon={<ShoppingBag className="h-5 w-5 text-emerald-600" />}
               accent="bg-emerald-200/40"
               path="/admin/food/transaction-report"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Orders processed"
@@ -292,6 +282,7 @@ export default function AdminHome() {
               icon={<Activity className="h-5 w-5 text-amber-600" />}
               accent="bg-amber-200/40"
               path="/admin/food/orders/processing"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Platform fee"
@@ -300,6 +291,7 @@ export default function AdminHome() {
               icon={<CreditCard className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"
               path="/admin/food/fee-settings"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Delivery fee"
@@ -308,6 +300,7 @@ export default function AdminHome() {
               icon={<Truck className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
               path="/admin/food/transaction-report"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="GST"
@@ -316,6 +309,7 @@ export default function AdminHome() {
               icon={<Receipt className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
               path="/admin/food/tax-report"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Platform Total"
@@ -324,6 +318,7 @@ export default function AdminHome() {
               icon={<DollarSign className="h-5 w-5 text-green-600" />}
               accent="bg-green-200/40"
               path="/admin/food/transaction-report"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total restaurants"
@@ -332,6 +327,7 @@ export default function AdminHome() {
               icon={<Store className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
               path="/admin/food/restaurants"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Restaurant request pending"
@@ -340,6 +336,7 @@ export default function AdminHome() {
               icon={<UserCheck className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
               path="/admin/food/restaurants/joining-request"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total delivery boy"
@@ -348,6 +345,7 @@ export default function AdminHome() {
               icon={<Truck className="h-5 w-5 text-indigo-600" />}
               accent="bg-indigo-200/40"
               path="/admin/food/delivery-partners"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Delivery boy request pending"
@@ -356,6 +354,7 @@ export default function AdminHome() {
               icon={<Clock className="h-5 w-5 text-yellow-600" />}
               accent="bg-yellow-200/40"
               path="/admin/food/delivery-partners/join-request"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total foods"
@@ -364,6 +363,7 @@ export default function AdminHome() {
               icon={<Package className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"
               path="/admin/food/foods"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total addons"
@@ -372,6 +372,7 @@ export default function AdminHome() {
               icon={<Plus className="h-5 w-5 text-pink-600" />}
               accent="bg-pink-200/40"
               path="/admin/food/addons"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total customers"
@@ -380,6 +381,7 @@ export default function AdminHome() {
               icon={<UserCircle className="h-5 w-5 text-cyan-600" />}
               accent="bg-cyan-200/40"
               path="/admin/food/customers"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Pending orders"
@@ -388,6 +390,7 @@ export default function AdminHome() {
               icon={<Clock className="h-5 w-5 text-red-600" />}
               accent="bg-red-200/40"
               path="/admin/food/orders/pending"
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Completed orders"
@@ -396,62 +399,8 @@ export default function AdminHome() {
               icon={<CheckCircle className="h-5 w-5 text-emerald-600" />}
               accent="bg-emerald-200/40"
               path="/admin/food/orders/delivered"
+              canAccessPath={canAccessPath}
             />
-          </div>
-
-          {/* Subscription Operations Section */}
-          <div className="pt-4 border-t border-neutral-200/60 mt-6">
-            <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4">Subscription Operations Command</h3>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <MetricCard
-                title="Total revenue"
-                value={formatCurrency(subOverview?.totalRevenue || 0)}
-                helper="Gross collected all-time"
-                icon={<DollarSign className="h-5 w-5 text-[#FE5502]" />}
-                accent="bg-orange-100/40"
-                path="/admin/food/subscriptions?source=revenue"
-              />
-              <MetricCard
-                title="Active paid users"
-                value={`${subOverview?.activeSubscribers?.total || 0} (${subOverview?.activeSubscribers?.restaurants || 0} R / ${subOverview?.activeSubscribers?.deliveryPartners || 0} D)`}
-                helper="Active subscription plans"
-                icon={<Activity className="h-5 w-5 text-blue-600" />}
-                accent="bg-blue-100/40"
-                path="/admin/food/subscriptions?status=active"
-              />
-              <MetricCard
-                title="Daily pass count"
-                value={(subOverview?.oneDayPassCount || 0).toLocaleString("en-IN")}
-                helper="One day passes activated"
-                icon={<Truck className="h-5 w-5 text-purple-600" />}
-                accent="bg-purple-100/40"
-                path="/admin/food/subscriptions?type=DAILY_DEDUCTION"
-              />
-              <MetricCard
-                title="Recharge revenue"
-                value={formatCurrency(subOverview?.walletRechargeRevenue || 0)}
-                helper="Wallet topup volume"
-                icon={<CreditCard className="h-5 w-5 text-emerald-600" />}
-                accent="bg-emerald-100/40"
-                path="/admin/food/subscriptions?type=TOPUP"
-              />
-              <MetricCard
-                title="Recurring plans"
-                value={formatCurrency(subOverview?.recurringPlanRevenue || 0)}
-                helper="Weekly & Monthly direct plans"
-                icon={<Package className="h-5 w-5 text-indigo-600" />}
-                accent="bg-indigo-100/40"
-                path="/admin/food/subscriptions?type=WEEKLY_SUBSCRIPTION"
-              />
-              <MetricCard
-                title="Expiring soon"
-                value={(subOverview?.expiringSoon || 0).toLocaleString("en-IN")}
-                helper="Plans expiring within 3 days"
-                icon={<Clock className="h-5 w-5 text-amber-600" />}
-                accent="bg-amber-100/40"
-                path="/admin/food/subscriptions?status=expiring"
-              />
-            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
@@ -543,7 +492,7 @@ export default function AdminHome() {
                   {orderStats.map((item) => (
                     <div
                       key={item.label}
-                    onClick={() => {
+                      onClick={() => {
                         const routes = {
                           'Delivered': '/admin/food/orders/delivered',
                           'Processing': '/admin/food/orders/processing',
@@ -707,48 +656,10 @@ export default function AdminHome() {
   )
 }
 
-function MetricCard({ title, value, helper, icon, accent, path }) {
-  const { user: authUser } = useAuth()
-  const user = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+function MetricCard({ title, value, helper, icon, accent, path, canAccessPath }) {
   const navigate = useNavigate()
-  const [resolvedPermissions, setResolvedPermissions] = useState({})
 
-  useEffect(() => {
-    let isMounted = true
-
-    const resolvePermissions = async () => {
-      if (!user || user.role === "ADMIN") {
-        if (isMounted) setResolvedPermissions({})
-        return
-      }
-
-      const existingPermissions = extractAdminPermissions(user)
-      if (Object.keys(existingPermissions).length > 0) {
-        if (isMounted) setResolvedPermissions(existingPermissions)
-        return
-      }
-
-      const roleId = extractAdminRoleId(user)
-      if (!roleId) {
-        if (isMounted) setResolvedPermissions({})
-        return
-      }
-
-      try {
-        const rolePermissions = await fetchAdminRolePermissions(roleId)
-        if (isMounted) setResolvedPermissions(rolePermissions)
-      } catch {
-        if (isMounted) setResolvedPermissions({})
-      }
-    }
-
-    resolvePermissions()
-    return () => {
-      isMounted = false
-    }
-  }, [user])
-
-  if (path && !canAccessAdminPath(user, resolvedPermissions, path)) {
+  if (path && canAccessPath && !canAccessPath(path)) {
     return null
   }
 

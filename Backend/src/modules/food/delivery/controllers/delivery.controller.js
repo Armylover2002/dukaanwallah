@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
-import { registerDeliveryPartner, updateDeliveryPartnerProfile, updateDeliveryPartnerBankDetails, listSupportTicketsByPartner, createSupportTicket, getSupportTicketByIdAndPartner, updateDeliveryPartnerDetails, updateDeliveryPartnerProfilePhotoBase64, updateDeliveryAvailability, getDeliveryPartnerWallet, getDeliveryPartnerEarnings, getDeliveryPartnerTripHistory, getDeliveryPocketDetails, getActiveEarningAddonsForPartner } from '../services/delivery.service.js';
-import { createDeliveryCashDepositOrder, getDeliveryPartnerWalletEnhanced, requestDeliveryWithdrawal, verifyDeliveryCashDepositPayment } from '../services/deliveryFinance.service.js';
+import { FoodDeliveryCashDeposit } from '../models/foodDeliveryCashDeposit.model.js';
+import { registerDeliveryPartner, updateDeliveryPartnerProfile, updateDeliveryPartnerBankDetails, listSupportTicketsByPartner, createSupportTicket, getSupportTicketByIdAndPartner, updateDeliveryPartnerDetails, updateDeliveryPartnerProfilePhotoBase64, updateDeliveryAvailability, getDeliveryPartnerWallet, getDeliveryPartnerEarnings, getDeliveryPartnerTripHistory, getDeliveryPocketDetails, getActiveEarningAddonsForPartner, deleteDeliveryPartnerAccount } from '../services/delivery.service.js';
+import { createDeliveryCashDepositOrder, getDeliveryPartnerWalletEnhanced, requestDeliveryWithdrawal, verifyDeliveryCashDepositPayment, submitDeliveryManualDeposit } from '../services/deliveryFinance.service.js';
 import { getDeliveryCashLimitSettings, getDeliveryEmergencyHelp } from '../../admin/services/admin.service.js';
 import { DeliveryBonusTransaction } from '../../admin/models/deliveryBonusTransaction.model.js';
 import { validateDeliveryRegisterDto, validateDeliveryProfileUpdateDto, validateDeliveryBankDetailsDto } from '../validators/delivery.validator.js';
@@ -154,9 +155,10 @@ export const getWalletController = async (req, res, next) => {
                     transactionId: b.transactionId
                 }));
             } else if (requestedTypeRaw === 'deposit') {
-                const deposits = await mongoose.model('FoodDeliveryCashDeposit').find({ 
-                    deliveryPartnerId,
-                    status: 'Completed'
+                const partnerObjId = new mongoose.Types.ObjectId(deliveryPartnerId);
+                const deposits = await FoodDeliveryCashDeposit.find({ 
+                    deliveryPartnerId: partnerObjId,
+                    status: { $in: ['Completed', 'Pending', 'Failed'] }
                 })
                 .sort({ createdAt: -1 })
                 .limit(limit)
@@ -167,7 +169,8 @@ export const getWalletController = async (req, res, next) => {
                     _id: d._id,
                     type: 'deposit',
                     amount: d.amount || 0,
-                    status: d.status || 'Completed',
+                    status: d.status === 'Completed' ? 'Completed' : d.status === 'Failed' ? 'Rejected' : 'Pending',
+                    rejectionReason: d.status === 'Failed' ? d.adminNote || 'No reason specified' : '',
                     date: d.createdAt,
                     createdAt: d.createdAt,
                     description: 'Cash limit settlement'
@@ -205,10 +208,39 @@ export const getWalletController = async (req, res, next) => {
                 wallet.transactions = txs;
             }
 
+            const pendingManualDeposit = await FoodDeliveryCashDeposit.findOne({
+                deliveryPartnerId: new mongoose.Types.ObjectId(deliveryPartnerId),
+                status: 'Pending',
+                depositType: { $in: ['admin_bank', 'admin_upi', 'admin_qr', 'zone_hub'] }
+            }).lean();
+
+            wallet.pendingManualDeposit = pendingManualDeposit ? {
+                id: pendingManualDeposit._id,
+                amount: Number(pendingManualDeposit.amount) || 0,
+                depositType: pendingManualDeposit.depositType,
+                status: pendingManualDeposit.status,
+                createdAt: pendingManualDeposit.createdAt
+            } : null;
+
             return sendResponse(res, 200, 'Wallet fetched successfully', { wallet });
         }
 
         const wallet = await getDeliveryPartnerWalletEnhanced(deliveryPartnerId);
+
+        const pendingManualDeposit = await FoodDeliveryCashDeposit.findOne({
+            deliveryPartnerId: new mongoose.Types.ObjectId(deliveryPartnerId),
+            status: 'Pending',
+            depositType: { $in: ['admin_bank', 'admin_upi', 'admin_qr', 'zone_hub'] }
+        }).lean();
+
+        wallet.pendingManualDeposit = pendingManualDeposit ? {
+            id: pendingManualDeposit._id,
+            amount: Number(pendingManualDeposit.amount) || 0,
+            depositType: pendingManualDeposit.depositType,
+            status: pendingManualDeposit.status,
+            createdAt: pendingManualDeposit.createdAt
+        } : null;
+
         return sendResponse(res, 200, 'Wallet fetched successfully', { wallet });
     } catch (error) {
         next(error);
@@ -314,6 +346,129 @@ export const getDeliveryReferralStatsController = async (req, res, next) => {
         const deliveryPartnerId = req.user?.userId;
         const stats = await getDeliveryReferralStats(deliveryPartnerId);
         return sendResponse(res, 200, 'Referral stats fetched successfully', { stats });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const deleteDeliveryPartnerAccountController = async (req, res, next) => {
+    try {
+        const userId = req.user?.userId;
+        const result = await deleteDeliveryPartnerAccount(userId);
+        return sendResponse(res, 200, 'Account deleted successfully', result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const submitDeliveryManualDepositController = async (req, res, next) => {
+    try {
+        const deliveryPartnerId = req.user?.userId;
+        const payload = req.body;
+        const file = req.file; // Uploaded receipt/proof
+        const data = await submitDeliveryManualDeposit(deliveryPartnerId, payload, file);
+        return sendResponse(res, 201, 'Cash deposit request submitted successfully', data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getDepositZonesController = async (req, res, next) => {
+    try {
+        const { FoodZone } = await import('../../admin/models/zone.model.js');
+        const { QuickZone } = await import('../../../quick-commerce/models/quick_zone.model.js');
+        
+        const [foodZones, quickZones] = await Promise.all([
+            FoodZone.find({ isActive: true }).select('name zoneName').sort({ name: 1 }).lean(),
+            QuickZone.find({ isActive: true }).select('name zoneName').sort({ name: 1 }).lean()
+        ]);
+        
+        const combinedZones = [
+            ...foodZones.map(z => ({
+                id: z._id,
+                _id: z._id,
+                name: `${z.zoneName || z.name} (Food)`,
+                zoneName: `${z.zoneName || z.name} (Food)`,
+                zoneType: 'food'
+            })),
+            ...quickZones.map(z => ({
+                id: z._id,
+                _id: z._id,
+                name: `${z.zoneName || z.name} (Quick)`,
+                zoneName: `${z.zoneName || z.name} (Quick)`,
+                zoneType: 'quick'
+            }))
+        ];
+        
+        combinedZones.sort((a, b) => a.name.localeCompare(b.name));
+
+        return sendResponse(res, 200, 'Zones fetched successfully', { zones: combinedZones });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getDepositZoneHubsController = async (req, res, next) => {
+    try {
+        const { id: zoneId } = req.params;
+        if (!zoneId || !mongoose.Types.ObjectId.isValid(zoneId)) {
+            return res.status(400).json({ success: false, message: 'Invalid Zone ID' });
+        }
+        
+        const { FoodZone } = await import('../../admin/models/zone.model.js');
+        const isFoodZone = await FoodZone.exists({ _id: new mongoose.Types.ObjectId(zoneId) });
+        
+        if (isFoodZone) {
+            const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');
+            const hubs = await FoodRestaurant.find({
+                zoneId: new mongoose.Types.ObjectId(zoneId),
+                isZoneHub: true,
+                status: 'approved',
+                isDeleted: { $ne: true }
+            }).select('restaurantName restaurantId ownerPhone ownerName addressLine1 city').sort({ restaurantName: 1 }).lean();
+
+            const mappedHubs = hubs.map(h => ({
+                id: h._id,
+                restaurantId: h._id,
+                displayId: h.restaurantId,
+                name: `${h.restaurantName} (Food Hub)`,
+                phone: h.ownerPhone || 'N/A',
+                owner: h.ownerName || 'N/A',
+                address: h.addressLine1 || 'N/A',
+                hubType: 'food'
+            }));
+
+            return sendResponse(res, 200, 'Zone Hubs fetched successfully', { hubs: mappedHubs });
+        } else {
+            const { QuickZone } = await import('../../../quick-commerce/models/quick_zone.model.js');
+            const isQuickZone = await QuickZone.exists({ _id: new mongoose.Types.ObjectId(zoneId) });
+            
+            if (isQuickZone) {
+                const { Seller } = await import('../../../quick-commerce/seller/models/seller.model.js');
+                const hubs = await Seller.find({
+                    'shopInfo.zoneId': new mongoose.Types.ObjectId(zoneId),
+                    isZoneHub: true,
+                    isVerified: true,
+                    isActive: true,
+                    approved: true
+                }).select('name shopName phone location').sort({ shopName: 1 }).lean();
+
+                const mappedHubs = hubs.map(h => ({
+                    id: h._id,
+                    restaurantId: h._id,
+                    displayId: String(h._id).slice(-6).toUpperCase(),
+                    name: `${h.shopName || h.name} (Quick Hub)`,
+                    phone: h.phone || 'N/A',
+                    owner: h.name || 'N/A',
+                    address: h.location?.address || h.location?.formattedAddress || 'N/A',
+                    hubType: 'quick'
+                }));
+
+                return sendResponse(res, 200, 'Zone Hubs fetched successfully', { hubs: mappedHubs });
+            }
+        }
+        
+        return res.status(404).json({ success: false, message: 'Zone not found' });
     } catch (error) {
         next(error);
     }

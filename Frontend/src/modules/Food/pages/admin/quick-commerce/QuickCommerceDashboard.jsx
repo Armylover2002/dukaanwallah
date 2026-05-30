@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Package, ShoppingBag, Tags, IndianRupee, Plus } from 'lucide-react';
 import apiClient from '@/services/api/axios';
 
@@ -44,28 +44,38 @@ export default function QuickCommerceAdminDashboard() {
   const [submittingCategory, setSubmittingCategory] = useState(false);
   const [submittingProduct, setSubmittingProduct] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
+    
+    const safeGet = async (url) => {
+      try {
+        return await apiClient.get(url, { contextModule: 'admin' });
+      } catch (err) {
+        console.warn(`QuickCommerceDashboard: GET ${url} failed:`, err.message);
+        return { data: { success: false, result: null } };
+      }
+    };
+
     try {
       const [statsRes, categoriesRes, productsRes, ordersRes] = await Promise.all([
-        apiClient.get('/quick-commerce/admin/stats', { contextModule: 'admin' }),
-        apiClient.get('/quick-commerce/admin/categories', { contextModule: 'admin' }),
-        apiClient.get('/quick-commerce/admin/products', { contextModule: 'admin' }),
-        apiClient.get('/quick-commerce/admin/orders', { contextModule: 'admin' }),
+        safeGet('/quick-commerce/admin/stats'),
+        safeGet('/quick-commerce/admin/categories'),
+        safeGet('/quick-commerce/admin/products'),
+        safeGet('/quick-commerce/admin/orders'),
       ]);
 
       setStats(statsRes.data?.result || { categories: 0, products: 0, orders: 0, revenue: 0 });
-      setCategories(categoriesRes.data?.result || []);
-      setProducts(productsRes.data?.result || []);
-      setOrders(ordersRes.data?.result || []);
+      setCategories(Array.isArray(categoriesRes.data?.result) ? categoriesRes.data.result : []);
+      setProducts(Array.isArray(productsRes.data?.result) ? productsRes.data.result : []);
+      setOrders(Array.isArray(ordersRes.data?.result) ? ordersRes.data.result : []);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load().catch(() => setLoading(false));
-  }, []);
+  }, [load]);
 
   const categoryMap = useMemo(() => {
     const m = {};
@@ -170,7 +180,7 @@ export default function QuickCommerceAdminDashboard() {
                 {loading ? <div className="p-4 text-sm text-slate-500">Loading...</div> : categories.map((category) => (
                   <div key={category.id || category._id} className="flex items-center justify-between border-b border-slate-50 px-4 py-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <img src={category.image} alt={category.name} className="h-9 w-9 rounded-lg object-cover" />
+                      <img src={category.image} alt={category.name} loading="lazy" className="h-9 w-9 rounded-lg object-cover" />
                       <div>
                         <p className="font-bold text-slate-900">{category.name}</p>
                         <p className="text-xs text-slate-500">{category.slug}</p>
@@ -186,7 +196,7 @@ export default function QuickCommerceAdminDashboard() {
               <div className="border-b border-slate-100 px-4 py-3 text-sm font-black uppercase tracking-wide text-slate-700">Recent Orders ({orders.length})</div>
               <div className="max-h-72 overflow-auto">
                 {loading ? <div className="p-4 text-sm text-slate-500">Loading...</div> : orders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between border-b border-slate-50 px-4 py-2 text-sm">
+                  <div key={order.id || order._id} className="flex items-center justify-between border-b border-slate-50 px-4 py-2 text-sm">
                     <div>
                       <p className="font-bold text-slate-900">{order.orderNumber}</p>
                       <p className="text-xs text-slate-500">{new Date(order.createdAt).toLocaleString()}</p>
@@ -219,7 +229,7 @@ export default function QuickCommerceAdminDashboard() {
                     <tr key={product.id || product._id} className="border-t border-slate-100">
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
-                          <img src={product.image} alt={product.name} className="h-9 w-9 rounded-lg object-cover" />
+                          <img src={product.image} alt={product.name} loading="lazy" className="h-9 w-9 rounded-lg object-cover" />
                           <div>
                             <p className="font-semibold text-slate-900">{product.name}</p>
                             <p className="text-xs text-slate-500">{product.badge || 'No badge'}</p>

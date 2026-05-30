@@ -28,8 +28,56 @@ import Pagination from '@shared/components/ui/Pagination';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { convertToWebP } from '@/shared/utils/imageUploadUtils';
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
+
 
 const ProductManagement = () => {
+    const { user: authUser } = useAuth();
+    const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+    const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const resolvePermissions = async () => {
+            if (!currentUser || currentUser.role === "ADMIN") {
+                if (isMounted) setResolvedPermissions({});
+                return;
+            }
+
+            const existingPermissions = extractAdminPermissions(currentUser);
+            if (Object.keys(existingPermissions).length > 0) {
+                if (isMounted) setResolvedPermissions(existingPermissions);
+                return;
+            }
+
+            const roleId = extractAdminRoleId(currentUser);
+            if (!roleId) {
+                if (isMounted) setResolvedPermissions({});
+                return;
+            }
+
+            try {
+                const rolePermissions = await fetchAdminRolePermissions(roleId);
+                if (isMounted) setResolvedPermissions(rolePermissions);
+            } catch {
+                if (isMounted) setResolvedPermissions({});
+            }
+        };
+
+        resolvePermissions();
+        return () => {
+            isMounted = false;
+        };
+    }, [currentUser]);
+
+    const permissionKey = "quick::core_management::products";
+    const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create");
+    const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
+    const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete");
+
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]); // All categories for dropdowns
     const [page, setPage] = useState(1);
@@ -485,18 +533,22 @@ const ProductManagement = () => {
                                     {/* Actions Column */}
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end space-x-1.5">
-                                            <button
-                                                onClick={() => openModal(p)}
-                                                className="p-1.5 hover:bg-white hover:text-primary rounded-lg transition-all text-gray-400 shadow-sm ring-1 ring-gray-100"
-                                            >
-                                                <HiOutlinePencilSquare className="h-3.5 w-3.5" />
-                                            </button>
-                                            <button
-                                                onClick={() => (setItemToDelete(p), setIsDeleteModalOpen(true))}
-                                                className="p-1.5 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-all text-gray-400 shadow-sm ring-1 ring-gray-100"
-                                            >
-                                                <HiOutlineTrash className="h-3.5 w-3.5" />
-                                            </button>
+                                            {canEdit && (
+                                                <button
+                                                    onClick={() => openModal(p)}
+                                                    className="p-1.5 hover:bg-white hover:text-primary rounded-lg transition-all text-gray-400 shadow-sm ring-1 ring-gray-100"
+                                                >
+                                                    <HiOutlinePencilSquare className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
+                                            {canDelete && (
+                                                <button
+                                                    onClick={() => (setItemToDelete(p), setIsDeleteModalOpen(true))}
+                                                    className="p-1.5 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-all text-gray-400 shadow-sm ring-1 ring-gray-100"
+                                                >
+                                                    <HiOutlineTrash className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

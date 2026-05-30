@@ -33,6 +33,7 @@ export default function AddEmployee() {
     email: "",
     password: "",
     confirmPassword: "",
+    workType: "Work From Office",
   })
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function AddEmployee() {
         phoneCode: "+91",
         role: emp.adminRoleId?._id || emp.adminRoleId || "",
         zone: emp.zoneId || "All",
+        workType: emp.workType || "Work From Office",
       }));
     }
   }, [isEditMode, location.state])
@@ -187,6 +189,7 @@ export default function AddEmployee() {
       data.append('phone', formData.phoneCode + formData.phone.trim())
       data.append('roleId', formData.role)
       data.append('zoneId', formData.zone)
+      data.append('workType', formData.workType)
       
       if (formData.employeeImage) {
         data.append('employeeImage', formData.employeeImage)
@@ -226,6 +229,7 @@ export default function AddEmployee() {
       email: "",
       password: "",
       confirmPassword: "",
+      workType: "Work From Office",
     })
     setErrors({})
   }
@@ -329,33 +333,53 @@ export default function AddEmployee() {
                   </div>
                 </div>
 
-                {/* Phone */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Phone
-                  </label>
-                  <div className="flex items-center gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Phone
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <select
+                          value={formData.phoneCode}
+                          onChange={(e) => handleInputChange("phoneCode", e.target.value)}
+                          className="px-4 py-2.5 pr-8 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none cursor-pointer"
+                        >
+                          <option value="+91">🇮🇳 +91</option>
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                      </div>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        placeholder="Phone number"
+                        inputMode="numeric"
+                        maxLength={10}
+                        className={`flex-1 px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.phone ? "border-red-500" : "border-slate-300"}`}
+                      />
+                    </div>
+                    {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
+                  </div>
+
+                  {/* Work Type */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Work Type
+                    </label>
                     <div className="relative">
                       <select
-                        value={formData.phoneCode}
-                        onChange={(e) => handleInputChange("phoneCode", e.target.value)}
-                        className="px-4 py-2.5 pr-8 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none cursor-pointer"
+                        value={formData.workType}
+                        onChange={(e) => handleInputChange("workType", e.target.value)}
+                        className="w-full px-4 py-2.5 pr-8 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none cursor-pointer"
                       >
-                        <option value="+91">🇮🇳 +91</option>
+                        <option value="Work From Home">Work From Home</option>
+                        <option value="Work From Office">Work From Office</option>
                       </select>
                       <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                     </div>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
-                      placeholder="Phone number"
-                      inputMode="numeric"
-                      maxLength={10}
-                      className={`flex-1 px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.phone ? "border-red-500" : "border-slate-300"}`}
-                    />
                   </div>
-                  {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
                 </div>
               </div>
 

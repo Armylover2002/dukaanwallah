@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wallet, IndianRupee, ArrowRight,
@@ -10,8 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { deliveryAPI } from '@food/api';
 import { toast } from 'sonner';
 import { formatCurrency } from '@food/utils/currency';
-import { initRazorpayPayment } from "@food/utils/razorpay";
-import { getCompanyNameAsync } from "@common/utils/businessSettings";
+import DepositPopup from '../components/DepositPopup';
 
 /**
  * PocketV2 - 1:1 Match with Old PocketPage UI.
@@ -44,8 +43,6 @@ export const PocketV2 = () => {
   });
 
   const [showDepositPopup, setShowDepositPopup] = useState(false);
-  const [depositAmount, setDepositAmount] = useState("");
-  const [depositing, setDepositing] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,75 +97,22 @@ export const PocketV2 = () => {
     fetchData();
   }, []);
 
-  const handleDeposit = async () => {
-    const amt = parseFloat(depositAmount);
-    if (!depositAmount || isNaN(amt) || amt < 1) {
-      toast.error("Enter a valid amount (minimum ₹1)");
-      return;
-    }
-    
-    if (amt > walletState.cashInHand) {
-       toast.error(`Deposit amount cannot exceed cash in hand (₹${walletState.cashInHand})`);
-       return;
-    }
-
-    try {
-      setDepositing(true);
-      const orderRes = await deliveryAPI.createDepositOrder(amt);
-      const data = orderRes?.data?.data;
-      const rp = data?.razorpay;
-      
-      if (!rp?.orderId) {
-        toast.error("Payment initialization failed");
-        setDepositing(false);
-        return;
-      }
-
-      const profileRes = await deliveryAPI.getProfile();
-      const profile = profileRes?.data?.data?.profile || {};
-      const companyName = await getCompanyNameAsync();
-
-      await initRazorpayPayment({
-        key: rp.key,
-        amount: rp.amount,
-        currency: rp.currency || "INR",
-        order_id: rp.orderId,
-        name: companyName,
-        description: `Cash limit deposit - ₹${amt}`,
-        prefill: { 
-           name: profile.name, 
-           email: profile.email, 
-           contact: profile.phone 
-        },
-        handler: async (res) => {
-          try {
-            const verifyRes = await deliveryAPI.verifyDepositPayment({
-              razorpay_order_id: res.razorpay_order_id,
-              razorpay_payment_id: res.razorpay_payment_id,
-              razorpay_signature: res.razorpay_signature,
-              amount: amt
-            });
-            if (verifyRes?.data?.success) {
-              toast.success("Deposit successful");
-              setShowDepositPopup(false);
-              setDepositAmount("");
-              // Refresh data
-              window.location.reload();
-            }
-          } catch (err) {
-            toast.error("Verification failed");
-          } finally {
-            setDepositing(false);
-          }
-        },
-        onError: () => setDepositing(false),
-        onClose: () => setDepositing(false)
-      });
-    } catch (err) {
-      setDepositing(false);
-      toast.error("Deposit failed to start");
-    }
-  };
+  const handleDepositSuccess = useCallback(() => {
+    setShowDepositPopup(false);
+    // Re-fetch wallet data after successful deposit
+    deliveryAPI.getWallet()
+      .then(res => {
+        const wallet = res?.data?.data?.wallet || {};
+        setWalletState(prev => ({
+          ...prev,
+          cashInHand: Number(wallet.cashInHand) || 0,
+          availableCashLimit: Number(wallet.availableCashLimit) || 0,
+          totalCashLimit: Number(wallet.totalCashLimit) || 0,
+          totalBalance: Number(wallet.pocketBalance) || 0,
+        }));
+      })
+      .catch(() => {});
+  }, []);
 
   const ordersProgress = activeOffer.targetOrders > 0 ? Math.min(activeOffer.currentOrders / activeOffer.targetOrders, 1) : 0;
   const earningsProgress = activeOffer.targetAmount > 0 ? Math.min(activeOffer.currentEarnings / activeOffer.targetAmount, 1) : 0;
@@ -410,60 +354,36 @@ export const PocketV2 = () => {
           </div>
        </div>
 
-       {/* DEPOSIT MODAL - RESTORED 1:1 */}
+       {/* DEPOSIT POPUP - Multi-mode: Online / Admin Details / Zone Hub */}
        <AnimatePresence>
           {showDepositPopup && (
-             <div className="fixed inset-0 z-[1000] flex items-end">
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowDepositPopup(false)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-                <motion.div 
-                   drag="y"
-                   dragConstraints={{ top: 0, bottom: 0 }}
-                   dragElastic={0.1}
-                   onDragEnd={(e, info) => {
-                      if (info.offset.y > 100) setShowDepositPopup(false);
-                   }}
-                   initial={{ y: '100%' }} 
-                   animate={{ y: 0 }} 
-                   exit={{ y: '100%' }} 
-                   transition={{ type: "spring", damping: 25, stiffness: 200 }} 
-                   className="relative w-full bg-white rounded-t-[2.5rem] p-8 pb-12 shadow-2xl"
+             <div className="fixed inset-0 z-[1000] bg-white flex flex-col">
+                <motion.div
+                   initial={{ y: '100%' }}
+                   animate={{ y: 0 }}
+                   exit={{ y: '100%' }}
+                   transition={{ type: 'spring', damping: 28, stiffness: 220 }}
+                   className="relative w-full h-full bg-white flex flex-col overflow-hidden"
                 >
-                   <div className="w-16 h-1.5 bg-gray-100 rounded-full mx-auto mb-8" />
-                   
-                   <div className="text-center mb-8">
-                      <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-orange-100 text-[#ff8100]">
-                         <IndianRupee className="w-10 h-10" />
+                   {/* Popup header */}
+                   <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-white">
+                      <div>
+                         <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">Deposit Cash Limit</h3>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Choose settlement method</p>
                       </div>
-                      <h3 className="text-2xl font-black text-black mb-1">Deposit Cash</h3>
-                      <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Settle Hand Dues</p>
-                   </div>
-                   
-                   <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100">
-                      <div className="flex justify-between items-center mb-4">
-                         <span className="text-xs font-bold text-gray-400 uppercase">Cash in your hand</span>
-                         <span className="text-base font-black text-black">₹{walletState.cashInHand}</span>
-                      </div>
-                      <div className="relative">
-                         <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                         <input 
-                            type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)}
-                            placeholder="Enter amount to deposit"
-                            className="w-full bg-white border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-xl font-bold focus:border-[#ff8100] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
-                         />
-                      </div>
-                      <p className="text-[10px] font-bold text-gray-400 mt-3 text-center uppercase tracking-tight">Minimum deposit ₹1 • Instant limit update</p>
-                   </div>
-                   
-                   <div className="space-y-3">
-                      <button 
-                         onClick={handleDeposit}
-                         disabled={depositing}
-                         className="w-full py-5 bg-[#ff8100] text-white rounded-2xl font-black text-sm shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:bg-gray-300 disabled:shadow-none"
+                      <button
+                         onClick={() => setShowDepositPopup(false)}
+                         className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
                       >
-                         {depositing ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
-                         {depositing ? 'Securely Processing...' : 'Proceed to Pay'}
+                         <X className="w-4 h-4" />
                       </button>
-                      <button onClick={() => setShowDepositPopup(false)} className="w-full py-3 text-gray-400 font-bold text-xs uppercase tracking-widest">Maybe Later</button>
+                   </div>
+                   {/* Deposit Popup Component */}
+                   <div className="flex-1 overflow-y-auto bg-white">
+                      <DepositPopup
+                         cashInHand={walletState.cashInHand}
+                         onSuccess={handleDepositSuccess}
+                      />
                    </div>
                 </motion.div>
              </div>

@@ -33,6 +33,18 @@ export const connectDB = async () => {
                     logger.info("Legacy non-sparse index 'phone_1' dropped successfully.");
                 }
             }
+
+            const qpCollections = await db.listCollections({ name: 'quick_products' }).toArray();
+            if (qpCollections.length > 0) {
+                const qpCol = db.collection('quick_products');
+                const indexes = await qpCol.indexes();
+                const slugIndex = indexes.find(idx => idx.name === 'slug_1');
+                if (slugIndex && slugIndex.unique) {
+                    logger.info("Dropping legacy global unique 'slug_1' index on 'quick_products' to support seller-scoped slug uniqueness...");
+                    await qpCol.dropIndex('slug_1');
+                    logger.info("Legacy global unique 'slug_1' index dropped successfully.");
+                }
+            }
         } catch (idxErr) {
             logger.warn(`Failed to inspect/drop legacy index: ${idxErr.message}`);
         }

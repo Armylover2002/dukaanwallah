@@ -32,6 +32,7 @@ export const quickAdminSidebarMenu = [
       },
       { type: "link", label: "Products", permissionKey: "products", path: "/admin/quick-commerce/products", icon: "Package" },
       { type: "link", label: "Zone Setup", permissionKey: "zone_setup", path: "/admin/quick-commerce/zone-setup", icon: "MapPin" },
+      { type: "link", label: "Quick Zone Hub", permissionKey: "zone_setup", path: "/admin/quick-commerce/quick-zone-hubs", icon: "MapPin" },
       {
         type: "expandable",
         label: "Marketing Tools",
@@ -41,6 +42,7 @@ export const quickAdminSidebarMenu = [
           { label: "Content Manager", path: "/admin/quick-commerce/experience-studio", permissionKey: "experience_studio" },
           { label: "Hero & Categories Per Page", path: "/admin/quick-commerce/hero-categories", permissionKey: "hero_categories" },
           { label: "Send Notifications", path: "/admin/quick-commerce/notifications", permissionKey: "notifications" },
+          { label: "Seller Coupon Request", path: "/admin/quick-commerce/seller-coupon-request", permissionKey: "seller_coupon_request" },
           { label: "Coupons & Promos", path: "/admin/quick-commerce/coupons", permissionKey: "coupons" },
           { label: "Offer Sections", path: "/admin/quick-commerce/offer-sections", permissionKey: "offer_sections" },
           { label: "Shop by Store", path: "/admin/quick-commerce/shop-by-store", permissionKey: "shop_by_store" },
@@ -66,6 +68,7 @@ export const quickAdminSidebarMenu = [
           { label: "Waiting for Review", path: "/admin/quick-commerce/sellers/pending", permissionKey: "pending" },
           { label: "Seller Locations", path: "/admin/quick-commerce/seller-locations", permissionKey: "locations" },
           { label: "Seller Commission", path: "/admin/quick-commerce/sellers/commission", permissionKey: "commission" },
+          { label: "COD Deposit Verification", path: "/admin/quick-commerce/sellers/cod-deposit-verification", permissionKey: "commission" },
         ],
       },
       {

@@ -300,6 +300,15 @@ export default function Home() {
     }
   }, [activeTab, heroSearch, navigate, openSearch, setSearchValue]);
 
+  const handleFavoriteToggle = useCallback((e, restaurant, slug, favorite) => {
+    if (favorite) removeFavorite(slug);
+    else {
+      addFavorite(restaurant);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+    }
+  }, [addFavorite, removeFavorite]);
+
   // --- Render ---
   return (
     <div className="relative min-h-screen bg-white dark:bg-[#0a0a0a] pb-16 md:pb-6 overflow-x-clip">
@@ -411,14 +420,7 @@ export default function Home() {
                 loadingRestaurants={restaurants.loading}
                 availabilityTick={availabilityTick}
                 isFavorite={isFavorite}
-                onFavoriteToggle={(e, restaurant, slug, favorite) => {
-                  if (favorite) removeFavorite(slug);
-                  else {
-                    addFavorite(restaurant);
-                    setShowToast(true);
-                    setTimeout(() => setShowToast(false), 2000);
-                  }
-                }}
+                onFavoriteToggle={handleFavoriteToggle}
                 backendOrigin={BACKEND_ORIGIN}
                 hasMoreRestaurants={restaurants.hasMore}
                 loadMoreRestaurants={actions.loadMoreRestaurants}

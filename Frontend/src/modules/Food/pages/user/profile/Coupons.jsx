@@ -41,7 +41,7 @@ export default function Coupons() {
 
   const sortedOffers = useMemo(() => {
     if (!Array.isArray(offers)) return []
-    return [...offers].sort((a, b) => String(a?.couponCode || "").localeCompare(String(b?.couponCode || "")))
+    return offers.toSorted((a, b) => String(a?.couponCode || "").localeCompare(String(b?.couponCode || "")))
   }, [offers])
 
   const handleCopy = async (code) => {

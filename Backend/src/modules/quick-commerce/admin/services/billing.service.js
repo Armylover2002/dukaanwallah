@@ -45,8 +45,11 @@ function validateCommissionRuleSet(rules) {
   }
 
   const baseRules = active.filter((r) => Number(r.minDistance || 0) === 0);
-  if (baseRules.length !== 1) {
+  if (baseRules.length === 0) {
     throw new ValidationError('A base slab with minDistance = 0 is required');
+  }
+  if (baseRules.length > 1) {
+    throw new ValidationError('Exactly one base slab with minDistance = 0 is allowed. You already have a base slab active. Please edit the existing one instead of adding a new one.');
   }
 
   const sorted = [...active].sort((a, b) => Number(a.minDistance || 0) - Number(b.minDistance || 0));
@@ -73,6 +76,13 @@ function validateCommissionRuleSet(rules) {
 }
 
 export async function createDeliveryCommissionRule(body) {
+  if (Number(body.minDistance || 0) === 0 && (body.status ?? true) !== false) {
+    // Automatically deactivate any existing active base slab
+    await QuickDeliveryCommissionRule.updateMany(
+      { minDistance: 0, status: { $ne: false } },
+      { $set: { status: false } }
+    );
+  }
   const existing = await QuickDeliveryCommissionRule.find({}).lean();
   const candidate = [
     ...existing,
@@ -100,6 +110,13 @@ export async function createDeliveryCommissionRule(body) {
 
 export async function updateDeliveryCommissionRule(id, body) {
   if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
+  if (Number(body.minDistance || 0) === 0 && body.status !== false) {
+    // Automatically deactivate any other active base slab except the one being updated
+    await QuickDeliveryCommissionRule.updateMany(
+      { _id: { $ne: id }, minDistance: 0, status: { $ne: false } },
+      { $set: { status: false } }
+    );
+  }
   const existing = await QuickDeliveryCommissionRule.find({}).lean();
   const candidate = existing.map((r) =>
     String(r._id) === String(id)
@@ -273,13 +290,16 @@ export function calculateDeliveryFeeFromSettings(subtotal, feeSettings = DEFAULT
   return Number(feeSettings.deliveryFee || 0);
 }
 
-export async function calculateQuickPricing({ subtotal = 0, discount = 0, products = [] } = {}) {
+export async function calculateQuickPricing({ subtotal = 0, discount = 0, products = [], distanceKm = 0 } = {}) {
   const feeSettings = await getActiveFeeSettings();
   const safeSubtotal = Number(subtotal || 0);
   const safeDiscount = Math.max(0, Number(discount || 0));
   const platformFee = Number(feeSettings.platformFee || 0);
   const handlingFee = await calculateHandlingFeeFromProducts(products);
-  const deliveryFee = calculateDeliveryFeeFromSettings(safeSubtotal, feeSettings);
+  
+  // Calculate delivery fee using commission rules and distance
+  const deliveryFee = await getRiderEarning(distanceKm);
+  
   const gstRate = Number(feeSettings.gstRate || 0);
   const tax = 0;
   const gst =

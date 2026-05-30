@@ -97,6 +97,7 @@ function processNode(item, parentKey) {
 
   // Role builder should not expose duplicate top-level dashboard toggles.
   // Root module access already represents dashboard visibility for that module.
+  /*
   if (
     item.type === 'link' &&
     item.permissionKey === 'dashboard' &&
@@ -104,6 +105,7 @@ function processNode(item, parentKey) {
   ) {
     return null;
   }
+  */
 
   const currentKey = `${parentKey}::${item.permissionKey}`;
   

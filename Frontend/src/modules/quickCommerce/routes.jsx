@@ -2,9 +2,9 @@ import { Routes, Route, Navigate } from "react-router-dom"
 import { Suspense, lazy } from "react"
 import Loader from "@food/components/Loader"
 import UserLayout from "./user/UserLayout"
+import Home from "./user/pages/Home"
 
 // Lazy-load the new Blinkit-style pages
-const Home = lazy(() => import("./user/pages/Home"))
 const Cart = lazy(() => import("./user/pages/CartPage"))
 const Orders = lazy(() => import("./user/pages/OrdersPage"))
 const OrderDetail = lazy(() => import("./user/pages/OrderDetailPage"))

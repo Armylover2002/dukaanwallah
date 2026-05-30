@@ -163,6 +163,19 @@ const sellerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    accountStatus: {
+      type: String,
+      enum: ["active", "deleted"],
+      default: "active",
+    },
+    isZoneHub: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     collection: 'quick_seller_profiles',

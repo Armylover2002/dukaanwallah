@@ -612,6 +612,25 @@ const reconcileSellerDeliveredOrders = async (sellerId) => {
 const parseProductPayload = (req, existingProduct = null) => {
   const mainUpload = arr(req.files?.mainImage)[0];
   const galleryUploads = arr(req.files?.galleryImages);
+  
+  let bodyGallery = [];
+  if (req.body?.galleryImages) {
+    if (Array.isArray(req.body.galleryImages)) {
+      bodyGallery = req.body.galleryImages.map(img => String(img || "").trim()).filter(Boolean);
+    } else if (typeof req.body.galleryImages === "string") {
+      try {
+        const parsed = JSON.parse(req.body.galleryImages);
+        if (Array.isArray(parsed)) {
+          bodyGallery = parsed.map(img => String(img || "").trim()).filter(Boolean);
+        } else if (parsed && typeof parsed === "string") {
+          bodyGallery = parsed.split(",").map(img => img.trim()).filter(Boolean);
+        }
+      } catch {
+        bodyGallery = req.body.galleryImages.split(",").map(img => img.trim()).filter(Boolean);
+      }
+    }
+  }
+
   const variants = parseVariants(req.body?.variants, {
     price: req.body?.price,
     salePrice: req.body?.salePrice,
@@ -667,6 +686,8 @@ const parseProductPayload = (req, existingProduct = null) => {
     galleryImages:
       galleryUploads.length > 0
         ? galleryUploads.map(toDataUrl).filter(Boolean)
+        : bodyGallery.length > 0
+        ? bodyGallery
         : arr(existingProduct?.galleryImages),
     mrp: num(
       req.body?.mrp,
@@ -892,6 +913,13 @@ export const verifySellerOtpController = async (req, res) => {
         lastLogin: new Date(),
       });
     } else {
+      if (seller.isActive === false || seller.isDeleted === true || seller.accountStatus === 'deleted') {
+        return sendError(
+          res,
+          403,
+          "Your account has been deleted/deactivated. Please contact support."
+        );
+      }
       seller.isVerified = true;
       seller.lastLogin = new Date();
       await seller.save();
@@ -975,6 +1003,85 @@ export const getSellerProductByIdController = async (req, res) => {
   }
 };
 
+// ── NEW: Browse catalog of other sellers' products (no seller info exposed) ─────
+export const browseSellerCatalogController = async (req, res) => {
+  try {
+    const sellerId = sellerScope(req);
+    const page = Math.max(1, num(req.query?.page, 1));
+    const limit = Math.max(1, Math.min(50, num(req.query?.limit, 20)));
+    const skip = (page - 1) * limit;
+    const searchTerm = str(req.query?.search);
+
+    const query = { sellerId: { $ne: sellerId } };
+    if (searchTerm) {
+      query.$or = [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { sku: { $regex: searchTerm, $options: 'i' } },
+        { brand: { $regex: searchTerm, $options: 'i' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      populateProductQuery(
+        SellerProduct.find(query)
+          .select('name slug sku description price salePrice brand weight tags mainImage galleryImages headerId categoryId subcategoryId variants status')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit),
+      ).lean(),
+      SellerProduct.countDocuments(query),
+    ]);
+
+    // Strip sellerId from output for safety
+    const safeItems = items.map(({ sellerId: _sid, ...rest }) => ({ ...rest, id: rest._id }));
+
+    return res.json({
+      success: true,
+      result: {
+        items: safeItems,
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    });
+  } catch (error) {
+    return sendError(res, 500, error.message || 'Failed to browse catalog');
+  }
+};
+
+// ── NEW: Lookup a product by SKU for auto-fill (excludes own products) ──────────
+export const lookupProductBySkuController = async (req, res) => {
+  try {
+    const sellerId = sellerScope(req);
+    const sku = str(req.query?.sku);
+
+    if (!sku) {
+      return sendError(res, 400, 'SKU is required');
+    }
+
+    const product = await populateProductQuery(
+      SellerProduct.findOne({ sku })
+        .select('name slug sku description price salePrice brand weight tags mainImage galleryImages headerId categoryId subcategoryId variants status'),
+    ).lean();
+
+    if (!product) {
+      return sendError(res, 404, 'Product ID not found');
+    }
+
+    // Block seller from importing their own product via SKU
+    if (String(product.sellerId) === String(sellerId)) {
+      return sendError(res, 403, 'This Product ID belongs to your own store');
+    }
+
+    // Strip seller identity before returning
+    const { sellerId: _sid, ...safeProduct } = product;
+    return res.json({ success: true, result: { ...safeProduct, id: safeProduct._id } });
+  } catch (error) {
+    return sendError(res, 500, error.message || 'Failed to lookup product');
+  }
+};
+
 export const createSellerProductController = async (req, res) => {
   try {
     const sellerId = sellerScope(req);
@@ -1002,7 +1109,14 @@ export const createSellerProductController = async (req, res) => {
       .json({ success: true, result: serializeProduct(populated) });
   } catch (error) {
     if (error?.code === 11000) {
-      return sendError(res, 400, "Product slug or SKU already exists");
+      const keys = error.keyPattern ? Object.keys(error.keyPattern) : [];
+      if (keys.includes("slug")) {
+        return sendError(res, 400, "Product slug already exists in your store");
+      }
+      if (keys.includes("sku")) {
+        return sendError(res, 400, "SKU already exists in your store");
+      }
+      return sendError(res, 400, "Product slug or SKU already exists in your store");
     }
     return sendError(res, 500, error.message || "Failed to create product");
   }
@@ -1040,7 +1154,14 @@ export const updateSellerProductController = async (req, res) => {
     return res.json({ success: true, result: serializeProduct(populated) });
   } catch (error) {
     if (error?.code === 11000) {
-      return sendError(res, 400, "Product slug or SKU already exists");
+      const keys = error.keyPattern ? Object.keys(error.keyPattern) : [];
+      if (keys.includes("slug")) {
+        return sendError(res, 400, "Product slug already exists in your store");
+      }
+      if (keys.includes("sku")) {
+        return sendError(res, 400, "SKU already exists in your store");
+      }
+      return sendError(res, 400, "Product slug or SKU already exists in your store");
     }
     return sendError(res, 500, error.message || "Failed to update product");
   }
@@ -1661,8 +1782,26 @@ export const getSellerOrdersController = async (req, res) => {
       const receivable =
         num(item.pricing?.receivable) || Math.max(0, subtotal - commission);
 
+      let riderPhone = "";
+      if (acceptedPartner) {
+        const orderStatus = String(quickOrder?.orderStatus || "").toLowerCase();
+        const deliveryStatus = String(quickOrder?.deliveryState?.status || "").toLowerCase();
+        const reachedPickup =
+          deliveryStatus === "reached_pickup" ||
+          deliveryStatus === "picked_up" ||
+          ["picked_up", "reached_drop", "delivered"].includes(orderStatus);
+        const photoUploaded = !!quickOrder?.deliveryState?.billImageUrl;
+
+        riderPhone = (reachedPickup && photoUploaded)
+          ? (acceptedPartner.phone || "")
+          : "Hidden until photo upload";
+      }
+
       return {
         ...item,
+        customer: {
+          name: item.customer?.name || "Customer",
+        },
         pricing: {
           ...item.pricing,
           receivable,
@@ -1673,7 +1812,7 @@ export const getSellerOrdersController = async (req, res) => {
           ? {
               _id: acceptedPartner._id,
               name: acceptedPartner.name || "Delivery Partner",
-              phone: acceptedPartner.phone || "",
+              phone: riderPhone,
               vehicleType: acceptedPartner.vehicleType || "",
               vehicleNumber: acceptedPartner.vehicleNumber || "",
             }
@@ -1703,6 +1842,7 @@ export const updateSellerOrderStatusController = async (req, res) => {
       req.body?.status || req.body?.orderStatus,
     ).toLowerCase();
     const orderId = req.params.orderId;
+    const reason = str(req.body?.reason || req.body?.cancellationReason);
 
     if (!nextStatus) {
       return sendError(res, 400, "Status is required");
@@ -1723,6 +1863,7 @@ export const updateSellerOrderStatusController = async (req, res) => {
       orderId,
       sellerId,
       nextStatus,
+      reason,
     );
     return sendResponse(res, 200, "Order status updated", result);
   } catch (error) {
@@ -2344,3 +2485,141 @@ export const getSellerStatsController = async (req, res) => {
     return sendError(res, 500, error.message || "Failed to load stats");
   }
 };
+
+export const listSellerCouponsController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const { listSellerCoupons } = await import("../services/sellerCoupon.service.js");
+    const coupons = await listSellerCoupons(sellerId);
+    return sendResponse(res, 200, "Coupons fetched successfully", coupons);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createSellerCouponController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const { createSellerCoupon } = await import("../services/sellerCoupon.service.js");
+    const coupon = await createSellerCoupon(sellerId, req.body || {});
+    return sendResponse(res, 201, "Coupon created and pending approval", coupon);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateSellerCouponController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const couponId = req.params.id;
+    const { updateSellerCoupon } = await import("../services/sellerCoupon.service.js");
+    const coupon = await updateSellerCoupon(sellerId, couponId, req.body || {});
+    return sendResponse(res, 200, "Coupon updated and pending approval", coupon);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteSellerCouponController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const couponId = req.params.id;
+    const { deleteSellerCoupon } = await import("../services/sellerCoupon.service.js");
+    const result = await deleteSellerCoupon(sellerId, couponId);
+    return sendResponse(res, 200, "Coupon deleted successfully", result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteSellerAccountController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const seller = await Seller.findById(sellerId);
+    if (!seller) {
+      return sendError(res, 404, "Seller profile not found");
+    }
+
+    // Soft delete
+    seller.isDeleted = true;
+    seller.accountStatus = "deleted";
+    seller.isActive = false;
+    await seller.save();
+
+    // Invalidate/delete all active refresh tokens for this seller
+    const { FoodRefreshToken } = await import("../../../../core/refreshTokens/refreshToken.model.js");
+    await FoodRefreshToken.deleteMany({ userId: sellerId });
+
+    return sendResponse(res, 200, "Seller account soft deleted successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSellerCODDepositsController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const { FoodDeliveryCashDeposit } = await import("../../../food/delivery/models/foodDeliveryCashDeposit.model.js");
+    
+    const deposits = await FoodDeliveryCashDeposit.find({ 
+      quickZoneHubSellerId: sellerId, 
+      depositType: 'quick_zone_hub' 
+    })
+    .populate('deliveryPartnerId', 'name phone')
+    .sort({ createdAt: -1 })
+    .lean();
+
+    return sendResponse(res, 200, "COD deposits fetched successfully", deposits);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const processSellerCODDepositController = async (req, res, next) => {
+  try {
+    const sellerId = sellerScope(req);
+    const { id } = req.params;
+    const { action, sellerNote } = req.body;
+    const file = req.file;
+
+    const { FoodDeliveryCashDeposit } = await import("../../../food/delivery/models/foodDeliveryCashDeposit.model.js");
+
+    const deposit = await FoodDeliveryCashDeposit.findOne({ 
+      _id: id, 
+      quickZoneHubSellerId: sellerId 
+    });
+
+    if (!deposit) {
+      return sendError(res, 404, "COD deposit request not found");
+    }
+
+    if (deposit.status !== 'Pending') {
+      return sendError(res, 400, `Request has already been processed with status: ${deposit.status}`);
+    }
+
+    if (action === 'accept') {
+      if (!file?.buffer) {
+        return sendError(res, 400, "Confirmation proof receipt image is required");
+      }
+      const proofUrl = await uploadImageBuffer(file.buffer, 'quick/sellers/cod-deposits');
+      deposit.status = 'Seller_Accepted';
+      deposit.sellerProof = proofUrl;
+      deposit.sellerNote = sellerNote || '';
+      deposit.sellerProcessedAt = new Date();
+      await deposit.save();
+      return sendResponse(res, 200, "COD deposit accepted successfully", deposit);
+    } else if (action === 'reject') {
+      deposit.status = 'Seller_Rejected';
+      deposit.sellerNote = sellerNote || 'Rejected by seller';
+      deposit.sellerProcessedAt = new Date();
+      await deposit.save();
+      return sendResponse(res, 200, "COD deposit rejected successfully", deposit);
+    } else {
+      return sendError(res, 400, "Invalid action, must be 'accept' or 'reject'");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+

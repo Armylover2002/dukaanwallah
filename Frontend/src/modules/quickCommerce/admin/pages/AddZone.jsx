@@ -1,6 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { MapPin, ArrowLeft, Save, X, Hand, Shapes, Search } from "lucide-react"
+import { useAuth } from "@core/context/AuthContext"
+import { getCurrentUser } from "@food/utils/auth"
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
+
 import { adminApi } from "../services/adminApi"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
 import { Loader } from "@googlemaps/js-api-loader"
@@ -13,6 +17,52 @@ export default function AddZone() {
   const navigate = useNavigate()
   const { id } = useParams()
   const isEditMode = !!id && !window.location.pathname.includes('/view/')
+  const { user: authUser } = useAuth()
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+  const [resolvedPermissions, setResolvedPermissions] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      const existingPermissions = extractAdminPermissions(currentUser)
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions)
+        return
+      }
+
+      const roleId = extractAdminRoleId(currentUser)
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({})
+        return
+      }
+
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId)
+        if (isMounted) setResolvedPermissions(rolePermissions)
+      } catch {
+        if (isMounted) setResolvedPermissions({})
+      }
+    }
+
+    resolvePermissions()
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
+
+  const permissionKey = "quick::core_management::zone_setup"
+  const canCreate = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "create")
+  const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit")
+  const canDelete = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "delete")
+
+  const hasWritePermission = isEditMode ? canEdit : canCreate
+
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const drawingManagerRef = useRef(null)
@@ -787,30 +837,32 @@ export default function AddZone() {
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-900">Draw Zone on Map</h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={toggleDrawingMode}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      isDrawing
-                        ? "bg-red-600 text-white hover:bg-red-700"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
-                    }`}
-                  >
-                    <Shapes className="w-4 h-4" />
-                    <span>{isDrawing ? "Stop Drawing" : "Start Drawing"}</span>
-                  </button>
-                  {coordinates.length > 0 && (
+                {hasWritePermission && (
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={clearDrawing}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                      onClick={toggleDrawingMode}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        isDrawing
+                          ? "bg-red-600 text-white hover:bg-red-700"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                      }`}
                     >
-                      <X className="w-4 h-4" />
-                      <span>Clear</span>
+                      <Shapes className="w-4 h-4" />
+                      <span>{isDrawing ? "Stop Drawing" : "Start Drawing"}</span>
                     </button>
-                  )}
-                </div>
+                    {coordinates.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearDrawing}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Clear</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="mb-4">
@@ -868,23 +920,25 @@ export default function AddZone() {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading || coordinates.length < 3 || !formData.zoneName || !formData.country}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Save Zone</span>
-                </>
-              )}
-            </button>
+            {hasWritePermission && (
+              <button
+                type="submit"
+                disabled={loading || coordinates.length < 3 || !formData.zoneName || !formData.country}
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Zone</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </form>
       </div>

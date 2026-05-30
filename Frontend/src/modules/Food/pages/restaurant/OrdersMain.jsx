@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   checkOnboardingStatus,
@@ -25,6 +25,9 @@ import {
   Phone,
   Hash,
   User,
+  Lock,
+  Unlock,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import BottomNavOrders from "@food/components/restaurant/BottomNavOrders";
@@ -258,6 +261,7 @@ function CompletedOrders({ onSelectOrder, refreshToken = 0 }) {
                         src={order.photoUrl}
                         alt={order.photoAlt}
                         className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
@@ -471,6 +475,7 @@ function CancelledOrders({ onSelectOrder, refreshToken = 0 }) {
                         src={order.photoUrl}
                         alt={order.photoAlt}
                         className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
@@ -1612,10 +1617,10 @@ export default function OrdersMain() {
   };
 
   // Handle cancel order (for preparing orders)
-  const handleCancelClick = (order) => {
+  const handleCancelClick = useCallback((order) => {
     setOrderToCancel(order);
     setShowCancelPopup(true);
-  };
+  }, []);
 
   const handleCancelConfirm = async () => {
     if (!cancelReason.trim() || !orderToCancel) return;
@@ -1927,10 +1932,10 @@ export default function OrdersMain() {
     }
   }, [activeFilter]);
 
-  const handleSelectOrder = (order) => {
+  const handleSelectOrder = useCallback((order) => {
     setSelectedOrder(order);
     setIsSheetOpen(true);
-  };
+  }, []);
 
   const renderContent = () => {
     switch (activeFilter) {
@@ -2238,7 +2243,7 @@ export default function OrdersMain() {
         ref={audioRef}
         src={notificationSound}
         preload="auto"
-        playsInline
+        aria-label="New order notification sound"
       />
 
       {/* New Order Popup */}
@@ -2874,6 +2879,64 @@ export default function OrdersMain() {
                 })()}
               </div>
 
+              {/* Delivery Partner Details in Bottom Sheet */}
+              {selectedOrder.deliveryPartnerId && typeof selectedOrder.deliveryPartnerId === 'object' && (
+                <div className="mb-4 pt-3 border-t border-gray-100">
+                  <p className="text-xs font-bold text-gray-700 mb-2">Delivery Partner details</p>
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex flex-col gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4 text-[#FE5502]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-900 truncate">
+                          {selectedOrder.deliveryPartnerId.name}
+                        </p>
+                        {selectedOrder.deliveryPartnerId.rating > 0 && (
+                          <div className="flex items-center gap-0.5 mt-0.5">
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            <span className="text-[10px] font-semibold text-gray-600">
+                              {selectedOrder.deliveryPartnerId.rating}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-200/60 pt-2 flex flex-col gap-1.5">
+                      {selectedOrder.deliveryPartnerId.phone === "Hidden until photo upload" || !selectedOrder.deliveryPartnerId.phone ? (
+                        <div className="flex items-start gap-2 bg-amber-50/50 border border-amber-200/50 rounded-xl p-2">
+                          <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-[10px] font-bold text-amber-800">Phone Hidden</p>
+                            <p className="text-[9px] text-amber-700 leading-tight mt-0.5">
+                              Phone number will be shown once rider arrives at your shop and uploads photo.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between bg-green-50/50 border border-green-200/50 rounded-xl p-2">
+                          <div className="flex items-start gap-2">
+                            <Unlock className="w-3.5 h-3.5 text-green-600 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-[10px] font-bold text-green-800">Phone Unlocked</p>
+                              <p className="text-xs font-bold text-gray-900 mt-0.5">{selectedOrder.deliveryPartnerId.phone}</p>
+                            </div>
+                          </div>
+                          <a
+                            href={`tel:${selectedOrder.deliveryPartnerId.phone}`}
+                            className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-[#FE5502] text-white text-[10px] font-bold rounded-lg shadow-sm hover:bg-[#e04a02] transition-colors shrink-0"
+                          >
+                            <Phone className="w-3 h-3" />
+                            Call
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <button
                 className="w-full bg-black text-white py-2.5 rounded-xl text-sm font-medium"
                 onClick={() => setIsSheetOpen(false)}>
@@ -2892,7 +2955,7 @@ export default function OrdersMain() {
 
 
 // Order Card Component
-function OrderCard({
+const OrderCard = memo(function OrderCard({
   orderId,
   mongoId,
   status,
@@ -2938,6 +3001,7 @@ function OrderCard({
         onClick={() =>
           onSelect?.({
             orderId,
+            mongoId,
             status,
             customerName,
             type,
@@ -2946,6 +3010,8 @@ function OrderCard({
             eta,
             itemsSummary,
             paymentMethod,
+            deliveryPartnerId,
+            dispatchStatus,
           })
         }
         className="w-full text-left flex gap-3 items-stretch cursor-pointer">
@@ -2956,6 +3022,7 @@ function OrderCard({
               src={photoUrl}
               alt={photoAlt}
               className="h-full w-full object-cover"
+              loading="lazy"
             />
           ) : (
             <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
@@ -3061,7 +3128,7 @@ function OrderCard({
       </div>
     </div>
   );
-}
+});
 
 // Preparing Orders List
 function PreparingOrders({

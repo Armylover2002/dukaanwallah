@@ -208,17 +208,17 @@ const StockManagement = () => {
                     <BlurFade delay={0.3}>
                         <Card className="border-none shadow-xl shadow-slate-200/50 overflow-hidden rounded-3xl">
                             {/* Toolbox */}
-                            <div className="p-4 border-b border-slate-50 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-50/30">
-                                <div className="flex flex-col md:flex-row gap-3 items-center w-full">
-                                    <div className="relative w-full md:w-72">
-                                        <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
-                                        <Input
-                                            placeholder="Search by product name or SKU..."
-                                            className="pl-10 pr-4 py-2.5 rounded-2xl border-none ring-1 ring-slate-200 bg-white focus:ring-2 focus:ring-primary/20 transition-all text-xs font-semibold"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
-                                    </div>
+                            <div className="p-4 border-b border-slate-50 flex flex-col gap-3 bg-slate-50/30">
+                                <div className="relative w-full">
+                                    <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+                                    <Input
+                                        placeholder="Search by product name or SKU..."
+                                        className="pl-10 pr-4 py-2.5 rounded-2xl border-none ring-1 ring-slate-200 bg-white focus:ring-2 focus:ring-primary/20 transition-all text-xs font-semibold"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
                                     <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-sm">
                                         {['All', 'In Stock', 'Out of Stock'].map((status) => (
                                             <button
@@ -238,20 +238,63 @@ const StockManagement = () => {
                                             </button>
                                         ))}
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-2">
                                     <Button
                                         onClick={() => navigate('/seller/products/add')}
                                         className="rounded-xl px-4 py-2 text-[10px] font-bold shadow-lg shadow-primary/20"
                                     >
-                                        <HiOutlinePlus className="h-4 w-4 mr-2" />
-                                        ADD NEW PRODUCT
+                                        <HiOutlinePlus className="h-4 w-4 mr-1.5" />
+                                        ADD PRODUCT
                                     </Button>
                                 </div>
                             </div>
 
-                            {/* Stock Table */}
-                            <div className="overflow-x-auto">
+                            {/* Mobile Card List */}
+                            <div className="md:hidden divide-y divide-slate-50">
+                                {filteredInventory.length === 0 ? (
+                                    <div className="px-6 py-10 text-center text-slate-600 text-xs font-black tracking-widest uppercase">
+                                        No products found for this filter.
+                                    </div>
+                                ) : filteredInventory
+                                    .slice((page - 1) * pageSize, page * pageSize)
+                                    .map((item) => (
+                                        <div key={item.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors">
+                                            <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 overflow-hidden shrink-0">
+                                                {item.mainImage ? (
+                                                    <img src={item.mainImage} alt={item.name} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <HiOutlineCube className="h-6 w-6" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-black text-slate-900 truncate">{item.name}</p>
+                                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                    <span className={cn(
+                                                        "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                                        item.stock <= item.threshold ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+                                                    )}>
+                                                        {item.stock} units
+                                                    </span>
+                                                    <Badge
+                                                        variant={item.status === 'In Stock' ? 'success' : 'destructive'}
+                                                        className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg"
+                                                    >
+                                                        {item.status}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-xs font-bold text-slate-900 mt-0.5">₹{item.price}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => openAdjustModal(item)}
+                                                className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold hover:bg-slate-200 transition-colors shrink-0"
+                                            >
+                                                Adjust
+                                            </button>
+                                        </div>
+                                    ))}
+                            </div>
+
+                            {/* Desktop Stock Table */}
+                            <div className="hidden md:block overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="bg-slate-50/50 border-b border-slate-100">

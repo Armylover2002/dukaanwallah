@@ -27,6 +27,15 @@ import {
   updateSellerProductController,
   updateSellerProfileController,
   verifySellerOtpController,
+  listSellerCouponsController,
+  createSellerCouponController,
+  updateSellerCouponController,
+  deleteSellerCouponController,
+  deleteSellerAccountController,
+  getSellerCODDepositsController,
+  processSellerCODDepositController,
+  browseSellerCatalogController,
+  lookupProductBySkuController,
 } from "../controllers/seller.controller.js";
 
 const router = express.Router();
@@ -47,6 +56,10 @@ router.get("/categories/tree", ...sellerOnly, getSellerCategoryTreeController);
 
 router.get("/products", ...sellerOnly, getSellerProductsController);
 router.get("/products/:productId", ...sellerOnly, getSellerProductByIdController);
+
+// Catalog browsing & SKU lookup (read-only, no seller info exposed)
+router.get("/catalog/browse", ...sellerOnly, browseSellerCatalogController);
+router.get("/catalog/lookup", ...sellerOnly, lookupProductBySkuController);
 router.post("/products", ...sellerOnly, productUpload, createSellerProductController);
 router.put(
   "/products/:productId",
@@ -66,6 +79,7 @@ router.put(
   sellerProfileUpload,
   updateSellerProfileController,
 );
+router.delete("/profile", ...sellerOnly, deleteSellerAccountController);
 
 router.get("/notifications", ...sellerOnly, getSellerNotificationsController);
 router.put(
@@ -90,5 +104,14 @@ router.put("/returns/:orderId/reject", ...sellerOnly, rejectSellerReturnControll
 router.get("/earnings", ...sellerOnly, getSellerEarningsController);
 router.post("/withdrawals", ...sellerOnly, requestSellerWithdrawalController);
 router.get("/stats", ...sellerOnly, getSellerStatsController);
+
+router.get("/coupons", ...sellerOnly, listSellerCouponsController);
+router.post("/coupons", ...sellerOnly, createSellerCouponController);
+router.put("/coupons/:id", ...sellerOnly, updateSellerCouponController);
+router.delete("/coupons/:id", ...sellerOnly, deleteSellerCouponController);
+
+// COD Deposit Verification routes
+router.get("/finance/cod-verification", ...sellerOnly, getSellerCODDepositsController);
+router.post("/finance/cod-verification/:id/action", ...sellerOnly, upload.single("sellerProof"), processSellerCODDepositController);
 
 export default router;

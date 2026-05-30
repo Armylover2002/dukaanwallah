@@ -63,7 +63,10 @@ export const adminSidebarMenu = [
         icon: "UtensilsCrossed",
         subItems: [
           { label: "Restaurants List", path: "/admin/food/restaurants", permissionKey: "list" },
+          { label: "Restaurant Commission", path: "/admin/food/restaurants/commission", permissionKey: "commission" },
           { label: "New Joining Request", path: "/admin/food/restaurants/joining-request", permissionKey: "joining_request" },
+          { label: "Zone Hub", path: "/admin/food/restaurants/zone-hubs", permissionKey: "joining_request" },
+          { label: "COD Deposit Verification", path: "/admin/food/restaurants/cod-verification", permissionKey: "joining_request" },
           { label: "Restaurant Reviews", path: "/admin/food/restaurants/reviews", permissionKey: "reviews" },
           { label: "Restaurant Complaints", path: "/admin/food/restaurants/complaints", permissionKey: "complaints" },
         ],
@@ -116,6 +119,13 @@ export const adminSidebarMenu = [
         path: "/admin/food/coupons",
         icon: "Gift",
       },
+      {
+        type: "link",
+        label: "Coupons Request",
+        permissionKey: "coupons",
+        path: "/admin/food/coupons-request",
+        icon: "FileCheck",
+      },
     ],
   },
   {
@@ -154,6 +164,7 @@ export const adminSidebarMenu = [
       },
     ],
   },
+  /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
   {
     type: "section",
     label: "SUBSCRIPTION MANAGEMENT",
@@ -162,6 +173,7 @@ export const adminSidebarMenu = [
       { type: "link", label: "Subscription Plans", permissionKey: "plans", path: "/admin/food/subscriptions", icon: "CreditCard" },
     ],
   },
+  */
   {
     type: "section",
     label: "DELIVERYMAN MANAGEMENT",
@@ -170,6 +182,7 @@ export const adminSidebarMenu = [
       { type: "link", label: "Delivery Cash Limit", permissionKey: "cash_limit", path: "/admin/food/delivery-cash-limit", icon: "IndianRupee" },
       { type: "link", label: "Delivery & Platform Fee", permissionKey: "fee_settings", path: "/admin/food/fee-settings", icon: "DollarSign" },
       { type: "link", label: "Cash limit settlement", permissionKey: "settlement", path: "/admin/food/cash-limit-settlement", icon: "Receipt" },
+      { type: "link", label: "Cash Pay Requests", permissionKey: "settlement", path: "/admin/food/cash-pay-requests", icon: "ClipboardCheck" },
       { type: "link", label: "Delivery Withdrawal", permissionKey: "withdrawal", path: "/admin/food/delivery-withdrawal", icon: "Wallet" },
       { type: "link", label: "Delivery boy Wallet", permissionKey: "wallet", path: "/admin/food/delivery-boy-wallet", icon: "PiggyBank" },
       { type: "link", label: "Delivery Boy Commission", permissionKey: "commission", path: "/admin/food/delivery-boy-commission", icon: "DollarSign" },
@@ -265,6 +278,7 @@ export const adminSidebarMenu = [
     permissionKey: "system_settings",
     items: [
       { type: "link", label: "Broadcast Notification", permissionKey: "broadcast", path: "/admin/food/broadcast-notification", icon: "Bell" },
+      { type: "link", label: "Deleted Accounts", permissionKey: "deleted_accounts", path: "/admin/food/deleted-accounts", icon: "Trash2" },
     ],
   },
   {

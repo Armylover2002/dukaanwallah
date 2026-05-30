@@ -10,7 +10,7 @@ const quickVariantSchema = new mongoose.Schema({
 
 const quickProductSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  slug: { type: String, required: true, unique: true, index: true },
+  slug: { type: String, required: true, index: true },
   image: { type: String, default: '' },
   mainImage: { type: String, default: '' },
   galleryImages: { type: [String], default: [] },

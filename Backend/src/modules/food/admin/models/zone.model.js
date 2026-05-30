@@ -47,10 +47,15 @@ const zoneSchema = new mongoose.Schema(
                 message: 'Zone must have at least 3 coordinates (polygon).'
             }
         },
-        isActive: {
+         isActive: {
             type: Boolean,
             default: true,
             index: true
+        },
+        zoneHubId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'FoodRestaurant',
+            default: null
         }
     },
     {

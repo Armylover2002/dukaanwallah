@@ -1,9 +1,48 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminApi } from "../services/adminApi";
 import { useToast } from "@shared/components/ui/Toast";
+import { useAuth } from "@core/context/AuthContext";
+import { getCurrentUser } from "@food/utils/auth";
+import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
 
 export default function SupportTickets() {
   const { showToast } = useToast();
+  const { user: authUser } = useAuth();
+  const currentUser = useMemo(() => authUser || getCurrentUser("admin"), [authUser]);
+  const [resolvedPermissions, setResolvedPermissions] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const resolvePermissions = async () => {
+      if (!currentUser || currentUser.role === "ADMIN") {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+      const existingPermissions = extractAdminPermissions(currentUser);
+      if (Object.keys(existingPermissions).length > 0) {
+        if (isMounted) setResolvedPermissions(existingPermissions);
+        return;
+      }
+      const roleId = extractAdminRoleId(currentUser);
+      if (!roleId) {
+        if (isMounted) setResolvedPermissions({});
+        return;
+      }
+      try {
+        const rolePermissions = await fetchAdminRolePermissions(roleId);
+        if (isMounted) setResolvedPermissions(rolePermissions);
+      } catch {
+        if (isMounted) setResolvedPermissions({});
+      }
+    };
+    resolvePermissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  const permissionKey = "quick::core_management::customer_support::tickets";
+  const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -174,8 +213,9 @@ export default function SupportTickets() {
                       <td className="px-4 py-3">
                         <select
                           value={ticket.status}
+                          disabled={!canEdit}
                           onChange={(e) => updateTicket(ticket._id, { status: e.target.value })}
-                          className="border border-slate-200 rounded px-2 py-1 text-xs bg-white"
+                          className="border border-slate-200 rounded px-2 py-1 text-xs bg-white disabled:bg-slate-50 disabled:text-slate-500"
                         >
                           <option value="open">Open</option>
                           <option value="in-progress">In Progress</option>
@@ -188,18 +228,21 @@ export default function SupportTickets() {
                       <td className="px-4 py-3">
                         <input
                           value={drafts[ticket._id] ?? ticket.adminResponse ?? ""}
+                          disabled={!canEdit}
                           onChange={(e) => setDrafts((prev) => ({ ...prev, [ticket._id]: e.target.value }))}
-                          placeholder="Write response"
-                          className="border border-slate-200 rounded px-2 py-1 text-sm w-64 bg-white"
+                          placeholder={canEdit ? "Write response" : "No permission to reply"}
+                          className="border border-slate-200 rounded px-2 py-1 text-sm w-64 bg-white disabled:bg-slate-50 disabled:placeholder-slate-400"
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => updateTicket(ticket._id, { adminResponse: drafts[ticket._id] ?? ticket.adminResponse ?? "" })}
-                          className="px-3 py-1 rounded bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition-colors"
-                        >
-                          Save
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => updateTicket(ticket._id, { adminResponse: drafts[ticket._id] ?? ticket.adminResponse ?? "" })}
+                            className="px-3 py-1 rounded bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition-colors"
+                          >
+                            Save
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))

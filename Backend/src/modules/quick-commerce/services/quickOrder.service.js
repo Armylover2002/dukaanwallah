@@ -50,7 +50,7 @@ const SELLER_TO_WORKFLOW_MAP = {
 /**
  * Main service for Quick Commerce Order lifecycle
  */
-export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatus) => {
+export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatus, reason = '') => {
   const isId = mongoose.Types.ObjectId.isValid(sellerOrderId);
   const sellerOrder = await SellerOrder.findOne({
     sellerId,
@@ -68,6 +68,9 @@ export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatu
   sellerOrder.status = nextStatus;
   sellerOrder.workflowStatus = SELLER_TO_WORKFLOW_MAP[nextStatus] || sellerOrder.workflowStatus;
   if (nextStatus === 'delivered') sellerOrder.deliveredAt = new Date();
+  if (nextStatus === 'cancelled' && reason) {
+    sellerOrder.cancellationReason = reason;
+  }
   await sellerOrder.save();
 
   // 1b. Earnings credit: create/upsert an "Order Payment" transaction once delivered.
@@ -135,14 +138,14 @@ export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatu
         byId: sellerId,
         from: fromStatus,
         to: parentOrder.orderStatus,
-        note: parentOrder.orderType === 'mixed' 
+        note: reason ? `Seller cancelled order: ${reason}` : (parentOrder.orderType === 'mixed' 
           ? `Seller updated mixed-order leg to ${nextStatus}`
-          : `Seller updated status to ${nextStatus}`,
+          : `Seller updated status to ${nextStatus}`),
       });
 
       // If cancelled -> handle refund
       if (nextStatus === 'cancelled') {
-        await handleSellerOrderCancellation(parentOrder);
+        await handleSellerOrderCancellation(parentOrder, reason);
       }
 
       await parentOrder.save();
@@ -197,7 +200,7 @@ export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatu
   return sellerOrder;
 };
 
-const handleSellerOrderCancellation = async (parentOrder) => {
+const handleSellerOrderCancellation = async (parentOrder, reason = '') => {
   // Refund logic
   if (
     parentOrder.payment?.status === "paid" &&
@@ -233,7 +236,7 @@ const handleSellerOrderCancellation = async (parentOrder) => {
     await foodTransactionService.updateTransactionStatus(
       parentOrder._id, 
       'cancelled_by_restaurant', 
-      { note: 'Cancelled by seller' }
+      { note: reason ? `Cancelled by seller: ${reason}` : 'Cancelled by seller' }
     );
   } catch (err) {
     logger.error(`Transaction update failed for Quick Order ${parentOrder.orderId}:`, err);
