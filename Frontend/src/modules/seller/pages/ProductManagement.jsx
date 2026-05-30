@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Card from "@shared/components/ui/Card";
 import Badge from "@shared/components/ui/Badge";
 import {
@@ -52,7 +52,7 @@ const ProductManagement = () => {
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
 
-  const fetchProducts = async (requestedPage = 1) => {
+  const fetchProducts = useCallback(async (requestedPage = 1) => {
     setIsLoading(true);
     try {
       const res = await sellerApi.getProducts({ page: requestedPage, limit: pageSize });
@@ -80,9 +80,9 @@ const ProductManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pageSize]);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const res = await sellerApi.getCategoryTree();
       if (res.data.success) {
@@ -91,7 +91,7 @@ const ProductManagement = () => {
     } catch (error) {
       // fail silently
     }
-  };
+  }, []);
 
   React.useEffect(() => {
     fetchProducts(1);
@@ -363,17 +363,17 @@ const ProductManagement = () => {
     }
   };
 
-  const exportProducts = () => {
+  const exportProducts = useCallback(() => {
     console.log("Exporting products...");
     alert("Exporting " + safeProducts.length + " products as CSV (Simulation)");
-  };
+  }, [safeProducts.length]);
 
-  const handleDeleteClick = (product) => {
+  const handleDeleteClick = useCallback((product) => {
     setItemToDelete(product);
     setIsDeleteModalOpen(true);
-  };
+  }, []);
 
-  const confirmDelete = async () => {
+  const confirmDelete = useCallback(async () => {
     try {
       await sellerApi.deleteProduct(itemToDelete._id || itemToDelete.id);
       toast.success("Product deleted successfully");
@@ -383,7 +383,7 @@ const ProductManagement = () => {
     } catch (error) {
       toast.error("Failed to delete product");
     }
-  };
+  }, [itemToDelete, fetchProducts]);
 
   const openEditModal = (item = null) => {
     if (item) {
@@ -644,6 +644,7 @@ const ProductManagement = () => {
                       src={p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2"}
                       alt={p.name}
                       className="h-full w-full object-cover"
+                      loading="lazy"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -730,6 +731,7 @@ const ProductManagement = () => {
                             src={p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2"}
                             alt={p.name}
                             className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
                           />
                         </div>
                         <div>

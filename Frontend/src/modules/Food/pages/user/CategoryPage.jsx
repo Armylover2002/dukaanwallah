@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, startTransition, useDeferredValue } from "react"
+import { useState, useMemo, useRef, useEffect, startTransition, useDeferredValue, useCallback } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -1094,7 +1094,7 @@ export default function CategoryPage() {
     })
   }, [selectedCategory, categories])
 
-  const toggleFilter = (filterId) => {
+  const toggleFilter = useCallback((filterId) => {
     setActiveFilters(prev => {
       const newSet = new Set(prev)
       if (newSet.has(filterId)) {
@@ -1109,7 +1109,7 @@ export default function CategoryPage() {
     setTimeout(() => {
       setIsLoadingFilterResults(false)
     }, 500)
-  }
+  }, [])
 
   // Scroll tracking effect for filter modal
   useEffect(() => {
@@ -1140,7 +1140,7 @@ export default function CategoryPage() {
     return () => observer.disconnect()
   }, [isFilterOpen])
 
-  const toggleFavorite = (id) => {
+  const toggleFavorite = useCallback((id) => {
     setFavorites(prev => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
@@ -1150,7 +1150,7 @@ export default function CategoryPage() {
       }
       return newSet
     })
-  }
+  }, [])
 
   // Filter restaurants based on active filters and selected category
   // If category is selected, expand restaurants into dish cards (one card per matching dish)
@@ -1258,7 +1258,7 @@ export default function CategoryPage() {
     { delay: 140, minDuration: 360 }
   )
 
-  const handleCategorySelect = (category) => {
+  const handleCategorySelect = useCallback((category) => {
     const categorySlug = category.slug || category.id
     setSelectedCategory(categorySlug)
     // Update URL to reflect category change
@@ -1267,7 +1267,7 @@ export default function CategoryPage() {
     } else {
       navigate(`/user/category/${categorySlug}`)
     }
-  }
+  }, [navigate])
 
   // Check if should show grayscale (user out of service)
   const shouldShowGrayscale = isOutOfService
@@ -1333,6 +1333,7 @@ export default function CategoryPage() {
                           src={cat.image}
                           alt={cat.name}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                           onError={(e) => {
                             // If the backend image is missing/broken, show initials instead of fake assets.
                             e.target.style.display = 'none'
@@ -1472,6 +1473,7 @@ export default function CategoryPage() {
                               src={restaurant.categoryDishImage}
                               alt={restaurant.categoryDishName || restaurant.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
                               onError={(e) => {
                                 // Fallback to restaurant image if dish image fails
                                 if (restaurant.image) {
@@ -1491,6 +1493,7 @@ export default function CategoryPage() {
                               src={restaurant.image}
                               alt={restaurant.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
                               onError={(e) => {
                                 // Show emoji placeholder
                                 e.target.style.display = 'none'
@@ -1575,6 +1578,7 @@ export default function CategoryPage() {
                             src={restaurant.categoryDishImage}
                             alt={restaurant.categoryDishName || restaurant.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
                             onError={(e) => {
                               // Fallback to restaurant image if dish image fails
                               if (restaurant.image) {
@@ -1594,6 +1598,7 @@ export default function CategoryPage() {
                             src={restaurant.image}
                             alt={restaurant.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
                             onError={(e) => {
                               // Show emoji placeholder
                               e.target.style.display = 'none'

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Package, ShoppingBag, Tags, IndianRupee, Plus } from 'lucide-react';
 import apiClient from '@/services/api/axios';
 
@@ -44,7 +44,7 @@ export default function QuickCommerceAdminDashboard() {
   const [submittingCategory, setSubmittingCategory] = useState(false);
   const [submittingProduct, setSubmittingProduct] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     
     const safeGet = async (url) => {
@@ -71,11 +71,11 @@ export default function QuickCommerceAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load().catch(() => setLoading(false));
-  }, []);
+  }, [load]);
 
   const categoryMap = useMemo(() => {
     const m = {};
@@ -180,7 +180,7 @@ export default function QuickCommerceAdminDashboard() {
                 {loading ? <div className="p-4 text-sm text-slate-500">Loading...</div> : categories.map((category) => (
                   <div key={category.id || category._id} className="flex items-center justify-between border-b border-slate-50 px-4 py-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <img src={category.image} alt={category.name} className="h-9 w-9 rounded-lg object-cover" />
+                      <img src={category.image} alt={category.name} loading="lazy" className="h-9 w-9 rounded-lg object-cover" />
                       <div>
                         <p className="font-bold text-slate-900">{category.name}</p>
                         <p className="text-xs text-slate-500">{category.slug}</p>
@@ -196,7 +196,7 @@ export default function QuickCommerceAdminDashboard() {
               <div className="border-b border-slate-100 px-4 py-3 text-sm font-black uppercase tracking-wide text-slate-700">Recent Orders ({orders.length})</div>
               <div className="max-h-72 overflow-auto">
                 {loading ? <div className="p-4 text-sm text-slate-500">Loading...</div> : orders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between border-b border-slate-50 px-4 py-2 text-sm">
+                  <div key={order.id || order._id} className="flex items-center justify-between border-b border-slate-50 px-4 py-2 text-sm">
                     <div>
                       <p className="font-bold text-slate-900">{order.orderNumber}</p>
                       <p className="text-xs text-slate-500">{new Date(order.createdAt).toLocaleString()}</p>
@@ -229,7 +229,7 @@ export default function QuickCommerceAdminDashboard() {
                     <tr key={product.id || product._id} className="border-t border-slate-100">
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
-                          <img src={product.image} alt={product.name} className="h-9 w-9 rounded-lg object-cover" />
+                          <img src={product.image} alt={product.name} loading="lazy" className="h-9 w-9 rounded-lg object-cover" />
                           <div>
                             <p className="font-semibold text-slate-900">{product.name}</p>
                             <p className="text-xs text-slate-500">{product.badge || 'No badge'}</p>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   Search, 
@@ -791,7 +791,7 @@ export default function HubMenu() {
   }, [menuData, activeFilter, searchQuery])
 
   // Toggle group expansion
-  const toggleGroup = (groupId) => {
+  const toggleGroup = useCallback((groupId) => {
     setExpandedGroups(prev => {
       const next = new Set(prev)
       if (next.has(groupId)) {
@@ -801,10 +801,10 @@ export default function HubMenu() {
       }
       return next
     })
-  }
+  }, []);
 
   // Toggle item stock status - opens popup
-  const toggleItemStock = (itemId, groupId) => {
+  const toggleItemStock = useCallback((itemId, groupId) => {
     const group = menuData.find(g => g.id === groupId)
     const item = group?.items.find(i => i.id === itemId)
     if (item && item.isAvailable) {
@@ -821,7 +821,7 @@ export default function HubMenu() {
         )
       })))
     }
-  }
+  }, [menuData]);
 
 
   // Handle availability popup confirm
@@ -897,17 +897,17 @@ export default function HubMenu() {
   }
 
   // Handle filter selection
-  const handleFilterSelect = (filterId) => {
+  const handleFilterSelect = useCallback((filterId) => {
     setSelectedFilter(filterId)
     setActiveFilter(filterId)
     setIsFilterOpen(false)
-  }
+  }, []);
 
   // Category options handlers
-  const handleOpenCategoryOptions = (group) => {
+  const handleOpenCategoryOptions = useCallback((group) => {
     setSelectedCategory({ id: group.id, name: group.name })
     setIsCategoryOptionsOpen(true)
-  }
+  }, []);
 
   const handleEditCategory = () => {
     if (!selectedCategory) return
@@ -1000,7 +1000,7 @@ export default function HubMenu() {
     setNewCategoryName("")
   }
 
-  const handleDeleteCategory = async () => {
+  const handleDeleteCategory = useCallback(async () => {
     if (!selectedCategory) return
     
     if (!window.confirm(`Are you sure you want to delete the category "${selectedCategory.name}"? This will delete all items in this category.`)) {
@@ -1020,7 +1020,7 @@ export default function HubMenu() {
 
     setIsCategoryOptionsOpen(false)
     setSelectedCategory(null)
-  }
+  }, [selectedCategory, navigate]);
 
   // Scroll to category
   const scrollToCategory = (categoryId) => {
@@ -1255,6 +1255,7 @@ export default function HubMenu() {
                             src={addon.images[0]}
                             alt={addon.name}
                             className="w-20 h-20 object-cover rounded-lg"
+                            loading="lazy"
                             onError={(e) => {
                               e.target.style.display = 'none'
                             }}
@@ -1413,6 +1414,7 @@ export default function HubMenu() {
                               src={item.image}
                               alt={item.name}
                               className="w-20 h-20 rounded-lg object-cover"
+                              loading="lazy"
                             />
                             <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-1">
                               <div className="flex items-center gap-1">

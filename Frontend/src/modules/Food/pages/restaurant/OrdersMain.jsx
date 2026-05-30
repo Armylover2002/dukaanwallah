@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   checkOnboardingStatus,
@@ -261,6 +261,7 @@ function CompletedOrders({ onSelectOrder, refreshToken = 0 }) {
                         src={order.photoUrl}
                         alt={order.photoAlt}
                         className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
@@ -474,6 +475,7 @@ function CancelledOrders({ onSelectOrder, refreshToken = 0 }) {
                         src={order.photoUrl}
                         alt={order.photoAlt}
                         className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
@@ -1615,10 +1617,10 @@ export default function OrdersMain() {
   };
 
   // Handle cancel order (for preparing orders)
-  const handleCancelClick = (order) => {
+  const handleCancelClick = useCallback((order) => {
     setOrderToCancel(order);
     setShowCancelPopup(true);
-  };
+  }, []);
 
   const handleCancelConfirm = async () => {
     if (!cancelReason.trim() || !orderToCancel) return;
@@ -1930,10 +1932,10 @@ export default function OrdersMain() {
     }
   }, [activeFilter]);
 
-  const handleSelectOrder = (order) => {
+  const handleSelectOrder = useCallback((order) => {
     setSelectedOrder(order);
     setIsSheetOpen(true);
-  };
+  }, []);
 
   const renderContent = () => {
     switch (activeFilter) {
@@ -2953,7 +2955,7 @@ export default function OrdersMain() {
 
 
 // Order Card Component
-function OrderCard({
+const OrderCard = memo(function OrderCard({
   orderId,
   mongoId,
   status,
@@ -3020,6 +3022,7 @@ function OrderCard({
               src={photoUrl}
               alt={photoAlt}
               className="h-full w-full object-cover"
+              loading="lazy"
             />
           ) : (
             <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
@@ -3125,7 +3128,7 @@ function OrderCard({
       </div>
     </div>
   );
-}
+});
 
 // Preparing Orders List
 function PreparingOrders({

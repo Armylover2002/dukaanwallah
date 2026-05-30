@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Card from "@shared/components/ui/Card";
 import Button from "@shared/components/ui/Button";
 import Badge from "@shared/components/ui/Badge";
@@ -78,11 +78,11 @@ const Orders = () => {
   const [cancelReason, setCancelReason] = useState("");
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
-  const canCancelOrder = (order) => {
+  const canCancelOrder = useCallback((order) => {
     if (!order) return false;
     const sellerStatus = String(order.status || "").toLowerCase();
     return ["pending", "confirmed", "packed", "ready_for_pickup"].includes(sellerStatus);
-  };
+  }, []);
   const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -376,7 +376,7 @@ const Orders = () => {
     [safeOrders],
   );
 
-  const getStatusColor = (status) => {
+  const getStatusColor = useCallback((status) => {
     const s = status.toLowerCase();
     switch (s) {
       case "pending":
@@ -396,7 +396,7 @@ const Orders = () => {
       default:
         return "secondary";
     }
-  };
+  }, []);
 
   const handleViewDetails = (order) => {
     setSelectedOrder(order);
@@ -475,7 +475,7 @@ const Orders = () => {
     }
   };
 
-  const canResendDispatch = (order) => {
+  const canResendDispatch = useCallback((order) => {
     const sellerStatus = String(order?.status || "").toLowerCase();
     const dispatchStatus = String(order?.dispatchStatus || "").toLowerCase();
 
@@ -483,7 +483,7 @@ const Orders = () => {
     if (["delivered", "cancelled"].includes(sellerStatus)) return false;
 
     return ["confirmed", "packed", "out_for_delivery"].includes(sellerStatus);
-  };
+  }, []);
 
   const exportOrders = () => {
     const data = filteredOrders;

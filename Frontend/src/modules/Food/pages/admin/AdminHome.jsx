@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@food/components/ui/card"
 import {
@@ -86,7 +86,10 @@ export default function AdminHome() {
     }
   }, [user])
 
-  const canAccessPath = (path) => canAccessAdminPath(user, resolvedPermissions, path)
+  const canAccessPath = useCallback(
+    (path) => canAccessAdminPath(user, resolvedPermissions, path),
+    [user, resolvedPermissions]
+  );
 
 
 
@@ -135,7 +138,7 @@ export default function AdminHome() {
   }, [selectedZone, selectedPeriod])
 
   // Get order stats from real data
-  const getOrderStats = () => {
+  const orderStats = useMemo(() => {
     if (!dashboardData?.orders?.byStatus) {
       return [
         { label: "Delivered", value: 0, color: "#0ea5e9" },
@@ -152,10 +155,10 @@ export default function AdminHome() {
       { label: "Cancelled", value: byStatus.cancelled || 0, color: "#ef4444" },
       { label: "Pending", value: byStatus.pending || 0, color: "#10b981" },
     ]
-  }
+  }, [dashboardData]);
 
   // Get monthly data from real data
-  const getMonthlyData = () => {
+  const monthlyData = useMemo(() => {
     if (!dashboardData?.monthlyData || dashboardData.monthlyData.length === 0) {
       // Return empty data structure if no data
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -169,10 +172,7 @@ export default function AdminHome() {
       revenue: item.revenue || 0,
       orders: item.orders || 0
     }))
-  }
-
-  const orderStats = getOrderStats()
-  const monthlyData = getMonthlyData()
+  }, [dashboardData]);
 
   // Calculate totals from real data
   const revenueTotal = dashboardData?.revenue?.total || 0
@@ -195,11 +195,13 @@ export default function AdminHome() {
   const completedOrders = dashboardData?.orderStats?.completed || 0
   const activeOrdersTotal = processingOrders
 
-  const pieData = orderStats.map((item) => ({
-    name: item.label,
-    value: item.value,
-    fill: item.color,
-  }))
+  const pieData = useMemo(() => {
+    return orderStats.map((item) => ({
+      name: item.label,
+      value: item.value,
+      fill: item.color,
+    }));
+  }, [orderStats]);
 
   const deliveryProfit = dashboardData?.deliveryProfit || 0
   const periodLabel = selectedPeriod === "overall" ? "Overall" :
@@ -271,7 +273,7 @@ export default function AdminHome() {
               icon={<ShoppingBag className="h-5 w-5 text-emerald-600" />}
               accent="bg-emerald-200/40"
               path="/admin/food/transaction-report"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Orders processed"
@@ -280,7 +282,7 @@ export default function AdminHome() {
               icon={<Activity className="h-5 w-5 text-amber-600" />}
               accent="bg-amber-200/40"
               path="/admin/food/orders/processing"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Platform fee"
@@ -289,7 +291,7 @@ export default function AdminHome() {
               icon={<CreditCard className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"
               path="/admin/food/fee-settings"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Delivery fee"
@@ -298,7 +300,7 @@ export default function AdminHome() {
               icon={<Truck className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
               path="/admin/food/transaction-report"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="GST"
@@ -307,7 +309,7 @@ export default function AdminHome() {
               icon={<Receipt className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
               path="/admin/food/tax-report"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Platform Total"
@@ -316,7 +318,7 @@ export default function AdminHome() {
               icon={<DollarSign className="h-5 w-5 text-green-600" />}
               accent="bg-green-200/40"
               path="/admin/food/transaction-report"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total restaurants"
@@ -325,7 +327,7 @@ export default function AdminHome() {
               icon={<Store className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
               path="/admin/food/restaurants"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Restaurant request pending"
@@ -334,7 +336,7 @@ export default function AdminHome() {
               icon={<UserCheck className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
               path="/admin/food/restaurants/joining-request"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total delivery boy"
@@ -343,7 +345,7 @@ export default function AdminHome() {
               icon={<Truck className="h-5 w-5 text-indigo-600" />}
               accent="bg-indigo-200/40"
               path="/admin/food/delivery-partners"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Delivery boy request pending"
@@ -352,7 +354,7 @@ export default function AdminHome() {
               icon={<Clock className="h-5 w-5 text-yellow-600" />}
               accent="bg-yellow-200/40"
               path="/admin/food/delivery-partners/join-request"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total foods"
@@ -361,7 +363,7 @@ export default function AdminHome() {
               icon={<Package className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"
               path="/admin/food/foods"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total addons"
@@ -370,7 +372,7 @@ export default function AdminHome() {
               icon={<Plus className="h-5 w-5 text-pink-600" />}
               accent="bg-pink-200/40"
               path="/admin/food/addons"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Total customers"
@@ -379,7 +381,7 @@ export default function AdminHome() {
               icon={<UserCircle className="h-5 w-5 text-cyan-600" />}
               accent="bg-cyan-200/40"
               path="/admin/food/customers"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Pending orders"
@@ -388,7 +390,7 @@ export default function AdminHome() {
               icon={<Clock className="h-5 w-5 text-red-600" />}
               accent="bg-red-200/40"
               path="/admin/food/orders/pending"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
             <MetricCard
               title="Completed orders"
@@ -397,7 +399,7 @@ export default function AdminHome() {
               icon={<CheckCircle className="h-5 w-5 text-emerald-600" />}
               accent="bg-emerald-200/40"
               path="/admin/food/orders/delivered"
-              resolvedPermissions={resolvedPermissions}
+              canAccessPath={canAccessPath}
             />
           </div>
 
@@ -654,12 +656,10 @@ export default function AdminHome() {
   )
 }
 
-function MetricCard({ title, value, helper, icon, accent, path, resolvedPermissions }) {
-  const { user: authUser } = useAuth()
-  const user = useMemo(() => authUser || getCurrentUser("admin"), [authUser])
+function MetricCard({ title, value, helper, icon, accent, path, canAccessPath }) {
   const navigate = useNavigate()
 
-  if (path && !canAccessAdminPath(user, resolvedPermissions || {}, path)) {
+  if (path && canAccessPath && !canAccessPath(path)) {
     return null
   }
 
