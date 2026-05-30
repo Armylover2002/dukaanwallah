@@ -228,9 +228,11 @@ export default function AdminForgotPassword() {
         <Card className="w-full max-w-lg bg-white/90 backdrop-blur border-neutral-200 shadow-2xl">
           <CardHeader className="pb-4">
             <div className="flex w-full items-center gap-4 sm:gap-5">
-              <div className="flex h-16 w-32 shrink-0 items-center justify-center rounded-xl overflow-hidden bg-white ring-1 ring-neutral-200 p-1">
-                <img src="/logo.jpg" alt="Dukaanwallah" className="h-full w-full object-contain" />
-              </div>
+              <img 
+                src="/logo.jpg" 
+                alt="Dukaanwallah" 
+                className="h-16 w-auto shrink-0 rounded-lg object-contain" 
+              />
               <div className="flex flex-col gap-1">
                 <CardTitle className="text-3xl leading-tight text-gray-900">
                   {step === 1 && "Forgot Password"}

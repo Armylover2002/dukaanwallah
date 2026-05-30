@@ -416,11 +416,6 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
             if (!item.permissionKey) return null;
             const currentKey = `${parentKey}::${item.permissionKey}`;
             const hasView = permissions[currentKey]?.view === true;
-
-            if (item.type === "link" && item.permissionKey === "dashboard") {
-              return null;
-            }
-
             if (item.type === "section" && item.items) {
               if (!hasView) return null;
               const filteredItems = filterMenuByPermissions(item.items, currentKey);

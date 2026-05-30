@@ -46,18 +46,28 @@ export default function QuickCommerceAdminDashboard() {
 
   const load = async () => {
     setLoading(true);
+    
+    const safeGet = async (url) => {
+      try {
+        return await apiClient.get(url, { contextModule: 'admin' });
+      } catch (err) {
+        console.warn(`QuickCommerceDashboard: GET ${url} failed:`, err.message);
+        return { data: { success: false, result: null } };
+      }
+    };
+
     try {
       const [statsRes, categoriesRes, productsRes, ordersRes] = await Promise.all([
-        apiClient.get('/quick-commerce/admin/stats', { contextModule: 'admin' }),
-        apiClient.get('/quick-commerce/admin/categories', { contextModule: 'admin' }),
-        apiClient.get('/quick-commerce/admin/products', { contextModule: 'admin' }),
-        apiClient.get('/quick-commerce/admin/orders', { contextModule: 'admin' }),
+        safeGet('/quick-commerce/admin/stats'),
+        safeGet('/quick-commerce/admin/categories'),
+        safeGet('/quick-commerce/admin/products'),
+        safeGet('/quick-commerce/admin/orders'),
       ]);
 
       setStats(statsRes.data?.result || { categories: 0, products: 0, orders: 0, revenue: 0 });
-      setCategories(categoriesRes.data?.result || []);
-      setProducts(productsRes.data?.result || []);
-      setOrders(ordersRes.data?.result || []);
+      setCategories(Array.isArray(categoriesRes.data?.result) ? categoriesRes.data.result : []);
+      setProducts(Array.isArray(productsRes.data?.result) ? productsRes.data.result : []);
+      setOrders(Array.isArray(ordersRes.data?.result) ? ordersRes.data.result : []);
     } finally {
       setLoading(false);
     }

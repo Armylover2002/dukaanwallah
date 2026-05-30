@@ -308,14 +308,21 @@ export const adminLogin = async (email, password, roleId) => {
     throw new ValidationError("Email and password are required");
   }
 
-  const admin = await FoodAdmin.findOne({ email }).populate('adminRoleId');
+  const searchKey = String(email || '').trim();
+  const admin = await FoodAdmin.findOne({
+    $or: [
+      { email: searchKey.toLowerCase() },
+      { employeeId: searchKey.toUpperCase() },
+      { email: searchKey }
+    ]
+  }).populate('adminRoleId');
   if (!admin) {
-    throw new AuthError("Invalid credentials");
+    throw new AuthError("User not found");
   }
 
   const isMatch = await admin.comparePassword(password);
   if (!isMatch) {
-    throw new AuthError("Invalid credentials");
+    throw new AuthError("Incorrect password");
   }
 
   if (roleId) {

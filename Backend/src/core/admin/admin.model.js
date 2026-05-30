@@ -31,6 +31,17 @@ const adminSchema = new mongoose.Schema(
             type: String,
             default: 'ADMIN'
         },
+        employeeId: {
+            type: String,
+            unique: true,
+            sparse: true,
+            trim: true
+        },
+        workType: {
+            type: String,
+            enum: ['Work From Home', 'Work From Office'],
+            default: 'Work From Office'
+        },
         adminRoleId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'AdminRole'

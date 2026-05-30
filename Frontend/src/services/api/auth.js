@@ -129,10 +129,14 @@ export function verifyUserOtp(
 export function adminLogin(email, password, roleId) {
   const trimmedEmail = typeof email === "string" ? email.trim() : "";
   if (!trimmedEmail) {
-    return Promise.reject(new Error("Email is required"));
+    return Promise.reject(new Error("Email or Employee ID is required"));
   }
-  if (!EMAIL_REGEX.test(trimmedEmail)) {
-    return Promise.reject(new Error("Please enter a valid email address"));
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const empIdRegex = /^EMPL\d+$/i;
+  if (!emailRegex.test(trimmedEmail) && !empIdRegex.test(trimmedEmail)) {
+    if (trimmedEmail.length < 3) {
+      return Promise.reject(new Error("Please enter a valid Email Address or Employee ID"));
+    }
   }
   const passwordStr = String(password ?? "");
   if (!passwordStr) {

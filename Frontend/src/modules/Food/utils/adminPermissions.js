@@ -258,7 +258,10 @@ export const canAccessAdminPath = (user, permissions, pathname) => {
 
   const { rootKey, menu } = getAdminModuleConfig(pathname);
   if (!hasAnyRootAccess(permissions, rootKey)) return false;
-  if (isModuleDashboardPath(pathname, rootKey)) return false;
+  if (isModuleDashboardPath(pathname, rootKey)) {
+    const dashboardKey = `${rootKey}::dashboard`;
+    return !!(permissions && permissions[dashboardKey]?.view === true);
+  }
 
   const match = findMatchingPermission(menu, pathname, rootKey);
   if (!match) return false;

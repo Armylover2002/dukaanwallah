@@ -15,7 +15,26 @@ const normalizeNamePart = (value) => String(value || '').trim().replace(/\s+/g, 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 const normalizePhone = (value) => String(value || '').trim();
 
-const validateEmployeePayload = ({ firstName, lastName, email, password, phone, roleId, zoneId, isEditMode }) => {
+const generateEmployeeId = async () => {
+    const lastEmployee = await FoodAdmin.findOne({ employeeId: /^EMPL\d+$/ })
+        .sort({ employeeId: -1 })
+        .select('employeeId')
+        .lean();
+
+    if (!lastEmployee || !lastEmployee.employeeId) {
+        return 'EMPL0001';
+    }
+
+    const match = lastEmployee.employeeId.match(/^EMPL(\d+)$/);
+    if (!match) {
+        return 'EMPL0001';
+    }
+
+    const nextNum = parseInt(match[1], 10) + 1;
+    return `EMPL${String(nextNum).padStart(4, '0')}`;
+};
+
+const validateEmployeePayload = ({ firstName, lastName, email, password, phone, roleId, zoneId, isEditMode, workType }) => {
     const normalizedFirstName = normalizeNamePart(firstName);
     const normalizedLastName = normalizeNamePart(lastName);
     const normalizedEmail = normalizeEmail(email);
@@ -62,6 +81,10 @@ const validateEmployeePayload = ({ firstName, lastName, email, password, phone, 
         return 'Password must be at least 8 characters';
     }
 
+    if (workType !== undefined && workType !== null && workType !== '' && workType !== 'Work From Home' && workType !== 'Work From Office') {
+        return 'Please select a valid Work Type';
+    }
+
     return null;
 };
 
@@ -78,8 +101,8 @@ const validateEmployeeImage = (file) => {
 
 export const createEmployee = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, phone, roleId, zoneId } = req.body;
-        const validationError = validateEmployeePayload({ firstName, lastName, email, password, phone, roleId, zoneId, isEditMode: false });
+        const { firstName, lastName, email, password, phone, roleId, zoneId, workType } = req.body;
+        const validationError = validateEmployeePayload({ firstName, lastName, email, password, phone, roleId, zoneId, isEditMode: false, workType });
         if (validationError) {
             logger.warn(`Employee creation validation failed: ${validationError}`);
             return sendError(res, 400, validationError);
@@ -114,6 +137,8 @@ export const createEmployee = async (req, res) => {
             return sendError(res, 404, 'Selected role not found');
         }
 
+        const employeeId = await generateEmployeeId();
+
         const employee = new FoodAdmin({
             name: `${normalizedFirstName} ${normalizedLastName}`.trim(),
             email: normalizedEmail,
@@ -122,7 +147,9 @@ export const createEmployee = async (req, res) => {
             role: 'EMPLOYEE',
             adminRoleId: roleId,
             zoneId: zoneId !== 'All' ? zoneId : null,
-            isActive: true
+            isActive: true,
+            employeeId,
+            workType: workType || 'Work From Office'
         });
 
         if (req.file && req.file.buffer) {
@@ -134,7 +161,7 @@ export const createEmployee = async (req, res) => {
         // Send email with credentials
         const loginUrl = 'http://localhost:5173/admin/login'; // Replace with env var if available
         const roleName = adminRole ? adminRole.roleName : 'Employee';
-        await sendEmployeeCredentialsEmail(normalizedEmail, password, roleName, loginUrl);
+        await sendEmployeeCredentialsEmail(normalizedEmail, password, roleName, loginUrl, employeeId);
 
         return sendResponse(res, 201, 'Employee created successfully', employee);
     } catch (error) {
@@ -157,9 +184,9 @@ export const getEmployees = async (req, res) => {
 
 export const updateEmployee = async (req, res) => {
     try {
-        const { firstName, lastName, email, phone, roleId, zoneId, password } = req.body;
+        const { firstName, lastName, email, phone, roleId, zoneId, password, workType } = req.body;
         const employeeId = req.params.id;
-        const validationError = validateEmployeePayload({ firstName, lastName, email, password, phone, roleId, zoneId, isEditMode: true });
+        const validationError = validateEmployeePayload({ firstName, lastName, email, password, phone, roleId, zoneId, isEditMode: true, workType });
         if (validationError) {
             logger.warn(`Employee update validation failed: ${validationError}`);
             return sendError(res, 400, validationError);
@@ -209,6 +236,7 @@ export const updateEmployee = async (req, res) => {
         employee.phone = normalizedPhone;
         employee.adminRoleId = roleId;
         employee.zoneId = zoneId !== 'All' ? zoneId : null;
+        employee.workType = workType || 'Work From Office';
         if (password) employee.password = password;
 
         if (req.file && req.file.buffer) {
