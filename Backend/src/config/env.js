@@ -34,7 +34,9 @@ export const config = {
 
     // Rate limiting
     rateLimitWindowMinutes: Number(process.env.RATE_LIMIT_WINDOW || 15),
-    rateLimitMaxRequests: Number(process.env.RATE_LIMIT_MAX || 100),
+    // Default 500 req/15min per IP — enough for normal multi-tab app usage
+    // (location polling, cart updates, order status pings all count against this)
+    rateLimitMaxRequests: Number(process.env.RATE_LIMIT_MAX || 500),
     authRateLimitWindowMinutes: Number(process.env.AUTH_RATE_LIMIT_WINDOW || 15),
     authRateLimitMax: Number(process.env.AUTH_RATE_LIMIT_MAX || 30),
 

@@ -13,9 +13,12 @@ export const connectDB = async () => {
         }
 
         const conn = await mongoose.connect(config.mongodbUri, {
-            family: 4, // Force IPv4
+            family: 4,                    // Force IPv4
             serverSelectionTimeoutMS: 15000,
             connectTimeoutMS: 15000,
+            maxPoolSize: 15,              // Limit active connections (default 100 is too heavy for Render free tier)
+            minPoolSize: 2,               // Keep minimum connections alive to avoid cold-start latency
+            autoIndex: false              // 🚀 CRITICAL PERF: Prevent Mongoose from building indexes on every boot
         });
         logger.info(`MongoDB connected: ${conn.connection.host}`);
 
