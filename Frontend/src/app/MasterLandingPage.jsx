@@ -1,10 +1,10 @@
 import React from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { 
-  UtensilsCrossed, 
-  ShoppingBag, 
-  User, 
+import {
+  UtensilsCrossed,
+  ShoppingBag,
+  User,
   ArrowRight,
   TrendingUp,
   MapPin,
@@ -35,7 +35,7 @@ const MODULES = [
     shadow: "shadow-emerald-500/20",
     bg: "bg-emerald-50",
     iconColor: "text-emerald-600",
-    path: "/quick-commerce",
+    path: "/quick",
     stats: "10 Min Delivery"
   }
 ]
@@ -59,8 +59,8 @@ export default function MasterLandingPage() {
             </div>
             <span className="text-2xl font-black tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700">APPZETO</span>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => navigate("/portal")}
             className="flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 px-5 py-2.5 rounded-full transition-all group shadow-sm hover:shadow-md"
           >
@@ -84,8 +84,8 @@ export default function MasterLandingPage() {
               </div>
               Everything you need, in one app
             </motion.div>
-            
-            <motion.h1 
+
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -93,14 +93,14 @@ export default function MasterLandingPage() {
             >
               The Master <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-rose-500 to-orange-500 bg-[length:200%_auto] animate-gradient">Ecosystem</span>
             </motion.h1>
-            
-            <motion.p 
+
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto font-medium leading-relaxed"
             >
-              Order food and get essentials delivered instantly. 
+              Order food and get essentials delivered instantly.
               The ultimate multi-service platform designed for your lifestyle.
             </motion.p>
           </div>
@@ -118,20 +118,20 @@ export default function MasterLandingPage() {
                 className="group cursor-pointer"
               >
                 <div className="relative h-full bg-white border border-gray-100 rounded-[32px] p-8 overflow-visible transition-all duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.04)] group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] flex flex-col items-center text-center">
-                  
+
                   {/* Floating Icon Container */}
                   <div className={`w-20 h-20 ${module.bg} rounded-3xl flex items-center justify-center mb-6 shadow-xl ${module.shadow} group-hover:scale-110 transition-transform duration-500 ease-out border border-white`}>
                     <module.icon className={`w-10 h-10 ${module.iconColor} drop-shadow-sm`} strokeWidth={2.5} />
                   </div>
-                  
+
                   <h3 className="text-2xl font-black mb-3 text-gray-900 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-gray-900 group-hover:to-gray-600 transition-colors">
                     {module.title}
                   </h3>
-                  
+
                   <p className="text-gray-500 font-medium leading-relaxed mb-8 px-2">
                     {module.description}
                   </p>
-                  
+
                   <div className="mt-auto w-full pt-6 border-t border-gray-100 flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-widest text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                       {module.stats}

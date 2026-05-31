@@ -1,78 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
-import { ChevronRight, Check, ChevronsRight } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { motion, useAnimation, useMotionValue, useTransform } from "framer-motion";
+import { ChevronRight, Check, ChevronsRight } from "lucide-react";
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+const SLIDER_WIDTH = 56; // px – width of the draggable circle
+const SLIDER_PADDING = 8; // px – inset from container edges (left: 4px + right: 4px)
+const COMPLETE_THRESHOLD = 0.9; // 90% drag = success
+
+// ─── SlideToPay ──────────────────────────────────────────────────────────────
 const SlideToPay = ({
     onSuccess,
     amount,
     isLoading = false,
     disabled = false,
-    text = "Slide to Pay"
+    text = "Slide to Pay",
 }) => {
     const [isCompleted, setIsCompleted] = useState(false);
     const controls = useAnimation();
     const x = useMotionValue(0);
+    const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
-    const [sliderWidth, setSliderWidth] = useState(56); // Width of the sliding circle
 
-    // Maximum drag distance
-    const maxDrag = Math.max(0, containerWidth - sliderWidth - 8); // 8px padding
+    // Derived: max drag distance
+    const maxDrag = Math.max(0, containerWidth - SLIDER_WIDTH - SLIDER_PADDING);
 
-    // Transform x to background opacity or color if needed
-    const opacity = useTransform(x, [0, maxDrag], [1, 0]);
+    // ─── Motion transforms (memoized by framer-motion on x changes) ──────────
     const textOpacity = useTransform(x, [0, maxDrag * 0.5], [1, 0]);
     const shimmerOpacity = useTransform(x, [0, maxDrag * 0.3], [1, 0]);
-
-    // Rotation transform based on drag position
+    const fillWidth = useTransform(x, [0, maxDrag], [0, containerWidth]);
     const rotate = useTransform(x, [0, maxDrag], [0, 360]);
-    // Opacity for the arrows to fade out as it completes
     const arrowsOpacity = useTransform(x, [0, maxDrag * 0.8], [1, 0]);
-    // Opacity for the checkmark to fade in
     const checkOpacity = useTransform(x, [maxDrag * 0.5, maxDrag], [0, 1]);
 
-    // Background fill progress
-    const fillWidth = useTransform(x, [0, maxDrag], [0, containerWidth]);
+    // ─── Measure container width (ResizeObserver for correctness) ────────────
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const ro = new ResizeObserver(([entry]) => {
+            setContainerWidth(entry.contentRect.width);
+        });
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
 
-    const handleDragEnd = async () => {
-        const currentX = x.get();
-        if (currentX >= maxDrag * 0.9) {
+    // ─── Drag end handler ────────────────────────────────────────────────────
+    const handleDragEnd = useCallback(async () => {
+        if (x.get() >= maxDrag * COMPLETE_THRESHOLD) {
             setIsCompleted(true);
             controls.start({ x: maxDrag });
-            if (onSuccess) {
-                try {
-                    await onSuccess();
-                } finally {
-                    setIsCompleted(false);
-                    controls.start({ x: 0 });
-                }
-            } else {
+            try {
+                await onSuccess?.();
+            } finally {
                 setIsCompleted(false);
                 controls.start({ x: 0 });
             }
         } else {
             controls.start({ x: 0 });
         }
-    };
+    }, [x, maxDrag, controls, onSuccess]);
 
-    useEffect(() => {
-        if (isLoading) {
-            // Loading state if handled externally
-        }
-    }, [isLoading]);
+    const isDraggable = !isCompleted && !isLoading && !disabled;
 
-
+    // ─── Render ──────────────────────────────────────────────────────────────
     return (
         <div
-            className="relative h-16 w-full rounded-full overflow-hidden select-none touch-none bg-linear-to-r from-[#0c831f] via-[#16a34a] to-[#0c831f] shadow-[0_18px_45px_rgba(4,120,87,0.35)] border border-white/10"
-            ref={(el) => el && setContainerWidth(el.offsetWidth)}
+            ref={containerRef}
+            className="relative h-16 w-full rounded-full overflow-hidden select-none touch-none bg-linear-to-r from-[#F26522] via-[#F5824A] to-[#F26522] shadow-[0_18px_45px_rgba(242,101,34,0.35)] border border-white/10"
         >
-            {/* Progress Fill */}
+            {/* Progress fill */}
             <motion.div
                 className="absolute inset-y-0 left-0 bg-white/15"
                 style={{ width: fillWidth }}
             />
 
-            {/* Shimmer Effect Background (continuous sweep) */}
+            {/* Shimmer sweep */}
             <motion.div
                 className="absolute inset-0 overflow-hidden pointer-events-none"
                 style={{ opacity: shimmerOpacity }}
@@ -85,35 +86,36 @@ const SlideToPay = ({
                 />
             </motion.div>
 
-            {/* Text Label */}
-            <motion.div
-                className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-                style={{ opacity: textOpacity }}
-            >
-                <span className="text-white font-black text-sm md:text-[13px] tracking-[0.25em] uppercase flex items-center gap-2">
-                    {text} <span className="text-white/40">|</span> <span className="text-emerald-50 font-extrabold">₹{amount}</span>
-                </span>
-
-                <div className="absolute right-4 animate-pulse text-white/70">
-                    <ChevronsRight size={20} />
-                </div>
-            </motion.div>
-
-            {/* Success State Text */}
-            {isCompleted && (
+            {/* Label (hidden while completed) */}
+            {!isCompleted && (
                 <motion.div
                     className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+                    style={{ opacity: textOpacity }}
                 >
-                    <span className="text-white font-black text-lg tracking-wide uppercase flex items-center gap-2">
-                        Processing <span className="animate-pulse">...</span>
+                    <span className="text-white font-black text-sm md:text-[13px] tracking-[0.25em] uppercase flex items-center gap-2">
+                        {text}{" "}
+                        <span className="text-white/40">|</span>{" "}
+                        <span className="text-orange-50 font-extrabold">₹{amount}</span>
                     </span>
+                    <div className="absolute right-4 animate-pulse text-white/70">
+                        <ChevronsRight size={20} />
+                    </div>
                 </motion.div>
             )}
 
-            {/* Draggable Circle */}
+            {/* Processing label */}
+            {isCompleted && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <span className="text-white font-black text-lg tracking-wide uppercase flex items-center gap-2">
+                        Processing <span className="animate-pulse">...</span>
+                    </span>
+                </div>
+            )}
+
+            {/* Draggable knob */}
             <motion.div
-                className="absolute left-1 top-1 bottom-1 w-14 h-14 bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing z-20 shadow-[0_6px_18px_rgba(15,118,110,0.35)] border border-emerald-100"
-                drag={!isCompleted && !isLoading ? "x" : false}
+                className="absolute left-1 top-1 bottom-1 w-14 h-14 bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing z-20 shadow-[0_6px_18px_rgba(242,101,34,0.35)] border border-orange-100"
+                drag={isDraggable ? "x" : false}
                 dragConstraints={{ left: 0, right: maxDrag }}
                 dragElastic={0.05}
                 dragMomentum={false}
@@ -124,19 +126,17 @@ const SlideToPay = ({
                 whileHover={{ scale: 1.05 }}
             >
                 {isLoading || isCompleted ? (
-                    <motion.div
-                        className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin"
-                    />
+                    <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                     <motion.div
                         className="relative w-full h-full flex items-center justify-center"
                         style={{ rotate }}
                     >
-                        <motion.div className="text-[#0c831f]" style={{ opacity: arrowsOpacity }}>
+                        <motion.div className="text-[#F26522]" style={{ opacity: arrowsOpacity }}>
                             <ChevronRight size={28} strokeWidth={3} />
                         </motion.div>
                         <motion.div
-                            className="absolute inset-0 flex items-center justify-center text-[#0c831f]"
+                            className="absolute inset-0 flex items-center justify-center text-[#F26522]"
                             style={{ opacity: checkOpacity }}
                         >
                             <Check size={24} strokeWidth={3} />
@@ -148,4 +148,4 @@ const SlideToPay = ({
     );
 };
 
-export default SlideToPay;
+export default React.memo(SlideToPay);

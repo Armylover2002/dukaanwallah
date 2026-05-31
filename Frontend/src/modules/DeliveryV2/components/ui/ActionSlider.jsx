@@ -9,7 +9,7 @@ export const ActionSlider = ({
   label = "Slide to Confirm", 
   onConfirm, 
   disabled = false,
-  color = "bg-green-600",
+  color = "bg-[#F26522]",
   successLabel = "Confirmed ✓"
 }) => {
   const [progress, setProgress] = useState(0);
@@ -106,7 +106,7 @@ export const ActionSlider = ({
         animate={controls}
         className={`relative w-14 h-14 rounded-full flex items-center justify-center z-20 cursor-grab active:cursor-grabbing shadow-xl transition-colors ${
           disabled ? 'bg-gray-200 text-gray-400' : 
-          isSuccess ? 'bg-white text-green-600' : 'bg-white text-gray-950'
+          isSuccess ? 'bg-white text-[#F26522]' : 'bg-white text-gray-950'
         }`}
       >
         <ChevronRight className={`w-8 h-8 transition-transform duration-300 ${isSuccess ? 'scale-110' : ''}`} />

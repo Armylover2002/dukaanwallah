@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  NAME: 'AppZeto Master',
+  NAME: 'DukaanWalah',
   VERSION: '1.0.0',
 };
 

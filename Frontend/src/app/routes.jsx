@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
 import {
   AppShellSkeleton,
@@ -158,108 +158,78 @@ const AppRoutes = () => {
         <Route path="/" element={<Navigate to={`/food/user${location.search}`} replace />} />
 
         {/* Auth Module */}
-        <Route path="/user/auth/*" element={<AuthApp />} />
+        <Route
+          path="/user/auth/*"
+          element={
+            <AuthPageGuard module="user" home="/food/user">
+              <AuthApp />
+            </AuthPageGuard>
+          }
+        />
         <Route path="/portal" element={<Navigate to={`/food/user${location.search}`} replace />} />
         <Route path="/login" element={<Navigate to={`/user/auth/login${location.search}`} replace />} />
-
-        {/* Shared home entry so /food/user <-> /quick doesn't remount through different app trees */}
-        <Route path="/food/user" element={<SharedFoodHomeRoute />} />
 
         {/* Food Module */}
         <Route path="/food/*" element={<FoodAppWrapper />} />
 
-
-
-        {/* Quick storefront landing keeps the shared food layout */}
-        <Route path="/quick" element={<SharedFoodHomeRoute />} />
-
-        {/* Global shared cart */}
+        {/* Protected Customer Storefront Layout */}
         <Route
           element={
-            <Suspense fallback={<PageLoader />}>
-              <FoodUserLayout />
-            </Suspense>
+            <ProtectedRoute>
+              <Outlet />
+            </ProtectedRoute>
           }
         >
-          <Route path="/cart" element={<GlobalCartPage />} />
-          <Route path="/cart/checkout" element={<GlobalCheckoutPage />} />
-          <Route path="/cart/select-address" element={<GlobalSelectAddressPage />} />
-          <Route path="/cart/address-selector" element={<GlobalAddressSelectorPage />} />
+          {/* Shared home entry so /food/user <-> /quick doesn't remount through different app trees */}
+          <Route path="/food/user" element={<SharedFoodHomeRoute />} />
+
+          {/* Quick storefront landing keeps the shared food layout */}
+          <Route path="/quick" element={<SharedFoodHomeRoute />} />
+
+          {/* Global shared cart */}
           <Route
-            path="/profile"
             element={
-              <ProtectedRoute>
-                <SharedProfilePage />
-              </ProtectedRoute>
+              <Suspense fallback={<PageLoader />}>
+                <FoodUserLayout />
+              </Suspense>
+            }
+          >
+            <Route path="/cart" element={<GlobalCartPage />} />
+            <Route path="/cart/checkout" element={<GlobalCheckoutPage />} />
+            <Route path="/cart/select-address" element={<GlobalSelectAddressPage />} />
+            <Route path="/cart/address-selector" element={<GlobalAddressSelectorPage />} />
+            <Route path="/profile" element={<SharedProfilePage />} />
+            <Route path="/profile/edit" element={<SharedProfileEditPage />} />
+            <Route path="/profile/support" element={<SharedProfileSupportPage />} />
+            <Route path="/profile/coupons" element={<SharedProfileCouponsPage />} />
+            <Route path="/profile/about" element={<SharedProfileAboutPage />} />
+            <Route path="/profile/terms" element={<SharedProfileTermsPage />} />
+            <Route path="/profile/privacy" element={<SharedProfilePrivacyPage />} />
+            <Route path="/profile/refund" element={<SharedProfileRefundPage />} />
+            <Route path="/profile/shipping" element={<SharedProfileShippingPage />} />
+            <Route path="/profile/cancellation" element={<SharedProfileCancellationPage />} />
+          </Route>
+
+          {/* Quick storefront */}
+          <Route
+            path="/quick/*"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <QuickCommerceApp />
+              </Suspense>
             }
           />
-          <Route
-            path="/profile/edit"
-            element={
-              <ProtectedRoute>
-                <SharedProfileEditPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/support"
-            element={
-              <ProtectedRoute>
-                <SharedProfileSupportPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/coupons"
-            element={
-              <ProtectedRoute>
-                <SharedProfileCouponsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/about"
-            element={
-              <ProtectedRoute>
-                <SharedProfileAboutPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/terms"
-            element={<SharedProfileTermsPage />}
-          />
-          <Route
-            path="/profile/privacy"
-            element={<SharedProfilePrivacyPage />}
-          />
-          <Route
-            path="/profile/refund"
-            element={<SharedProfileRefundPage />}
-          />
-          <Route
-            path="/profile/shipping"
-            element={<SharedProfileShippingPage />}
-          />
-          <Route
-            path="/profile/cancellation"
-            element={<SharedProfileCancellationPage />}
-          />
+          <Route path="/quick-commerce/*" element={<RedirectLegacyQuickCommerce />} />
+          <Route path="/qc/*" element={<Navigate to="/quick" replace />} />
+
+          {/* Dynamic intercept redirects for bare paths (accessed programmatically) */}
+          <Route path="/user/*" element={<RedirectToFood />} />
+          <Route path="/restaurant/*" element={<RedirectToFood />} />
+          <Route path="/delivery/*" element={<RedirectToFood />} />
+          <Route path="/usermain/*" element={<RedirectToFood />} />
+          <Route path="/profile/*" element={<Navigate to="/profile" replace />} />
+          <Route path="/orders/*" element={<RedirectToFood />} />
         </Route>
-
-        {/* Quick storefront */}
-        <Route
-          path="/quick/*"
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <QuickCommerceApp />
-            </Suspense>
-          }
-        />
-        <Route path="/quick-commerce/*" element={<RedirectLegacyQuickCommerce />} />
-        <Route path="/qc/*" element={<Navigate to="/quick" replace />} />
-
-
 
         {/* Seller Module */}
         <Route path="/seller" element={<SellerAppWrapper />} />
@@ -284,14 +254,6 @@ const AppRoutes = () => {
           }
         />
         
-        {/* Dynamic intercept redirects for bare paths (accessed programmatically) */}
-        <Route path="/user/*" element={<RedirectToFood />} />
-        <Route path="/restaurant/*" element={<RedirectToFood />} />
-        <Route path="/delivery/*" element={<RedirectToFood />} />
-        <Route path="/usermain/*" element={<RedirectToFood />} />
-        <Route path="/profile/*" element={<Navigate to="/profile" replace />} />
-        <Route path="/orders/*" element={<RedirectToFood />} />
-
         {/* Fallback 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

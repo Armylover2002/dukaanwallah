@@ -1,95 +1,136 @@
-import React from "react";
+import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { cn } from "@/lib/utils";
 import { getCloudinarySrcSet } from "@/shared/utils/cloudinaryUtils";
 
-const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap = 0, edgeToEdge = false }) => {
+// ─── Inner slide components memoize kiye — re-render sirf data change pe ──────
+const FullWidthSlide = memo(({ banner, stepPercent, sectionTitle, eager }) => (
+  <div
+    className="relative shrink-0 overflow-hidden bg-slate-100 flex items-center justify-center box-border h-[190px] rounded-none px-0"
+    style={{ width: `${stepPercent}%` }}
+  >
+    <img
+      src={banner.imageUrl}
+      srcSet={getCloudinarySrcSet(banner.imageUrl)}
+      sizes="100vw"
+      alt={banner.title || sectionTitle || "Banner"}
+      className="w-full h-full object-cover object-center"
+      loading={eager ? "eager" : "lazy"}
+    />
+  </div>
+));
+FullWidthSlide.displayName = "FullWidthSlide";
+
+const InlineSlide = memo(({ banner, stepPercent, slideGap, sectionTitle, eager }) => (
+  <div
+    className="relative shrink-0 overflow-hidden bg-slate-100 flex items-center justify-center box-border h-[190px] px-4 md:px-8"
+    style={{ width: `${stepPercent}%` }}
+  >
+    <div className="h-full w-full max-w-[560px] -translate-x-2 md:-translate-x-4 overflow-hidden rounded-3xl bg-slate-100 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+      <img
+        src={banner.imageUrl}
+        srcSet={getCloudinarySrcSet(banner.imageUrl)}
+        sizes="(max-width: 768px) 100vw, 560px"
+        alt={banner.title || sectionTitle || "Banner"}
+        className="w-full h-full object-cover object-center"
+        loading={eager ? "eager" : "lazy"}
+      />
+    </div>
+  </div>
+));
+InlineSlide.displayName = "InlineSlide";
+
+// ─── Main Carousel ─────────────────────────────────────────────────────────────
+const ExperienceBannerCarousel = ({
+  section,
+  items,
+  fullWidth = false,
+  slideGap = 0,
+  edgeToEdge = false,
+}) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isResetting, setIsResetting] = useState(false);
+
   const effectiveSlideGap = fullWidth ? 0 : slideGap;
+  const isMultiple = items.length > 1;
 
-  const [activeIndex, setActiveIndex] = React.useState(0);
-  const [isResetting, setIsResetting] = React.useState(false);
-  const loopedItems = items.length > 1 ? [...items, items[0]] : items;
+  // loopedItems sirf tab re-compute hoga jab items change ho
+  const loopedItems = useMemo(
+    () => (isMultiple ? [...items, items[0]] : items),
+    [items, isMultiple]
+  );
+
   const stepPercent = 100 / loopedItems.length;
+  const sectionTitle = section?.title;
 
-  React.useEffect(() => {
-    if (items.length <= 1) return;
+  // Auto-advance
+  useEffect(() => {
+    if (!isMultiple) return;
+    const id = setInterval(() => setActiveIndex((prev) => prev + 1), 4000);
+    return () => clearInterval(id);
+  }, [isMultiple]);
 
-    const intervalId = setInterval(() => {
-      setActiveIndex((prev) => prev + 1);
-    }, 4000);
-
-    return () => clearInterval(intervalId);
-  }, [items.length]);
-
-  React.useEffect(() => {
-    if (items.length <= 1 || activeIndex !== items.length) return;
-
-    const timeoutId = window.setTimeout(() => {
+  // Loop reset trigger
+  useEffect(() => {
+    if (!isMultiple || activeIndex !== items.length) return;
+    const id = window.setTimeout(() => {
       setIsResetting(true);
       setActiveIndex(0);
     }, 500);
+    return () => window.clearTimeout(id);
+  }, [activeIndex, items.length, isMultiple]);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [activeIndex, items.length]);
-
-  React.useEffect(() => {
+  // Clear reset flag after one frame
+  useEffect(() => {
     if (!isResetting) return;
-
-    const frameId = window.requestAnimationFrame(() => {
-      setIsResetting(false);
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
+    const id = window.requestAnimationFrame(() => setIsResetting(false));
+    return () => window.cancelAnimationFrame(id);
   }, [isResetting]);
 
   if (!items.length) return null;
 
+  const trackStyle = {
+    width: `${loopedItems.length * 100}%`,
+    gap: effectiveSlideGap ? `${effectiveSlideGap}px` : undefined,
+    transform: `translateX(-${activeIndex * stepPercent}%)`,
+  };
+
   return (
-    <div className={cn("overflow-hidden", fullWidth && "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]")}>
+    <div
+      className={cn(
+        "overflow-hidden",
+        fullWidth && "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]"
+      )}
+    >
       <div
-        className={cn("flex ease-out", isResetting ? "transition-none" : "transition-transform duration-500")}
-        style={{
-          width: `${loopedItems.length * 100}%`,
-          gap: `${effectiveSlideGap}px`,
-          transform: `translateX(-${activeIndex * stepPercent}%)`,
-        }}
+        className={cn(
+          "flex ease-out",
+          isResetting ? "transition-none" : "transition-transform duration-500"
+        )}
+        style={trackStyle}
       >
-        {loopedItems.map((banner, idx) => (
-          <div
-            key={idx}
-            className={cn(
-              "relative shrink-0 overflow-hidden bg-slate-100 flex items-center justify-center box-border",
-              fullWidth ? "h-[190px] rounded-none px-0" : "h-[190px] px-4 md:px-8"
-            )}
-            style={{
-              width: `${stepPercent}%`,
-            }}
-          >
-            {fullWidth ? (
-              <img
-                src={banner.imageUrl}
-                srcSet={getCloudinarySrcSet(banner.imageUrl)}
-                sizes="100vw"
-                alt={banner.title || section?.title || "Banner"}
-                className="w-full h-full object-cover object-center"
-                loading={idx === 0 ? "eager" : "lazy"}
-              />
-            ) : (
-              <div className="h-full w-full max-w-[560px] -translate-x-2 md:-translate-x-4 overflow-hidden rounded-3xl bg-slate-100 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
-                <img
-                  src={banner.imageUrl}
-                  srcSet={getCloudinarySrcSet(banner.imageUrl)}
-                  sizes="(max-width: 768px) 100vw, 560px"
-                  alt={banner.title || section?.title || "Banner"}
-                  className="w-full h-full object-cover object-center"
-                  loading={idx === 0 ? "eager" : "lazy"}
-                />
-              </div>
-            )}
-          </div>
-        ))}
+        {loopedItems.map((banner, idx) =>
+          fullWidth ? (
+            <FullWidthSlide
+              key={idx}
+              banner={banner}
+              stepPercent={stepPercent}
+              sectionTitle={sectionTitle}
+              eager={idx === 0}
+            />
+          ) : (
+            <InlineSlide
+              key={idx}
+              banner={banner}
+              stepPercent={stepPercent}
+              slideGap={effectiveSlideGap}
+              sectionTitle={sectionTitle}
+              eager={idx === 0}
+            />
+          )
+        )}
       </div>
     </div>
   );
 };
 
-export default ExperienceBannerCarousel;
+export default memo(ExperienceBannerCarousel);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
 import MiniCart from '../shared/MiniCart';
@@ -8,32 +8,65 @@ import { useProductDetail } from '../../context/ProductDetailContext';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
 
-const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = false, showCart: showCartProp, showBottomNav: showBottomNavProp }) => {
+// Static sets for O(1) lookups instead of Array.includes (O(n)) on every render
+const HIDE_BOTTOM_NAV_SET = new Set(['/cart', '/checkout', '/search', '/chat']);
+const HIDE_CART_SET = new Set(['/cart', '/checkout', '/search', '/chat']);
+const HIDE_FOOTER_MSG_SET = new Set(['/profile', '/profile/edit']);
+
+const CustomerLayout = ({
+    children,
+    showHeader: showHeaderProp,        // kept for API compat (unused internally)
+    fullHeight = false,
+    showCart: showCartProp,
+    showBottomNav: showBottomNavProp,
+}) => {
     const location = useLocation();
     const { isOpen: isProductDetailOpen } = useProductDetail();
 
-    // Route-based visibility logic with module prefix stripping
-    const path = location.pathname.replace(/^\/quick(?:-commerce(?:\/user)?)?/, '') || '/';
+    // Strip module prefix once per pathname change
+    const path = useMemo(
+        () => location.pathname.replace(/^\/quick(?:-commerce(?:\/user)?)?/, '') || '/',
+        [location.pathname],
+    );
 
-    const hideHeaderRoutes = ['/categories', '/category', '/orders', '/transactions', '/profile', '/profile/edit', '/wishlist', '/addresses', '/wallet', '/support', '/privacy', '/about', '/terms', '/checkout', '/search', '/chat', '/product', '/cart'];
-    const hideBottomNavRoutes = ['/cart', '/checkout', '/search', '/chat'];
-    const hideCartRoutes = ['/cart', '/checkout', '/search', '/chat'];
-    const matchesRoutePrefix = (routePrefix) =>
-        path === routePrefix || path.startsWith(`${routePrefix}/`);
+    // All visibility flags derived in a single useMemo to avoid multiple hook calls
+    const {
+        showBottomNav,
+        showCart,
+        showFooterMessage,
+        finalShowBottomNavMobile,
+        finalShowFooterMessageMobile,
+    } = useMemo(() => {
+        const matchesPrefix = (prefix) =>
+            path === prefix || path.startsWith(`${prefix}/`);
 
-    const showBottomNav = showBottomNavProp !== undefined ? showBottomNavProp : !hideBottomNavRoutes.includes(path);
-    const showCart = showCartProp !== undefined ? showCartProp : (!hideCartRoutes.includes(path) && !matchesRoutePrefix('/orders'));
+        const _showBottomNav =
+            showBottomNavProp !== undefined
+                ? showBottomNavProp
+                : !HIDE_BOTTOM_NAV_SET.has(path);
 
-    // Condition to hide the MobileFooterMessage ("India's last minute app") on specific pages
-    const hideFooterMessageRoutes = ['/profile', '/profile/edit'];
-    const showFooterMessage = showBottomNav && !hideFooterMessageRoutes.includes(path) && !matchesRoutePrefix('/category');
+        const _showCart =
+            showCartProp !== undefined
+                ? showCartProp
+                : !HIDE_CART_SET.has(path) && !matchesPrefix('/orders');
 
-    const finalShowBottomNavMobile = showBottomNav && !isProductDetailOpen;
-    const finalShowFooterMessageMobile = showFooterMessage && !isProductDetailOpen;
+        const _showFooterMessage =
+            _showBottomNav &&
+            !HIDE_FOOTER_MSG_SET.has(path) &&
+            !matchesPrefix('/category');
+
+        return {
+            showBottomNav: _showBottomNav,
+            showCart: _showCart,
+            showFooterMessage: _showFooterMessage,
+            finalShowBottomNavMobile: _showBottomNav && !isProductDetailOpen,
+            finalShowFooterMessageMobile: _showFooterMessage && !isProductDetailOpen,
+        };
+    }, [path, showBottomNavProp, showCartProp, isProductDetailOpen]);
 
     return (
         <div className="quick-theme-scope min-h-screen bg-background flex flex-col font-sans">
-            <main className={cn("flex-1 md:pb-0", !fullHeight && "pb-16")}>
+            <main className={cn('flex-1 md:pb-0', !fullHeight && 'pb-16')}>
                 {children}
             </main>
 
@@ -44,16 +77,14 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
                 <Footer />
             </div>
 
-            {/* Mobile Footer Message logic */}
             <div className="md:hidden">
                 {finalShowFooterMessageMobile && <MobileFooterMessage />}
             </div>
 
-            {/* Bottom Nav logic */}
             <div className="md:hidden">
                 {finalShowBottomNavMobile && <BottomNav />}
             </div>
-            {/* Desktop Bottom Nav doesn't exist usually, but just in case of future changes */}
+
             <div className="hidden md:block">
                 {showBottomNav && <BottomNav />}
             </div>
@@ -61,4 +92,4 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
     );
 };
 
-export default CustomerLayout;
+export default React.memo(CustomerLayout);

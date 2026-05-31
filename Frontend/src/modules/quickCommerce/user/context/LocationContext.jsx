@@ -303,6 +303,7 @@ export const LocationProvider = ({ children }) => {
     }
 
     try {
+      userAPI.getAddresses.invalidateCache?.();
       const addressesResponse = await userAPI.getAddresses();
       const sharedAddresses =
         addressesResponse?.data?.data?.addresses ||

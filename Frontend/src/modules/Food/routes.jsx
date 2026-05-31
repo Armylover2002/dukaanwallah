@@ -93,7 +93,11 @@ export default function App() {
           {/* User Module - Explicitly mapped to /user */}
           <Route
             path="user/*"
-            element={<UserRouter />}
+            element={
+              <ProtectedRoute requiredRole="user" loginPath="/user/auth/login">
+                <UserRouter />
+              </ProtectedRoute>
+            }
           />
 
           {/* Restaurant Module - Already mapped to /restaurant */}

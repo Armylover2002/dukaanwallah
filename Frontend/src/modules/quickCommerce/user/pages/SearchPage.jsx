@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation as useRouterLocation } from 'react-router-dom';
 import { Search, ArrowLeft, X, ChevronRight, History, Mic } from 'lucide-react';
 import { customerApi } from '../services/customerApi';
@@ -9,211 +9,222 @@ import { cn } from '@/lib/utils';
 import { useLocation as useAppLocation } from '../context/LocationContext';
 import MiniCart from '../components/shared/MiniCart';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'appzeto_recent_searches';
+const DEBOUNCE_MS = 250;
+const MAX_HISTORY = 10;
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2';
+
+// Defined outside — never recreated
+const mapProducts = (products = []) =>
+    products.map((p) => ({
+        ...p,
+        id: p._id,
+        image: p.mainImage || p.image || FALLBACK_IMAGE,
+        price: p.salePrice || p.price,
+        originalPrice: p.price,
+        weight: p.weight || '1 unit',
+        deliveryTime: '8-15 mins',
+    }));
+
+const readHistory = () => {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeHistory = (list) => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch { /* noop */ }
+};
+
+// ─── Custom hook: debounced value ─────────────────────────────────────────────
+function useDebounced(value, delay) {
+    const [debounced, setDebounced] = useState(value);
+    useEffect(() => {
+        const id = window.setTimeout(() => setDebounced(value), delay);
+        return () => window.clearTimeout(id);
+    }, [value, delay]);
+    return debounced;
+}
+
+// ─── Custom hook: stable isMobile ────────────────────────────────────────────
+function useIsMobile(breakpoint = 768) {
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+    useEffect(() => {
+        const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+        const handler = (e) => setIsMobile(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, [breakpoint]);
+    return isMobile;
+}
+
+// ─── SearchPage ───────────────────────────────────────────────────────────────
 const SearchPage = () => {
     const navigate = useNavigate();
     const location = useRouterLocation();
     const { isOpen: isProductDetailOpen } = useProductDetail();
     const { settings } = useSettings();
     const { currentLocation } = useAppLocation();
+    const isMobile = useIsMobile();
 
-    // Get initial query from URL state or params
-    const initialQuery = location.state?.query || new URLSearchParams(location.search).get('q') || '';
+    // URL-derived initial query (computed once)
+    const initialQuery = useMemo(
+        () => location.state?.query || new URLSearchParams(location.search).get('q') || '',
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [],
+    );
 
     const [query, setQuery] = useState(initialQuery);
     const [allProducts, setAllProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
-    const trimmedQuery = query.trim();
+    const [pastSearches, setPastSearches] = useState(readHistory);
 
-    // Manage Recent Searches with LocalStorage
-    const [pastSearches, setPastSearches] = useState(() => {
-        const saved = localStorage.getItem('appzeto_recent_searches');
-        return saved ? JSON.parse(saved) : [];
-    });
+    // Debounced trimmed query — avoids fetching on every keystroke
+    const debouncedQuery = useDebounced(query.trim(), DEBOUNCE_MS);
 
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    // ── Location validity flag (memoized) ─────────────────────────────────────
+    const hasValidLocation = useMemo(
+        () =>
+            Number.isFinite(currentLocation?.latitude) &&
+            Number.isFinite(currentLocation?.longitude),
+        [currentLocation?.latitude, currentLocation?.longitude],
+    );
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+    // ── Stable history helpers ─────────────────────────────────────────────────
+    const saveSearch = useCallback((term) => {
+        const t = term.trim();
+        if (!t) return;
+        setPastSearches((prev) => {
+            const updated = [t, ...prev.filter((s) => s !== t)].slice(0, MAX_HISTORY);
+            writeHistory(updated);
+            return updated;
+        });
     }, []);
 
-    const mapProducts = (products = []) =>
-        products.map((p) => ({
-            ...p,
-            id: p._id,
-            image: p.mainImage || p.image || 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2',
-            price: p.salePrice || p.price,
-            originalPrice: p.price,
-            weight: p.weight || '1 unit',
-            deliveryTime: '8-15 mins'
-        }));
-
-    // Fetch quick products
-    useEffect(() => {
-        const fetchProducts = async () => {
-            const hasValidLocation =
-                Number.isFinite(currentLocation?.latitude) &&
-                Number.isFinite(currentLocation?.longitude);
-            if (!hasValidLocation) {
-                setAllProducts([]);
-                setIsLoading(false);
-                return;
-            }
-            setIsLoading(true);
-            try {
-                const response = await customerApi.getProducts({
-                    limit: 100,
-                    lat: currentLocation.latitude,
-                    lng: currentLocation.longitude,
-                });
-                if (response.data.success) {
-                    const rawResult = response.data.result;
-                    const dbProds = Array.isArray(response.data.results)
-                        ? response.data.results
-                        : Array.isArray(rawResult?.items)
-                        ? rawResult.items
-                        : Array.isArray(rawResult)
-                        ? rawResult
-                        : [];
-                    if (!trimmedQuery) {
-                        setAllProducts(mapProducts(dbProds));
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching products:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchProducts();
-    }, [currentLocation?.latitude, currentLocation?.longitude, trimmedQuery]);
-
-    // Save search term to history
-    const saveSearch = (term) => {
-        if (!term.trim()) return;
-        const updated = [term, ...pastSearches.filter(s => s !== term)].slice(0, 10);
-        setPastSearches(updated);
-        localStorage.setItem('appzeto_recent_searches', JSON.stringify(updated));
-    };
-
-    // Remove specific search term
-    const handleRemoveSearch = (e, term) => {
+    const handleRemoveSearch = useCallback((e, term) => {
         e.stopPropagation();
-        const updated = pastSearches.filter(s => s !== term);
-        setPastSearches(updated);
-        localStorage.setItem('appzeto_recent_searches', JSON.stringify(updated));
-    };
+        setPastSearches((prev) => {
+            const updated = prev.filter((s) => s !== term);
+            writeHistory(updated);
+            return updated;
+        });
+    }, []);
 
-    // Trigger save on Enter or clicking a result
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && trimmedQuery) {
-            saveSearch(trimmedQuery);
-        }
-    };
+    const handleKeyDown = useCallback(
+        (e) => { if (e.key === 'Enter' && query.trim()) saveSearch(query.trim()); },
+        [query, saveSearch],
+    );
 
-    useEffect(() => {
-        const hasValidLocation =
-            Number.isFinite(currentLocation?.latitude) &&
-            Number.isFinite(currentLocation?.longitude);
+    const handleClear = useCallback(() => setQuery(''), []);
 
-        if (!trimmedQuery || !hasValidLocation) {
-            return undefined;
-        }
-
-        let isCancelled = false;
-
-        const fetchSearchResults = async () => {
-            setIsLoading(true);
-            try {
-                const response = await customerApi.searchProducts({
-                    search: trimmedQuery,
-                    limit: 100,
-                    lat: currentLocation.latitude,
-                    lng: currentLocation.longitude,
-                });
-
-                if (!response?.data?.success || isCancelled) {
-                    return;
-                }
-
-                const rawResult = response.data.result;
-                const dbProds = Array.isArray(response.data.results)
-                    ? response.data.results
-                    : Array.isArray(rawResult?.items)
-                    ? rawResult.items
-                    : Array.isArray(rawResult)
-                    ? rawResult
-                    : [];
-
-                setAllProducts(mapProducts(dbProds));
-            } catch (error) {
-                if (!isCancelled) {
-                    console.error('Error fetching quick search results:', error);
-                    setAllProducts([]);
-                }
-            } finally {
-                if (!isCancelled) {
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        const timeoutId = window.setTimeout(fetchSearchResults, 250);
-
-        return () => {
-            isCancelled = true;
-            window.clearTimeout(timeoutId);
-        };
-    }, [trimmedQuery, currentLocation?.latitude, currentLocation?.longitude]);
-
-    const results = useMemo(() => {
-        if (!trimmedQuery) return [];
-        return allProducts.filter((p) =>
-            p.name?.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
-            p.categoryId?.name?.toLowerCase().includes(trimmedQuery.toLowerCase())
-        );
-    }, [trimmedQuery, allProducts]);
-
-    // Lowest Price Section
-    const lowestPriceProducts = useMemo(() => {
-        return [...allProducts]
-            .sort((a, b) => a.price - b.price)
-            .slice(0, 10);
-    }, [allProducts]);
-
-    const handleClear = () => {
-        setQuery('');
-    };
-
-    const handleVoiceSearch = () => {
+    // ── Voice search ───────────────────────────────────────────────────────────
+    const recognitionRef = useRef(null);
+    const handleVoiceSearch = useCallback(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert("Voice search is not supported in this browser.");
-            return;
-        }
+        if (!SpeechRecognition) { alert('Voice search is not supported in this browser.'); return; }
+
+        if (recognitionRef.current) { recognitionRef.current.abort(); }
 
         const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
         recognition.lang = 'en-IN';
         recognition.onstart = () => setIsListening(true);
         recognition.onend = () => setIsListening(false);
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
-            if (transcript) {
-                setQuery(transcript);
-                saveSearch(transcript);
-            }
+            if (transcript) { setQuery(transcript); saveSearch(transcript); }
         };
         recognition.start();
-    };
+    }, [saveSearch]);
 
+    // ── Fetch all products (when no query, location-based) ────────────────────
+    useEffect(() => {
+        if (!hasValidLocation || debouncedQuery) return;
+
+        let cancelled = false;
+        setIsLoading(true);
+
+        customerApi.getProducts({
+            limit: 100,
+            lat: currentLocation.latitude,
+            lng: currentLocation.longitude,
+        }).then((response) => {
+            if (cancelled || !response.data.success) return;
+            const raw = response.data.result;
+            const list = Array.isArray(response.data.results) ? response.data.results
+                : Array.isArray(raw?.items) ? raw.items
+                    : Array.isArray(raw) ? raw
+                        : [];
+            setAllProducts(mapProducts(list));
+        }).catch((err) => {
+            if (!cancelled) console.error('Error fetching products:', err);
+        }).finally(() => {
+            if (!cancelled) setIsLoading(false);
+        });
+
+        return () => { cancelled = true; };
+    }, [hasValidLocation, debouncedQuery, currentLocation?.latitude, currentLocation?.longitude]);
+
+    // ── Fetch search results (debounced query) ────────────────────────────────
+    useEffect(() => {
+        if (!debouncedQuery || !hasValidLocation) return;
+
+        let cancelled = false;
+        setIsLoading(true);
+
+        customerApi.searchProducts({
+            search: debouncedQuery,
+            limit: 100,
+            lat: currentLocation.latitude,
+            lng: currentLocation.longitude,
+        }).then((response) => {
+            if (cancelled || !response?.data?.success) return;
+            const raw = response.data.result;
+            const list = Array.isArray(response.data.results) ? response.data.results
+                : Array.isArray(raw?.items) ? raw.items
+                    : Array.isArray(raw) ? raw
+                        : [];
+            setAllProducts(mapProducts(list));
+        }).catch((err) => {
+            if (!cancelled) { console.error('Error fetching quick search results:', err); setAllProducts([]); }
+        }).finally(() => {
+            if (!cancelled) setIsLoading(false);
+        });
+
+        return () => { cancelled = true; };
+    }, [debouncedQuery, hasValidLocation, currentLocation?.latitude, currentLocation?.longitude]);
+
+    // ── Derived lists (memoized) ──────────────────────────────────────────────
+    const results = useMemo(() => {
+        if (!debouncedQuery) return [];
+        const q = debouncedQuery.toLowerCase();
+        return allProducts.filter(
+            (p) =>
+                p.name?.toLowerCase().includes(q) ||
+                p.categoryId?.name?.toLowerCase().includes(q),
+        );
+    }, [debouncedQuery, allProducts]);
+
+    const lowestPriceProducts = useMemo(
+        () => [...allProducts].sort((a, b) => a.price - b.price).slice(0, 10),
+        [allProducts],
+    );
+
+    // ── Primary color (stable reference) ──────────────────────────────────────
+    const primaryColor = settings?.primaryColor || 'var(--primary)';
+
+    // ── Render ─────────────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-[#F5F7F8] dark:bg-background font-outfit transition-colors duration-500">
             {/* Search Input */}
             <div className={cn(
-                "sticky top-0 z-50 bg-[#F5F7F8] dark:bg-background shadow-sm border-b dark:border-white/5",
-                isProductDetailOpen && "hidden md:block"
+                'sticky top-0 z-50 bg-[#F5F7F8] dark:bg-background shadow-sm border-b dark:border-white/5',
+                isProductDetailOpen && 'hidden md:block',
             )}>
                 <div className="relative px-4 pt-4 pb-4 flex items-center md:justify-center gap-3">
                     <button
@@ -247,31 +258,38 @@ const SearchPage = () => {
                         <button
                             onClick={handleVoiceSearch}
                             className={cn(
-                                "absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all",
-                                isListening ? "bg-[var(--primary)] text-white scale-110 animate-pulse" : "text-slate-400 hover:bg-slate-100"
+                                'absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all',
+                                isListening
+                                    ? 'bg-[var(--primary)] text-white scale-110 animate-pulse'
+                                    : 'text-slate-400 hover:bg-slate-100',
                             )}
                         >
-                            <Mic size={20} className={isListening ? "text-white" : "text-slate-400"} />
+                            <Mic size={20} className={isListening ? 'text-white' : 'text-slate-400'} />
                         </button>
                     </div>
                 </div>
             </div>
 
             <div className="mx-auto w-full max-w-7xl p-4 md:p-5 space-y-8 pb-28">
-                {/* Search Results List */}
-                {trimmedQuery ? (
+                {debouncedQuery ? (
+                    /* ── Search Results ── */
                     <section>
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-black text-slate-800 dark:text-slate-200 tracking-tight transition-colors">
                                 Search Results
                             </h2>
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{results.length} found</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                {results.length} found
+                            </span>
                         </div>
 
                         {results.length > 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
                                 {results.map((product) => (
-                                    <div key={product.id} onClick={() => saveSearch(trimmedQuery)}>
+                                    <div
+                                        key={product.id}
+                                        onClick={() => saveSearch(debouncedQuery)}
+                                    >
                                         <ProductCard product={product} compact={isMobile} />
                                     </div>
                                 ))}
@@ -281,17 +299,21 @@ const SearchPage = () => {
                                 <div className="h-20 w-20 bg-slate-50 dark:bg-card rounded-full flex items-center justify-center mb-4">
                                     <Search size={32} className="text-slate-300 dark:text-slate-600" />
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">No products found</h3>
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">
+                                    No products found
+                                </h3>
                                 <p className="text-slate-400 text-sm">Try different keywords or check spelling.</p>
                             </div>
                         )}
                     </section>
                 ) : (
                     <>
-                        {/* 1. Recently Searched Item Section */}
+                        {/* ── Recent Searches ── */}
                         {pastSearches.length > 0 && (
                             <section>
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Recently Searched</h3>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
+                                    Recently Searched
+                                </h3>
                                 <div className="flex gap-2 overflow-x-auto no-scrollbar">
                                     {pastSearches.map((term) => (
                                         <div
@@ -299,8 +321,11 @@ const SearchPage = () => {
                                             className="flex items-center gap-2 px-3 py-1.5 bg-card dark:bg-background border border-border shadow-sm rounded-full whitespace-nowrap active:scale-95 transition-transform cursor-pointer"
                                             onClick={() => setQuery(term)}
                                         >
-                                            <div className="h-5 w-5 rounded flex items-center justify-center" style={{ backgroundColor: (settings?.primaryColor || 'var(--primary)') + '20' }}>
-                                                <History size={12} style={{ color: settings?.primaryColor || 'var(--primary)' }} />
+                                            <div
+                                                className="h-5 w-5 rounded flex items-center justify-center"
+                                                style={{ backgroundColor: `${primaryColor}20` }}
+                                            >
+                                                <History size={12} style={{ color: primaryColor }} />
                                             </div>
                                             <span className="text-sm font-bold text-foreground">{term}</span>
                                             <button
@@ -315,24 +340,35 @@ const SearchPage = () => {
                             </section>
                         )}
 
-                        {/* 2. Lowest Price Ever Section */}
+                        {/* ── Lowest Price Ever ── */}
                         <section>
                             <div className="flex justify-between items-center mb-5">
-                                <h2 className="text-xl font-black text-foreground tracking-tight">Lowest Price Ever!</h2>
-                                <button className="flex items-center gap-1 text-sm font-bold" style={{ color: settings?.primaryColor || 'var(--primary)' }}>
+                                <h2 className="text-xl font-black text-foreground tracking-tight">
+                                    Lowest Price Ever!
+                                </h2>
+                                <button
+                                    className="flex items-center gap-1 text-sm font-bold"
+                                    style={{ color: primaryColor }}
+                                >
                                     See All <ChevronRight size={16} />
                                 </button>
                             </div>
                             <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar -mx-5 px-5 pb-4 snap-x">
-                                {isLoading && allProducts.length === 0 ? (
-                                    [...Array(4)].map((_, i) => (
-                                        <div key={i} className="min-w-[130px] md:min-w-[170px] h-52 md:h-64 bg-slate-50 rounded-2xl animate-pulse" />
+                                {isLoading && allProducts.length === 0
+                                    ? [...Array(4)].map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="min-w-[130px] md:min-w-[170px] h-52 md:h-64 bg-slate-50 rounded-2xl animate-pulse"
+                                        />
                                     ))
-                                ) : lowestPriceProducts.map((product) => (
-                                    <div key={product.id} className="min-w-[130px] md:min-w-[180px] snap-start">
-                                        <ProductCard product={product} compact={isMobile} />
-                                    </div>
-                                ))}
+                                    : lowestPriceProducts.map((product) => (
+                                        <div
+                                            key={product.id}
+                                            className="min-w-[130px] md:min-w-[180px] snap-start"
+                                        >
+                                            <ProductCard product={product} compact={isMobile} />
+                                        </div>
+                                    ))}
                             </div>
                         </section>
                     </>

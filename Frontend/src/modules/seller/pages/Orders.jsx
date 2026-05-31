@@ -62,6 +62,236 @@ const formatMoney = (value) =>
     maximumFractionDigits: 2,
   })}`;
 
+const OrderMobileCard = React.memo(({
+  order,
+  handleViewDetails,
+  getStatusColor,
+  canResendDispatch,
+  handleResendDispatch,
+  formatMoney
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm active:bg-slate-50/50">
+      <div className="flex items-start justify-between gap-3">
+        <div
+          className="min-w-0 flex-1"
+          onClick={() => handleViewDetails(order)}>
+          <p className="text-xs font-black text-slate-900 truncate">
+            #{order.id}
+          </p>
+          <div className="mt-1">
+            <Badge
+              variant={
+                order.orderType === "mixed"
+                  ? "secondary"
+                  : "primary"
+              }
+              className="text-[10px] px-2 py-0 font-black uppercase tracking-wider">
+              {order.orderType}
+            </Badge>
+          </div>
+          <p className="text-xs font-semibold text-slate-600 mt-0.5 flex items-center gap-1">
+            <HiOutlineCalendarDays className="h-3 w-3 shrink-0" />
+            {order.date} • {order.time}
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-7 w-7 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white shrink-0">
+              {order.customer.avatar}
+            </div>
+            <p className="text-xs font-bold text-slate-800 truncate">
+              {order.customer.name}
+            </p>
+          </div>
+          <p className="text-[11px] font-bold mt-2 text-slate-600">
+            {order.deliveryPartner
+              ? `${order.dispatchStatus === "accepted" ? "Rider accepted" : "Rider notified"}: ${order.deliveryPartner.name} ${order.deliveryPartner.phone === "Hidden until photo upload" ? "(🔒 Phone Hidden)" : ""}`
+              : order.dispatchStatus === "assigned"
+                ? "Closest rider notified, waiting for acceptance"
+                : "No rider accepted yet"}
+          </p>
+          <p className="text-sm font-black text-slate-900 mt-2">
+            {formatMoney(order.total)}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <Badge
+            variant={getStatusColor(order.status)}
+            className="text-[10px] font-black uppercase px-2 py-0">
+            {order.status.replace(/_/g, " ")}
+          </Badge>
+          <button
+            onClick={() => handleViewDetails(order)}
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-600">
+            <HiOutlineEye className="h-4 w-4" />
+          </button>
+          {canResendDispatch(order) && (
+            <button
+              onClick={() => handleResendDispatch(order.id)}
+              className="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider">
+              Resend Rider
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+OrderMobileCard.displayName = "OrderMobileCard";
+
+const OrderRow = React.memo(({
+  order,
+  handleViewDetails,
+  getStatusColor,
+  canResendDispatch,
+  handleResendDispatch,
+  handleStatusUpdate,
+  setCancellingOrder,
+  setCancelReasonPreset,
+  setCancelReason,
+  setIsCancelModalOpen,
+  formatMoney
+}) => {
+  return (
+    <motion.tr
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="hover:bg-slate-50/50 transition-colors group">
+      <td className="px-4 lg:px-6 py-3 lg:py-4">
+        <div>
+          <span
+            className="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors cursor-pointer"
+            onClick={() => handleViewDetails(order)}>
+            #{order.id}
+          </span>
+          <div className="mt-1">
+            <Badge
+              variant={
+                order.orderType === "mixed"
+                  ? "secondary"
+                  : "primary"
+              }
+              className="text-[10px] px-2 py-0 font-black uppercase tracking-wider">
+              {order.orderType}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mt-1">
+            <HiOutlineCalendarDays className="h-3 w-3" />
+            {order.date} • {order.time}
+          </div>
+        </div>
+      </td>
+      <td className="px-4 lg:px-6 py-3 lg:py-4">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white shadow-sm ring-2 ring-white">
+            {order.customer.avatar}
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-900">
+              {order.customer.name}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 lg:px-6 py-3 lg:py-4">
+        {order.deliveryPartner ? (
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-emerald-700">
+              {order.deliveryPartner.name}
+            </span>
+            <span className="text-xs font-semibold text-slate-600">
+              {order.deliveryPartner.phone === "Hidden until photo upload"
+                ? "🔒 Phone Hidden"
+                : (order.deliveryPartner.phone ||
+                  (order.dispatchStatus === "accepted"
+                    ? "Accepted"
+                    : "Notified"))}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-slate-700">
+              {order.dispatchStatus === "assigned"
+                ? "Waiting for acceptance"
+                : "No driver yet"}
+            </span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              {order.dispatchStatus.replaceAll("_", " ")}
+            </span>
+          </div>
+        )}
+      </td>
+      <td className="px-4 lg:px-6 py-3 lg:py-4">
+        <div className="flex flex-col">
+          <span className="text-xs font-bold text-slate-900">
+            {formatMoney(order.total)}
+          </span>
+          <span className="text-xs font-semibold text-slate-600">
+            {order.items.length} items
+          </span>
+        </div>
+      </td>
+      <td className="px-4 lg:px-6 py-3 lg:py-4">
+        <Badge
+          variant={getStatusColor(order.status)}
+          className="w-full text-[10px] py-1.5 font-black uppercase tracking-widest justify-center border-none shadow-sm">
+          {order.status.replace(/_/g, " ")}
+        </Badge>
+      </td>
+      <td className="px-4 lg:px-6 py-3 lg:py-4 text-right">
+        <div className="flex items-center justify-end space-x-1.5 flex-wrap">
+          {canResendDispatch(order) && (
+            <button
+              onClick={() =>
+                handleResendDispatch(order.id)
+              }
+              className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all text-[10px] font-black uppercase tracking-wider">
+              Resend Rider
+            </button>
+          )}
+          <button
+            onClick={() => handleViewDetails(order)}
+            className="p-1.5 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
+            <HiOutlineEye className="h-4 w-4" />
+          </button>
+          {order.status === "Pending" && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusUpdate(
+                    order.id,
+                    "Processing",
+                  );
+                }}
+                className="p-1.5 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
+                <HiOutlineCheck className="h-4 w-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCancellingOrder(order);
+                  setCancelReasonPreset("Out of stock");
+                  setCancelReason("");
+                  setIsCancelModalOpen(true);
+                }}
+                className="p-1.5 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
+                <HiOutlineXMark className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
+      </td>
+    </motion.tr>
+  );
+});
+OrderRow.displayName = "OrderRow";
+
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -398,12 +628,12 @@ const Orders = () => {
     }
   }, []);
 
-  const handleViewDetails = (order) => {
+  const handleViewDetails = useCallback((order) => {
     setSelectedOrder(order);
     setIsDetailsModalOpen(true);
-  };
+  }, []);
 
-  const handleStatusUpdate = async (orderId, newStatus) => {
+  const handleStatusUpdate = useCallback(async (orderId, newStatus) => {
     try {
       await sellerApi.updateOrderStatus(orderId, {
         status: newStatus.toLowerCase(),
@@ -421,9 +651,11 @@ const Orders = () => {
         ),
       );
 
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: normalizedStatus });
-      }
+      setSelectedOrder((prev) => {
+        if (prev && prev.id === orderId)
+          return { ...prev, status: normalizedStatus };
+        return prev;
+      });
 
       const nextTabLabel =
         normalizedStatus === "out_for_delivery"
@@ -433,9 +665,12 @@ const Orders = () => {
               .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
               .join(" ");
 
-      if (activeTab !== "All" && activeTab !== nextTabLabel) {
-        setActiveTab(nextTabLabel);
-      }
+      setActiveTab((prevTab) => {
+        if (prevTab !== "All" && prevTab !== nextTabLabel) {
+          return nextTabLabel;
+        }
+        return prevTab;
+      });
 
       showToast(`Order status updated to ${nextTabLabel}`, "success");
       fetchOrders(page, false);
@@ -443,9 +678,9 @@ const Orders = () => {
       console.error("Failed to update status:", error);
       showToast("Failed to update status", "error");
     }
-  };
+  }, [page]);
 
-  const handleResendDispatch = async (orderId) => {
+  const handleResendDispatch = useCallback(async (orderId) => {
     try {
       const response = await sellerApi.resendOrderDispatch(orderId);
       const partner = response?.data?.result?.notifiedPartner;
@@ -473,7 +708,7 @@ const Orders = () => {
         "error",
       );
     }
-  };
+  }, [page]);
 
   const canResendDispatch = useCallback((order) => {
     const sellerStatus = String(order?.status || "").toLowerCase();
@@ -770,74 +1005,15 @@ const Orders = () => {
                     {filteredOrders
                       .slice((page - 1) * pageSize, page * pageSize)
                       .map((order) => (
-                        <motion.div
+                        <OrderMobileCard
                           key={order.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm active:bg-slate-50/50">
-                          <div className="flex items-start justify-between gap-3">
-                            <div
-                              className="min-w-0 flex-1"
-                              onClick={() => handleViewDetails(order)}>
-                              <p className="text-xs font-black text-slate-900 truncate">
-                                #{order.id}
-                              </p>
-                              <div className="mt-1">
-                                <Badge
-                                  variant={
-                                    order.orderType === "mixed"
-                                      ? "secondary"
-                                      : "primary"
-                                  }
-                                  className="text-[10px] px-2 py-0 font-black uppercase tracking-wider">
-                                  {order.orderType}
-                                </Badge>
-                              </div>
-                              <p className="text-xs font-semibold text-slate-600 mt-0.5 flex items-center gap-1">
-                                <HiOutlineCalendarDays className="h-3 w-3 shrink-0" />
-                                {order.date} • {order.time}
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <div className="h-7 w-7 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white shrink-0">
-                                  {order.customer.avatar}
-                                </div>
-                                <p className="text-xs font-bold text-slate-800 truncate">
-                                  {order.customer.name}
-                                </p>
-                              </div>
-                              <p className="text-[11px] font-bold mt-2 text-slate-600">
-                                {order.deliveryPartner
-                                  ? `${order.dispatchStatus === "accepted" ? "Rider accepted" : "Rider notified"}: ${order.deliveryPartner.name} ${order.deliveryPartner.phone === "Hidden until photo upload" ? "(🔒 Phone Hidden)" : ""}`
-                                  : order.dispatchStatus === "assigned"
-                                    ? "Closest rider notified, waiting for acceptance"
-                                    : "No rider accepted yet"}
-                              </p>
-                              <p className="text-sm font-black text-slate-900 mt-2">
-                                {formatMoney(order.total)}
-                              </p>
-                            </div>
-                            <div className="flex flex-col items-end gap-2 shrink-0">
-                              <Badge
-                                variant={getStatusColor(order.status)}
-                                className="text-[10px] font-black uppercase px-2 py-0">
-                                {order.status.replace(/_/g, " ")}
-                              </Badge>
-                              <button
-                                onClick={() => handleViewDetails(order)}
-                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-600">
-                                <HiOutlineEye className="h-4 w-4" />
-                              </button>
-                              {canResendDispatch(order) && (
-                                <button
-                                  onClick={() => handleResendDispatch(order.id)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider">
-                                  Resend Rider
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
+                          order={order}
+                          handleViewDetails={handleViewDetails}
+                          getStatusColor={getStatusColor}
+                          canResendDispatch={canResendDispatch}
+                          handleResendDispatch={handleResendDispatch}
+                          formatMoney={formatMoney}
+                        />
                       ))}
                   </AnimatePresence>
                 )}
@@ -873,139 +1049,20 @@ const Orders = () => {
                       {filteredOrders
                         .slice((page - 1) * pageSize, page * pageSize)
                         .map((order) => (
-                          <motion.tr
-                            layout
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
+                          <OrderRow
                             key={order.id}
-                            className="hover:bg-slate-50/50 transition-colors group">
-                            <td className="px-4 lg:px-6 py-3 lg:py-4">
-                              <div>
-                                <span
-                                  className="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors cursor-pointer"
-                                  onClick={() => handleViewDetails(order)}>
-                                  #{order.id}
-                                </span>
-                                <div className="mt-1">
-                                  <Badge
-                                    variant={
-                                      order.orderType === "mixed"
-                                        ? "secondary"
-                                        : "primary"
-                                    }
-                                    className="text-[10px] px-2 py-0 font-black uppercase tracking-wider">
-                                    {order.orderType}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mt-1">
-                                  <HiOutlineCalendarDays className="h-3 w-3" />
-                                  {order.date} • {order.time}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 lg:px-6 py-3 lg:py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white shadow-sm ring-2 ring-white">
-                                  {order.customer.avatar}
-                                </div>
-                                <div>
-                                  <p className="text-xs font-bold text-slate-900">
-                                    {order.customer.name}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 lg:px-6 py-3 lg:py-4">
-                              {order.deliveryPartner ? (
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-bold text-emerald-700">
-                                    {order.deliveryPartner.name}
-                                  </span>
-                                  <span className="text-xs font-semibold text-slate-600">
-                                    {order.deliveryPartner.phone === "Hidden until photo upload"
-                                      ? "🔒 Phone Hidden"
-                                      : (order.deliveryPartner.phone ||
-                                        (order.dispatchStatus === "accepted"
-                                          ? "Accepted"
-                                          : "Notified"))}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-bold text-slate-700">
-                                    {order.dispatchStatus === "assigned"
-                                      ? "Waiting for acceptance"
-                                      : "No driver yet"}
-                                  </span>
-                                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                                    {order.dispatchStatus.replaceAll("_", " ")}
-                                  </span>
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-4 lg:px-6 py-3 lg:py-4">
-                              <div className="flex flex-col">
-                                <span className="text-xs font-bold text-slate-900">
-                                  {formatMoney(order.total)}
-                                </span>
-                                <span className="text-xs font-semibold text-slate-600">
-                                  {order.items.length} items
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 lg:px-6 py-3 lg:py-4">
-                              <Badge
-                                variant={getStatusColor(order.status)}
-                                className="w-full text-[10px] py-1.5 font-black uppercase tracking-widest justify-center border-none shadow-sm">
-                                {order.status.replace(/_/g, " ")}
-                              </Badge>
-                            </td>
-                            <td className="px-4 lg:px-6 py-3 lg:py-4 text-right">
-                              <div className="flex items-center justify-end space-x-1.5 flex-wrap">
-                                {canResendDispatch(order) && (
-                                  <button
-                                    onClick={() =>
-                                      handleResendDispatch(order.id)
-                                    }
-                                    className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all text-[10px] font-black uppercase tracking-wider">
-                                    Resend Rider
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => handleViewDetails(order)}
-                                  className="p-1.5 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
-                                  <HiOutlineEye className="h-4 w-4" />
-                                </button>
-                                {order.status === "Pending" && (
-                                  <>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleStatusUpdate(
-                                          order.id,
-                                          "Processing",
-                                        );
-                                      }}
-                                      className="p-1.5 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
-                                      <HiOutlineCheck className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCancellingOrder(order);
-                                        setCancelReasonPreset("Out of stock");
-                                        setCancelReason("");
-                                        setIsCancelModalOpen(true);
-                                      }}
-                                      className="p-1.5 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
-                                      <HiOutlineXMark className="h-4 w-4" />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </td>
-                          </motion.tr>
+                            order={order}
+                            handleViewDetails={handleViewDetails}
+                            getStatusColor={getStatusColor}
+                            canResendDispatch={canResendDispatch}
+                            handleResendDispatch={handleResendDispatch}
+                            handleStatusUpdate={handleStatusUpdate}
+                            setCancellingOrder={setCancellingOrder}
+                            setCancelReasonPreset={setCancelReasonPreset}
+                            setCancelReason={setCancelReason}
+                            setIsCancelModalOpen={setIsCancelModalOpen}
+                            formatMoney={formatMoney}
+                          />
                         ))}
                     </AnimatePresence>
                   </tbody>

@@ -35,6 +35,10 @@ export const customerApi = {
       };
     }),
 
+  updateProfile: (body) =>
+    axiosInstance.patch("/food/user/profile", body, withQuickSession()),
+
+
   getCart: () => axiosInstance.get("/quick-commerce/cart", withQuickSession()),
   addToCart: (data) => {
     invalidateCache("/quick-commerce/cart");

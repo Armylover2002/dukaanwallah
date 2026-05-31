@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   CheckCircle,
@@ -12,38 +12,173 @@ import { getOrderStatusLabel, getLegacyStatusFromOrder } from "@/shared/utils/or
 import { getQuickCategoriesPath } from "../utils/routes";
 import { joinOrderRoom, leaveOrderRoom, onOrderStatusUpdate } from "@/core/services/orderSocket";
 
+// ─── Helpers (module-level, no re-creation per render) ───────────────────────
+
+const isQuickOrder = (order) => {
+  const type = order.orderType || order.module || "quick";
+  const orderId = String(order.orderId || order.id || order._id || "");
+  return (
+    type === "quick" ||
+    orderId.startsWith("QC") ||
+    (!orderId.startsWith("FOD") && !orderId.startsWith("ORD") && type !== "food")
+  );
+};
+
+const formatDate = (dateStr) =>
+  new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+
+const formatTime = (dateStr) =>
+  new Date(dateStr).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+// ─── Order Card (memoized to skip re-render when props unchanged) ─────────────
+
+const OrderCard = memo(({ order, onNavigate }) => {
+  const orderCode = order.orderId || order.orderNumber || order.id || "";
+  const orderLookupId = order.orderId || order._id || order.id || orderCode;
+  const legacy = getLegacyStatusFromOrder(order);
+
+  const itemSummary =
+    Array.isArray(order.items) && order.items.length > 0
+      ? order.items.map((item) => item.name).filter(Boolean).join(", ")
+      : `${order.itemCount || 0} item${order.itemCount === 1 ? "" : "s"}`;
+
+  const handleClick = useCallback(() => {
+    onNavigate(orderLookupId, order);
+  }, [onNavigate, orderLookupId, order]);
+
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onNavigate(orderLookupId, order);
+      }
+    },
+    [onNavigate, orderLookupId, order],
+  );
+
+  const statusClass =
+    legacy === "delivered"
+      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+      : legacy === "cancelled"
+        ? "border-rose-100 bg-rose-50 text-rose-700"
+        : "border-sky-100 bg-sky-50 text-sky-700";
+
+  const iconClass =
+    legacy === "delivered"
+      ? "text-emerald-600"
+      : legacy === "cancelled"
+        ? "text-rose-500"
+        : "text-sky-500";
+
+  return (
+    <article
+      key={String(order.id || order._id || orderCode)}
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      className="cursor-pointer rounded-2xl border border-slate-100/80 dark:border-white/5 bg-white dark:bg-card px-4 py-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.1)] focus:outline-none focus:ring-2 focus:ring-[#0c831f]/20"
+    >
+      <div className="mb-3.5 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 gap-3.5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200/90">
+            {order.items?.[0]?.image ? (
+              <img
+                src={order.items[0].image}
+                alt={order.items[0]?.name || "Order thumbnail"}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <Package size={22} className="text-slate-400" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-100 transition-colors">
+              Order #{String(orderCode).slice(-6)}
+            </h3>
+            <p className="mt-0.5 text-[11px] font-medium leading-tight text-slate-500 dark:text-slate-400 transition-colors">
+              {formatDate(order.createdAt)}
+              <span className="mx-1 text-slate-400">•</span>
+              {formatTime(order.createdAt)}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${statusClass}`}
+          >
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/80">
+              <CheckCircle size={9} className={iconClass} />
+            </span>
+            <span>{getOrderStatusLabel(order).toUpperCase()}</span>
+          </span>
+          <span className="text-[10px] font-medium text-slate-400">Quick order placed</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-slate-100 dark:border-white/5 pt-3 transition-colors">
+        <div className="max-w-[230px] truncate text-[11px] font-medium text-slate-500 dark:text-slate-400 transition-colors">
+          {itemSummary}
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="text-[11px] font-medium text-slate-400">Total</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 transition-colors">
+            {"\u20B9"}
+            {order.pricing?.total ?? order.total ?? 0}
+          </span>
+          <ChevronRight size={16} className="text-slate-300 dark:text-slate-600" />
+        </div>
+      </div>
+    </article>
+  );
+});
+
+OrderCard.displayName = "OrderCard";
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+
 const OrdersPage = () => {
   const navigate = useNavigate();
   const categoriesPath = getQuickCategoriesPath();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const getToken = () =>
-    localStorage.getItem("auth_customer") ||
-    localStorage.getItem("user_accessToken") ||
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("token") ||
-    "";
+  // Stable token getter — never changes between renders
+  const getToken = useCallback(
+    () =>
+      localStorage.getItem("auth_customer") ||
+      localStorage.getItem("user_accessToken") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("token") ||
+      "",
+    [],
+  );
 
+  // Stable navigation handler passed to every OrderCard
+  const handleNavigate = useCallback(
+    (orderLookupId, order) => {
+      navigate(`/quick/orders/${encodeURIComponent(String(orderLookupId))}`, {
+        state: { order, prefetchedOrder: order, orderType: "quick" },
+      });
+    },
+    [navigate],
+  );
+
+  // Fetch orders once on mount
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const response = await customerApi.getMyOrders();
         const rawList = response?.data?.result || response?.data?.results || [];
-        
-        // Filter to keep only quick commerce orders in this module
-        const list = Array.isArray(rawList) ? rawList.filter(order => {
-          const type = order.orderType || order.module || 'quick'
-          const orderId = String(order.orderId || order.id || order._id || '')
-          // Include quick commerce orders (type 'quick' or prefix 'QC')
-          // and exclude food orders (prefix 'FOD' or 'ORD')
-          return type === 'quick' || orderId.startsWith('QC') || (!orderId.startsWith('FOD') && !orderId.startsWith('ORD') && type !== 'food')
-        }) : [];
-        
+        const list = Array.isArray(rawList) ? rawList.filter(isQuickOrder) : [];
+
         setOrders(list);
-        // Join tracking rooms so status updates work even when userId is missing on the order.
         list.forEach((order) => {
-          const orderId = String(order?.orderId || order?.orderNumber || order?.id || order?._id || "").trim();
+          const orderId = String(
+            order?.orderId || order?.orderNumber || order?.id || order?._id || "",
+          ).trim();
           if (orderId) joinOrderRoom(orderId, getToken);
         });
       } catch (error) {
@@ -55,8 +190,9 @@ const OrdersPage = () => {
     };
 
     fetchOrders();
-  }, []);
+  }, [getToken]);
 
+  // Socket: live status updates
   useEffect(() => {
     const off = onOrderStatusUpdate(getToken, (payload) => {
       const orderId = String(payload?.orderId || "").trim();
@@ -67,7 +203,9 @@ const OrdersPage = () => {
 
       setOrders((prev) =>
         (Array.isArray(prev) ? prev : []).map((order) => {
-          const existingId = String(order?.orderId || order?.orderNumber || order?.id || order?._id || "").trim();
+          const existingId = String(
+            order?.orderId || order?.orderNumber || order?.id || order?._id || "",
+          ).trim();
           if (existingId !== orderId) return order;
           return {
             ...order,
@@ -82,16 +220,20 @@ const OrdersPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Leave socket rooms on unmount
   useEffect(() => {
-    // Best-effort: leave rooms on unmount to avoid unbounded joins.
     return () => {
       (Array.isArray(orders) ? orders : []).forEach((order) => {
-        const orderId = String(order?.orderId || order?.orderNumber || order?.id || order?._id || "").trim();
+        const orderId = String(
+          order?.orderId || order?.orderNumber || order?.id || order?._id || "",
+        ).trim();
         if (orderId) leaveOrderRoom(orderId, getToken);
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -128,8 +270,7 @@ const OrdersPage = () => {
               No orders yet
             </h3>
             <p className="mb-6 max-w-[260px] text-sm text-slate-500">
-              When you place an order, it will appear here so you can track it
-              easily.
+              When you place an order, it will appear here so you can track it easily.
             </p>
             <Link
               to={categoriesPath}
@@ -140,115 +281,8 @@ const OrdersPage = () => {
           </div>
         ) : (
           orders.map((order) => {
-            const orderCode = order.orderId || order.orderNumber || order.id || "";
-            const orderLookupId = order.orderId || order._id || order.id || orderCode;
-            const legacy = getLegacyStatusFromOrder(order);
-            const itemSummary = Array.isArray(order.items) && order.items.length > 0
-              ? order.items.map((item) => item.name).filter(Boolean).join(", ")
-              : `${order.itemCount || 0} item${order.itemCount === 1 ? "" : "s"}`;
-
-            return (
-              <article
-                key={String(order.id || order._id || orderCode)}
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate(`/quick/orders/${encodeURIComponent(String(orderLookupId))}`, {
-                  state: {
-                    order,
-                    prefetchedOrder: order,
-                    orderType: "quick",
-                  },
-                })}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    navigate(`/quick/orders/${encodeURIComponent(String(orderLookupId))}`, {
-                      state: {
-                        order,
-                        prefetchedOrder: order,
-                        orderType: "quick",
-                      },
-                    });
-                  }
-                }}
-                className="cursor-pointer rounded-2xl border border-slate-100/80 dark:border-white/5 bg-white dark:bg-card px-4 py-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.1)] focus:outline-none focus:ring-2 focus:ring-[#0c831f]/20"
-              >
-                <div className="mb-3.5 flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 flex-1 gap-3.5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200/90">
-                      {order.items?.[0]?.image ? (
-                        <img
-                          src={order.items[0].image}
-                          alt={order.items[0]?.name || "Order thumbnail"}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <Package size={22} className="text-slate-400" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-100 transition-colors">
-                        Order #{String(orderCode).slice(-6)}
-                      </h3>
-                      <p className="mt-0.5 text-[11px] font-medium leading-tight text-slate-500 dark:text-slate-400 transition-colors">
-                        {new Date(order.createdAt).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                        <span className="mx-1 text-slate-400">•</span>
-                        {new Date(order.createdAt).toLocaleTimeString("en-IN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
-                        legacy === "delivered"
-                          ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                          : legacy === "cancelled"
-                            ? "border-rose-100 bg-rose-50 text-rose-700"
-                            : "border-sky-100 bg-sky-50 text-sky-700"
-                      }`}
-                    >
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/80">
-                        <CheckCircle
-                          size={9}
-                          className={
-                            legacy === "delivered"
-                              ? "text-emerald-600"
-                              : legacy === "cancelled"
-                                ? "text-rose-500"
-                                : "text-sky-500"
-                          }
-                        />
-                      </span>
-                      <span>{getOrderStatusLabel(order).toUpperCase()}</span>
-                    </span>
-                    <span className="text-[10px] font-medium text-slate-400">
-                      Quick order placed
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 border-t border-slate-100 dark:border-white/5 pt-3 transition-colors">
-                  <div className="max-w-[230px] truncate text-[11px] font-medium text-slate-500 dark:text-slate-400 transition-colors">
-                    {itemSummary}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-slate-400">Total</span>
-                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 transition-colors">
-                      {"\u20B9"}
-                      {order.pricing?.total ?? order.total ?? 0}
-                    </span>
-                    <ChevronRight size={16} className="text-slate-300 dark:text-slate-600" />
-                  </div>
-                </div>
-              </article>
-            );
+            const key = String(order.id || order._id || order.orderId || order.orderNumber || "");
+            return <OrderCard key={key} order={order} onNavigate={handleNavigate} />;
           })
         )}
       </div>

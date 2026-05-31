@@ -4,7 +4,7 @@ importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-com
 
 const sanitize = (value) => String(value || "").trim().replace(/^['"]|['"]$/g, "");
 const PUSH_DEBUG_PREFIX = "[push-sw]";
-const pushDebugLog = () => {};
+const pushDebugLog = () => { };
 const getNotificationKey = (payload) =>
   payload?.data?.notificationId ||
   payload?.data?.messageId ||
@@ -119,9 +119,9 @@ async function loadFirebaseWebConfig() {
 
   messaging.onBackgroundMessage(async (payload) => {
     pushDebugLog(PUSH_DEBUG_PREFIX, "Received Firebase background message", { payload });
-    
+
     const visibleClient = await hasVisibleClientForTarget(payload);
-    
+
     if (!visibleClient) {
       const title = payload?.notification?.title || payload?.data?.title || "New Notification";
       const body = payload?.notification?.body || payload?.data?.body || "";
@@ -131,14 +131,14 @@ async function loadFirebaseWebConfig() {
         payload?.data?.imageUrl ||
         undefined;
       const notificationKey = getNotificationKey(payload);
-      
+
       pushDebugLog(PUSH_DEBUG_PREFIX, "Showing service worker notification", {
         title,
         body,
         image,
         notificationKey,
       });
-  
+
       self.registration.showNotification(title, {
         body,
         icon: "/favicon.ico",
