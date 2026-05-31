@@ -43,7 +43,7 @@ app.use(helmet({
 }));
 app.use(cors({
     origin: [
-        'https://your-frontend-domain.com',
+        'https://dukaanwallah.vercel.app',
         'http://localhost:5173', // local dev
         'http://localhost:3000',
     ],
