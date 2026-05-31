@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "node scripts/generate-firebase-config.js && vite",
+    "build": "node scripts/generate-firebase-config.js && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "doctor": "npx react-doctor@latest"

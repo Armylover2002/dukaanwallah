@@ -32,3 +32,6 @@ dist-ssr
 
 # Vite
 *.timestamp-*
+
+# Firebase generated config
+public/firebase-web-config.json
