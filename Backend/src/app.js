@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import compression from 'compression';
 import mongoSanitize from 'mongo-sanitize';
 import xssClean from 'xss-clean';
 import routes from './routes/index.js';
@@ -15,53 +14,13 @@ import { config } from './config/env.js';
 
 const app = express();
 
-// Trust first proxy (essential for express-rate-limit if behind a proxy like Render)
+// Trust first proxy (essential for express-rate-limit if behind a proxy)
 app.set('trust proxy', 1);
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
-// MUST be the VERY FIRST middleware so that EVEN Render's own 502/503 error
-// responses carry the Allow-Origin header. Without this, the browser sees a
-// 502 without CORS headers and reports it as "CORS Missing Allow Origin".
-const allowedOrigins = [
-    'https://dukaanwallah.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    // Additional origins from env (comma-separated, e.g. staging URLs)
-    ...(process.env.ADDITIONAL_CORS_ORIGINS
-        ? process.env.ADDITIONAL_CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
-        : []),
-];
-
-const corsOptions = {
-    origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, Postman, server-to-server)
-        if (!origin) return callback(null, true);
-        // Match exact list OR any dukaanwallah*.vercel.app preview deploy URL
-        const isAllowed =
-            allowedOrigins.includes(origin) ||
-            /^https:\/\/dukaanwallah.*\.vercel\.app$/.test(origin);
-        return isAllowed
-            ? callback(null, true)
-            : callback(new Error(`CORS: Origin ${origin} not allowed`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
-};
-
-app.use(cors(corsOptions));
-// Explicitly handle OPTIONS preflight for ALL routes (critical for browsers)
-app.options('*', cors(corsOptions));
-
-// ─── Compression ──────────────────────────────────────────────────────────────
-// Gzip-compress all JSON/text responses → reduces bandwidth ~60-70%
-// and lowers Render's memory pressure under heavy load
-app.use(compression());
-
-// ─── Request ID tracing ───────────────────────────────────────────────────────
+// Request ID tracing (before other middlewares so all logs can use it)
 app.use(requestIdMiddleware);
 
-// ─── Health endpoints (no rate-limit, no auth) ────────────────────────────────
+// Health endpoints (no rate limit, minimal JSON, no secrets)
 app.get('/health', async (_req, res) => {
     try {
         const data = await healthCheck();
@@ -74,7 +33,7 @@ app.get('/ready', (_req, res) => {
     res.status(200).json({ status: 'ready' });
 });
 
-// ─── Security middlewares ─────────────────────────────────────────────────────
+// Security & parsing middlewares
 app.use(helmet({
     contentSecurityPolicy: { directives: { defaultSrc: ["'self'"] } },
     hsts: config.nodeEnv === 'production' ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
@@ -83,13 +42,22 @@ app.use(helmet({
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
-// 'combined' in production: less verbose, no color codes, lower CPU usage
-app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
+// ✅ CORS — main domain + saari vercel preview URLs
+app.use(cors({
+    origin: [
+        'https://dukaanwallah.vercel.app',
+        /^https:\/\/dukaanwallah.*\.vercel\.app$/,
+        'http://localhost:5173',
+        'http://localhost:3000',
+    ],
+    credentials: true
+}));
 
+app.use(morgan('dev'));
 app.use(express.json({
     limit: config.requestBodyLimit,
     verify: (req, res, buf) => {
-        // Store rawBody for Razorpay webhook signature verification
+        // ✅ Store rawBody for signature verification (Razorpay Webhooks)
         if (req.originalUrl && req.originalUrl.includes('/webhook/razorpay')) {
             req.rawBody = buf;
         }
