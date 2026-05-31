@@ -41,15 +41,17 @@ app.use(helmet({
     noSniff: true,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
+
+// ✅ CORS — main domain + saari vercel preview URLs
 app.use(cors({
     origin: [
         'https://dukaanwallah.vercel.app',
-        'http://localhost:5173', // local dev
+        /^https:\/\/dukaanwallah.*\.vercel\.app$/,
+        'http://localhost:5173',
         'http://localhost:3000',
     ],
     credentials: true
 }));
-
 
 app.use(morgan('dev'));
 app.use(express.json({
