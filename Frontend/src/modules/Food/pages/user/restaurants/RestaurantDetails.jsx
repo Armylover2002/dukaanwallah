@@ -2063,7 +2063,7 @@ function RestaurantDetailsContent() {
             <div className="flex justify-between items-start">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
                   {restaurant?.name || "Unknown Restaurant"}
                 </h1>
                 <Info className="h-5 w-5 text-gray-400 cursor-pointer" />
@@ -2122,7 +2122,7 @@ function RestaurantDetailsContent() {
                   <Percent className="h-6 w-6 text-[#FE5502]" />
                 </div>
                 <div>
-                   <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                   <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                      {highlightOffers[highlightIndex] || "Special Offer"}
                    </h3>
                    <p className="text-[11px] font-medium text-gray-400">

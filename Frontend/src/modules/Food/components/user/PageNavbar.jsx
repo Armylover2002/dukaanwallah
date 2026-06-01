@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect, useRef, useMemo } from "react"
-import { ChevronDown, ShoppingCart, Wallet } from "lucide-react"
+import { ChevronDown, ShoppingCart, Wallet, MapPin } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { useLocation } from "@food/hooks/useLocation"
 import { useCart } from "@food/context/CartContext"
@@ -983,7 +983,7 @@ export default function PageNavbar({
               <img
                 src={logoUrl}
                 alt={companyName || "Logo"}
-                className="h-10 w-auto sm:h-12 md:h-14 object-contain scale-[1.8] sm:scale-[2] origin-left"
+                className="h-10 w-auto sm:h-12 md:h-14 object-contain scale-[1.8] sm:scale-[2] origin-left rounded-xl"
                 crossOrigin="anonymous"
                 onError={(e) => {
                   e.target.style.display = 'none'
@@ -997,28 +997,31 @@ export default function PageNavbar({
           </Link>
         )}
 
-        {/* Center: Location Selector (Centered) */}
-        <div className="flex-1 flex items-center justify-center min-w-0 absolute left-1/2 -translate-x-1/2">
+        {/* Center/Left: Location Selector */}
+        <div className={`flex-1 flex items-center min-w-0 ${showLogo ? "justify-center absolute left-1/2 -translate-x-1/2" : "justify-start"}`}>
           <Button
             variant="ghost"
             onClick={handleLocationClick}
             disabled={loading}
-            className="h-auto px-0 py-0 hover:bg-transparent transition-colors flex-shrink-0"
+            className={`h-auto px-0 py-0 hover:bg-transparent transition-colors flex-shrink-0 flex flex-col ${showLogo ? "items-center" : "items-start justify-center min-w-0"}`}
           >
             {loading ? (
               <span className={`text-sm font-bold ${textColorClass}`}>
                 Loading...
               </span>
             ) : (
-              <div className="flex flex-col items-center min-w-0">
-                <div className="flex items-center justify-center gap-1">
-                  <span className={`text-sm sm:text-base md:text-lg font-bold ${textColorClass} truncate max-w-[140px] sm:max-w-[200px]`}>
-                    {mainLocationName}
-                  </span>
-                  <ChevronDown className={`h-3 w-3 sm:h-4 sm:w-4 ${textColorClass} flex-shrink-0`} strokeWidth={2.5} />
+              <div className={`flex flex-col ${showLogo ? "items-center" : "items-start w-full"} min-w-0`}>
+                <div className={`flex items-center min-w-0 ${showLogo ? "justify-center gap-1" : "w-full gap-1.5"}`}>
+                  {!showLogo && <MapPin className={`h-[18px] w-[18px] ${textColor === "white" ? "text-white" : "text-[#FE5502]"} flex-shrink-0`} strokeWidth={2.5} />}
+                  <div className={`flex items-center gap-1 min-w-0`}>
+                    <span className={`${showLogo ? "text-sm sm:text-base md:text-lg" : "text-[16px]"} font-bold ${textColorClass} truncate`}>
+                      {mainLocationName}
+                    </span>
+                    <ChevronDown className={`${showLogo ? "h-3 w-3 sm:h-4 sm:w-4" : "h-[14px] w-[14px] mt-0.5"} ${textColorClass} flex-shrink-0`} strokeWidth={showLogo ? 2.5 : 3} />
+                  </div>
                 </div>
                 {locationSubText && (
-                  <span className={`text-[10px] sm:text-xs font-medium ${textColorClass}/80 truncate max-w-[140px] sm:max-w-[200px] text-center`}>
+                  <span className={`${showLogo ? "text-[10px] sm:text-xs font-medium text-center max-w-[140px] sm:max-w-[200px]" : "text-[11px] font-semibold text-left pl-6 w-full"} ${textColorClass}/80 truncate`}>
                     {locationSubText}
                   </span>
                 )}
@@ -1029,35 +1032,25 @@ export default function PageNavbar({
 
         {/* Right: Actions (Wallet & Cart) */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
-          <Link to="/user/wallet">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0 hover:opacity-80 transition-opacity"
-              title="Wallet"
-            >
-              <div className={`h-full w-full rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center`}>
-                <Wallet className={`h-4 w-4 sm:h-5 sm:w-5 ${textColor === "white" ? "text-black dark:text-white" : "text-gray-900 dark:text-white"}`} strokeWidth={2} />
-              </div>
-            </Button>
+          <Link
+            to="/user/wallet"
+            className={`p-2 bg-gray-100 dark:bg-gray-800 rounded-full hover:scale-105 active:scale-95 transition-all ${textColor === "white" ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`}
+            title="Wallet"
+          >
+            <Wallet className="h-5 w-5" strokeWidth={2} />
           </Link>
 
-          <Link to="/user/cart">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0 hover:opacity-80 transition-opacity"
-              title="Cart"
-            >
-              <div className={`h-full w-full rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center`}>
-                <ShoppingCart className={`h-4 w-4 sm:h-5 sm:w-5 ${textColor === "white" ? "text-black dark:text-white" : "text-gray-900 dark:text-white"}`} strokeWidth={2} />
-              </div>
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center ring-2 ring-white">
-                  <span className="text-[9px] font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>
-                </span>
-              )}
-            </Button>
+          <Link
+            to="/user/cart"
+            className={`relative p-2 bg-gray-100 dark:bg-gray-800 rounded-full hover:scale-105 active:scale-95 transition-all ${textColor === "white" ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`}
+            title="Cart"
+          >
+            <ShoppingCart className="h-5 w-5" strokeWidth={2} />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                <span className="text-[10px] font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>
+              </span>
+            )}
           </Link>
 
           {/* Profile - Only shown if showProfile is true */}
@@ -1070,7 +1063,7 @@ export default function PageNavbar({
                 title="Profile"
               >
                 <div className={`h-full w-full rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shadow-sm`}>
-                  <span className={`text-xs sm:text-sm font-extrabold ${textColor === "white" ? "text-black" : "text-gray-900"}`}>
+                  <span className={`text-xs sm:text-sm font-bold ${textColor === "white" ? "text-black" : "text-gray-900"}`}>
                     A
                   </span>
                 </div>

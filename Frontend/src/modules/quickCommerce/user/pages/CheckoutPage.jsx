@@ -770,7 +770,7 @@ const CheckoutPage = () => {
 
     if (!addressForOrder.street || addressForOrder.street.trim() === "" || addressForOrder.street === "NA") {
       showToast("Please add a delivery address before placing your order", "error");
-      setIsAddressModalOpen(true);
+      navigate("/quick-commerce/addresses?from=cart");
       return;
     }
 
@@ -938,6 +938,13 @@ const CheckoutPage = () => {
   }, [currentAddress.address, currentAddress.city, currentAddress.landmark, locationSavedAddresses, sharedProfileName, sharedProfilePhone]);
 
   useEffect(() => {
+    const stored = readStoredCheckoutState();
+    if (stored.currentAddress && stored.currentAddress.address) {
+      setCurrentAddress(stored.currentAddress);
+    }
+  }, [currentLocation]);
+
+  useEffect(() => {
     const fetchCoupons = async () => {
       try {
         const firstCartItemWithSeller = cart.find((item) => item.sellerId || item.seller?._id || item.sellerId?._id);
@@ -1064,6 +1071,41 @@ const CheckoutPage = () => {
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-start">
           {/* Left Column */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-6 pb-8">
+            {/* Delivery Address Card */}
+            <motion.div className="bg-white dark:bg-card rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-white/5 mt-3 transition-colors">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-12 w-12 rounded-2xl bg-green-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <MapPin size={24} className="text-[#0c831f]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-slate-800 text-lg">
+                        Delivery Address
+                      </span>
+                      {currentAddress.type && (
+                        <span className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          {currentAddress.type}
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-semibold text-slate-700 text-sm mt-1">
+                      {displayName} • {displayPhone}
+                    </p>
+                    <p className="text-slate-500 text-xs mt-1 leading-relaxed line-clamp-2">
+                      {displayAddress || "No delivery address selected. Please add one."}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate("/quick-commerce/addresses?from=cart")}
+                  className="px-4 py-2 rounded-xl bg-green-50 hover:bg-green-100 text-[#0c831f] font-black text-xs uppercase tracking-widest transition-all border border-green-100"
+                >
+                  Change
+                </button>
+              </div>
+            </motion.div>
+
             <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 mt-3 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-full bg-green-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">

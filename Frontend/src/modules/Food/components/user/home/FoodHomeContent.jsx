@@ -217,13 +217,13 @@ function FoodHomeContent({
         <div className="absolute inset-x-0 bottom-0 top-0 bg-gradient-to-t from-green-50/20 via-transparent to-transparent pointer-events-none" />
         
         <div className="relative z-10 flex min-w-0 items-center justify-between gap-2 mb-8">
-          <h2 className="shrink-0 text-xl font-black italic tracking-tighter text-gray-900 sm:text-2xl uppercase">
+          <h2 className="shrink-0 text-xl font-bold italic tracking-tighter text-gray-900 sm:text-2xl uppercase">
             What's on your mind today?
           </h2>
           <div className="hidden h-[1.5px] flex-1 bg-gradient-to-r from-gray-200 to-transparent sm:block mx-4" />
           <Link
             to="/user/categories"
-            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-black text-[#ef4f5f] sm:text-sm bg-[#ef4f5f]/10 px-4 py-2 rounded-full hover:bg-[#ef4f5f]/20 transition-all"
+            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-bold text-[#ef4f5f] sm:text-sm bg-[#ef4f5f]/10 px-4 py-2 rounded-full hover:bg-[#ef4f5f]/20 transition-all"
           >
             Explore <ArrowDownUp className="h-3 w-3 rotate-90" />
           </Link>
@@ -245,7 +245,7 @@ function FoodHomeContent({
                  {/* Shiny overlay on hover */}
                  <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              <span className="text-center text-[12px] font-black leading-tight text-gray-800 tracking-tighter opacity-70 group-hover:opacity-100 group-hover:text-[#ef4f5f] transition-all">
+              <span className="text-center text-[12px] font-bold leading-tight text-gray-800 tracking-tighter opacity-70 group-hover:opacity-100 group-hover:text-[#ef4f5f] transition-all">
                 {category.name}
               </span>
             </Link>
@@ -362,7 +362,7 @@ function FoodHomeContent({
         <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-gray-200/20 via-white to-gray-200/10 py-10 border border-gray-100/50 shadow-sm">
           <div className="absolute inset-0 opacity-05 pointer-events-none" style={{ backgroundImage: `url(${discoveryBg})`, backgroundSize: '350px' }} />
           
-          <h2 className="mb-8 px-8 text-sm font-black uppercase tracking-[0.2em] text-gray-500/70 relative z-10">
+          <h2 className="mb-8 px-8 text-sm font-bold uppercase tracking-[0.2em] text-gray-500/70 relative z-10">
             {exploreMoreHeading}
           </h2>
           <div

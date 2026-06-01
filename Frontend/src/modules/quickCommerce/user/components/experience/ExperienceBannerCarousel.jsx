@@ -22,10 +22,10 @@ FullWidthSlide.displayName = "FullWidthSlide";
 
 const InlineSlide = memo(({ banner, stepPercent, slideGap, sectionTitle, eager }) => (
   <div
-    className="relative shrink-0 overflow-hidden bg-slate-100 flex items-center justify-center box-border h-[190px] px-4 md:px-8"
+    className="relative shrink-0 flex items-center justify-center box-border h-[174px] px-0"
     style={{ width: `${stepPercent}%` }}
   >
-    <div className="h-full w-full max-w-[560px] -translate-x-2 md:-translate-x-4 overflow-hidden rounded-3xl bg-slate-100 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+    <div className="h-full w-full max-w-[560px] overflow-hidden rounded-[20px] bg-slate-100 shadow-md">
       <img
         src={banner.imageUrl}
         srcSet={getCloudinarySrcSet(banner.imageUrl)}
@@ -129,6 +129,25 @@ const ExperienceBannerCarousel = ({
           )
         )}
       </div>
+
+      {/* Pagination Dots */}
+      {isMultiple && !fullWidth && (
+        <div className="flex justify-center items-center gap-1.5 mt-3 pb-1">
+          {items.map((_, idx) => {
+            const realActiveIndex = activeIndex % items.length;
+            const isActive = idx === realActiveIndex;
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  "h-[4px] rounded-full transition-all duration-300",
+                  isActive ? "w-4 bg-black" : "w-[6px] bg-gray-200"
+                )}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

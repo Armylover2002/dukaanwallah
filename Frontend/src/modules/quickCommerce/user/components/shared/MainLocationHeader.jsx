@@ -162,8 +162,10 @@ const CategoryNavColumn = React.memo(function CategoryNavColumn({
       whileTap={{ scale: 0.96 }}
       transition={{ layout: SPRING_LAYOUT }}
       onClick={handleClick}
-      style={{ borderBottomColor: isActive ? "transparent" : categoryAccent }}
-      className="relative z-[2] flex min-w-[48px] shrink-0 cursor-pointer flex-col items-center gap-0.5 border-b-2 px-2 pb-0.5 pt-0.5 snap-start md:min-w-[58px]"
+      className={cn(
+        "relative z-[2] flex min-w-[64px] shrink-0 cursor-pointer flex-col items-center gap-0 px-2 pb-1.5 pt-1.5 snap-start md:min-w-[72px] rounded-[14px] transition-colors",
+        isActive ? "bg-black/15 border border-white/20" : "border border-transparent"
+      )}
     >
       <div className="relative z-10 flex h-9 w-9 items-center justify-center md:h-11 md:w-11">
         {typeof IconComponent === "function" || (typeof IconComponent === "object" && IconComponent?.$$typeof) ? (
@@ -185,39 +187,18 @@ const CategoryNavColumn = React.memo(function CategoryNavColumn({
         )}
       </div>
 
-      <div className="relative mt-px w-full">
+      <div className="relative mt-0.5 w-full flex justify-center">
         <span
-          ref={labelRef}
           className={cn(
-            "relative z-10 mx-auto block max-w-[72px] truncate px-1 pb-1 text-center text-[9px] uppercase tracking-tight md:max-w-[88px] md:text-[11px]",
-            isActive ? "font-black" : "font-semibold",
+            "relative z-10 block px-0.5 text-center text-[10px] md:text-[11px] whitespace-nowrap tracking-wide",
+            isActive ? "font-extrabold" : "font-medium",
           )}
-          style={{ color: "#ffffff", opacity: isActive ? 1 : 0.94 }}
+          style={{ color: "#ffffff", opacity: isActive ? 1 : 0.85 }}
         >
           {cat.name}
         </span>
       </div>
 
-      {isActive && (
-        <motion.svg
-          layoutId="active-category-curve"
-          aria-hidden
-          className="pointer-events-none absolute bottom-0 left-0 right-0 z-[6] h-[22px] w-full overflow-visible"
-          viewBox="0 0 100 20"
-          preserveAspectRatio="none"
-          shapeRendering="geometricPrecision"
-          transition={{ layout: SPRING_CURVE }}
-        >
-          <path
-            d={pathD}
-            fill="none"
-            stroke={categoryAccent}
-            strokeWidth="2"
-            strokeLinecap="butt"
-            strokeLinejoin="round"
-          />
-        </motion.svg>
-      )}
     </motion.div>
   );
 });
@@ -385,7 +366,7 @@ const MainLocationHeader = ({
   const displayCart = embedded ? "block" : rawDisplayCart;
 
   // Memoize derived color values
-  const baseHeaderColor = (embedded && embeddedHeaderColor) || activeCategory?.headerColor || null;
+  const baseHeaderColor = activeCategory?.headerColor || (embedded && embeddedHeaderColor) || null;
 
   const headerGradient = useMemo(() => {
     if (!baseHeaderColor) return "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)";
@@ -408,9 +389,9 @@ const MainLocationHeader = ({
         )}
       >
         <motion.div
-          initial={{ y: -50, opacity: 0 }}
+          initial={embedded ? { y: 0, opacity: 1 } : { y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={embedded ? { duration: 0 } : { duration: 0.6, ease: "easeOut" }}
           style={{
             paddingTop: headerTopPadding,
             paddingBottom: headerBottomPadding,

@@ -328,7 +328,7 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="flex-shrink-0 text-right">
-                <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#FE5502]">
+                <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[#FE5502]">
                   ₹{(product.price * 83).toFixed(0)}
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">per serving</p>

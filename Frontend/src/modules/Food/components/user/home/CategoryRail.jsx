@@ -12,22 +12,20 @@ const CategoryRail = memo(({
   backendOrigin = ""
 }) => {
   return (
-    <section className="px-4 py-4 space-y-4">
-      <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-        What's on your mind?
-      </h2>
+    <section className="mt-6 px-4" data-purpose="mind-categories">
+      <h3 className="text-lg font-bold text-gray-900 mb-4">What's on your mind?</h3>
       
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {/* Offers Card - Rounded Square */}
+      <div className="flex overflow-x-auto space-x-4 custom-scrollbar pb-2">
+        {/* Offers Card */}
         <div 
-          className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer group"
+          className="flex-shrink-0 flex flex-col items-center space-y-2 cursor-pointer group"
           onClick={() => navigate("/user/under-250")}
         >
-          <div className="w-[72px] h-[72px] sm:w-[84px] sm:h-[84px] bg-[#FE5502] rounded-2xl flex flex-col items-center justify-center p-1 shadow-sm transition-transform group-hover:scale-105 group-active:scale-95">
-            <span className="text-[10px] font-bold text-white/90">UNDER</span>
-            <span className="text-sm sm:text-base font-black text-white">₹200</span>
-            <div className="mt-1 px-2 py-0.5 bg-white rounded-full">
-              <span className="text-[8px] font-extrabold text-[#FE5502]">Explore</span>
+          <div className="w-16 h-16 rounded-full bg-orange-100/30 flex items-center justify-center p-0.5 border-2 border-[#ff6b00] overflow-hidden transition-transform group-hover:scale-105 group-active:scale-95">
+            <div className="bg-[#ff6b00] w-full h-full rounded-full flex flex-col items-center justify-center text-white p-2">
+              <span className="text-[8px] font-bold uppercase">Under</span>
+              <span className="text-xs font-bold">₹200</span>
+              <div className="bg-white text-[#ff6b00] text-[6px] px-1 py-0.5 rounded-full mt-1 font-bold">Explore</div>
             </div>
           </div>
           <span className="text-xs font-semibold text-gray-600">Offers</span>
@@ -37,9 +35,9 @@ const CategoryRail = memo(({
           <Link
             key={category.id || index}
             to={`/user/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, "-")}`}
-            className="flex-shrink-0 flex flex-col items-center gap-2 group"
+            className="flex-shrink-0 flex flex-col items-center space-y-2 group"
           >
-            <div className="w-[72px] h-[72px] sm:w-[84px] sm:h-[84px] rounded-full overflow-hidden shadow-sm border border-gray-100 transition-transform group-hover:scale-110">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 transition-transform group-hover:scale-110">
               <OptimizedImage
                 src={category.image}
                 alt={category.name}

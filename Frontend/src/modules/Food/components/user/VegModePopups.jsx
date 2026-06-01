@@ -50,7 +50,7 @@ const VegModePopups = ({
                   <div className="w-20 h-20 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-green-50 dark:ring-green-500/5">
                     <Leaf className="w-10 h-10 text-green-600 dark:text-green-400" />
                   </div>
-                  <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3">Pure Veg Mode</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Pure Veg Mode</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-8">
                     Choose how you'd like to filter your food.
                   </p>
@@ -100,7 +100,7 @@ const VegModePopups = ({
                   <div className="w-20 h-20 bg-orange-50 dark:bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-orange-50/50 dark:ring-orange-500/5">
                     <AlertCircle className="w-10 h-10 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3">Switching Off?</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Switching Off?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-8">
                     This will re-enable non-vegetarian options in your feed. Are you sure you want to continue?
                   </p>

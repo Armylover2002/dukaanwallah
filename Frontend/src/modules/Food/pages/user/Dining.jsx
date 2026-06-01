@@ -467,12 +467,13 @@ export default function Dining() {
         }
       `}</style>
       {/* Sticky Header Wrapper */}
-      <div className="sticky top-0 z-40 w-full bg-white dark:bg-[#0a0a0a] shadow-sm md:hidden">
+      <div className="sticky top-0 z-40 w-full bg-white/75 dark:bg-[#0a0a0a]/75 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-gray-800 md:hidden">
         {/* Navbar Section */}
         <div className="relative z-20 pt-2 sm:pt-3 lg:pt-4">
           <PageNavbar
             textColor="dark"
             zIndex={20}
+            showLogo={false}
             onNavClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -593,7 +594,7 @@ export default function Dining() {
               <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0%,rgba(204,37,50,0.05)_35%,transparent_70%)]" />
               <div className="absolute bottom-6 left-6 max-w-[70%]">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[#b46f37]">Dining</p>
-                <h2 className="mt-2 text-2xl font-black text-[#2e1d11] sm:text-3xl">
+                <h2 className="mt-2 text-2xl font-bold text-[#2e1d11] sm:text-3xl">
                   {loading ? "Curating dining picks near you" : "Fresh dining picks near you"}
                 </h2>
                 <p className="mt-2 text-sm font-medium text-[#6d5744]">

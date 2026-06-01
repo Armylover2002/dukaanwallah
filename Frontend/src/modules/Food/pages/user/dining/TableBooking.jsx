@@ -296,7 +296,7 @@ export default function TableBooking() {
           </button>
 
           <div className="mt-6 text-center">
-            <h1 className="text-[30px] font-black tracking-tight text-[#25314a]">Book a table</h1>
+            <h1 className="text-[30px] font-bold tracking-tight text-[#25314a]">Book a table</h1>
             <p className="mt-1 text-sm font-medium text-[#636363]">{restaurant.name || restaurant.restaurantName}</p>
           </div>
         </div>

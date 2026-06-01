@@ -3,6 +3,7 @@ import { Link, useLocation as useRouterLocation, useNavigate } from "react-route
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Navigation,
+  MapPin,
   ChevronDown,
   Search,
   Mic,
@@ -58,26 +59,14 @@ const withAlpha = (hex, alpha) => {
 const quickTheme = (baseColor) => {
   const base = normalizeHex(baseColor, "#F26522");
   return {
-    topBg: `linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 100%), ${base}`,
     accent: base,
-    text: "#ffffff",
-    activeBg: base,
-    activeText: "#ffffff",
-    inactiveBg: "rgba(0,0,0,0.3)",
-    inactiveBorder: "rgba(255,255,255,0.08)",
   };
 };
 
 const foodTheme = (vegMode) => {
-  const base = vegMode ? "#2f7a46" : "#FE5502";
+  const base = vegMode ? "#2e7d32" : "#ff6b00";
   return {
-    topBg: `linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 100%), ${base}`,
     accent: base,
-    text: "#ffffff",
-    activeBg: base,
-    activeText: "#ffffff",
-    inactiveBg: "rgba(0,0,0,0.25)",
-    inactiveBorder: "rgba(255,255,255,0.08)",
   };
 };
 
@@ -128,6 +117,17 @@ const buildLocationDisplay = (savedAddressText, location) => {
   };
 };
 
+const isColorDark = (color) => {
+  if (!color || !color.startsWith('#')) return false;
+  let c = color.substring(1);
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const rgb = parseInt(c, 16);
+  const r = (rgb >> 16) & 0xff;
+  const g = (rgb >>  8) & 0xff;
+  const b = (rgb >>  0) & 0xff;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) < 140;
+};
+
 export default function HomeHeader({
   activeTab,
   setActiveTab,
@@ -170,6 +170,11 @@ export default function HomeHeader({
 
   const theme = activeTab === "quick" ? quickTheme(quickThemeColor) : foodTheme(vegMode);
   const isFood = activeTab === "food";
+  const isDarkTheme = !isFood && isColorDark(theme.accent);
+  const textColorClass = isFood ? "text-gray-900" : (isDarkTheme ? "text-white" : "text-gray-900");
+  const subtextColorClass = isFood ? "text-gray-500" : (isDarkTheme ? "text-white/80" : "text-gray-600");
+  const iconColor = isFood ? theme.accent : (isDarkTheme ? "#ffffff" : "#111827");
+  
   const walletPath = isFood ? "/food/user/wallet" : "/quick/wallet";
   const { title: locationTitle, subtitle: locationSubtitle } = useMemo(
     () => buildLocationDisplay(savedAddressText, location),
@@ -262,202 +267,144 @@ export default function HomeHeader({
   };
 
   return (
-    <motion.div
-      className={`relative transition-all duration-400 ${
-        isFood
-          ? "min-h-[280px] overflow-hidden"
-          : "min-h-[120px] overflow-visible"
-      }`}
-      style={{ background: theme.topBg, color: theme.text }}
+    <motion.div 
+      className={cn("relative transition-all duration-400 pb-0 border-none outline-none z-50", isFood ? "bg-white" : "bg-transparent")}
+      style={!isFood ? { backgroundColor: theme.accent } : undefined}
     >
-      {headerVideoUrl && (
-        <div className="absolute inset-0 z-0 flex justify-center overflow-hidden">
-            {/* Video temporarily removed to improve loading time
-            <video
-              ref={videoRef}
-              src={headerVideoUrl}
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="metadata"
-              aria-hidden="true"
-              className={`h-full w-full object-cover object-center transition-opacity duration-200 ${
-                isFood ? "opacity-100" : "opacity-0"
-              }`}
+      {/* 1. Sticky Main Header Top Section */}
+      <header 
+        className={cn("sticky top-0 z-50 px-4 py-3 transition-colors duration-300 outline-none", isFood ? "bg-white/85 backdrop-blur-md shadow-sm border-b border-gray-100" : "border-b-0 border-none")}
+        style={!isFood ? { backgroundColor: "transparent" } : undefined}
+      >
+        <div className="flex items-center justify-between">
+          
+          {/* Location Selector (Left) */}
+          <button
+            type="button"
+            onClick={handleLocationClick}
+            className="flex items-center space-x-2 cursor-pointer bg-transparent border-0 p-0 text-left outline-none shrink min-w-0"
+          >
+            <MapPin
+              className="h-5 w-5 shrink-0"
+              style={{ color: iconColor }}
+              strokeWidth={2}
             />
-            */}
-          <div 
-            className="absolute inset-0 transition-colors duration-700" 
-            style={{ 
-              background: `linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%), ${theme.accent}` 
-            }} 
-          />
-          <div 
-            className="absolute inset-0 transition-colors duration-700 opacity-30"
-            style={{
-              background: `radial-gradient(circle at 20% 30%, ${withAlpha(theme.accent, 0.4)}, transparent 70%)`
-            }}
-          />
-        </div>
-      )}
-
-      <div
-        className="absolute inset-0 z-[1] opacity-[0.25] pointer-events-none"
-        style={{
-          backgroundImage: `url(${foodPattern})`,
-          backgroundSize: "200px",
-          backgroundRepeat: "repeat",
-          mixBlendMode: "overlay",
-        }}
-      />
-
-      {isFood && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <Pizza className="absolute top-10 right-[15%] opacity-[0.10]" style={{ color: theme.accent }} size={64} />
-          <Beef className="absolute top-40 left-[10%] opacity-[0.08]" style={{ color: theme.accent }} size={80} />
-          <ChefHat className="absolute bottom-[20%] right-[20%] opacity-[0.08]" style={{ color: theme.accent }} size={56} />
-          <Coffee className="absolute top-20 left-[30%] opacity-[0.08]" style={{ color: theme.accent }} size={48} />
-          <Soup className="absolute bottom-[40%] left-[5%] opacity-[0.05]" style={{ color: theme.accent }} size={72} />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between px-5 pt-4 mb-2 relative z-10">
-        <button
-          type="button"
-          className="flex items-start gap-2 cursor-pointer flex-1 min-w-0 bg-transparent border-0 p-0 text-left outline-none"
-          onClick={handleLocationClick}
-        >
-          {isFood ? (
-            <>
-              <Navigation
-                className="h-[14px] w-[14px] rotate-[15deg] mt-[5px] shrink-0"
-                style={{ color: theme.accent, fill: theme.accent }}
-                strokeWidth={2.5}
-              />
-              <div className="flex min-w-0 max-w-[190px] flex-col">
-                <div className="flex items-center gap-[3px]">
-                  <span className="truncate text-[16px] font-extrabold tracking-[-0.3px]">
-                    {locationTitle}
-                  </span>
-                  <ChevronDown className="h-[14px] w-[14px] shrink-0 opacity-80" strokeWidth={3} />
-                </div>
-                <span className="max-w-[190px] truncate text-[11px] font-medium text-white/75">
-                  {locationSubtitle}
-                </span>
-              </div>
-            </>
-          ) : (
             <div className="flex flex-col min-w-0">
-              <span className="text-[20px] font-black tracking-tighter leading-none mb-0.5">15 mins</span>
-              <span className="text-[10px] font-bold truncate opacity-70">To {locationTitle}</span>
-            </div>
-          )}
-        </button>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <Link
-            to={walletPath}
-            className="h-[38px] w-[38px] rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
-            aria-label="Open wallet"
-          >
-            <Wallet className="h-[19px] w-[19px] text-[#282c3f]" strokeWidth={2} />
-          </Link>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="relative h-[38px] w-[38px] rounded-full bg-white/95 border border-white/60 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
-              >
-                <Bell className="h-[18px] w-[18px] text-[#282c3f]" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-yellow-400 border border-white" />
-                )}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0 overflow-hidden border-none shadow-2xl rounded-2xl mt-2" align="end">
-              <div className="bg-white">
-                <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                  <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                    Notifications
-                    {unreadCount > 0 && (
-                      <Badge variant="secondary" className="bg-red-100 text-red-600 border-none text-[10px] h-4">
-                        {unreadCount} New
-                      </Badge>
-                    )}
-                  </h3>
-                  <Link to="/food/user/notifications" className="text-xs font-bold text-red-600">
-                    {mergedNotifications.length > 0 ? "View All" : ""}
-                  </Link>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {mergedNotifications.length > 0 ? (
-                    mergedNotifications.slice(0, 5).map((item, index) => (
-                      <div key={item.id || `notif-${index}`} className="p-4 flex items-start gap-3 border-b border-gray-50 last:border-0">
-                        <div className="mt-1 p-2 rounded-full bg-red-100/50 text-red-600">
-                          <Bell className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <span className="text-sm font-bold text-gray-900 truncate">{item.title}</span>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-gray-400 whitespace-nowrap">{item.time}</span>
-                              <button
-                                type="button"
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  removeNotification(item.id, item.source);
-                                }}
-                                className="rounded-full p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.message}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-8 text-center flex flex-col items-center gap-2">
-                      <BellOff className="h-10 w-10 text-gray-200" />
-                      <p className="text-xs text-gray-400 font-medium">All caught up!</p>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center">
+                <span className={cn("font-bold text-sm truncate max-w-[150px]", textColorClass)}>
+                  {locationTitle}
+                </span>
+                <ChevronDown className={cn("h-4 w-4 ml-1 shrink-0", textColorClass)} strokeWidth={2} />
               </div>
-            </PopoverContent>
-          </Popover>
+              <span className={cn("text-[10px] uppercase truncate max-w-[170px]", subtextColorClass)}>
+                {locationSubtitle}
+              </span>
+            </div>
+          </button>
 
-          <Link
-            to="/food/user/cart"
-            className="h-[38px] w-[38px] rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
-            aria-label="Open cart"
-          >
-            <ShoppingCart className="h-[20px] w-[20px] text-[#282c3f]" strokeWidth={2} />
-          </Link>
+          {/* Action Icons (Right) */}
+          <div className="flex items-center space-x-3 shrink-0">
+            {/* Wallet Button */}
+            <Link
+              to={walletPath}
+              className={cn("p-2 rounded-full hover:scale-105 active:scale-95 transition-all", isFood ? "bg-gray-100 text-gray-700" : (isDarkTheme ? "bg-white/20 text-white" : "bg-black/5 text-gray-800"))}
+              aria-label="Open wallet"
+            >
+              <Wallet className="h-5 w-5" strokeWidth={2} />
+            </Link>
+
+            {/* Notification Popover Button */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={cn("p-2 rounded-full relative hover:scale-105 active:scale-95 transition-all border-0 outline-none", isFood ? "bg-gray-100 text-gray-700" : (isDarkTheme ? "bg-white/20 text-white" : "bg-black/5 text-gray-800"))}
+                  aria-label="Open notifications"
+                >
+                  <Bell className="h-5 w-5" strokeWidth={2} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-2 right-2 h-2 w-2 bg-[#ff6b00] rounded-full border border-white" />
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0 overflow-hidden border-none shadow-2xl rounded-2xl mt-2 z-[200]" align="end">
+                <div className="bg-white">
+                  <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                      Notifications
+                      {unreadCount > 0 && (
+                        <Badge variant="secondary" className="bg-red-100 text-red-600 border-none text-[10px] h-4">
+                          {unreadCount} New
+                        </Badge>
+                      )}
+                    </h3>
+                    <Link to="/food/user/notifications" className="text-xs font-bold text-red-600">
+                      {mergedNotifications.length > 0 ? "View All" : ""}
+                    </Link>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                    {mergedNotifications.length > 0 ? (
+                      mergedNotifications.slice(0, 5).map((item, index) => (
+                        <div key={item.id || `notif-${index}`} className="p-4 flex items-start gap-3 border-b border-gray-50 last:border-0">
+                          <div className="mt-1 p-2 rounded-full bg-red-100 text-red-600">
+                            <Bell className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                              <span className="text-sm font-bold text-gray-900 truncate">{item.title}</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{item.time}</span>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    removeNotification(item.id, item.source);
+                                  }}
+                                  className="rounded-full p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors border-0 bg-transparent"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.message}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center flex flex-col items-center gap-2">
+                        <BellOff className="h-10 w-10 text-gray-300" />
+                        <p className="text-xs text-gray-400 font-medium">All caught up!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="px-3 pt-1 flex items-end justify-start gap-1 relative z-10">
+      {/* 2. Category Switcher Row */}
+      <div 
+        className="px-4 py-2 flex space-x-2 transition-colors duration-300 outline-none border-none"
+        style={{ backgroundColor: "transparent" }}
+      >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const handleTabIntent = () => {
-            if (tab.id === "quick") {
-              onQuickTabIntent?.();
-            }
+            if (tab.id === "quick") onQuickTabIntent?.();
           };
           const handleTabClick = () => {
             if (tab.route) {
-              const redirectTo =
-                `${routerLocation.pathname || "/food/user"}${routerLocation.search || ""}${routerLocation.hash || ""}`;
+              const redirectTo = `${routerLocation.pathname || "/food/user"}${routerLocation.search || ""}${routerLocation.hash || ""}`;
               navigate(tab.route, { state: { redirectTo } });
               return;
             }
             setActiveTab(tab.id);
           };
+          
           return (
             <button
               key={tab.id}
@@ -465,120 +412,88 @@ export default function HomeHeader({
               onMouseEnter={handleTabIntent}
               onTouchStart={handleTabIntent}
               onFocus={handleTabIntent}
-              className={`relative flex flex-col items-center justify-start flex-1 min-w-0 h-[64px] transition-all duration-300 ${isActive ? "z-20" : "z-10"}`}
+              className={cn(
+                "flex-1 py-2 rounded-[8px] font-bold flex flex-col items-center justify-center transition-all duration-300 cursor-pointer",
+                isActive
+                  ? (isFood ? "text-white shadow-lg border-0" : (isDarkTheme ? "text-white shadow-lg border border-white/30" : "text-gray-900 shadow-lg border border-black/20"))
+                  : (isFood ? "bg-gray-100 text-gray-500 hover:bg-gray-200 border-0" : (isDarkTheme ? "bg-white/10 text-white hover:bg-white/20 border-0" : "bg-black/5 text-gray-700 hover:bg-black/10 border-0"))
+              )}
+              style={isActive ? {
+                backgroundColor: theme.accent,
+                boxShadow: tab.id === "food" ? "0 10px 15px -3px rgba(255,107,0,0.2)" : "0 10px 15px -3px rgba(0,0,0,0.15)"
+              } : undefined}
             >
               {tab.badge && (
-                <div className="absolute -top-[10px] left-1/2 -translate-x-1/2 z-30 rounded-full bg-gradient-to-r from-red-500 to-red-400 px-2 py-0.5 text-[7.5px] font-black uppercase text-white shadow-lg">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 rounded-full bg-gradient-to-r from-red-500 to-red-400 px-2 py-0.5 text-[7px] font-bold uppercase text-white shadow-md">
                   {tab.badge}
-                </div>
-              )}
-              
-              <div
-                className={cn(
-                  "absolute inset-x-0 bottom-0 transition-all duration-300",
-                  isActive ? "top-0 rounded-t-[20px]" : "top-[10px] rounded-t-[16px]"
-                )}
-                style={{
-                  background: isActive ? theme.activeBg : theme.inactiveBg,
-                  borderTop: isActive ? `1px solid ${withAlpha(theme.accent, 0.1)}` : `1px solid ${theme.inactiveBorder}`,
-                  boxShadow: isActive ? "0 -4px 20px rgba(0,0,0,0.12)" : "none",
-                  backdropFilter: isActive ? undefined : "blur(12px)",
-                }}
-              >
-                {isActive && (
-                  <>
-                    <div 
-                      className="absolute bottom-0 -left-[14px] w-[14px] h-[14px] pointer-events-none"
-                      style={{
-                        background: `radial-gradient(circle at 0 0, transparent 14px, ${theme.activeBg} 0)`
-                      }}
-                    />
-                    <div 
-                      className="absolute bottom-0 -right-[14px] w-[14px] h-[14px] pointer-events-none"
-                      style={{
-                        background: `radial-gradient(circle at 100% 0, transparent 14px, ${theme.activeBg} 0)`
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-
-              <div className={`absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center gap-[4px] px-1 ${isActive ? "top-0" : "top-[10px]"}`}>
-                <img
-                  src={tab.icon}
-                  alt={tab.name}
-                  className={`object-contain transition-transform duration-300 ${isActive ? "h-[28px] w-[28px] scale-110" : "h-[24px] w-[24px] brightness-0 invert opacity-80"}`}
-                />
-                <span
-                  style={{ color: "#ffffff" }}
-                  className={`text-[10px] font-black tracking-tight ${isActive ? "opacity-100" : "opacity-80"}`}
-                >
-                  {tab.name}
                 </span>
+              )}
+              <div className="h-5 w-5 mb-0.5 text-[20px] leading-none flex items-center justify-center">
+                {tab.id === "food" ? "🍔" : "📦"}
               </div>
+              <span className="text-[10px] uppercase tracking-wider font-bold">
+                {tab.name}
+              </span>
             </button>
           );
         })}
       </div>
 
-      <div className={cn("relative z-10 pb-0 px-3 overflow-visible", isFood ? "pt-3" : "pt-0")}>
-        {isFood && (
-          <div className="flex items-center gap-2 mb-2">
-            <div
-              className="flex-1 rounded-[12px] h-[46px] flex items-center px-3 cursor-pointer relative overflow-hidden bg-white shadow-[0_6px_18px_rgba(15,23,42,0.10)] border-0 text-left"
-              onClick={handleSearchFocus}
-            >
-              <div className="absolute left-0 top-0 bottom-0 w-[2.5px] rounded-l-[12px] bg-gradient-to-b from-[#FE5502] to-[#C83C00]" />
-              <Search className="h-[16px] w-[16px] ml-1.5 mr-2 flex-shrink-0 text-[#FE5502]" strokeWidth={2.3} />
-              <div className="flex-1 overflow-hidden relative h-[20px]">
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={placeholderIndex}
-                    initial={{ y: 12, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -12, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0 whitespace-nowrap leading-[22px] text-[12.5px] font-medium text-gray-400"
-                  >
-                    {placeholders?.[placeholderIndex] || "Search for food..."}
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-[1px] h-[16px] bg-red-200" />
-                <button
-                  type="button"
-                  onClick={handleVoiceSearch}
-                  className={cn(
-                    "h-[28px] w-[28px] rounded-full flex items-center justify-center transition-all",
-                    isListening ? "bg-red-500 scale-110 animate-pulse" : "bg-red-50 hover:bg-red-100"
-                  )}
-                >
-                  <Mic className={cn("h-[14px] w-[14px]", isListening ? "text-white" : "text-[#FE5502]")} strokeWidth={2.3} />
-                </button>
-              </div>
+      {/* 3. Sticky Search Bar Section */}
+      {isFood && (
+        <div className="px-4 py-3 bg-transparent sticky top-[68px] z-40">
+          <div className="relative flex items-center w-full">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+              <Search className="h-5 w-5" style={{ color: theme.accent }} strokeWidth={2} />
             </div>
+            
+            <input
+              type="text"
+              readOnly
+              onClick={handleSearchFocus}
+              placeholder={placeholders?.[placeholderIndex] || "Search for food, groceries..."}
+              className="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-[8px] text-sm bg-gray-50 focus:ring-brand-orange focus:border-brand-orange text-gray-900 placeholder:text-gray-400 font-normal cursor-pointer"
+            />
 
-            <div className="px-2 flex flex-col items-center justify-center min-w-[64px]">
-              <div className="flex flex-col items-center mb-1">
-                <span className="text-[9px] font-black tracking-[0.5px] text-white leading-none">VEG</span>
-                <span className="text-[7px] font-black tracking-[0.5px] text-white/70 leading-none mt-0.5">MODE</span>
-              </div>
-              <div className="scale-[0.80]">
-                <Switch
-                  checked={vegMode}
-                  onCheckedChange={(checked) => onVegModeChange?.(checked)}
-                  className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-400"
-                />
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center space-x-2 z-20">
+              <button 
+                type="button" 
+                onClick={handleVoiceSearch} 
+                style={{ color: theme.accent }}
+                className={cn("p-1 hover:scale-105 active:scale-95 transition-all border-0 bg-transparent", isListening && "animate-pulse")}
+                aria-label="Voice search"
+              >
+                <Mic className="h-5 w-5" strokeWidth={2} />
+              </button>
+              
+              <div className="h-6 w-[1px] bg-gray-300"></div>
+              
+              <div className="flex items-center space-x-1 pl-1">
+                <span className="text-[10px] font-bold text-[#2e7d32] uppercase">Veg</span>
+                <div className="scale-[0.8] flex items-center h-5">
+                  <Switch
+                    checked={vegMode}
+                    onCheckedChange={onVegModeChange}
+                    className="data-[state=checked]:bg-[#2e7d32] data-[state=unchecked]:bg-gray-200 border-none"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
+      {/* 4. Banner Carousel Card */}
       {isFood && bannerComponent && (
-        <div className="relative z-10 w-full pb-5 pt-1">
-          {bannerComponent}
+        <div className="relative z-10 w-full px-4 py-2 mt-0">
+          <div 
+            className="rounded-2xl overflow-hidden shadow-sm relative"
+            style={{ 
+              background: vegMode ? "linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)" : "linear-gradient(135deg, #ff6b00 0%, #ff8c33 100%)" 
+            }}
+          >
+            {bannerComponent}
+          </div>
         </div>
       )}
     </motion.div>

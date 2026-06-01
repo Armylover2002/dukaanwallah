@@ -582,9 +582,9 @@ const DeliveryTrackingMap = ({
             <div className="bg-orange-500/95 backdrop-blur-xl rounded-2xl p-3 shadow-[0_10px_30px_rgba(249,115,22,0.4)] border border-orange-400/50 flex flex-col min-w-[90px] group overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
               <div className="flex flex-col z-10">
-                <span className="text-[9px] text-white/80 font-black uppercase tracking-[0.2em] mb-0.5">Arrival</span>
+                <span className="text-[9px] text-white/80 font-bold uppercase tracking-[0.2em] mb-0.5">Arrival</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-black text-white leading-none tracking-tighter">
+                  <span className="text-xl font-bold text-white leading-none tracking-tighter">
                     {currentEta}
                   </span>
                   <div className="flex items-center gap-1.5 opacity-80">

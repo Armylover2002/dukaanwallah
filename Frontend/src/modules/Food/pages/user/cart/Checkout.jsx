@@ -410,7 +410,7 @@ export default function Checkout() {
                               return (
                                 <div key={coupon.code} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 dark:border-gray-800 bg-slate-50/50 dark:bg-slate-900/30 text-xs">
                                   <div className="flex-1 pr-2">
-                                    <span className="font-extrabold text-slate-800 dark:text-gray-200 tracking-wider bg-slate-200/60 dark:bg-slate-800 px-1.5 py-0.5 rounded mr-1.5">
+                                    <span className="font-bold text-slate-800 dark:text-gray-200 tracking-wider bg-slate-200/60 dark:bg-slate-800 px-1.5 py-0.5 rounded mr-1.5">
                                       {coupon.code}
                                     </span>
                                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">

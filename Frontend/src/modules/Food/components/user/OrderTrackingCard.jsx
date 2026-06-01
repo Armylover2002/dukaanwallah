@@ -446,7 +446,7 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
               <p className={`${isQuickOrder ? 'text-blue-50' : 'text-red-50'} text-[10px] font-bold uppercase tracking-wider opacity-95 leading-tight mb-[2px]`}>
                 {orderStatus === "scheduled" ? "Scheduled" : "arriving in"}
               </p>
-              <p className="text-white text-base md:text-[17px] font-black leading-tight drop-shadow-sm">
+              <p className="text-white text-base md:text-[17px] font-bold leading-tight drop-shadow-sm">
                 {orderStatus === "scheduled"
                   ? activeOrder.scheduledAt
                     ? new Date(activeOrder.scheduledAt).toLocaleTimeString([], {

@@ -248,7 +248,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
   // ── Theme change — only when activeCategory changes ────────────────────────
   useEffect(() => {
     if (typeof onThemeChange !== 'function') return;
-    const resolvedColor = '#FE5502';
+    const resolvedColor = activeCategory?.headerColor || '#FE5502';
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(QUICK_THEME_STORAGE_KEY, resolvedColor);
     }
@@ -399,78 +399,104 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
 
           {/* Hero Banners (mobile) */}
           <div className={cn('block md:hidden', embedded ? '-mt-[1px]' : 'mt-0')}>
-            <div className="relative w-full overflow-hidden" style={embedded ? { backgroundColor: '#FE5502' } : undefined}>
+            <div className="relative w-full overflow-hidden bg-transparent">
               {hasHeroBanners ? (
-                <ExperienceBannerCarousel
-                  section={{ title: '' }}
-                  items={heroConfig.banners.items}
-                  fullWidth
-                  edgeToEdge
-                />
+                <div className="px-3 py-2">
+                  <ExperienceBannerCarousel
+                    section={{ title: '' }}
+                    items={heroConfig.banners.items}
+                  />
+                </div>
               ) : shouldShowHeroFallback ? (
+                <>
                 <div
                   className={cn('flex', !isInstantBannerJump && 'transition-transform duration-500 ease-out')}
                   style={{ transform: `translateX(-${mobileBannerIndex * 100}%)` }}
                   onTransitionEnd={handleBannerTransitionEnd}
                 >
                   {/* Slide 1 */}
-                  <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full">
-                    <div className="w-full h-[190px] bg-[#E6F5EC] p-6 relative overflow-hidden flex items-center border-y border-[#0c831f]/10 shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
-                      <div className="relative z-10 w-3/5 flex flex-col items-start gap-2">
-                        <div className="flex flex-col gap-0.5">
-                          <h4 className="text-2xl font-[1000] text-[#1A1A1A] tracking-tighter leading-none">Get <span className="text-[#0c831f]">Products</span></h4>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-sm font-black text-gray-700">at</span>
-                            <div className="bg-[#0c831f] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
-                              <VerifiedIcon sx={{ fontSize: 16 }} />
-                              <span className="text-xl font-[1000]">₹0</span>
-                            </div>
-                            <span className="text-sm font-[1000] text-gray-700">Fee</span>
-                          </div>
+                  <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
+                    <div className="w-full h-[174px] bg-[#B05212] p-4 relative overflow-hidden flex items-center shadow-md rounded-[20px]">
+                      {/* Faint dashed lines background */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
+                        <path d="M -10 40 Q 30 -20 60 40 T 130 40" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+                        <path d="M -20 70 Q 20 120 70 60 T 140 70" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+                      </svg>
+                      
+                      <div className="relative z-10 w-[55%] flex flex-col items-start justify-center gap-1 pl-2">
+                        <div className="flex flex-col leading-[1.05]">
+                          <h4 className="text-[32px] sm:text-[36px] font-[1000] text-white tracking-tight">Fastest</h4>
+                          <h4 className="text-[32px] sm:text-[36px] font-[1000] text-[#FFD6B3] tracking-tighter italic">Groceries</h4>
                         </div>
-                        <p className="text-[11px] font-bold text-gray-500 max-w-[150px] leading-tight">Get groceries delivered in minutes</p>
-                        <button className="bg-[#FF1E56] text-white px-6 py-2.5 rounded-2xl font-black text-xs tracking-wide shadow-lg shadow-rose-200 mt-2">Order now</button>
+                        <p className="text-[12px] sm:text-[13px] font-medium text-white/95 mt-1 mb-2">Get it all in 10 minutes or less.</p>
+                        <button className="bg-white text-[#B05212] px-5 py-2 rounded-full font-bold text-[13px] tracking-wide shadow-md hover:bg-gray-50 active:scale-95 transition-all">
+                          Shop Now
+                        </button>
                       </div>
-                      <div className="absolute right-[-10px] bottom-0 top-0 w-2/5 flex items-center justify-center">
-                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400&fm=webp" alt="Promo" className="w-full h-full object-contain rotate-3 scale-110" loading="lazy" />
+                      
+                      <div className="absolute right-0 bottom-0 top-0 w-[45%] flex items-center justify-end overflow-hidden">
+                        <div className="h-full w-full bg-orange-100 rounded-l-[16px] overflow-hidden shadow-[-4px_0_15px_rgba(0,0,0,0.15)] relative">
+                          <img src={CardBanner} alt="Promo" className="w-full h-full object-cover object-left" loading="lazy" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-[#B05212]/20 to-transparent pointer-events-none" />
+                        </div>
                       </div>
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-[#0c831f]/5 rounded-full blur-2xl -mt-12 -mr-12" />
                     </div>
                   </motion.div>
 
                   {/* Slide 2 */}
-                  <motion.div onClick={() => navigate('/categories')} whileTap={{ scale: 0.96 }} className="min-w-full">
-                    <div className="w-full h-[190px] bg-white dark:bg-card relative overflow-hidden flex border-y border-gray-100 dark:border-white/5 shadow-[0_4px_15px_rgba(0,0,0,0.05)] group">
-                      <img src={CardBanner} alt="Promotion" className="w-full h-full object-fill" loading="lazy" />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/5 to-transparent pointer-events-none" />
+                  <motion.div onClick={() => navigate('/categories')} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
+                    <div className="w-full h-[174px] bg-white dark:bg-card relative overflow-hidden flex shadow-md rounded-[20px] group">
+                      <img src={CardBanner} alt="Promotion" className="w-full h-full object-cover" loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
                     </div>
                   </motion.div>
 
                   {/* Slide 3 — reuses slide 1 content */}
-                  <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full">
-                    <div className="w-full h-[190px] bg-[#E6F5EC] p-6 relative overflow-hidden flex items-center border-y border-[#0c831f]/10 shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
-                      <div className="relative z-10 w-3/5 flex flex-col items-start gap-2">
-                        <div className="flex flex-col gap-0.5">
-                          <h4 className="text-2xl font-[1000] text-[#1A1A1A] tracking-tighter leading-none">Get <span className="text-[#0c831f]">Products</span></h4>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-sm font-black text-gray-700">at</span>
-                            <div className="bg-[#0c831f] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
-                              <VerifiedIcon sx={{ fontSize: 16 }} />
-                              <span className="text-xl font-[1000]">₹0</span>
-                            </div>
-                            <span className="text-sm font-[1000] text-gray-700">Fee</span>
-                          </div>
+                  <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
+                    <div className="w-full h-[174px] bg-[#B05212] p-4 relative overflow-hidden flex items-center shadow-md rounded-[20px]">
+                      {/* Faint dashed lines background */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
+                        <path d="M -10 40 Q 30 -20 60 40 T 130 40" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+                        <path d="M -20 70 Q 20 120 70 60 T 140 70" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+                      </svg>
+                      
+                      <div className="relative z-10 w-[55%] flex flex-col items-start justify-center gap-1 pl-2">
+                        <div className="flex flex-col leading-[1.05]">
+                          <h4 className="text-[32px] sm:text-[36px] font-[1000] text-white tracking-tight">Fastest</h4>
+                          <h4 className="text-[32px] sm:text-[36px] font-[1000] text-[#FFD6B3] tracking-tighter italic">Groceries</h4>
                         </div>
-                        <p className="text-[11px] font-bold text-gray-500 max-w-[150px] leading-tight">Get groceries delivered in minutes</p>
-                        <button className="bg-[#FF1E56] text-white px-6 py-2.5 rounded-2xl font-black text-xs tracking-wide shadow-lg shadow-rose-200 mt-2">Order now</button>
+                        <p className="text-[12px] sm:text-[13px] font-medium text-white/95 mt-1 mb-2">Get it all in 10 minutes or less.</p>
+                        <button className="bg-white text-[#B05212] px-5 py-2 rounded-full font-bold text-[13px] tracking-wide shadow-md hover:bg-gray-50 active:scale-95 transition-all">
+                          Shop Now
+                        </button>
                       </div>
-                      <div className="absolute right-[-10px] bottom-0 top-0 w-2/5 flex items-center justify-center">
-                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400&fm=webp" alt="Promo" className="w-full h-full object-contain rotate-3 scale-110" loading="lazy" />
+                      
+                      <div className="absolute right-0 bottom-0 top-0 w-[45%] flex items-center justify-end overflow-hidden">
+                        <div className="h-full w-full bg-orange-100 rounded-l-[16px] overflow-hidden shadow-[-4px_0_15px_rgba(0,0,0,0.15)] relative">
+                          <img src={CardBanner} alt="Promo" className="w-full h-full object-cover object-left" loading="lazy" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-[#B05212]/20 to-transparent pointer-events-none" />
+                        </div>
                       </div>
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-[#0c831f]/5 rounded-full blur-2xl -mt-12 -mr-12" />
                     </div>
                   </motion.div>
                 </div>
+                {/* Fallback Pagination Dots */}
+                <div className="flex justify-center items-center gap-1.5 mt-3 pb-1">
+                  {[0, 1].map((idx) => {
+                    const realActiveIndex = mobileBannerIndex % 2;
+                    const isActive = idx === realActiveIndex;
+                    return (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "h-[4px] rounded-full transition-all duration-300",
+                          isActive ? "w-4 bg-black" : "w-[6px] bg-gray-200"
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+              </>
               ) : null}
             </div>
           </div>
@@ -479,20 +505,35 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
           <div className={cn('w-full md:-mt-[2px] mb-4', embedded ? '-mt-[1px]' : '-mt-[2px]')}>
             <div
               className={cn(
-                'relative overflow-hidden',
-                embedded ? 'border-y-0 shadow-none' : 'border-y border-[#e6ddc4] bg-[#f7f0df] shadow-[0_10px_30px_rgba(15,23,42,0.08)]',
+                'relative overflow-hidden border-y transition-all duration-300',
+                activeCategory?.theme?.shadow || 'shadow-orange-700/30'
               )}
-              style={embedded ? { backgroundColor: '#FE5502' } : undefined}
+              style={{
+                backgroundColor: activeCategory?.headerColor || '#F26522',
+                backgroundImage: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.35))',
+                borderTopColor: 'rgba(255, 255, 255, 0.12)',
+                borderBottomColor: 'rgba(255, 255, 255, 0.12)',
+              }}
             >
-              <div className={cn('absolute inset-y-0 left-0 w-10 pointer-events-none', embedded ? 'bg-none' : 'bg-gradient-to-r from-[#f7f0df] via-[#f7f0df]/90 to-transparent')}
-                style={embedded ? { backgroundImage: 'linear-gradient(to right, #FE5502, #FE5502E6, transparent)' } : undefined} />
-              <div className={cn('absolute inset-y-0 right-0 w-10 pointer-events-none', embedded ? 'bg-none' : 'bg-gradient-to-l from-[#f7f0df] via-[#f7f0df]/90 to-transparent')}
-                style={embedded ? { backgroundImage: 'linear-gradient(to left, #FE5502, #FE5502E6, transparent)' } : undefined} />
-              <div className={cn('classic-marquee-track flex w-max items-center gap-4 px-3 md:px-6 py-4 text-sm md:text-base font-semibold -translate-y-[4px]', embedded ? 'text-white/90' : 'text-[#4b463f]')}>
+              <div 
+                className="absolute inset-y-0 left-0 w-16 pointer-events-none z-10"
+                style={{ 
+                  backgroundImage: `linear-gradient(to right, ${activeCategory?.headerColor || '#F26522'}, transparent)` 
+                }} 
+              />
+              <div 
+                className="absolute inset-y-0 right-0 w-16 pointer-events-none z-10"
+                style={{ 
+                  backgroundImage: `linear-gradient(to left, ${activeCategory?.headerColor || '#F26522'}, transparent)` 
+                }} 
+              />
+              <div 
+                className="classic-marquee-track flex w-max items-center gap-4 px-3 md:px-6 py-4 text-sm md:text-base font-bold -translate-y-[4px] text-white/95 transition-colors duration-300"
+              >
                 {[...MARQUEE_MESSAGES, ...MARQUEE_MESSAGES].map((message, idx) => (
                   <React.Fragment key={`${message}-${idx}`}>
-                    <span className="whitespace-nowrap">{message}</span>
-                    <span className="text-[#8a7f66]">•</span>
+                    <span className="whitespace-nowrap drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.35)]">{message}</span>
+                    <span className="text-white/40">•</span>
                   </React.Fragment>
                 ))}
                 <span className="whitespace-nowrap">❤️</span>

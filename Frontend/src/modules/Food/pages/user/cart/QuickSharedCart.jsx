@@ -304,7 +304,7 @@ export default function QuickSharedCart({ initialAddress = null, addressMode = "
       <div className="min-h-screen overflow-x-hidden bg-slate-50 px-4 py-10">
         <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
           <ShoppingBag className="mx-auto h-12 w-12 text-emerald-600" />
-          <h1 className="mt-4 text-2xl font-black text-slate-900">Your quick cart is empty</h1>
+          <h1 className="mt-4 text-2xl font-bold text-slate-900">Your quick cart is empty</h1>
           <p className="mt-2 text-sm text-slate-500">Add a few essentials and come back here for checkout.</p>
           <Link
             to="/quick"
@@ -334,8 +334,8 @@ export default function QuickSharedCart({ initialAddress = null, addressMode = "
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-600">Shared Cart</p>
-                  <h1 className="mt-1 text-2xl font-black text-slate-900">Quick checkout in the food flow</h1>
+                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-600">Shared Cart</p>
+                  <h1 className="mt-1 text-2xl font-bold text-slate-900">Quick checkout in the food flow</h1>
                 </div>
                 <button
                   type="button"
@@ -363,7 +363,7 @@ export default function QuickSharedCart({ initialAddress = null, addressMode = "
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">
                         {item.quickStoreName || "Quick Commerce"}
                       </p>
-                      <h2 className="mt-1 truncate text-lg font-black text-slate-900">{item.name}</h2>
+                      <h2 className="mt-1 truncate text-lg font-bold text-slate-900">{item.name}</h2>
                       <div className="mt-3 flex min-w-0 items-center justify-between gap-3">
                         <p className="text-base font-bold text-slate-900">
                           {RUPEE_SYMBOL}
@@ -398,7 +398,7 @@ export default function QuickSharedCart({ initialAddress = null, addressMode = "
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Delivery Address</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Delivery Address</p>
                   <p className="mt-2 text-sm font-semibold text-slate-900">
                     {selectedAddress ? formatFullAddress(selectedAddress) : "Add a delivery address"}
                   </p>
@@ -415,7 +415,7 @@ export default function QuickSharedCart({ initialAddress = null, addressMode = "
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">Payment</p>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Payment</p>
               <div className="mt-4 grid gap-3">
                 <button
                   type="button"
@@ -452,7 +452,7 @@ export default function QuickSharedCart({ initialAddress = null, addressMode = "
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-300">Summary</p>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-300">Summary</p>
               <div className="mt-4 space-y-3 text-sm text-white/80">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
@@ -470,7 +470,7 @@ export default function QuickSharedCart({ initialAddress = null, addressMode = "
                   <span>Taxes</span>
                   <span>{RUPEE_SYMBOL}{tax.toFixed(0)}</span>
                 </div>
-                <div className="border-t border-white/10 pt-3 text-base font-black text-white">
+                <div className="border-t border-white/10 pt-3 text-base font-bold text-white">
                   <div className="flex justify-between">
                     <span>Total</span>
                     <span>{RUPEE_SYMBOL}{total.toFixed(0)}</span>

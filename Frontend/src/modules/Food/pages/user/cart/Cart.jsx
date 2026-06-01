@@ -2176,7 +2176,7 @@ export default function Cart() {
                     </div>
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border border-red-200 bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-[#FE5502] shadow-sm dark:border-red-800/60 dark:bg-white/10">
+                        <span className="rounded-full border border-red-200 bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-[#FE5502] shadow-sm dark:border-red-800/60 dark:bg-white/10">
                           Express Delivery
                         </span>
                         <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
@@ -2184,7 +2184,7 @@ export default function Cart() {
                         </span>
                       </div>
 
-                      <p className="mt-3 text-lg font-black tracking-tight text-gray-900 dark:text-white md:text-xl">
+                      <p className="mt-3 text-lg font-bold tracking-tight text-gray-900 dark:text-white md:text-xl">
                         Delivery in <span className="text-[#FE5502]">{restaurantData?.estimatedDeliveryTime || "15-20 mins"}</span>
                       </p>
                       <p className="mt-1 max-w-xl text-sm leading-6 text-gray-600 dark:text-gray-300">
@@ -2441,7 +2441,7 @@ export default function Cart() {
                                 <div className="flex items-start gap-3 flex-1">
                                   <Percent className="h-5 w-5 text-gray-700 dark:text-gray-300 mt-0.5 opacity-80" />
                                   <div className="flex-1">
-                                    <p className="text-sm font-extrabold text-gray-800 dark:text-gray-200 leading-tight mb-1">
+                                    <p className="text-sm font-bold text-gray-800 dark:text-gray-200 leading-tight mb-1">
                                       <span className="bg-slate-200/60 dark:bg-slate-800 px-2 py-0.5 rounded text-xs tracking-wider border border-slate-300/40 mr-2">
                                         {coupon.code}
                                       </span>
@@ -2763,7 +2763,7 @@ export default function Cart() {
                         </div>
                         <div className="flex justify-between items-center mt-1">
                           <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Your Savings</span>
-                          <span className="text-sm font-black text-green-600">{RUPEE_SYMBOL}{otherPlatformSavings.toFixed(0)}</span>
+                          <span className="text-sm font-bold text-green-600">{RUPEE_SYMBOL}{otherPlatformSavings.toFixed(0)}</span>
                         </div>
                       </div>
                     )}
@@ -3071,7 +3071,7 @@ export default function Cart() {
 
                     <div className="flex items-center justify-between mb-5">
                       <div>
-                        <h2 className="text-xl font-extrabold text-gray-900 dark:text-white leading-none">Payment Method</h2>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-none">Payment Method</h2>
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter mt-1">Select how you want to pay</p>
                       </div>
                       <button
@@ -3106,12 +3106,12 @@ export default function Cart() {
                             </div>
                             <div className="text-left">
                               <div className="flex items-center gap-2">
-                                <span className={`text-sm font-black tracking-tight leading-none transition-colors ${selectedPaymentMethod === option.id ? 'text-white' : 'text-gray-900 dark:text-gray-100'
+                                <span className={`text-sm font-bold tracking-tight leading-none transition-colors ${selectedPaymentMethod === option.id ? 'text-white' : 'text-gray-900 dark:text-gray-100'
                                   }`}>
                                   {option.name}
                                 </span>
                                 {option.badge && (
-                                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-sm tracking-wider ${selectedPaymentMethod === option.id
+                                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm tracking-wider ${selectedPaymentMethod === option.id
                                       ? 'bg-white/20 text-white'
                                       : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                     }`}>
@@ -3128,7 +3128,7 @@ export default function Cart() {
                                   <>
                                     <span className={`w-1 h-1 rounded-full ${selectedPaymentMethod === option.id ? 'bg-white/40' : 'bg-orange-300 dark:bg-orange-700'
                                       }`} />
-                                    <p className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${selectedPaymentMethod === option.id ? 'text-white' : 'text-green-600 dark:text-green-500'
+                                    <p className={`text-[10px] font-bold uppercase tracking-tighter transition-colors ${selectedPaymentMethod === option.id ? 'text-white' : 'text-green-600 dark:text-green-500'
                                       }`}>
                                       {option.subInfo}
                                     </p>
@@ -3136,7 +3136,7 @@ export default function Cart() {
                                 )}
                               </div>
                               {option.disabled && (
-                                <p className="text-[9px] font-black text-red-500 mt-1 uppercase tracking-wide">
+                                <p className="text-[9px] font-bold text-red-500 mt-1 uppercase tracking-wide">
                                   {option.disabledText}
                                 </p>
                               )}
@@ -3159,7 +3159,7 @@ export default function Cart() {
                     >
                       <div className="flex-shrink-0">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Total Pay</p>
-                        <p className="text-xl font-black text-[#FE5502] tabular-nums">{RUPEE_SYMBOL}{total.toFixed(0)}</p>
+                        <p className="text-xl font-bold text-[#FE5502] tabular-nums">{RUPEE_SYMBOL}{total.toFixed(0)}</p>
                       </div>
                       <Button
                         onClick={() => setShowPaymentSheet(false)}

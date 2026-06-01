@@ -57,14 +57,14 @@ const FoodRestaurantCard = memo(({
               />
 
               {restaurant.featuredDish && (
-                <div className="absolute left-4 top-4 z-10 flex items-center transform transition-transform duration-300 group-hover:scale-105">
-                  <div className="flex items-center rounded-full border border-white/20 bg-black/70 px-4 py-1.5 text-[11px] font-medium tracking-tight text-white shadow-2xl backdrop-blur-lg">
+                <div className="absolute left-3 top-3 z-10 flex items-center transform transition-transform duration-300 group-hover:scale-105">
+                  <div className="flex items-center rounded-full bg-black/80 px-3 py-1 text-[11px] font-bold tracking-tight text-white shadow-xl backdrop-blur-md">
                     {restaurant.featuredDish} {restaurant.featuredPrice ? `• ₹${restaurant.featuredPrice}` : ""}
                   </div>
                 </div>
               )}
 
-              <div className="absolute right-4 top-4 z-10 transform transition-transform duration-300 group-hover:scale-110">
+              <div className="absolute right-3 top-3 z-10 transform transition-transform duration-300 group-hover:scale-110">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -74,50 +74,51 @@ const FoodRestaurantCard = memo(({
                     onFavoriteToggle(event, restaurant, restaurantSlug, favorite);
                   }}
                   aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
-                  className={`flex h-11 w-11 items-center justify-center rounded-[20px] shadow-xl transition-all duration-300 ${
+                  className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full shadow-lg transition-all duration-300 ${
                     favorite
                       ? "bg-red-500 text-white"
                       : "bg-white/90 text-gray-800 backdrop-blur-sm hover:bg-white"
                   }`}
                 >
-                  <Bookmark className={`h-5 w-5 transition-all duration-300 ${favorite ? "fill-white" : ""}`} />
+                  <Bookmark className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${favorite ? "fill-white" : ""}`} />
                 </Button>
+              </div>
+              
+              <div className="absolute right-3 bottom-3 z-10 transform transition-transform duration-300 group-hover:scale-110">
+                <div
+                  className={`flex-shrink-0 rounded-[8px] px-2 py-0.5 text-white shadow-md ${
+                    Number(restaurant.rating) > 0 ? "bg-[#10b981]" : "bg-gray-400"
+                  } flex items-center gap-1`}
+                >
+                  <span className="text-[11px] font-bold tracking-tight">
+                    {Number(restaurant.rating) > 0 ? Number(restaurant.rating).toFixed(1) : "NEW"}
+                  </span>
+                  {Number(restaurant.rating) > 0 && (
+                    <Star className="h-3 w-3 fill-white text-white" strokeWidth={0} />
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="transform transition-transform duration-300 group-hover:-translate-y-1">
-              <CardContent className="flex flex-grow flex-col p-3 pt-3 sm:p-4 sm:pt-4 lg:p-5 lg:pt-5">
-                <div className="mb-2 flex items-start justify-between gap-2 lg:mb-3">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="line-clamp-1 text-lg font-medium leading-tight tracking-tight text-gray-950 transition-colors duration-300 group-hover:text-[#FE5502] dark:text-white lg:text-2xl">
-                      {restaurant.name}
-                    </h3>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-widest shadow-sm ${
-                          availability.isOpen ? "bg-emerald-500 text-white" : "bg-gray-400 text-white"
-                        }`}
-                      >
-                        {availability.isOpen ? "Open now" : "Offline"}
-                      </span>
-                      {availability.isOpen && availability.closingCountdownLabel && (
-                        <div className="flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-amber-700">
-                          <Timer className="h-3 w-3 flex-shrink-0" strokeWidth={2.5} />
-                          <span>{availability.closingCountdownLabel}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div
-                    className={`flex-shrink-0 rounded-2xl px-3 py-1.5 text-white shadow-md transition-transform duration-300 group-hover:scale-110 ${
-                      Number(restaurant.rating) > 0 ? "bg-[#259539]" : "bg-gray-400"
-                    } flex items-center gap-1.5`}
-                  >
-                    <span className="text-sm font-medium tracking-tight lg:text-lg">
-                      {Number(restaurant.rating) > 0 ? Number(restaurant.rating).toFixed(1) : "NEW"}
+              <CardContent className="flex flex-grow flex-col p-3 sm:p-4">
+                <div className="mb-2 lg:mb-3">
+                  <h3 className="line-clamp-1 text-lg font-bold leading-tight tracking-tight text-[#1c1c1e] transition-colors duration-300 group-hover:text-[#FE5502] dark:text-white">
+                    {restaurant.name}
+                  </h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-[4px] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-sm ${
+                        availability.isOpen ? "bg-[#10b981] text-white" : "bg-gray-400 text-white"
+                      }`}
+                    >
+                      {availability.isOpen ? "Open now" : "Offline"}
                     </span>
-                    {Number(restaurant.rating) > 0 && (
-                      <Star className="h-3.5 w-3.5 fill-white text-white lg:h-4.5 lg:w-4.5" strokeWidth={0} />
+                    {availability.isOpen && availability.closingCountdownLabel && (
+                      <div className="flex items-center gap-1 rounded-[4px] border border-orange-100 bg-orange-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-orange-500">
+                        <Timer className="h-3 w-3 flex-shrink-0" strokeWidth={2.5} />
+                        <span>{availability.closingCountdownLabel}</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -161,14 +162,36 @@ const RestaurantGrid = memo(({
   loadMoreRestaurants,
   restaurantLoadMoreRef
 }) => {
+  const observer = React.useRef();
+
+  React.useEffect(() => {
+    if (loadingRestaurants || !hasMoreRestaurants) return;
+
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        loadMoreRestaurants();
+      }
+    }, { threshold: 0.1, rootMargin: '100px' });
+
+    if (restaurantLoadMoreRef?.current) {
+      observer.current.observe(restaurantLoadMoreRef.current);
+    }
+
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, [loadingRestaurants, hasMoreRestaurants, loadMoreRestaurants, restaurantLoadMoreRef]);
+
   return (
     <section className="content-auto space-y-0 pb-8 pt-3 sm:pt-4 md:pb-10 lg:pt-6">
       <div className="mb-4 px-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+          <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#9ca3af]">
             {filteredRestaurants.length} Restaurants Delivering to You
           </h2>
-          <span className="text-sm font-medium text-gray-500">Featured</span>
+          <span className="text-[15px] font-bold text-[#1c1c1e]">Featured</span>
         </div>
       </div>
       
@@ -210,16 +233,12 @@ const RestaurantGrid = memo(({
       </div>
 
       <div className="flex flex-col items-center gap-2 px-4 pt-4 sm:pt-6">
-        {hasMoreRestaurants && (
-          <Button
-            variant="outline"
-            onClick={loadMoreRestaurants}
-            className="border-gray-300 text-sm font-medium hover:border-gray-400 rounded-full px-8 py-6 h-auto"
-          >
-            Load more restaurants
-          </Button>
+        {hasMoreRestaurants && loadingRestaurants && (
+          <div className="flex items-center justify-center py-4">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FE5502] border-t-transparent"></div>
+          </div>
         )}
-        <div ref={restaurantLoadMoreRef} className="h-1 w-full" aria-hidden="true" />
+        <div ref={restaurantLoadMoreRef} className="h-10 w-full" aria-hidden="true" />
       </div>
     </section>
   );

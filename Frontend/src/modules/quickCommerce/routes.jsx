@@ -4,7 +4,7 @@ import Loader from "@food/components/Loader"
 import UserLayout from "./user/UserLayout"
 import Home from "./user/pages/Home"
 
-// Lazy-load the new Blinkit-style pages
+import QuickErrorBoundary from "./user/components/shared/QuickErrorBoundary"
 const Cart = lazy(() => import("./user/pages/CartPage"))
 const Orders = lazy(() => import("./user/pages/OrdersPage"))
 const OrderDetail = lazy(() => import("./user/pages/OrderDetailPage"))
@@ -32,8 +32,9 @@ import { CartAnimationProvider } from "./user/context/CartAnimationContext"
 // Inner routes component — kept separate so Suspense doesn't remount providers
 function QuickCommerceInnerRoutes() {
   return (
-    <Suspense fallback={<Loader />}>
-      <Routes>
+    <QuickErrorBoundary>
+      <Suspense fallback={<Loader />}>
+        <Routes>
         <Route element={<UserLayout />}>
           <Route index element={<Home />} />
           <Route path="home" element={<Home />} />
@@ -64,6 +65,7 @@ function QuickCommerceInnerRoutes() {
         <Route path="*" element={<Navigate to="/quick" replace />} />
       </Routes>
     </Suspense>
+    </QuickErrorBoundary>
   );
 }
 

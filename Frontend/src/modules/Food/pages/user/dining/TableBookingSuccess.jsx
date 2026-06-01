@@ -57,7 +57,7 @@ export default function TableBookingSuccess() {
                 transition={{ delay: 0.2 }}
                 className="text-center space-y-2 mb-10"
             >
-                <h1 className="text-3xl font-black text-gray-900">
+                <h1 className="text-3xl font-bold text-gray-900">
                     {booking.status === "pending" ? "Booking Requested!" : "Seat Confirmed!"}
                 </h1>
                 <p className="text-gray-500 font-medium tracking-wide italic">
@@ -94,7 +94,7 @@ export default function TableBookingSuccess() {
                             />
                         </div>
                         <div className="min-w-0">
-                            <h2 className="font-black text-lg text-gray-900 truncate">{booking.restaurant?.name || "The Great Indian Restaurant"}</h2>
+                            <h2 className="font-bold text-lg text-gray-900 truncate">{booking.restaurant?.name || "The Great Indian Restaurant"}</h2>
                             <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                                 <MapPin className="w-3 h-3" />
                                 <span className="truncate">
@@ -130,7 +130,7 @@ export default function TableBookingSuccess() {
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status</p>
-                            <div className={`px-2 py-0.5 rounded-lg text-[10px] font-black w-fit uppercase ${
+                            <div className={`px-2 py-0.5 rounded-lg text-[10px] font-bold w-fit uppercase ${
                                 booking.status === "pending" 
                                     ? "bg-amber-100 text-amber-700 border border-amber-200" 
                                     : "bg-emerald-100 text-emerald-700 border border-emerald-200"

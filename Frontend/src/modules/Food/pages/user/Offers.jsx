@@ -94,7 +94,7 @@ export default function Offers() {
             {/* Grouped Offers Sections */}
             {Object.keys(groupedOffers).length > 0 && Object.entries(groupedOffers).map(([offerText, dishes]) => (
               <section key={offerText}>
-                <h2 className="text-2xl sm:text-3xl font-black text-red-500 dark:text-red-400 text-center mb-4 tracking-wide">
+                <h2 className="text-2xl sm:text-3xl font-bold text-red-500 dark:text-red-400 text-center mb-4 tracking-wide">
                   {offerText}
                 </h2>
                 
@@ -161,7 +161,7 @@ export default function Offers() {
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">Coupon</p>
-                            <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-wide">
+                            <p className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-wide">
                               {o.couponCode || "-"}
                             </p>
                           </div>

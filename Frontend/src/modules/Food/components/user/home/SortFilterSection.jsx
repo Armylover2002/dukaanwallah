@@ -12,7 +12,7 @@ const PRIMARY_FILTERS = [
 
 const SortFilterSection = memo(({ activeFilters, toggleFilter, setIsFilterOpen }) => {
   return (
-    <section className="py-1 lg:py-2 px-4">
+    <section className="sticky top-0 z-40 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800 py-2 lg:py-3 px-4 shadow-sm">
       <div
         className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide sm:gap-2 lg:gap-3 lg:pb-2"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
@@ -21,7 +21,7 @@ const SortFilterSection = memo(({ activeFilters, toggleFilter, setIsFilterOpen }
           <Button
             variant="outline"
             onClick={() => setIsFilterOpen(true)}
-            className="flex h-7 flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 font-medium text-gray-700 transition-all hover:bg-gray-50 dark:border-gray-800 dark:bg-[#1a1a1a] dark:text-white dark:hover:bg-gray-800 sm:h-8 sm:px-3"
+            className="flex h-7 flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 font-medium text-gray-700 transition-all hover:bg-gray-50 dark:border-gray-800 dark:bg-[#1a1a1a] dark:text-white dark:hover:bg-gray-800 sm:h-8 sm:px-4"
           >
             <SlidersHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="text-xs font-bold text-black dark:text-white sm:text-sm">Filters</span>
@@ -45,7 +45,7 @@ const SortFilterSection = memo(({ activeFilters, toggleFilter, setIsFilterOpen }
               <Button
                 variant="outline"
                 onClick={() => toggleFilter(filter.id)}
-                className={`flex h-7 flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 font-medium transition-all sm:h-8 sm:px-3 ${
+                className={`flex h-7 flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 font-medium transition-all sm:h-8 sm:px-4 ${
                   isActive
                     ? "border border-[#FE5502] bg-[#FE5502] text-white hover:bg-[#FE5502]/90"
                     : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:bg-[#1a1a1a] dark:text-gray-300 dark:hover:bg-gray-800"

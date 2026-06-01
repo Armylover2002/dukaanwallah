@@ -163,7 +163,7 @@ const RestaurantImageCarousel = React.memo(({ restaurant, priority = false, back
       
       {/* Discount Badge if any */}
       {restaurant.discount && (
-        <div className="absolute top-2 left-0 px-2.5 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] sm:text-xs font-black rounded-r-lg shadow-lg uppercase tracking-wider flex items-center gap-1">
+        <div className="absolute top-2 left-0 px-2.5 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] sm:text-xs font-bold rounded-r-lg shadow-lg uppercase tracking-wider flex items-center gap-1">
           <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12.864 2.227l8.909 8.91a2.182 2.182 0 010 3.085l-7.364 7.364a2.182 2.182 0 01-3.085 0l-8.91-8.91A2.182 2.182 0 012 11.137V4.41A2.182 2.182 0 014.182 2.23h6.727a2.182 2.182 0 011.955-.003z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           {restaurant.discount}
         </div>

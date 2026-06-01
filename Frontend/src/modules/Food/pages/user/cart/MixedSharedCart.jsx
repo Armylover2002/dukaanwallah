@@ -102,11 +102,11 @@ function DeliveryOptionCard({ option, active, onSelect, description }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-black uppercase tracking-[0.2em] opacity-70">{option.label}</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] opacity-70">{option.label}</p>
           <p className={`mt-2 text-sm ${active ? "text-slate-200" : "text-slate-500"}`}>{description}</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-black">
+          <p className="text-lg font-bold">
             {RUPEE_SYMBOL}
             {Number(option.total || 0).toFixed(0)}
           </p>
@@ -370,7 +370,7 @@ export default function MixedSharedCart({ initialAddress = null, addressMode = "
                   <ShoppingBag className="h-6 w-6" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-black text-slate-900">Mixed checkout</h1>
+                  <h1 className="text-2xl font-bold text-slate-900">Mixed checkout</h1>
                   <p className="text-sm text-slate-500">
                     Food and quick items can now be placed together from one checkout.
                   </p>
@@ -381,7 +381,7 @@ export default function MixedSharedCart({ initialAddress = null, addressMode = "
             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Delivery Address</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Delivery Address</p>
                   <p className="mt-2 text-sm font-semibold text-slate-900">
                     {addressText || "Choose an address to continue"}
                   </p>
@@ -402,7 +402,7 @@ export default function MixedSharedCart({ initialAddress = null, addressMode = "
             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2">
                 <Truck className="h-5 w-5 text-slate-700" />
-                <h2 className="text-lg font-black text-slate-900">Delivery plan</h2>
+                <h2 className="text-lg font-bold text-slate-900">Delivery plan</h2>
               </div>
               <div className="mt-4 space-y-3">
                 {Array.isArray(pricing?.deliveryOptions) && pricing.deliveryOptions.length > 0 ? (
@@ -443,7 +443,7 @@ export default function MixedSharedCart({ initialAddress = null, addressMode = "
             <section className="grid min-w-0 gap-4 md:grid-cols-2">
               {[{ title: "Food items", items: foodItems }, { title: "Quick items", items: quickItems }].map((section) => (
                 <div key={section.title} className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h2 className="text-lg font-black text-slate-900">{section.title}</h2>
+                  <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
                   <div className="mt-4 space-y-3">
                     {section.items.map((item) => (
                       <div key={item.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 p-3">
@@ -453,7 +453,7 @@ export default function MixedSharedCart({ initialAddress = null, addressMode = "
                           className="h-16 w-16 rounded-2xl object-cover"
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-black text-slate-900">{item.name || "Item"}</p>
+                          <p className="truncate text-sm font-bold text-slate-900">{item.name || "Item"}</p>
                           <p className="truncate text-xs text-slate-500">
                             {item.sourceName || item.restaurant || item.quickStoreName || "Store"}
                           </p>
@@ -480,11 +480,11 @@ export default function MixedSharedCart({ initialAddress = null, addressMode = "
           </div>
 
           <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6 lg:h-fit">
-            <h2 className="text-lg font-black text-slate-900">Pay and place order</h2>
+            <h2 className="text-lg font-bold text-slate-900">Pay and place order</h2>
 
             <div className="mt-5 space-y-4">
               <div className="space-y-2">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Payment</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Payment</p>
                 <div className="grid gap-2">
                   {[
                     { id: "cash", label: "Cash on delivery", icon: Truck },
@@ -532,7 +532,7 @@ export default function MixedSharedCart({ initialAddress = null, addressMode = "
                     <span>-{RUPEE_SYMBOL}{discount.toFixed(0)}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-base font-black text-slate-900">
+                <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-base font-bold text-slate-900">
                   <span>Total</span>
                   <span>{RUPEE_SYMBOL}{total.toFixed(0)}</span>
                 </div>

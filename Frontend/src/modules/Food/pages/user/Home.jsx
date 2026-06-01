@@ -395,19 +395,19 @@ export default function Home() {
             </Suspense>
 
             <Suspense fallback={null}>
-              <SortFilterSection
-                activeFilters={state.activeFilters}
-                toggleFilter={actions.toggleFilter}
-                setIsFilterOpen={(val) => { }} // Hook handles internal apply
-              />
-            </Suspense>
-
-            <Suspense fallback={null}>
               <ExploreMoreSection
                 exploreMoreHeading={landing.heading}
                 showExploreSkeleton={landing.loading}
                 finalExploreItems={landing.exploreMore}
                 backendOrigin={BACKEND_ORIGIN}
+              />
+            </Suspense>
+
+            <Suspense fallback={null}>
+              <SortFilterSection
+                activeFilters={state.activeFilters}
+                toggleFilter={actions.toggleFilter}
+                setIsFilterOpen={(val) => { }} // Hook handles internal apply
               />
             </Suspense>
 
@@ -435,7 +435,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16, ease: "easeOut" }}
-            className="bg-white dark:bg-[#0a0a0a]"
+            className="bg-transparent"
           >
             <QuickLocationProvider>
               <QuickCartProvider>

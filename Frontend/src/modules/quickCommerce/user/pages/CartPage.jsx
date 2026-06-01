@@ -553,7 +553,7 @@ const CartPage = () => {
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Your Cart</h1>
+              <h1 className="text-xl font-bold text-slate-900">Your Cart1</h1>
               <p className="text-sm text-slate-500">{itemCount} item{itemCount === 1 ? '' : 's'}</p>
             </div>
           </div>

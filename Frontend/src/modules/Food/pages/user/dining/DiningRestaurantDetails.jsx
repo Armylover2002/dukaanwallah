@@ -295,7 +295,7 @@ export default function DiningRestaurantDetails() {
           <div className="absolute inset-x-0 bottom-0 px-3 pb-4 text-white">
             <div className="flex items-end justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className="text-[36px] font-black leading-none tracking-[-0.03em]">{restaurantName}</h1>
+                <h1 className="text-[36px] font-bold leading-none tracking-[-0.03em]">{restaurantName}</h1>
                 <p className="mt-2 max-w-[94%] text-[14px] leading-5 text-white/92">{address}</p>
                 <p className="mt-2 text-[14px] text-white/90">
                   {costForTwo}
@@ -311,7 +311,7 @@ export default function DiningRestaurantDetails() {
               </div>
 
               <div className="mb-1 shrink-0 rounded-[18px] bg-white px-3 py-2 text-center text-[#1f2328] shadow-xl">
-                <div className="flex items-center justify-center gap-1 text-[31px] font-black leading-none">
+                <div className="flex items-center justify-center gap-1 text-[31px] font-bold leading-none">
                   <span>{rating}</span>
                   <span className="text-[18px] text-[#18b54f]">★</span>
                 </div>
@@ -347,7 +347,7 @@ export default function DiningRestaurantDetails() {
                 <Percent className="h-5 w-5" />
               </div>
               <div className="flex-1 text-center">
-                <p className="text-[33px] font-black leading-none tracking-[-0.04em] text-[#2c2352]">20% CASHBACK</p>
+                <p className="text-[33px] font-bold leading-none tracking-[-0.04em] text-[#2c2352]">20% CASHBACK</p>
                 <p className="mt-1 text-[14px] font-medium text-[#4a4068]">on every dining bill</p>
               </div>
               <div className="rounded-full bg-[#8e77ff]/10 p-2 text-[#7f69eb]">
@@ -384,14 +384,14 @@ export default function DiningRestaurantDetails() {
       <div className="mx-auto max-w-md px-4 pt-4">
         <section id="restaurant-prebook">
           <div>
-            <h2 className="text-[29px] font-black leading-none text-[#23180f]">Pre-book offers</h2>
+            <h2 className="text-[29px] font-bold leading-none text-[#23180f]">Pre-book offers</h2>
             <p className="mt-1 text-[15px] text-[#ef4c62]">Limited slots with extra offers</p>
           </div>
 
           <div className="mt-3 overflow-hidden rounded-[18px] bg-[linear-gradient(135deg,#0f4a87,#0b2954_70%)] text-white shadow-[0_10px_26px_rgba(8,52,95,0.25)]">
             <div className="flex items-start justify-between px-4 pb-3 pt-4">
               <div>
-                <p className="text-[28px] font-black leading-none">Flat 50% OFF</p>
+                <p className="text-[28px] font-bold leading-none">Flat 50% OFF</p>
                 <p className="mt-2 text-[14px] text-white/80">Dining Carnival offer</p>
               </div>
               <button className="rounded-full bg-black/45 px-4 py-2 text-[13px] font-semibold text-white backdrop-blur-sm">
@@ -407,7 +407,7 @@ export default function DiningRestaurantDetails() {
         <section id="restaurant-menu" className="mt-5 border-t border-[#e8e8ef] pt-4">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-[28px] font-black leading-none text-[#23180f]">Menu</h2>
+              <h2 className="text-[28px] font-bold leading-none text-[#23180f]">Menu</h2>
               <p className="mt-2 text-[13px] text-[#e19135]">Last updated a month ago</p>
             </div>
             <div className="rounded-full bg-[#fff3e6] px-3 py-1 text-xs font-semibold text-[#e58a2c]">
@@ -442,7 +442,7 @@ export default function DiningRestaurantDetails() {
         </section>
 
         <section id="restaurant-photos" className="mt-5 border-t border-[#e8e8ef] pt-4">
-          <h2 className="text-[28px] font-black leading-none text-[#23180f]">Photos</h2>
+          <h2 className="text-[28px] font-bold leading-none text-[#23180f]">Photos</h2>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {(imageGallery.length > 0 ? imageGallery.slice(0, 4) : menuPreviewImages.slice(0, 2)).map((image, index) => (
               <div
@@ -462,7 +462,7 @@ export default function DiningRestaurantDetails() {
         </section>
 
         <section id="restaurant-about" className="mt-5 border-t border-[#e8e8ef] pt-4">
-          <h2 className="text-[28px] font-black leading-none text-[#23180f]">About the restaurant</h2>
+          <h2 className="text-[28px] font-bold leading-none text-[#23180f]">About the restaurant</h2>
 
           <div className="mt-4 rounded-[18px] border border-[#ececf4] bg-[#fafbff] p-4">
             <div className="space-y-4 text-[14px] text-[#5f6474]">

@@ -1462,7 +1462,7 @@ export default function OrderTracking() {
         {customerDeliveryOtp && orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (
           <motion.div className="bg-blue-50 rounded-xl p-4 shadow-sm border border-blue-100" {...MOTION_SLIDE_UP(0.28)}>
             <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Delivery OTP</p>
-            <p className="text-2xl font-extrabold text-blue-900 mt-1 tracking-widest">{customerDeliveryOtp}</p>
+            <p className="text-2xl font-bold text-blue-900 mt-1 tracking-widest">{customerDeliveryOtp}</p>
             <p className="text-xs text-blue-700 mt-1">Share this 4-digit OTP with your delivery partner at drop-off.</p>
           </motion.div>
         )}

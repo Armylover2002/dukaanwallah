@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import MainLocationHeader from '../components/shared/MainLocationHeader';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronDown, Search } from 'lucide-react';
+import LocationDrawer from '../components/shared/LocationDrawer';
+import { useLocation } from '../context/LocationContext';
 import { customerApi } from '../services/customerApi';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -40,6 +42,62 @@ const CategoryCard = React.memo(function CategoryCard({ category, isFlipped }) {
         </div>
     );
 });
+
+const CategoriesHeader = () => {
+    const { currentLocation, isFetchingLocation } = useLocation();
+    const [isLocationDrawerOpen, setIsLocationDrawerOpen] = useState(false);
+    const navigate = useNavigate();
+
+    const handleLocationClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsLocationDrawerOpen(true);
+    };
+
+    const handleSearchClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate('/quick/search');
+    };
+
+    return (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm px-4 pt-4 pb-4">
+            <div className="max-w-[1400px] mx-auto">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex flex-col cursor-pointer" onClick={handleLocationClick}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Delivery in</span>
+                            <span className="bg-[#FE5502] text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">App</span>
+                        </div>
+                        <div className="flex items-center gap-1 group">
+                            <span className="text-[22px] md:text-[26px] font-black text-slate-900 leading-none">
+                                {currentLocation?.time || "12-15 mins"}
+                            </span>
+                            <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-gray-800 transition-colors" />
+                        </div>
+                        <span className="text-[11px] text-gray-500 truncate max-w-[200px] mt-1">
+                            {isFetchingLocation ? "Detecting location..." : (currentLocation?.name || "Select Location")}
+                        </span>
+                    </div>
+                </div>
+                
+                <div className="relative cursor-pointer" onClick={handleSearchClick}>
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <Search className="h-[18px] w-[18px] text-[#FE5502]" />
+                    </div>
+                    <input 
+                        type="text"
+                        placeholder="Search for bread, milk, eggs..."
+                        className="w-full bg-gray-50/80 border border-gray-200 text-gray-900 rounded-[12px] py-3.5 pl-11 pr-4 focus:outline-none focus:ring-1 focus:ring-[#FE5502]/30 text-[13px] font-medium placeholder:font-normal placeholder:text-gray-400 cursor-pointer shadow-inner"
+                        readOnly
+                        onClick={handleSearchClick}
+                    />
+                </div>
+            </div>
+            <LocationDrawer open={isLocationDrawerOpen} onClose={() => setIsLocationDrawerOpen(false)} />
+        </div>
+    );
+};
 
 const CategoriesPage = () => {
     const [groups, setGroups] = useState([]);
@@ -110,9 +168,9 @@ const CategoriesPage = () => {
     }, []); // ← empty dep array: interval lives for the component lifetime
 
     return (
-        <div className="min-h-screen bg-background transition-colors duration-500">
-            <MainLocationHeader showCategories={false} />
-            <div className="max-w-[1400px] mx-auto px-3 pt-[206px] md:pt-[240px] pb-20">
+        <div className="min-h-screen bg-white transition-colors duration-500">
+            <CategoriesHeader />
+            <div className="max-w-[1400px] mx-auto px-4 pt-[180px] md:pt-[200px] pb-20">
                 <AnimatePresence mode="wait">
                     {isLoading ? (
                         <motion.div
@@ -133,12 +191,12 @@ const CategoriesPage = () => {
                                     className="space-y-6"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <h2 className="text-sm md:text-base font-black text-foreground tracking-wider uppercase transition-colors">
+                                        <h2 className="text-[15px] md:text-base font-black text-slate-900 tracking-wide uppercase transition-colors">
                                             {group.title}
                                         </h2>
-                                        <div className="h-[1px] flex-1 bg-gradient-to-r from-border dark:from-white/10 to-transparent" />
+                                        <div className="h-[1px] flex-1 bg-gray-100" />
                                     </div>
-                                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 md:gap-3 lg:gap-4">
+                                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-x-2 gap-y-5 md:gap-4">
                                         {group.categories.map((category) => (
                                             <Link key={category.id} to={`/quick/categories/${category.id}`} className="block">
                                                 <CategoryCard

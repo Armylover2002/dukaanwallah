@@ -155,7 +155,7 @@ export default function DiningCategory() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.34em] text-[#c07a3a] dark:text-orange-300">Dining Category</p>
-              <h1 className="text-3xl font-black tracking-tight text-[#23180f] sm:text-4xl dark:text-white">{heading}</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-[#23180f] sm:text-4xl dark:text-white">{heading}</h1>
               <p className="mt-2 max-w-2xl text-sm text-[#6b5641] dark:text-gray-300">
                 Explore all restaurants linked to this dining category, check their timings, preview the menu, and jump straight into table booking.
               </p>
@@ -233,14 +233,14 @@ export default function DiningCategory() {
 
                       <div className="absolute bottom-4 left-4 right-4">
                         <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/80">Reserve Your Table</p>
-                        <p className="max-w-[85%] text-2xl font-black leading-tight text-white">{restaurant.offer}</p>
+                        <p className="max-w-[85%] text-2xl font-bold leading-tight text-white">{restaurant.offer}</p>
                       </div>
                     </div>
 
                     <CardContent className="space-y-4 p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <h2 className="truncate text-[22px] font-black leading-tight text-[#23180f] dark:text-white">{restaurant.name}</h2>
+                          <h2 className="truncate text-[22px] font-bold leading-tight text-[#23180f] dark:text-white">{restaurant.name}</h2>
                           <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#6b5641] dark:text-gray-300">{restaurant.address}</p>
                         </div>
                         <div className="inline-flex items-center gap-1 rounded-2xl bg-emerald-600 px-2.5 py-1.5 text-sm font-bold text-white">
