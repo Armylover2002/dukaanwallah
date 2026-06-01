@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Trash2,
   AlertTriangle,
+  LogOut,
 } from "lucide-react";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
@@ -22,8 +23,10 @@ import Card from "@shared/components/ui/Card";
 import Button from "@shared/components/ui/Button";
 import MapPicker from "../../../shared/components/MapPicker";
 import { clearModuleAuth } from "@food/utils/auth";
+import { useAuth } from "@core/context/AuthContext";
 
 const SellerProfile = () => {
+  const { logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -528,6 +531,23 @@ const SellerProfile = () => {
                   <p className="text-sm font-bold">Pan India Reach</p>
                 </div>
               </div>
+            </div>
+          </Card>
+
+          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-white border border-slate-100">
+            <h4 className="text-[10px] font-black uppercase tracking-[4px] text-slate-400 mb-6">
+              Session Management
+            </h4>
+            <div className="space-y-6">
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                Sign out of your current seller workspace session on this device.
+              </p>
+              <Button
+                type="button"
+                onClick={logout}
+                className="w-full bg-slate-900 hover:bg-black text-white font-black tracking-[2px] text-xs py-4 rounded-xl shadow-lg hover:shadow-slate-900/20 transition-all flex items-center justify-center gap-3">
+                <LogOut size={16} /> SIGN OUT
+              </Button>
             </div>
           </Card>
 

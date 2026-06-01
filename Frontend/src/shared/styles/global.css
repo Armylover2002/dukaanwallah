@@ -6,9 +6,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  font-family: 'Poppins', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-poppins: 'Poppins', sans-serif;
-  --font-outfit: 'Outfit', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-poppins: 'Inter', sans-serif;
+  --font-outfit: 'Inter', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -54,7 +54,7 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: 1.5rem;
   --radius-3xl: 2rem;
-  --font-display: 'Outfit', sans-serif;
+  --font-display: 'Inter', sans-serif;
   --shadow-premium: 0 10px 40px -10px rgba(0,0,0,0.1);
   --shadow-soft: 0 4px 20px -2px rgba(0,0,0,0.05);
   --color-background: var(--background);
@@ -302,233 +302,152 @@
 }
 }
 
-/* Admin & Seller Theme Scope Global Consistency Overrides */
+/* ==========================================================================
+   BRAND THEME UNIFICATION (Scoped to Admin, Restaurant & Seller Panels)
+   ========================================================================== 
+   By aliasing Tailwind color variables within these scopes, we unify the 
+   Admin and Seller dashboards to the primary orange brand natively, 
+   WITHOUT affecting the User Panel.
+*/
 .admin-theme-scope,
 .seller-theme-scope {
-  /* Set theme properties for components that use Tailwind v4 CSS variables directly */
-  --background: #ffffffcc !important;
-  --border: #EDE8E0 !important;
-  --card: #ffffffcc !important;
-  --card-foreground: #1A1A1A !important;
-  --popover: #ffffffcc !important;
-  --popover-foreground: #1A1A1A !important;
-  --muted: #ffffffcc !important;
-  --muted-foreground: #5C5247 !important;
-  --primary: #F26522 !important;
-  --ring: #F26522 !important;
+  /* Alias Blue to Explicit Primary Orange Hex Codes */
+  --color-blue-50: #FFF3EC;
+  --color-blue-100: #FFE5D4;
+  --color-blue-200: #FCDAca;
+  --color-blue-300: #F9B595;
+  --color-blue-400: #F58D60;
+  --color-blue-500: #F26522;
+  --color-blue-600: #D94F18;
+  --color-blue-700: #B83C0D;
+  --color-blue-800: #932D06;
+  --color-blue-900: #7A2707;
 
-  /* Force slate overrides */
-  --color-slate-50: #ffffffcc !important;
-  --color-slate-100: #FFF3EC !important;
-  --color-slate-200: #EDE8E0 !important;
-  --color-slate-300: #EDE8E0 !important;
-  --color-slate-400: #C0B5A5 !important;
-  --color-slate-500: #9E8F7E !important;
-  --color-slate-600: #5C5247 !important;
-  --color-slate-700: #5C5247 !important;
-  --color-slate-800: #1A1A1A !important;
-  --color-slate-900: #1A1A1A !important;
+  /* Alias Indigo to Explicit Primary Orange Hex Codes */
+  --color-indigo-50: #FFF3EC;
+  --color-indigo-100: #FFE5D4;
+  --color-indigo-200: #FCDAca;
+  --color-indigo-300: #F9B595;
+  --color-indigo-400: #F58D60;
+  --color-indigo-500: #F26522;
+  --color-indigo-600: #D94F18;
+  --color-indigo-700: #B83C0D;
+  --color-indigo-800: #932D06;
+  --color-indigo-900: #7A2707;
 
-  /* Force neutral overrides */
-  --color-neutral-50: #ffffffcc !important;
-  --color-neutral-100: #FFF3EC !important;
-  --color-neutral-200: #EDE8E0 !important;
-  --color-neutral-300: #EDE8E0 !important;
-  --color-neutral-400: #C0B5A5 !important;
-  --color-neutral-500: #9E8F7E !important;
-  --color-neutral-600: #5C5247 !important;
-  --color-neutral-700: #5C5247 !important;
-  --color-neutral-800: #1A1A1A !important;
-  --color-neutral-900: #1A1A1A !important;
+  /* Force Primary to the Brand Orange (Tailwind defaults primary) */
+  --color-primary: #F26522;
 
-  /* Force gray overrides */
-  --color-gray-50: #ffffffcc !important;
-  --color-gray-100: #FFF3EC !important;
-  --color-gray-200: #EDE8E0 !important;
-  --color-gray-300: #EDE8E0 !important;
-  --color-gray-400: #C0B5A5 !important;
-  --color-gray-500: #9E8F7E !important;
-  --color-gray-600: #5C5247 !important;
-  --color-gray-700: #5C5247 !important;
-  --color-gray-800: #1A1A1A !important;
-  --color-gray-900: #1A1A1A !important;
+  /* Standardize gray backgrounds to our warm paper theme */
+  --color-slate-50: #FAF7F2;
+  --color-slate-100: #F4EFE6;
+  --color-gray-50: #FAF7F2;
+  --color-gray-100: #F4EFE6;
+  --color-neutral-50: #FAF7F2;
+  --color-neutral-100: #F4EFE6;
 }
 
-/* Base button and text behavior overrides for standard blue and indigo styles inside Admin & Seller */
-.admin-theme-scope [class*="bg-blue-600"],
-.admin-theme-scope [class*="bg-indigo-600"],
-.seller-theme-scope [class*="bg-blue-600"],
-.seller-theme-scope [class*="bg-indigo-600"] {
+/* App-First UI Optimizations (Scoped to Admin & Seller only) */
+.admin-theme-scope button, 
+.admin-theme-scope [role="button"], 
+.admin-theme-scope .btn,
+.admin-theme-scope select,
+.admin-theme-scope input[type="submit"],
+.admin-theme-scope input[type="button"],
+.seller-theme-scope button, 
+.seller-theme-scope [role="button"], 
+.seller-theme-scope .btn,
+.seller-theme-scope select,
+.seller-theme-scope input[type="submit"],
+.seller-theme-scope input[type="button"] {
+  min-height: 44px;
+}
+
+.admin-theme-scope .text-xs, .seller-theme-scope .text-xs { font-size: 0.8125rem; line-height: 1.125rem; }
+.admin-theme-scope .text-sm, .seller-theme-scope .text-sm { font-size: 0.9375rem; line-height: 1.375rem; }
+.admin-theme-scope .text-base, .seller-theme-scope .text-base { font-size: 1.0625rem; line-height: 1.5rem; }
+
+/* Force Orange Theme on all Black/Slate Buttons & Icons in Seller Scope */
+.seller-theme-scope button.bg-slate-900,
+.seller-theme-scope button.bg-black,
+.seller-theme-scope button.bg-slate-800,
+.seller-theme-scope a.bg-slate-900,
+.seller-theme-scope a.bg-black,
+.seller-theme-scope span.bg-slate-900,
+.seller-theme-scope div.bg-slate-900:not([class*="fixed"]):not([class*="backdrop"]),
+.seller-theme-scope .bg-slate-900[role="button"] {
   background-color: #F26522 !important;
+  color: #FFFFFF !important;
 }
 
-.admin-theme-scope [class*="hover:bg-blue-700"]:hover,
-.admin-theme-scope [class*="hover:bg-indigo-700"]:hover,
-.seller-theme-scope [class*="hover:bg-blue-700"]:hover,
-.seller-theme-scope [class*="hover:bg-indigo-700"]:hover {
+.seller-theme-scope button.bg-slate-900:hover,
+.seller-theme-scope button.bg-black:hover,
+.seller-theme-scope button.bg-slate-800:hover,
+.seller-theme-scope a.bg-slate-900:hover,
+.seller-theme-scope a.bg-black:hover,
+.seller-theme-scope span.bg-slate-900:hover,
+.seller-theme-scope div.bg-slate-900:not([class*="fixed"]):not([class*="backdrop"]):hover,
+.seller-theme-scope .bg-slate-900[role="button"]:hover {
   background-color: #D94F18 !important;
+  color: #FFFFFF !important;
 }
 
-.admin-theme-scope [class*="text-blue-600"],
-.admin-theme-scope [class*="text-indigo-600"],
-.seller-theme-scope [class*="text-blue-600"],
-.seller-theme-scope [class*="text-indigo-600"] {
+/* Maintain Translucent Gray for Modal Backdrops & Overlays (so they don't turn orange) */
+.seller-theme-scope div[class*="bg-slate-900/40"],
+.seller-theme-scope div[class*="bg-slate-900/60"],
+.seller-theme-scope div.fixed[class*="bg-slate-900"],
+.seller-theme-scope div.absolute[class*="bg-slate-900"] {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+  color: inherit !important;
+}
+.seller-theme-scope div[class*="bg-slate-900/60"] {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+/* Sidebar and BottomNav Unification strictly for Seller Workspace */
+.seller-theme-scope aside .bg-primary,
+.seller-theme-scope aside a.active .bg-primary,
+.seller-theme-scope aside a.active .bg-white\/20 {
+  background-color: #F26522 !important;
+  color: #FFFFFF !important;
+}
+
+.seller-theme-scope .text-primary,
+.seller-theme-scope a.active,
+.seller-theme-scope a.active span,
+.seller-theme-scope a.active svg {
   color: #F26522 !important;
 }
 
-.admin-theme-scope [class*="hover:text-blue-600"]:hover,
-.admin-theme-scope [class*="hover:text-indigo-600"]:hover,
-.seller-theme-scope [class*="hover:text-blue-600"]:hover,
-.seller-theme-scope [class*="hover:text-indigo-600"]:hover {
+.seller-theme-scope a.active {
   color: #F26522 !important;
 }
 
-.admin-theme-scope [class*="bg-blue-50"],
-.admin-theme-scope [class*="bg-indigo-50"],
-.seller-theme-scope [class*="bg-blue-50"],
-.seller-theme-scope [class*="bg-indigo-50"] {
-  background-color: #FFF3EC !important;
+.seller-theme-scope aside .bg-primary,
+.seller-theme-scope aside .text-primary {
+  background-color: #F26522 !important;
+  color: #FFFFFF !important;
 }
 
-.admin-theme-scope [class*="hover:bg-blue-50"]:hover,
-.admin-theme-scope [class*="hover:bg-indigo-50"]:hover,
-.seller-theme-scope [class*="hover:bg-blue-50"]:hover,
-.seller-theme-scope [class*="hover:bg-indigo-50"]:hover {
-  background-color: #FFF3EC !important;
+.seller-theme-scope aside a.active {
+  color: #F26522 !important;
 }
 
-.admin-theme-scope [class*="border-blue-"],
-.admin-theme-scope [class*="border-indigo-"],
-.seller-theme-scope [class*="border-blue-"],
-.seller-theme-scope [class*="border-indigo-"] {
-  border-color: #EDE8E0 !important;
+.seller-theme-scope aside a.active div {
+  color: #F26522 !important;
 }
 
-.admin-theme-scope [class*="focus:ring-blue-"],
-.admin-theme-scope [class*="focus:ring-indigo-"],
-.seller-theme-scope [class*="focus:ring-blue-"],
-.seller-theme-scope [class*="focus:ring-indigo-"] {
-  --tw-ring-color: #F26522 !important;
+/* Bottom Nav transparent background on active items */
+.seller-theme-scope .fixed.bottom-0 a.active {
+  background-color: transparent !important;
+  color: #F26522 !important;
 }
 
-/* Quick Commerce Theme Overrides (to match Food Section Theme colors: Orange & Warm Cream) */
-.quick-theme-scope {
-  /* Redefine Tailwind's brand and green variables inside this scope */
-  --color-brand-50: #FFF3EC !important;
-  --color-brand-100: #FFE5D4 !important;
-  --color-brand-200: #EDE8E0 !important;
-  --color-brand-300: #EDE8E0 !important;
-  --color-brand-400: #FE5502 !important;
-  --color-brand-500: #C83C00 !important;
-  --color-brand-600: #B83C0D !important;
-  --color-brand-700: #1A1A1A !important;
-  --color-brand-800: #1A1A1A !important;
-  --color-brand-900: #1A1A1A !important;
-  
-  --color-green-50: #FFF3EC !important;
-  --color-green-100: #FFE5D4 !important;
-  --color-green-500: #FE5502 !important;
-  --color-green-600: #C83C00 !important;
+.seller-theme-scope .fixed.bottom-0 a.active svg,
+.seller-theme-scope .fixed.bottom-0 a.active span {
+  color: #F26522 !important;
+  background-color: transparent !important;
 }
 
-/* Force hex colors used in the quickCommerce layouts & pages */
-.quick-theme-scope [class~="bg-[#E6F5EC]"],
-.quick-theme-scope [class*="bg-[#E6F5EC]"] {
-  background-color: #FFF3EC !important;
-}
 
-.quick-theme-scope [class~="bg-[#0c831f]"],
-.quick-theme-scope [class~="bg-[#0b721b]"],
-.quick-theme-scope [class~="bg-[#0a701a]"],
-.quick-theme-scope [class~="bg-[#2f7a46]"],
-.quick-theme-scope [class~="bg-[#2E7D32]"] {
-  background-color: #FE5502 !important;
-}
-
-.quick-theme-scope [class*="bg-[#0c831f]/5"] {
-  background-color: rgba(254, 85, 2, 0.05) !important;
-}
-.quick-theme-scope [class*="bg-[#0c831f]/10"] {
-  background-color: rgba(254, 85, 2, 0.1) !important;
-}
-.quick-theme-scope [class*="bg-[#0c831f]/20"] {
-  background-color: rgba(254, 85, 2, 0.2) !important;
-}
-.quick-theme-scope [class*="bg-[#0c831f]/50"] {
-  background-color: rgba(254, 85, 2, 0.5) !important;
-}
-
-.quick-theme-scope [class*="hover:bg-[#0b721b]"]:hover,
-.quick-theme-scope [class*="hover:bg-[#0a701a]"]:hover,
-.quick-theme-scope [class*="hover:bg-green-700"]:hover,
-.quick-theme-scope [class*="hover:bg-green-600"]:hover,
-.quick-theme-scope [class*="hover:bg-[#0c831f]"]:hover {
-  background-color: #C83C00 !important;
-}
-
-.quick-theme-scope [class~="text-[#0c831f]"],
-.quick-theme-scope [class~="text-[#2f7a46]"],
-.quick-theme-scope [class~="text-[#2E7D32]"],
-.quick-theme-scope [class*="text-green-600"] {
-  color: #FE5502 !important;
-}
-.quick-theme-scope [class*="text-[#0c831f]/80"] {
-  color: rgba(254, 85, 2, 0.8) !important;
-}
-.quick-theme-scope [class*="text-green-50"] {
-  color: #FFF3EC !important;
-}
-
-.quick-theme-scope [class*="bg-green-50"],
-.quick-theme-scope [class*="bg-green-100"] {
-  background-color: #FFF3EC !important;
-}
-
-.quick-theme-scope [class~="border-[#0c831f]"],
-.quick-theme-scope [class~="border-[#2f7a46]"],
-.quick-theme-scope [class~="border-[#2E7D32]"] {
-  border-color: #FE5502 !important;
-}
-.quick-theme-scope [class*="border-[#0c831f]/10"] {
-  border-color: rgba(254, 85, 2, 0.1) !important;
-}
-.quick-theme-scope [class*="border-[#0c831f]/15"] {
-  border-color: rgba(254, 85, 2, 0.15) !important;
-}
-.quick-theme-scope [class*="border-[#0c831f]/20"] {
-  border-color: rgba(254, 85, 2, 0.2) !important;
-}
-
-.quick-theme-scope [class*="border-green-100"],
-.quick-theme-scope [class*="border-green-200"] {
-  border-color: #EDE8E0 !important;
-}
-
-.quick-theme-scope [class*="shadow-green-"] {
-  --tw-shadow-color: rgba(254, 85, 2, 0.15) !important;
-}
-
-.quick-theme-scope [class*="focus:ring-green-"]:focus {
-  --tw-ring-color: #FE5502 !important;
-}
-
-/* Redefine standard green text/bg utility class overrides inside Quick scope */
-.quick-theme-scope .bg-green-50 {
-  background-color: #FFF3EC !important;
-}
-.quick-theme-scope .bg-green-100 {
-  background-color: #FFE5D4 !important;
-}
-.quick-theme-scope .bg-green-600 {
-  background-color: #FE5502 !important;
-}
-.quick-theme-scope .text-green-600 {
-  color: #FE5502 !important;
-}
-.quick-theme-scope .border-green-100 {
-  border-color: #EDE8E0 !important;
-}
-.quick-theme-scope .border-green-200 {
-  border-color: #EDE8E0 !important;
-}
 

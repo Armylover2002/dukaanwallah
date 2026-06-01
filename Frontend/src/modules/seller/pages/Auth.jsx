@@ -126,7 +126,7 @@ export default function SellerAuth() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#fcfaf6] px-6 py-10 font-['Outfit']">
+    <div className="relative min-h-screen overflow-hidden bg-[#fcfaf6] px-6 py-10 font-['Outfit'] seller-theme-scope">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute left-[-8%] top-[-8%] h-72 w-72 rounded-full bg-[#d9f99d]/40 blur-3xl" />
         <div className="absolute bottom-[-10%] right-[-5%] h-80 w-80 rounded-full bg-[#86efac]/30 blur-3xl" />

@@ -346,10 +346,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
     };
 
     return (
-        <div className="min-h-screen mesh-gradient-light relative overflow-x-hidden seller-theme-scope">
-            {/* Background Blobs for depth */}
-            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] -z-10 animate-pulse pointer-events-none"></div>
-            <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/5 rounded-full blur-[120px] -z-10 animate-pulse pointer-events-none" style={{ animationDelay: '2s' }}></div>
+        <div className="min-h-screen bg-slate-50 relative overflow-x-hidden seller-theme-scope">
+            {/* Premium Ambient Background Glow */}
+            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/15 rounded-full blur-[140px] -z-10 animate-pulse pointer-events-none" style={{ animationDuration: '8s' }}></div>
+            <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-rose-500/15 rounded-full blur-[140px] -z-10 animate-pulse pointer-events-none" style={{ animationDelay: '4s', animationDuration: '10s' }}></div>
 
             <Sidebar
                 items={navItems}

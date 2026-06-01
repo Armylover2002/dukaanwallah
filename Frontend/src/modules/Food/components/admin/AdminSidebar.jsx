@@ -832,21 +832,28 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           scrollbar-width: thin;
           scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
         }
+        
+        .admin-sidebar-responsive-bg {
+          background-color: #ffffff !important;
+        }
+        @media (min-width: 1024px) {
+          .admin-sidebar-responsive-bg {
+            background-color: #ffffffcc !important;
+          }
+        }
       `}</style>
       <div
         className={cn(
-          "bg-[#ffffffcc] backdrop-blur-md border-r border-[#EDE8E0] h-screen fixed left-0 top-0 z-50 flex flex-col overflow-hidden shadow-xs",
+          "admin-sidebar-responsive-bg backdrop-blur-md border-r border-[#EDE8E0] h-screen fixed left-0 top-0 z-[100] flex flex-col overflow-hidden shadow-xs",
           "transform transition-all duration-300 ease-in-out",
           "lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
           isCollapsed ? "w-20" : "w-80"
         )}
-        style={{ backgroundColor: '#ffffffcc' }}
       >
         {/* Header with Logo and Brand */}
         <div
-          className="shrink-0 px-3 py-3 border-b border-[#EDE8E0] bg-[#ffffffcc] animate-[fadeIn_0.4s_ease-out]"
-          style={{ backgroundColor: '#ffffffcc' }}
+          className="shrink-0 px-3 py-3 border-b border-[#EDE8E0] bg-transparent animate-[fadeIn_0.4s_ease-out]"
         >
           <div className="flex items-center justify-between mb-3">
             {!isCollapsed && (
@@ -914,7 +921,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
           {/* Admin Panel Label */}
           {!isCollapsed && (
-            <div className="mb-3 animate-[slideIn_0.4s_ease-out_0.1s_both] bg-[#ffffffcc]">
+            <div className="mb-3 animate-[slideIn_0.4s_ease-out_0.1s_both] bg-transparent">
               <h2 className="text-xs font-bold text-[#5C5247] uppercase tracking-wider text-left">
                 Admin Panel
               </h2>

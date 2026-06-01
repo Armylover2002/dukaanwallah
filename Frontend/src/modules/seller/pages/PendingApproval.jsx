@@ -64,7 +64,7 @@ export default function SellerPendingApproval() {
   const isRejected = profile?.approvalStatus === "rejected";
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#0f172a_0%,#111827_30%,#f8fafc_30%,#f8fafc_100%)] px-4 py-10 font-['Outfit'] md:px-8">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#0f172a_0%,#111827_30%,#f8fafc_30%,#f8fafc_100%)] px-4 py-10 font-['Outfit'] md:px-8 seller-theme-scope">
       <div className="mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
