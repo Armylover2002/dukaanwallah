@@ -103,18 +103,18 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
       if (!recommendedForYouRestaurants || recommendedForYouRestaurants.length === 0) return;
       setLoading(true);
       try {
-        let allProducts = [];
-        // Fetch menus for top 3 recommended restaurants to get some variety
-        for (let i = 0; i < Math.min(3, recommendedForYouRestaurants.length); i++) {
-          const restaurant = recommendedForYouRestaurants[i];
+        // Fetch menus for top 3 recommended restaurants concurrently for better performance
+        const restaurantsToFetch = recommendedForYouRestaurants.slice(0, 3);
+        const fetchPromises = restaurantsToFetch.map(async (restaurant) => {
           try {
             const res = await restaurantAPI.getMenuByRestaurantId(restaurant.mongoId || restaurant.id);
             const menu = res.data?.data?.menu;
+            const items = [];
             if (menu && menu.sections) {
               menu.sections.forEach(section => {
                 if (section.items) {
                   section.items.forEach(item => {
-                    allProducts.push({
+                    items.push({
                       ...item,
                       restaurantId: restaurant.mongoId || restaurant.id,
                       restaurant: restaurant.name,
@@ -124,10 +124,15 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
                 }
               });
             }
+            return items;
           } catch (e) {
              console.error("Error fetching menu for restaurant", restaurant.name, e);
+             return [];
           }
-        }
+        });
+        
+        const results = await Promise.all(fetchPromises);
+        const allProducts = results.flat();
         
         // Take first 6 products
         setProducts(allProducts.slice(0, 6));
@@ -141,7 +146,34 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
     fetchProducts();
   }, [recommendedForYouRestaurants]);
 
-  if (loading) return null; // or a skeleton
+  // Loading Skeleton
+  if (loading) {
+    return (
+      <section className="mt-8 px-4" data-purpose="recommended-section">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+            Recommended for you
+          </h3>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white rounded-[12px] border border-gray-100 overflow-hidden shadow-sm h-full flex flex-col animate-pulse">
+              <div className="h-32 sm:h-36 bg-gray-200 shrink-0" />
+              <div className="p-3 flex flex-col flex-1">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-gray-200 rounded w-1/2 mt-1 mb-auto" />
+                <div className="flex justify-between items-center mt-3 shrink-0">
+                  <div className="h-4 bg-gray-200 rounded w-1/4" />
+                  <div className="h-6 bg-gray-200 rounded w-1/4" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   if (!products || products.length === 0) return null;
 
   const handleAddToCart = (product, quantity) => {
