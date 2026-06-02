@@ -71,7 +71,7 @@ export default function Shipping() {
              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">
                {shippingData.title || "Shipping Policy"}
              </h1>
-             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">AppZeto Policy</p>
+             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Dukaanwallah Policy</p>
           </div>
         </div>
       </div>

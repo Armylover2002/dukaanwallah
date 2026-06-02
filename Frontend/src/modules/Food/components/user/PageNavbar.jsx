@@ -6,11 +6,11 @@ import { useLocation } from "@food/hooks/useLocation"
 import { useCart } from "@food/context/CartContext"
 import { useLocationSelector } from "./UserLayout"
 import { FaLocationDot } from "react-icons/fa6"
-import { 
-  loadBusinessSettings, 
-  getCachedSettings, 
+import {
+  loadBusinessSettings,
+  getCachedSettings,
   getCompanyName,
-  getAppLogo 
+  getAppLogo
 } from "@common/utils/businessSettings"
 
 
@@ -133,7 +133,7 @@ export default function PageNavbar({
       }
     }
     loadSettings()
-    
+
     // Listen for updates
     const handleUpdate = (e) => {
       const settings = e.detail;
@@ -141,7 +141,7 @@ export default function PageNavbar({
       if (userLogo) setLogoUrl(userLogo);
       if (settings.companyName) setCompanyName(settings.companyName);
     };
-    
+
     window.addEventListener('businessSettingsUpdated', handleUpdate);
     return () => window.removeEventListener('businessSettingsUpdated', handleUpdate);
   }, [])
@@ -991,7 +991,7 @@ export default function PageNavbar({
               />
             ) : (
               <span className={`text-lg font-bold text-${textColor} scale-[1.8] sm:scale-[2] origin-left inline-block`}>
-                {companyName || "Appzeto"}
+                {companyName || "Dukaanwallah"}
               </span>
             )}
           </Link>
