@@ -172,12 +172,10 @@ const AppRoutes = () => {
         {/* Food Module */}
         <Route path="/food/*" element={<FoodAppWrapper />} />
 
-        {/* Protected Customer Storefront Layout */}
+        {/* Public Customer Storefront Layout (Some routes inside are protected) */}
         <Route
           element={
-            <ProtectedRoute>
-              <Outlet />
-            </ProtectedRoute>
+            <Outlet />
           }
         >
           {/* Shared home entry so /food/user <-> /quick doesn't remount through different app trees */}
@@ -195,13 +193,13 @@ const AppRoutes = () => {
             }
           >
             <Route path="/cart" element={<GlobalCartPage />} />
-            <Route path="/cart/checkout" element={<GlobalCheckoutPage />} />
-            <Route path="/cart/select-address" element={<GlobalSelectAddressPage />} />
-            <Route path="/cart/address-selector" element={<GlobalAddressSelectorPage />} />
-            <Route path="/profile" element={<SharedProfilePage />} />
-            <Route path="/profile/edit" element={<SharedProfileEditPage />} />
-            <Route path="/profile/support" element={<SharedProfileSupportPage />} />
-            <Route path="/profile/coupons" element={<SharedProfileCouponsPage />} />
+            <Route path="/cart/checkout" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><GlobalCheckoutPage /></ProtectedRoute>} />
+            <Route path="/cart/select-address" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><GlobalSelectAddressPage /></ProtectedRoute>} />
+            <Route path="/cart/address-selector" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><GlobalAddressSelectorPage /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><SharedProfilePage /></ProtectedRoute>} />
+            <Route path="/profile/edit" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><SharedProfileEditPage /></ProtectedRoute>} />
+            <Route path="/profile/support" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><SharedProfileSupportPage /></ProtectedRoute>} />
+            <Route path="/profile/coupons" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><SharedProfileCouponsPage /></ProtectedRoute>} />
             <Route path="/profile/about" element={<SharedProfileAboutPage />} />
             <Route path="/profile/terms" element={<SharedProfileTermsPage />} />
             <Route path="/profile/privacy" element={<SharedProfilePrivacyPage />} />

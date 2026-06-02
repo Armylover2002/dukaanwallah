@@ -94,9 +94,7 @@ export default function App() {
           <Route
             path="user/*"
             element={
-              <ProtectedRoute requiredRole="user" loginPath="/user/auth/login">
-                <UserRouter />
-              </ProtectedRoute>
+              <UserRouter />
             }
           />
 

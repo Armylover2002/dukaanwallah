@@ -1442,6 +1442,14 @@ export default function Cart() {
 
 
   const handlePlaceOrder = async () => {
+    // Check authentication first
+    const isAuthenticated = !!localStorage.getItem('accessToken') || !!localStorage.getItem('user_accessToken');
+    if (!isAuthenticated) {
+      toast.error("Please login to place an order");
+      navigate('/user/auth/login?redirect=/cart');
+      return;
+    }
+
     if (!hasSavedAddress) {
       toast.error("Please choose a delivery location to continue")
       openLocationSelector()

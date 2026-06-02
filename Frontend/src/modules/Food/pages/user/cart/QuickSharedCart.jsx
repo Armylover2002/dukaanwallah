@@ -166,6 +166,14 @@ export default function QuickSharedCart({ initialAddress = null, addressMode = "
   const total = pricing?.total || subtotal + deliveryFee + platformFee + tax;
 
   const handlePlaceOrder = async () => {
+    // Check authentication first
+    const isAuthenticated = !!localStorage.getItem('accessToken') || !!localStorage.getItem('user_accessToken');
+    if (!isAuthenticated) {
+      toast.error("Please login to place an order");
+      navigate('/user/auth/login?redirect=/cart');
+      return;
+    }
+
     if (quickCart.length === 0) {
       toast.error("Your quick cart is empty");
       return;

@@ -220,6 +220,14 @@ export default function MixedSharedCart({ initialAddress = null, addressMode = "
   const decrement = (item) => updateQuantity(item.id, Number(item.quantity || 1) - 1);
 
   const handlePlaceOrder = async () => {
+    // Check authentication first
+    const isAuthenticated = !!localStorage.getItem('accessToken') || !!localStorage.getItem('user_accessToken');
+    if (!isAuthenticated) {
+      toast.error("Please login to place an order");
+      navigate('/user/auth/login?redirect=/cart');
+      return;
+    }
+
     if (foodItems.length === 0 || quickItems.length === 0) {
       toast.error("Add both food and quick items to continue");
       return;

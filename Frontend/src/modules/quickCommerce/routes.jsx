@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom"
 import { Suspense, lazy } from "react"
 import Loader from "@food/components/Loader"
+import ProtectedRoute from "@food/components/ProtectedRoute"
 import UserLayout from "./user/UserLayout"
 import Home from "./user/pages/Home"
 
@@ -39,20 +40,20 @@ function QuickCommerceInnerRoutes() {
           <Route index element={<Home />} />
           <Route path="home" element={<Home />} />
           <Route path="cart" element={<Cart />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="orders/:orderId" element={<OrderDetail />} />
+          <Route path="orders" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><Orders /></ProtectedRoute>} />
+          <Route path="orders/:orderId" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><OrderDetail /></ProtectedRoute>} />
           <Route path="products" element={<Products />} />
           <Route path="categories" element={<Categories />} />
           <Route path="categories/:categoryId" element={<CategoryProducts />} />
           <Route path="product/:productId" element={<ProductDetail />} />
-          <Route path="checkout" element={<Checkout />} />
+          <Route path="checkout" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><Checkout /></ProtectedRoute>} />
           <Route path="profile" element={<Navigate to="/profile?from=quick" replace />} />
           <Route path="profile/edit" element={<Navigate to="/profile/edit?from=quick" replace />} />
-          <Route path="wallet" element={<Wallet />} />
-          <Route path="addresses" element={<Addresses />} />
-          <Route path="support" element={<Support />} />
-          <Route path="wishlist" element={<Wishlist />} />
-          <Route path="transactions" element={<Transactions />} />
+          <Route path="wallet" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><Wallet /></ProtectedRoute>} />
+          <Route path="addresses" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><Addresses /></ProtectedRoute>} />
+          <Route path="support" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><Support /></ProtectedRoute>} />
+          <Route path="wishlist" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><Wishlist /></ProtectedRoute>} />
+          <Route path="transactions" element={<ProtectedRoute requiredRole="user" loginPath="/user/auth/login"><Transactions /></ProtectedRoute>} />
           <Route path="privacy" element={<Privacy />} />
           <Route path="about" element={<About />} />
           <Route path="terms" element={<Terms />} />
