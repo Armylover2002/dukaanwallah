@@ -17,9 +17,9 @@ import {
   updateBrowserFavicon,
   getAppLogo,
 } from "@common/utils/businessSettings"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 // Common country codes
@@ -152,7 +152,7 @@ export default function DeliverySignIn() {
         module: "delivery",
       }
       sessionStorage.setItem("deliveryAuthData", JSON.stringify(authData))
-      
+
       if (referralCode) {
         try {
           const existingSignupDetails = JSON.parse(sessionStorage.getItem("deliverySignupDetails") || "{}")
@@ -160,7 +160,7 @@ export default function DeliverySignIn() {
             ...existingSignupDetails,
             ref: referralCode
           }))
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // Navigate to OTP page
@@ -201,7 +201,7 @@ export default function DeliverySignIn() {
       {/* Top Banner section - Orange */}
       <div className="w-full bg-primary-orange rounded-b-[2.5rem] p-6 text-center text-white relative overflow-hidden shadow-xl mb-6">
         <div className="absolute inset-0 bg-white/5 opacity-50 blur-3xl rounded-full -top-1/2 -left-1/4 animate-pulse" />
-        
+
         <div className="relative z-10 flex flex-col items-center pt-4 pb-2">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-lg overflow-hidden">
             {logoUrl ? (
@@ -210,7 +210,7 @@ export default function DeliverySignIn() {
               <span className="text-primary-orange text-2xl font-black italic">{companyName.charAt(0).toUpperCase()}</span>
             )}
           </div>
-          
+
           <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
             {companyName}
           </h1>
