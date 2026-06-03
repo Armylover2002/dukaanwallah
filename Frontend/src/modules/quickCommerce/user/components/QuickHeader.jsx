@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -29,7 +29,7 @@ function buildActiveTabPath(l, r) {
   return `M 0 ${y} L ${l} ${y} L ${l} 12 C ${mapX(2.6)} 7 ${mapX(8.2)} 1.55 ${mapX(15)} 1.55 L ${mapX(85)} 1.55 C ${mapX(91.8)} 1.55 ${mapX(97.4)} 7 ${mapX(98.5)} 12 V ${y} L 100 ${y}`;
 }
 
-function CategoryNavColumn({
+const CategoryNavColumn = memo(function CategoryNavColumn({
   cat,
   isActive,
   categoryAccent,
@@ -116,7 +116,7 @@ function CategoryNavColumn({
       )}
     </motion.div>
   );
-}
+});
 
 export default function QuickHeader({ showSearch = true, activeCategory = null, categories = [], onCategorySelect, isEmbedded = false, isInline = false }) {
   const navigate = useNavigate();
@@ -127,11 +127,11 @@ export default function QuickHeader({ showSearch = true, activeCategory = null, 
   const [isLocationOpen, setIsLocationOpen] = useState(false);
 
   // Search Logic
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     navigate(getQuickSearchPath(pathname));
-  };
+  }, [navigate, pathname]);
 
-  const handleVoiceSearch = (e) => {
+  const handleVoiceSearch = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -152,56 +152,55 @@ export default function QuickHeader({ showSearch = true, activeCategory = null, 
       }
     };
     recognition.start();
-  };
+  }, [navigate, pathname]);
 
-  // Search placeholder animation
+  // Search placeholder animation — ref-based to avoid re-rendering the whole header
   const [searchPlaceholder, setSearchPlaceholder] = useState("Search ");
   const [isListening, setIsListening] = useState(false);
-  const [typingState, setTypingState] = useState({
-    textIndex: 0,
-    charIndex: 0,
-    isDeleting: false,
-    isPaused: false,
-  });
+  const typingRef = useRef({ textIndex: 0, charIndex: 0, isDeleting: false, isPaused: false });
 
-  const staticText = "Search ";
-  const typingPhrases = ['"milk"', '"bread"', '"chips"', '"eggs"', '"chocolate"'];
+
 
   useEffect(() => {
-    const { textIndex, charIndex, isDeleting, isPaused } = typingState;
-    const currentPhrase = typingPhrases[textIndex];
+    const staticText = "Search ";
+    const typingPhrases = ['"milk"', '"bread"', '"chips"', '"eggs"', '"chocolate"'];
 
-    if (isPaused) {
-      const timeout = setTimeout(() => {
-        setTypingState(prev => ({ ...prev, isPaused: false, isDeleting: true }));
-      }, 2000);
-      return () => clearTimeout(timeout);
-    }
+    const tick = () => {
+      const state = typingRef.current;
+      const currentPhrase = typingPhrases[state.textIndex];
 
-    const timeout = setTimeout(() => {
-      if (!isDeleting) {
-        if (charIndex < currentPhrase.length) {
-          setSearchPlaceholder(staticText + currentPhrase.substring(0, charIndex + 1));
-          setTypingState(prev => ({ ...prev, charIndex: prev.charIndex + 1 }));
+      if (state.isPaused) {
+        state.isPaused = false;
+        state.isDeleting = true;
+        timerId = setTimeout(tick, 2000);
+        return;
+      }
+
+      if (!state.isDeleting) {
+        if (state.charIndex < currentPhrase.length) {
+          state.charIndex += 1;
+          setSearchPlaceholder(staticText + currentPhrase.substring(0, state.charIndex));
+          timerId = setTimeout(tick, 100);
         } else {
-          setTypingState(prev => ({ ...prev, isPaused: true }));
+          state.isPaused = true;
+          timerId = setTimeout(tick, 0);
         }
       } else {
-        if (charIndex > 0) {
-          setSearchPlaceholder(staticText + currentPhrase.substring(0, charIndex - 1));
-          setTypingState(prev => ({ ...prev, charIndex: prev.charIndex - 1 }));
+        if (state.charIndex > 0) {
+          state.charIndex -= 1;
+          setSearchPlaceholder(staticText + currentPhrase.substring(0, state.charIndex));
+          timerId = setTimeout(tick, 50);
         } else {
-          setTypingState(prev => ({ 
-            ...prev, 
-            isDeleting: false, 
-            textIndex: (prev.textIndex + 1) % typingPhrases.length 
-          }));
+          state.isDeleting = false;
+          state.textIndex = (state.textIndex + 1) % typingPhrases.length;
+          timerId = setTimeout(tick, 100);
         }
       }
-    }, isDeleting ? 50 : 100);
+    };
 
-    return () => clearTimeout(timeout);
-  }, [typingState]);
+    let timerId = setTimeout(tick, 1500);
+    return () => clearTimeout(timerId);
+  }, []);
 
   // Smooth scroll interpolations
   const headerTopPadding = useTransform(scrollY, [0, 160], [16, 12]);

@@ -224,7 +224,9 @@ export default function Home() {
 
   // --- UI Effects ---
   useEffect(() => {
-    const intervalId = setInterval(() => setAvailabilityTick(Date.now()), 60000);
+    const intervalId = setInterval(() => {
+      startTransition(() => setAvailabilityTick(Date.now()));
+    }, 60000);
     return () => clearInterval(intervalId);
   }, []);
 

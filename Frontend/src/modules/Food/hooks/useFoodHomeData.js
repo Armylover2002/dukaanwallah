@@ -263,7 +263,11 @@ export const useFoodHomeData = ({
   }, [appliedFilters, fetchRestaurants]);
 
   // --- Menu Context Fetching (Veg Mode) ---
-  const menuUnionRestaurantIdsKey = restaurantsData.map(r => r.mongoId || r.id).join(",");
+  // Memoized stable string key — prevents .join() re-computation on every render
+  const menuUnionRestaurantIdsKey = useMemo(
+    () => restaurantsData.map(r => r.mongoId || r.id).join(","),
+    [restaurantsData]
+  );
   useEffect(() => {
     const restaurantIds = menuUnionRestaurantIdsKey.split(",").filter(Boolean);
     const shouldFetchMenuMeta = vegMode || realCategories.length === 0;

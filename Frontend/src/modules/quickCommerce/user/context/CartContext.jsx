@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { customerApi } from "../services/customerApi";
 import { useAuth } from "@core/context/AuthContext";
 import { useCart as useFoodCart } from "@food/context/CartContext";
@@ -434,11 +434,14 @@ const useStandaloneQuickCart = (isBridged = false) => {
     }
   };
 
-  const cartTotal = cart.reduce(
-    (total, item) => total + (item.price || 0) * item.quantity,
-    0,
+  const cartTotal = useMemo(
+    () => cart.reduce((total, item) => total + (item.price || 0) * item.quantity, 0),
+    [cart]
   );
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+  const cartCount = useMemo(
+    () => cart.reduce((total, item) => total + item.quantity, 0),
+    [cart]
+  );
 
   return {
     cart,
@@ -458,9 +461,11 @@ export const CartProvider = ({ children }) => {
   const isUsingFoodCart = foodCart?._isProvider === true;
   const standaloneCart = useStandaloneQuickCart(isUsingFoodCart);
 
+  // Use foodCart.cart (stable array ref) as dep — avoids re-running when foodCart object ref changes
   const quickItemsFromFoodCart = useMemo(
     () => (Array.isArray(foodCart?.cart) ? foodCart.cart.filter(isQuickCartItem) : []),
-    [foodCart],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [foodCart?.cart],
   );
 
   useEffect(() => {
@@ -597,7 +602,19 @@ export const CartProvider = ({ children }) => {
       ),
       loading: false,
     };
-  }, [foodCart, isUsingFoodCart, quickItemsFromFoodCart, standaloneCart]);
+  }, [
+    // Stable: only re-run bridgedValue when the actual data/flags change, not the whole foodCart object
+    isUsingFoodCart,
+    quickItemsFromFoodCart,
+    standaloneCart,
+    isAuthenticated,
+    // foodCart action refs — stable via useCallback in Food CartContext
+    foodCart?.addToCart,
+    foodCart?.removeFromCart,
+    foodCart?.updateQuantity,
+    foodCart?.clearCart,
+    foodCart?.getCartItem,
+  ]);
 
   return <CartContext.Provider value={bridgedValue}>{children}</CartContext.Provider>;
 };

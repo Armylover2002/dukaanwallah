@@ -1,33 +1,19 @@
 import React, { memo } from "react";
 import { motion } from "framer-motion";
 import { HeroBannerSkeleton } from "@food/components/ui/loading-skeletons";
-
-const TypewriterText = ({ text, isActive, delay = 0 }) => {
-  const words = text.split(" ");
-  return (
-    <span className="inline-flex flex-wrap gap-x-1 sm:gap-x-1.5">
-      {words.map((word, wordIndex) => (
-        <span key={wordIndex} className="inline-block">
-          {word.split("").map((char, charIndex) => {
-            const previousCharsCount = words.slice(0, wordIndex).join("").length + wordIndex;
-            const absoluteIndex = previousCharsCount + charIndex;
-            return (
-              <motion.span
-                key={`${char}-${charIndex}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: isActive ? 1 : 0 }}
-                transition={{ duration: 0.05, delay: isActive ? delay + absoluteIndex * 0.03 : 0 }}
-              >
-                {char}
-              </motion.span>
-            );
-          })}
-        </span>
-      ))}
-    </span>
-  );
-};
 import OptimizedImage from "@food/components/OptimizedImage";
+
+// Lightweight text reveal — single motion.div instead of N motion.span per character
+const TextReveal = ({ text, isActive, delay = 0 }) => (
+  <motion.span
+    initial={{ opacity: 0, y: 6 }}
+    animate={{ opacity: isActive ? 1 : 0, y: isActive ? 0 : 6 }}
+    transition={{ duration: 0.35, delay: isActive ? delay : 0, ease: "easeOut" }}
+    className="inline-block"
+  >
+    {text}
+  </motion.span>
+);
 
 const BannerSection = memo(({
   showBannerSkeleton,
@@ -117,11 +103,11 @@ const BannerSection = memo(({
                         <div className="relative z-10 flex flex-col justify-center h-full text-white w-[60%] sm:w-[65%] mt-2 pl-4 sm:pl-8">
                           <div className="flex items-center gap-1.5 mb-1">
                             <span className="text-[10px] sm:text-xs font-bold italic tracking-wider text-orange-200 uppercase flex items-center gap-1">
-                              <TypewriterText text={bannerData?.title || "A SIX IS HIT! 🏏"} isActive={isActive} delay={0.1} />
+                              <TextReveal text={bannerData?.title || "A SIX IS HIT! 🏏"} isActive={isActive} delay={0.1} />
                             </span>
                           </div>
                           <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold leading-[1.1] mb-3 text-white uppercase italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
-                            <TypewriterText text={bannerData?.subtitle || "66% OFF FOR 10 MIN!"} isActive={isActive} delay={0.4} />
+                            <TextReveal text={bannerData?.subtitle || "66% OFF FOR 10 MIN!"} isActive={isActive} delay={0.4} />
                           </h3>
                           <motion.div
                             initial={{ opacity: 0, scale: 0.8 }}

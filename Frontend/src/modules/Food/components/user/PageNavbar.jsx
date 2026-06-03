@@ -6,11 +6,11 @@ import { useLocation } from "@food/hooks/useLocation"
 import { useCart } from "@food/context/CartContext"
 import { useLocationSelector } from "./UserLayout"
 import { FaLocationDot } from "react-icons/fa6"
-import {
-  loadBusinessSettings,
-  getCachedSettings,
+import { 
+  loadBusinessSettings, 
+  getCachedSettings, 
   getCompanyName,
-  getAppLogo
+  getAppLogo 
 } from "@common/utils/businessSettings"
 
 
@@ -133,7 +133,7 @@ export default function PageNavbar({
       }
     }
     loadSettings()
-
+    
     // Listen for updates
     const handleUpdate = (e) => {
       const settings = e.detail;
@@ -141,7 +141,7 @@ export default function PageNavbar({
       if (userLogo) setLogoUrl(userLogo);
       if (settings.companyName) setCompanyName(settings.companyName);
     };
-
+    
     window.addEventListener('businessSettingsUpdated', handleUpdate);
     return () => window.removeEventListener('businessSettingsUpdated', handleUpdate);
   }, [])
@@ -991,37 +991,37 @@ export default function PageNavbar({
               />
             ) : (
               <span className={`text-lg font-bold text-${textColor} scale-[1.8] sm:scale-[2] origin-left inline-block`}>
-                {companyName || "Dukaanwallah"}
+                {companyName || "Appzeto"}
               </span>
             )}
           </Link>
         )}
 
         {/* Center/Left: Location Selector */}
-        <div className={`flex-1 flex items-center min-w-0 ${showLogo ? "justify-center absolute left-1/2 -translate-x-1/2" : "justify-start"}`}>
+        <div className={`flex-1 flex items-center min-w-0 ${showLogo ? "justify-center absolute left-1/2 -translate-x-1/2" : "justify-start pr-2"}`}>
           <Button
             variant="ghost"
             onClick={handleLocationClick}
             disabled={loading}
-            className={`h-auto px-0 py-0 hover:bg-transparent transition-colors flex-shrink-0 flex flex-col ${showLogo ? "items-center" : "items-start justify-center min-w-0"}`}
+            className={`h-auto px-0 py-0 hover:bg-transparent transition-colors flex flex-col max-w-full ${showLogo ? "items-center flex-shrink-0" : "items-start justify-center min-w-0 shrink"}`}
           >
             {loading ? (
               <span className={`text-sm font-bold ${textColorClass}`}>
                 Loading...
               </span>
             ) : (
-              <div className={`flex flex-col ${showLogo ? "items-center" : "items-start w-full"} min-w-0`}>
-                <div className={`flex items-center min-w-0 ${showLogo ? "justify-center gap-1" : "w-full gap-1.5"}`}>
+              <div className={`flex flex-col ${showLogo ? "items-center" : "items-start w-full"} min-w-0 max-w-full`}>
+                <div className={`flex items-center min-w-0 max-w-full ${showLogo ? "justify-center gap-1" : "gap-1.5"}`}>
                   {!showLogo && <MapPin className={`h-[18px] w-[18px] ${textColor === "white" ? "text-white" : "text-[#FE5502]"} flex-shrink-0`} strokeWidth={2.5} />}
-                  <div className={`flex items-center gap-1 min-w-0`}>
-                    <span className={`${showLogo ? "text-sm sm:text-base md:text-lg" : "text-[16px]"} font-bold ${textColorClass} truncate`}>
+                  <div className={`flex items-center gap-1 min-w-0 max-w-full`}>
+                    <span className={`${showLogo ? "text-sm sm:text-base md:text-lg" : "text-[16px]"} font-bold ${textColorClass} truncate block`}>
                       {mainLocationName}
                     </span>
                     <ChevronDown className={`${showLogo ? "h-3 w-3 sm:h-4 sm:w-4" : "h-[14px] w-[14px] mt-0.5"} ${textColorClass} flex-shrink-0`} strokeWidth={showLogo ? 2.5 : 3} />
                   </div>
                 </div>
                 {locationSubText && (
-                  <span className={`${showLogo ? "text-[10px] sm:text-xs font-medium text-center max-w-[140px] sm:max-w-[200px]" : "text-[11px] font-semibold text-left pl-6 w-full"} ${textColorClass}/80 truncate`}>
+                  <span className={`${showLogo ? "text-[10px] sm:text-xs font-medium text-center max-w-[140px] sm:max-w-[200px]" : "text-[11px] font-semibold text-left pl-6"} ${textColorClass}/80 truncate block w-full`}>
                     {locationSubText}
                   </span>
                 )}

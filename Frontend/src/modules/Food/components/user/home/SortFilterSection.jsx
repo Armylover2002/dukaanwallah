@@ -1,5 +1,4 @@
 import React, { memo } from "react";
-import { motion } from "framer-motion";
 import { SlidersHorizontal, MapPin } from "lucide-react";
 import { Button } from "@food/components/ui/button";
 
@@ -17,7 +16,7 @@ const SortFilterSection = memo(({ activeFilters, toggleFilter, setIsFilterOpen }
         className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide sm:gap-2 lg:gap-3 lg:pb-2"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <div className="transition-transform hover:scale-105 active:scale-95">
           <Button
             variant="outline"
             onClick={() => setIsFilterOpen(true)}
@@ -26,26 +25,22 @@ const SortFilterSection = memo(({ activeFilters, toggleFilter, setIsFilterOpen }
             <SlidersHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="text-xs font-bold text-black dark:text-white sm:text-sm">Filters</span>
           </Button>
-        </motion.div>
+        </div>
 
         {PRIMARY_FILTERS.map((filter, index) => {
           const Icon = filter.icon;
           const isActive = activeFilters.has(filter.id);
 
           return (
-            <motion.div
+            <div
               key={filter.id}
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="animate-in fade-in"
+              style={{ animationDelay: `${index * 50}ms`, animationFillMode: "backwards" }}
             >
               <Button
                 variant="outline"
                 onClick={() => toggleFilter(filter.id)}
-                className={`flex h-7 flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 font-medium transition-all sm:h-8 sm:px-4 ${
+                className={`flex h-7 flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 font-medium transition-all active:scale-95 sm:h-8 sm:px-4 ${
                   isActive
                     ? "border border-[#FE5502] bg-[#FE5502] text-white hover:bg-[#FE5502]/90"
                     : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:bg-[#1a1a1a] dark:text-gray-300 dark:hover:bg-gray-800"
@@ -54,7 +49,7 @@ const SortFilterSection = memo(({ activeFilters, toggleFilter, setIsFilterOpen }
                 {Icon && <Icon className={`h-3 w-3 sm:h-4 sm:w-4 ${isActive ? "fill-white" : ""}`} />}
                 <span className="text-xs font-bold text-black dark:text-white sm:text-sm">{filter.label}</span>
               </Button>
-            </motion.div>
+            </div>
           );
         })}
       </div>

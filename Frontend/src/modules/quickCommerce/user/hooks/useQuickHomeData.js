@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { customerApi } from "../services/customerApi";
 import { Sparkles } from "lucide-react";
 
@@ -242,12 +242,13 @@ const extractArray = (data) => {
 // ---------------------------------------------------------------------------
 
 export const useQuickHomeData = ({ currentLocation }) => {
-  const hasValidCache =
-    globalQuickHomeCache.data &&
-    Date.now() - globalQuickHomeCache.lastFetched < CACHE_EXPIRY_MS;
+  // Stale-while-revalidate: show any cached data immediately, even if expired
+  const hasAnyCache = Boolean(globalQuickHomeCache.data);
+  const hasValidCache = hasAnyCache && Date.now() - globalQuickHomeCache.lastFetched < CACHE_EXPIRY_MS;
 
-  const [isLoading, setIsLoading] = useState(!hasValidCache);
-  const [isBootstrapped, setIsBootstrapped] = useState(hasValidCache);
+  // Only block UI (show skeleton) if there is absolutely NO cached data
+  const [isLoading, setIsLoading] = useState(!hasAnyCache);
+  const [isBootstrapped, setIsBootstrapped] = useState(hasAnyCache);
   const [categories, setCategories] = useState(globalQuickHomeCache.data?.categories || [ALL_CATEGORY]);
   const [activeCategory, setActiveCategory] = useState(globalQuickHomeCache.data?.activeCategory || ALL_CATEGORY);
   const [products, setProducts] = useState(globalQuickHomeCache.data?.products || []);
@@ -301,9 +302,17 @@ export const useQuickHomeData = ({ currentLocation }) => {
 
   const fetchData = useCallback(async () => {
     const seq = ++fetchDataSeqRef.current;
-    if (hasValidCache) return;
 
-    setIsLoading(true);
+    // Re-check cache validity at call time (avoids stale closure)
+    const cacheIsValid =
+      globalQuickHomeCache.data &&
+      Date.now() - globalQuickHomeCache.lastFetched < CACHE_EXPIRY_MS;
+    if (cacheIsValid) return;
+
+    // Stale-while-revalidate: if stale data exists, don't show skeleton — refresh silently
+    const isSilentRefresh = Boolean(globalQuickHomeCache.data);
+    if (!isSilentRefresh) setIsLoading(true);
+
     try {
       const hasLocation =
         Number.isFinite(currentLocation?.latitude) &&
@@ -315,18 +324,25 @@ export const useQuickHomeData = ({ currentLocation }) => {
         productParams.lng = currentLocation.longitude;
       }
 
-      const [catRes, prodRes, expRes, sectionsRes, heroRes] = await Promise.all([
-        customerApi.getCategories(),
-        hasLocation
-          ? customerApi.getProducts(productParams)
-          : Promise.resolve({ data: { success: true, result: { items: [] } } }),
-        customerApi.getExperienceSections({ pageType: "home" }).catch(() => null),
-        hasLocation
-          ? customerApi.getOfferSections({ lat: currentLocation.latitude, lng: currentLocation.longitude }).catch(() => ({ data: {} }))
-          : Promise.resolve({ data: { results: [] } }),
-        customerApi.getHeroConfig({ pageType: "home" }).catch(() => null),
-      ]);
+      // ── Fire ALL requests immediately in parallel ─────────────────────────────────
+      const catPromise = customerApi.getCategories();
+      const prodPromise = hasLocation
+        ? customerApi.getProducts(productParams)
+        : Promise.resolve({ data: { success: true, result: { items: [] } } });
+      const expPromise = customerApi
+        .getExperienceSections({ pageType: "home" })
+        .catch(() => null);
+      const sectionsPromise = hasLocation
+        ? customerApi
+            .getOfferSections({ lat: currentLocation.latitude, lng: currentLocation.longitude })
+            .catch(() => ({ data: {} }))
+        : Promise.resolve({ data: { results: [] } });
+      const heroPromise = customerApi
+        .getHeroConfig({ pageType: "home" })
+        .catch(() => null);
 
+      // ── Phase 1: Process categories first → unblock UI ASAP ────────────────
+      const catRes = await catPromise;
       if (seq !== fetchDataSeqRef.current) return;
 
       const newCache = {
@@ -395,6 +411,17 @@ export const useQuickHomeData = ({ currentLocation }) => {
         newCache.quickCategories = formattedQuick;
       }
 
+      // 🔑 Categories ready → show the UI immediately, don’t wait for products/sections
+      setIsBootstrapped(true);
+      setIsLoading(false);
+
+      // ── Phase 2: Wait for remaining data (UI already visible) ────────────
+      const [prodRes, expRes, sectionsRes, heroRes] = await Promise.all([
+        prodPromise, expPromise, sectionsPromise, heroPromise,
+      ]);
+
+      if (seq !== fetchDataSeqRef.current) return;
+
       // --- Products ---
       if (prodRes.data.success) {
         const formatted = extractArray(prodRes.data.results ?? prodRes.data.result).map(formatProduct);
@@ -425,15 +452,16 @@ export const useQuickHomeData = ({ currentLocation }) => {
         newCache.heroConfig = config;
       }
 
+      // Save complete cache only after all data is ready
       globalQuickHomeCache.data = newCache;
       globalQuickHomeCache.lastFetched = Date.now();
-      setIsBootstrapped(true);
     } catch (err) {
-      console.error("Error fetching quick home data:", err);
+      // Surface errors only in dev
+      if (import.meta.env?.DEV) console.error("Error fetching quick home data:", err);
     } finally {
       if (seq === fetchDataSeqRef.current) setIsLoading(false);
     }
-  }, [currentLocation, getQuickCategoryImage, buildHeaderCategory, hasValidCache]);
+  }, [currentLocation, getQuickCategoryImage, buildHeaderCategory]);
 
   useEffect(() => {
     fetchData();
@@ -462,8 +490,8 @@ export const useQuickHomeData = ({ currentLocation }) => {
           setHeaderSections(sections);
           globalQuickHomeCache.headerSections.set(headerId, sections);
         }
-      } catch (e) {
-        console.error("Error fetching header sections:", e);
+      } catch {
+        // silently fail — cached empty array will be used
       } finally {
         setLoadingHeaderSections(false);
       }
@@ -481,8 +509,8 @@ export const useQuickHomeData = ({ currentLocation }) => {
           globalQuickHomeCache.categoryProducts.set(headerId, formatted);
           setCategoryProducts(formatted);
         }
-      } catch (e) {
-        console.error("Error fetching category products:", e);
+      } catch {
+        // silently fail — products fallback to home products
       }
     };
 

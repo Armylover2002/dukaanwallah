@@ -1,9 +1,12 @@
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, X, Bookmark, Share2 } from "lucide-react";
 import { restaurantAPI } from "@food/api";
 import { useCart } from "@food/context/CartContext";
+
+// Module-level cache: persists across component unmount/remount, avoids re-fetching same restaurants
+const productsCache = new Map();
 
 const ProductModal = ({ product, onClose, onAdd }) => {
   const [quantity, setQuantity] = useState(1);
@@ -98,19 +101,31 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { addToCart } = useCart();
 
+  // Stable key derived from IDs — prevents unnecessary re-fetches when parent re-renders
+  const restaurantIdsKey = useMemo(
+    () => (recommendedForYouRestaurants || []).map(r => r.mongoId || r.id).join(","),
+    [recommendedForYouRestaurants]
+  );
+
   useEffect(() => {
+    if (!restaurantIdsKey) return;
+
+    // Serve from cache if available
+    if (productsCache.has(restaurantIdsKey)) {
+      setProducts(productsCache.get(restaurantIdsKey));
+      return;
+    }
+
     const fetchProducts = async () => {
-      if (!recommendedForYouRestaurants || recommendedForYouRestaurants.length === 0) return;
       setLoading(true);
       try {
-        // Fetch menus for top 3 recommended restaurants concurrently for better performance
-        const restaurantsToFetch = recommendedForYouRestaurants.slice(0, 3);
+        const restaurantsToFetch = (recommendedForYouRestaurants || []).slice(0, 3);
         const fetchPromises = restaurantsToFetch.map(async (restaurant) => {
           try {
             const res = await restaurantAPI.getMenuByRestaurantId(restaurant.mongoId || restaurant.id);
             const menu = res.data?.data?.menu;
             const items = [];
-            if (menu && menu.sections) {
+            if (menu?.sections) {
               menu.sections.forEach(section => {
                 if (section.items) {
                   section.items.forEach(item => {
@@ -125,26 +140,24 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
               });
             }
             return items;
-          } catch (e) {
-             console.error("Error fetching menu for restaurant", restaurant.name, e);
-             return [];
+          } catch {
+            return [];
           }
         });
-        
+
         const results = await Promise.all(fetchPromises);
-        const allProducts = results.flat();
-        
-        // Take first 6 products
-        setProducts(allProducts.slice(0, 6));
-      } catch (err) {
-        console.error("Error fetching recommended products:", err);
+        const allProducts = results.flat().slice(0, 6);
+        productsCache.set(restaurantIdsKey, allProducts);
+        setProducts(allProducts);
+      } catch {
+        // Silently fail — section simply won't show
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchProducts();
-  }, [recommendedForYouRestaurants]);
+  }, [restaurantIdsKey]); // Stable string dependency — no spurious re-runs
 
   // Loading Skeleton
   if (loading) {

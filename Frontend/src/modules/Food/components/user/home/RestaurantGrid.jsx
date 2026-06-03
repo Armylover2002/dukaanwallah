@@ -12,7 +12,7 @@ const FoodRestaurantCard = memo(({
   restaurant, 
   index, 
   isOutOfService, 
-  availabilityTick, 
+  currentDate,
   isFavorite, 
   onFavoriteToggle, 
   backendOrigin 
@@ -28,7 +28,7 @@ const FoodRestaurantCard = memo(({
       ? restaurant.slug.trim()
       : fallbackSlugSource.toLowerCase().replace(/\s+/g, "-");
 
-  const availability = getRestaurantAvailabilityStatus(restaurant, new Date(availabilityTick), {
+  const availability = getRestaurantAvailabilityStatus(restaurant, currentDate, {
     ignoreOperationalStatus: true,
   });
   const favorite = isFavorite(restaurantSlug);
@@ -164,6 +164,9 @@ const RestaurantGrid = memo(({
 }) => {
   const observer = React.useRef();
 
+  // Pre-compute Date object once per tick to avoid N new Date() calls inside card renders
+  const currentDate = React.useMemo(() => new Date(availabilityTick), [availabilityTick]);
+
   React.useEffect(() => {
     if (loadingRestaurants || !hasMoreRestaurants) return;
 
@@ -223,7 +226,7 @@ const RestaurantGrid = memo(({
               restaurant={restaurant}
               index={index}
               isOutOfService={isOutOfService}
-              availabilityTick={availabilityTick}
+              currentDate={currentDate}
               isFavorite={isFavorite}
               onFavoriteToggle={onFavoriteToggle}
               backendOrigin={backendOrigin}

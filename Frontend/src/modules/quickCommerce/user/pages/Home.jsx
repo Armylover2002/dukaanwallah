@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, startTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -187,7 +187,13 @@ const FloatingElements = React.memo(({ type }) => {
   return (
     <>
       {particles.map(({ i, style, animate, transition, content }) => (
-        <motion.div key={i} className="absolute pointer-events-none" style={style} animate={animate} transition={transition}>
+        <motion.div
+          key={i}
+          className="absolute pointer-events-none"
+          style={{ ...style, willChange: 'transform' }}
+          animate={animate}
+          transition={transition}
+        >
           <div className="transform-gpu">{content}</div>
         </motion.div>
       ))}
@@ -256,14 +262,18 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
   }, [activeCategory, onThemeChange]);
 
   // ── Derived flags ──────────────────────────────────────────────────────────
-  const isInitialPageLoading = !isBootstrapped || isLoading;
+  // With progressive loading: isBootstrapped = true as soon as categories arrive.
+  // Products/sections load in background — don't block the whole page for them.
+  const isInitialPageLoading = !isBootstrapped;
   const hasHeroBanners = (heroConfig.banners?.items || []).length > 0;
   const shouldShowHeroFallback = !isInitialPageLoading && !hasHeroBanners;
 
   // ── Mobile banner autoplay ─────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => {
-      setMobileBannerIndex((prev) => (prev >= 2 ? prev : prev + 1));
+      startTransition(() => {
+        setMobileBannerIndex((prev) => (prev >= 2 ? prev : prev + 1));
+      });
     }, 3500);
     return () => clearInterval(id);
   }, []);
@@ -699,11 +709,17 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
                       <div className="flex-1 pr-4">
                         <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] text-black/60 dark:text-white/60 mb-1">Trending right now</p>
                         <h3 className="text-2xl md:text-3xl font-black tracking-tight leading-tight drop-shadow-sm">{section.title}</h3>
-                        {((section.categoryIds || []).map((c) => typeof c === 'object' && c?.name ? c.name : null).filter(Boolean).join(', ') || section.categoryId?.name) && (
-                          <p className="text-xs md:text-sm font-semibold text-black/75 dark:text-white/75 mt-1">
-                            {(section.categoryIds || []).map((c) => typeof c === 'object' && c?.name ? c.name : null).filter(Boolean).join(', ') || section.categoryId?.name}
-                          </p>
-                        )}
+                        {(() => {
+                          const categoryNamesLabel = (section.categoryIds || [])
+                            .map((c) => typeof c === 'object' && c?.name ? c.name : null)
+                            .filter(Boolean)
+                            .join(', ') || section.categoryId?.name;
+                          return categoryNamesLabel ? (
+                            <p className="text-xs md:text-sm font-semibold text-black/75 dark:text-white/75 mt-1">
+                              {categoryNamesLabel}
+                            </p>
+                          ) : null;
+                        })()}
                       </div>
                       <motion.div
                         whileHover={{ y: -4, rotate: -4, scale: 1.06 }}
