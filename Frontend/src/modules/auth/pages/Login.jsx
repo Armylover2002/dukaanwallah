@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react"
 import { motion } from "framer-motion"
 import { Routes, Route, Navigate, Link, useLocation, useNavigate } from "react-router-dom"
-import { Phone, Lock, ArrowRight, ShieldCheck, Loader2, UserRound } from "lucide-react"
+import { Phone, Lock, ArrowRight, ArrowLeft, ShieldCheck, Loader2, UserRound } from "lucide-react"
 import { toast } from "sonner"
 import { authAPI, userAPI } from "@food/api"
 import { isModuleAuthenticated, setAuthData } from "@food/utils/auth"
@@ -320,6 +320,15 @@ export default function UnifiedOTPFastLogin() {
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col pt-0 sm:pt-0">
       {/* Top Banner section - Zomato Red */}
       <div className="w-full bg-primary-orange dark:bg-[#b01c27] rounded-b-[2.5rem] p-6 text-center text-white relative overflow-hidden shadow-2xl">
+        {/* Back Button */}
+        <button 
+          type="button"
+          onClick={() => navigate("/")} 
+          className="absolute top-6 left-6 z-20 p-2 bg-white/20 hover:bg-white/30 active:scale-95 rounded-full backdrop-blur-sm transition-all cursor-pointer"
+        >
+          <ArrowLeft className="w-5 h-5 text-white" strokeWidth={3} />
+        </button>
+
         <div className="absolute inset-0 bg-white/5 opacity-50 blur-3xl rounded-full -top-1/2 -left-1/4 animate-pulse" />
         <div className="absolute right-0 bottom-0 w-32 h-32 md:w-48 md:h-48 opacity-10 pointer-events-none">
            <svg viewBox="0 0 200 200" fill="currentColor">

@@ -15,6 +15,7 @@ import {
   getCachedSettings,
   getAppFavicon,
   updateBrowserFavicon,
+  getAppLogo,
 } from "@common/utils/businessSettings"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -36,6 +37,7 @@ export default function DeliverySignIn() {
     phone: "",
     countryCode: "+91",
   })
+  const [logoUrl, setLogoUrl] = useState(() => getAppLogo('delivery'))
 
   // Pre-fill form from sessionStorage if data exists (e.g., when coming back from OTP)
   useEffect(() => {
@@ -63,6 +65,10 @@ export default function DeliverySignIn() {
       if (deliveryFavicon) {
         updateBrowserFavicon(deliveryFavicon)
       }
+      const deliveryLogo = getAppLogo("delivery")
+      if (deliveryLogo) {
+        setLogoUrl(deliveryLogo)
+      }
     }
 
     const cached = getCachedSettings()
@@ -80,6 +86,10 @@ export default function DeliverySignIn() {
       const favicon = settings.deliveryFavicon?.url || settings.favicon?.url || ""
       if (favicon) {
         updateBrowserFavicon(favicon)
+      }
+      const deliveryLogo = getAppLogo("delivery")
+      if (deliveryLogo) {
+        setLogoUrl(deliveryLogo)
       }
     }
 
@@ -188,19 +198,29 @@ export default function DeliverySignIn() {
 
   return (
     <div className="max-h-screen h-screen bg-white flex flex-col">
-      {/* Top Section - Logo and Badge */}
-      <div className="flex flex-col items-center pt-8 pb-6 px-6">
-        <div>
-          <h1 className="text-3xl text-black font-extrabold italic lowercase tracking-tight">
-            {companyName.toLowerCase()}
+      {/* Top Banner section - Orange */}
+      <div className="w-full bg-primary-orange rounded-b-[2.5rem] p-6 text-center text-white relative overflow-hidden shadow-xl mb-6">
+        <div className="absolute inset-0 bg-white/5 opacity-50 blur-3xl rounded-full -top-1/2 -left-1/4 animate-pulse" />
+        
+        <div className="relative z-10 flex flex-col items-center pt-4 pb-2">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-lg overflow-hidden">
+            {logoUrl ? (
+              <img src={logoUrl} alt={companyName} className="w-full h-full object-contain p-2" />
+            ) : (
+              <span className="text-primary-orange text-2xl font-black italic">{companyName.charAt(0).toUpperCase()}</span>
+            )}
+          </div>
+          
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
+            {companyName}
           </h1>
-        </div>
 
-        {/* DELIVERY Badge */}
-        <div className="bg-black px-6 py-2 rounded mt-2">
-          <span className="text-white font-semibold text-sm uppercase tracking-wide">
-            DELIVERY
-          </span>
+          {/* DELIVERY Badge */}
+          <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/30">
+            <span className="text-white font-bold text-xs uppercase tracking-[0.2em]">
+              Delivery Partner
+            </span>
+          </div>
         </div>
       </div>
 
@@ -261,18 +281,18 @@ export default function DeliverySignIn() {
           <button
             onClick={handleSendOTP}
             disabled={!isValid || isSending}
-            className={`w-full py-4 rounded-lg font-bold text-base transition-colors ${isValid && !isSending
-              ? "bg-[#00B761] hover:bg-[#00A055] active:bg-[#009049] text-white"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            className={`w-full py-4 rounded-xl font-black text-lg transition-all shadow-lg ${isValid && !isSending
+              ? "bg-primary-orange hover:bg-primary-hover active:scale-[0.98] text-white hover:shadow-xl"
+              : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
               }`}
           >
             {isSending ? "Sending OTP..." : "Continue"}
           </button>
 
           {/* Terms and Conditions */}
-          <p className="text-xs text-center text-gray-600 px-4">
+          <p className="text-xs text-center text-gray-500 px-4 font-medium uppercase tracking-widest leading-relaxed mt-4">
             By continuing, you agree to our{" "}
-            <Link to="/food/delivery/terms" className="text-blue-600 hover:underline">
+            <Link to="/food/delivery/terms" className="text-primary-orange hover:underline font-bold">
               Terms and Conditions
             </Link>
           </p>
