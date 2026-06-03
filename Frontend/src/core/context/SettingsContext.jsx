@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS = {
   timezone: "Asia/Kolkata",
   logoUrl: "",
   faviconUrl: "",
-  primaryColor: "#0ea5e9",
+  primaryColor: "#f26522",
   secondaryColor: "#64748b",
   companyName: "",
   taxId: "",
@@ -96,8 +96,8 @@ export const SettingsProvider = ({ children }) => {
       console.error("Failed to fetch settings", err);
       setError(
         err?.response?.data?.message ||
-          err.message ||
-          "Failed to load settings",
+        err.message ||
+        "Failed to load settings",
       );
       setSettings(DEFAULT_SETTINGS);
       applyThemeVariables(DEFAULT_SETTINGS);

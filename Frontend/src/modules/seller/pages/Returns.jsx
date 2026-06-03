@@ -173,7 +173,7 @@ const Returns = () => {
 
             {loading ? (
                 <div className="min-h-[320px] flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-100 shadow-sm">
-                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                    <Loader2 className="h-10 w-10 text-orange-500 animate-spin" />
                     <p className="text-slate-600 font-bold mt-4 uppercase tracking-widest text-xs">
                         Loading Return Requests...
                     </p>
@@ -223,7 +223,7 @@ const Returns = () => {
                                             className={cn(
                                                 "relative py-3 sm:py-4 px-2.5 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-300",
                                                 activeTab === tab
-                                                    ? "text-primary scale-105"
+                                                    ? "text-orange-500 scale-105"
                                                     : "text-slate-600 hover:text-slate-700"
                                             )}
                                         >
@@ -231,7 +231,7 @@ const Returns = () => {
                                             {activeTab === tab && (
                                                 <motion.div
                                                     layoutId="returns-tab-underline"
-                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full mx-2 sm:mx-4"
+                                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full mx-2 sm:mx-4"
                                                 />
                                             )}
                                         </button>

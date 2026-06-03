@@ -97,7 +97,7 @@ const getSellerPhone = (seller = {}) => seller.phone || "";
 
 export default function SellerOnboarding() {
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const [form, setForm] = useState(initialState);
   const [qrFile, setQrFile] = useState(null);
   const [licenseFile, setLicenseFile] = useState(null);
@@ -193,7 +193,7 @@ export default function SellerOnboarding() {
   );
 
   const updateField = (field, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const { openingTime, closingTime } = useMemo(
@@ -364,19 +364,28 @@ export default function SellerOnboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.18),_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#fffaf2_100%)] px-4 py-8 font-['Outfit'] md:px-8 seller-theme-scope">
+    <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.18),_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#fffaf2_100%)] px-4 py-8 font-['Outfit'] md:px-8 seller-theme-scope">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_1.4fr]">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-[34px] bg-[linear-gradient(160deg,#0f172a_0%,#0f766e_55%,#f59e0b_130%)] p-8 text-white shadow-[0_35px_90px_rgba(15,23,42,0.22)]"
+            className="rounded-[34px] bg-orange-500-orange p-5 md:p-8 text-white shadow-[0_35px_90px_rgba(234,88,12,0.22)]"
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em]">
-              <ShieldCheck className="h-4 w-4" />
-              Seller Onboarding
+            <div className="flex flex-wrap justify-between items-start gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
+                <ShieldCheck className="h-4 w-4" />
+                Seller Onboarding
+              </div>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] cursor-pointer"
+              >
+                Logout
+              </button>
             </div>
-            <h1 className="mt-8 text-4xl font-black leading-tight">
+            <h1 className="mt-8 text-3xl md:text-4xl font-black leading-tight">
               Set up your store once and send it straight for approval.
             </h1>
             <p className="mt-4 max-w-lg text-sm font-medium leading-7 text-white/78">
@@ -437,11 +446,11 @@ export default function SellerOnboarding() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             onSubmit={handleSubmit}
-            className="space-y-6 rounded-[34px] border border-white/70 bg-white/90 p-6 shadow-[0_35px_90px_rgba(15,23,42,0.08)] backdrop-blur xl:p-8"
+            className="space-y-6 rounded-[34px] border border-white/70 bg-white/90 p-5 md:p-6 shadow-[0_35px_90px_rgba(15,23,42,0.08)] backdrop-blur xl:p-8 w-full max-w-full overflow-hidden"
           >
             <section className="space-y-5">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-amber-100 p-3 text-amber-700">
+                <div className="rounded-2xl bg-orange-100 p-3 text-orange-500-orange">
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div>
@@ -455,15 +464,15 @@ export default function SellerOnboarding() {
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Seller name <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Seller name <span className="text-red-500">*</span></label>
                   <input required className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900" placeholder="Seller name" value={form.name} onChange={(e) => updateField("name", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Shop name <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Shop name <span className="text-red-500">*</span></label>
                   <input required className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900" placeholder="Shop name" value={form.shopName} onChange={(e) => updateField("shopName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Email <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Email <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.email) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -477,11 +486,11 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Primary phone <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Primary phone <span className="text-red-500">*</span></label>
                   <input className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 font-semibold text-slate-500 outline-none" placeholder="Primary phone" value={form.phone} readOnly title="Linked from the seller OTP login" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Business type <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Business type <span className="text-red-500">*</span></label>
                   <select required className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900" value={form.businessType} onChange={(e) => updateField("businessType", e.target.value)}>
                   <option value="">Select business type</option>
                   {businessTypes.map((item) => (
@@ -492,7 +501,7 @@ export default function SellerOnboarding() {
                 </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Alternate phone <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Alternate phone <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.alternatePhone && form.alternatePhone === form.phone ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -505,7 +514,7 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Service zone <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Service zone <span className="text-red-500">*</span></label>
                 <select
                   required
                   className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900"
@@ -535,7 +544,7 @@ export default function SellerOnboarding() {
                 </select>
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500">Support email <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Support email <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.supportEmail && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.supportEmail) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -549,9 +558,9 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 {selectedZone ? (
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 md:col-span-2">
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">Selected zone</p>
-                    <p className="mt-1 text-sm font-semibold text-emerald-900">
+                  <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 md:col-span-2">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-orange-600">Selected zone</p>
+                    <p className="mt-1 text-sm font-semibold text-orange-900">
                       {selectedZone.label}
                     </p>
                   </div>
@@ -603,7 +612,7 @@ export default function SellerOnboarding() {
                       type="button"
                       onClick={handleSaveOpeningHours}
                       disabled={isSavingHours}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                      className="inline-flex items-center gap-2 rounded-2xl bg-orange-500-orange px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {isSavingHours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                       {isSavingHours ? "Saving..." : "Save Hours"}
@@ -619,7 +628,7 @@ export default function SellerOnboarding() {
                     <button
                       type="button"
                       onClick={() => setIsMapOpen(true)}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-black"
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500-orange px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-orange-600"
                     >
                       <MapPin className="h-4 w-4" />
                       {form.lat && form.lng ? "Change Pin" : "Pick On Map"}
@@ -658,15 +667,15 @@ export default function SellerOnboarding() {
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Bank name <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Bank name <span className="text-red-500">*</span></label>
                   <input required className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900" placeholder="Bank name" value={form.bankName} onChange={(e) => updateField("bankName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Account holder name <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Account holder name <span className="text-red-500">*</span></label>
                   <input required className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900" placeholder="Account holder name" value={form.accountHolderName} onChange={(e) => updateField("accountHolderName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Account number <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Account number <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.accountNumber && !/^\d{6,20}$/.test(form.accountNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -680,7 +689,7 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">IFSC code <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">IFSC code <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold uppercase outline-none focus:border-slate-900 ${form.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifscCode) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -694,7 +703,7 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Account type <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Account type <span className="text-red-500">*</span></label>
                 <select
                   required
                   className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900"
@@ -713,7 +722,7 @@ export default function SellerOnboarding() {
                 </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">UPI ID <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">UPI ID <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.upiId && !/^[a-zA-Z0-9._-]+@[a-zA-Z0-9]+$/.test(form.upiId) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -726,10 +735,10 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500">UPI QR image <span className="text-red-500">*</span></label>
-                  <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">
-                    <span>{qrFile?.name || "Upload UPI QR image"}</span>
-                    <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
+                  <label className="text-xs font-bold text-slate-900">UPI QR image <span className="text-red-500">*</span></label>
+                  <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                    <span className="truncate max-w-[200px]">{qrFile?.name || "Upload UPI QR image"}</span>
+                    <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500-orange px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
                       <Upload className="h-3.5 w-3.5" />
                       Choose
                     </span>
@@ -745,7 +754,7 @@ export default function SellerOnboarding() {
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">PAN number <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">PAN number <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold uppercase outline-none focus:border-slate-900 ${form.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(form.panNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -763,7 +772,7 @@ export default function SellerOnboarding() {
                   GST registered
                 </label>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">GST number <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">GST number <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold uppercase outline-none focus:border-slate-900 ${form.gstNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(form.gstNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -777,11 +786,11 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">GST legal name <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">GST legal name <span className="text-red-500">*</span></label>
                   <input required className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900" placeholder="GST legal name" value={form.gstLegalName} onChange={(e) => updateField("gstLegalName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">FSSAI number <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">FSSAI number <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.fssaiNumber && !/^\d{14}$/.test(form.fssaiNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -795,7 +804,7 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">FSSAI expiry date <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">FSSAI expiry date <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.fssaiExpiry && form.fssaiExpiry < new Date().toISOString().split("T")[0] ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -809,7 +818,7 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Shop license number <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Shop license number <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.shopLicenseNumber && !/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -823,7 +832,7 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Shop license expiry date <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-900">Shop license expiry date <span className="text-red-500">*</span></label>
                   <input
                     required
                     className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.shopLicenseExpiry && form.shopLicenseExpiry < new Date().toISOString().split("T")[0] ? "border-red-400 bg-red-50" : "border-slate-200"}`}
@@ -837,10 +846,10 @@ export default function SellerOnboarding() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500">Shop license image <span className="text-red-500">*</span></label>
-                  <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">
-                    <span>{licenseFile?.name || "Upload shop license image"}</span>
-                    <span className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
+                  <label className="text-xs font-bold text-slate-900">Shop license image <span className="text-red-500">*</span></label>
+                  <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                    <span className="truncate max-w-[200px]">{licenseFile?.name || "Upload shop license image"}</span>
+                    <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500-orange px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
                       <Upload className="h-3.5 w-3.5" />
                       Choose
                     </span>
@@ -858,7 +867,7 @@ export default function SellerOnboarding() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-4 text-sm font-black uppercase tracking-[0.22em] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500-orange px-6 py-4 text-sm font-black uppercase tracking-[0.22em] text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSubmitting ? "Submitting..." : "Submit for approval"}
                 {!isSubmitting && <ArrowRight className="h-4 w-4" />}

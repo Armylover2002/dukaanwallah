@@ -131,7 +131,7 @@ const OrderMobileCard = React.memo(({
           {canResendDispatch(order) && (
             <button
               onClick={() => handleResendDispatch(order.id)}
-              className="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider">
+              className="px-2.5 py-1.5 rounded-lg bg-orange-50 text-orange-700 text-[10px] font-black uppercase tracking-wider">
               Resend Rider
             </button>
           )}
@@ -165,7 +165,7 @@ const OrderRow = React.memo(({
       <td className="px-4 lg:px-6 py-3 lg:py-4">
         <div>
           <span
-            className="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors cursor-pointer"
+            className="text-xs font-bold text-slate-900 group-hover:text-orange-500 transition-colors cursor-pointer"
             onClick={() => handleViewDetails(order)}>
             #{order.id}
           </span>
@@ -250,13 +250,13 @@ const OrderRow = React.memo(({
               onClick={() =>
                 handleResendDispatch(order.id)
               }
-              className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all text-[10px] font-black uppercase tracking-wider">
+              className="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-all text-[10px] font-black uppercase tracking-wider">
               Resend Rider
             </button>
           )}
           <button
             onClick={() => handleViewDetails(order)}
-            className="p-1.5 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
+            className="p-1.5 hover:bg-white hover:text-orange-500 rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
             <HiOutlineEye className="h-4 w-4" />
           </button>
           {order.status === "Pending" && (
@@ -480,16 +480,16 @@ const Orders = () => {
         workflowVersion: order.workflowVersion,
         date: order.createdAt
           ? new Date(order.createdAt).toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
           : "",
         time: order.createdAt
           ? new Date(order.createdAt).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+            hour: "2-digit",
+            minute: "2-digit",
+          })
           : "",
         address: order.address
           ? `${order.address.address || ""}, ${order.address.city || ""}`.trim()
@@ -500,11 +500,11 @@ const Orders = () => {
         ).toLowerCase(),
         deliveryPartner: order.deliveryPartner
           ? {
-              name: order.deliveryPartner.name || "Delivery Partner",
-              phone: order.deliveryPartner.phone || "",
-              vehicleType: order.deliveryPartner.vehicleType || "",
-              vehicleNumber: order.deliveryPartner.vehicleNumber || "",
-            }
+            name: order.deliveryPartner.name || "Delivery Partner",
+            phone: order.deliveryPartner.phone || "",
+            vehicleType: order.deliveryPartner.vehicleType || "",
+            vehicleNumber: order.deliveryPartner.vehicleNumber || "",
+          }
           : null,
         payment:
           order.payment?.method === "cash" || order.payment?.method === "cod"
@@ -575,8 +575,8 @@ const Orders = () => {
         label: "Total Orders",
         value: safeOrders.length,
         icon: HiOutlineArchiveBoxXMark,
-        color: "text-indigo-600",
-        bg: "bg-indigo-50",
+        color: "text-orange-600",
+        bg: "bg-orange-50",
       },
       {
         label: "Pending",
@@ -591,8 +591,8 @@ const Orders = () => {
         value: safeOrders.filter((o) => o.status.toLowerCase() === "confirmed")
           .length,
         icon: HiOutlineCheck,
-        color: "text-blue-600",
-        bg: "bg-blue-50",
+        color: "text-orange-600",
+        bg: "bg-orange-50",
       },
       {
         label: "Delivered",
@@ -644,9 +644,9 @@ const Orders = () => {
         (Array.isArray(prev) ? prev : []).map((order) =>
           order.id === orderId
             ? {
-                ...order,
-                status: normalizedStatus,
-              }
+              ...order,
+              status: normalizedStatus,
+            }
             : order,
         ),
       );
@@ -661,9 +661,9 @@ const Orders = () => {
         normalizedStatus === "out_for_delivery"
           ? "Out for Delivery"
           : normalizedStatus
-              .split("_")
-              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-              .join(" ");
+            .split("_")
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ");
 
       setActiveTab((prevTab) => {
         if (prevTab !== "All" && prevTab !== nextTabLabel) {
@@ -687,10 +687,10 @@ const Orders = () => {
       setSelectedOrder((prev) =>
         prev && prev.id === orderId
           ? {
-              ...prev,
-              dispatchStatus: "assigned",
-              deliveryPartner: null,
-            }
+            ...prev,
+            dispatchStatus: "assigned",
+            deliveryPartner: null,
+          }
           : prev,
       );
       showToast(
@@ -704,7 +704,7 @@ const Orders = () => {
       console.error("Failed to resend dispatch:", error);
       showToast(
         error?.response?.data?.message ||
-          "Failed to resend driver notification",
+        "Failed to resend driver notification",
         "error",
       );
     }
@@ -778,7 +778,7 @@ const Orders = () => {
               Order Management
               <Badge
                 variant="primary"
-                className="text-[10px] px-1.5 py-0 font-bold tracking-wider uppercase bg-blue-100 text-blue-700">
+                className="text-[10px] px-1.5 py-0 font-bold tracking-wider uppercase bg-orange-100 text-orange-700">
                 Real-time
               </Badge>
             </h1>
@@ -794,12 +794,12 @@ const Orders = () => {
               <HiOutlinePrinter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">EXPORT ALL</span>
             </Button>
-            <ShimmerButton
+            <Button
               onClick={() => setIsQuickViewModalOpen(true)}
-              className="px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold text-white shadow-xl flex items-center space-x-1.5 sm:space-x-2">
+              className="bg-orange-500 px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold text-white shadow-xl flex items-center space-x-1.5 sm:space-x-2">
               <HiOutlineEye className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-0" />
               <span className="hidden sm:inline">QUICK VIEW</span>
-            </ShimmerButton>
+            </Button>
           </div>
         </div>
       </BlurFade>
@@ -807,7 +807,7 @@ const Orders = () => {
       {/* Quick Stats */}
       {loading ? (
         <div className="min-h-[400px] flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-100 shadow-sm">
-          <Loader2 className="h-10 w-10 text-primary animate-spin" />
+          <Loader2 className="h-10 w-10 text-orange-500 animate-spin" />
           <p className="text-slate-600 font-bold mt-4 uppercase tracking-widest text-xs">
             Fetching Active Orders...
           </p>
@@ -820,7 +820,7 @@ const Orders = () => {
                 <MagicCard
                   className="border-none shadow-sm ring-1 ring-slate-100 p-0 overflow-hidden group bg-white"
                   gradientColor={
-                    stat.bg.includes("indigo")
+                    stat.bg.includes("orange")
                       ? "#eef2ff"
                       : stat.bg.includes("amber")
                         ? "#fffbeb"
@@ -864,14 +864,14 @@ const Orders = () => {
                       className={cn(
                         "relative py-3 sm:py-4 px-2.5 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-300",
                         activeTab === tab
-                          ? "text-primary scale-105"
+                          ? "text-orange-500 scale-105"
                           : "text-slate-600 hover:text-slate-700",
                       )}>
                       {tab}
                       {activeTab === tab && (
                         <motion.div
                           layoutId="tab-underline"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full mx-2 sm:mx-4"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full mx-2 sm:mx-4"
                         />
                       )}
                     </button>
@@ -882,13 +882,13 @@ const Orders = () => {
               {/* Toolbox */}
               <div className="p-3 sm:p-4 border-b border-slate-100 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
                 <div className="relative flex-1 group w-full">
-                  <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 group-focus-within:text-primary transition-all" />
+                  <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 group-focus-within:text-orange-500 transition-all" />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search by Order ID or Customer Name..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-lg text-sm font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-primary/5 transition-all outline-none"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-lg text-sm font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-orange-500/5 transition-all outline-none"
                   />
                 </div>
                 <div className="flex gap-3 shrink-0 w-full lg:w-auto items-center justify-end flex-wrap">
@@ -1155,7 +1155,7 @@ const Orders = () => {
                   className="w-full max-w-lg relative z-10 bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
                   <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-9 w-9 sm:h-10 sm:w-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+                      <div className="h-9 w-9 sm:h-10 sm:w-10 bg-orange-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
                         <HiOutlineChartBar className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
                       <div className="min-w-0">
@@ -1177,11 +1177,11 @@ const Orders = () => {
                   <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                     {/* Summary Grid */}
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                      <div className="p-3 sm:p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
-                        <p className="text-[10px] sm:text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">
+                      <div className="p-3 sm:p-4 rounded-2xl bg-orange-50 border border-orange-100">
+                        <p className="text-[10px] sm:text-xs font-bold text-orange-400 uppercase tracking-widest mb-1">
                           Total Revenue
                         </p>
-                        <p className="text-base sm:text-xl font-black text-indigo-700 truncate">
+                        <p className="text-base sm:text-xl font-black text-orange-700 truncate">
                           ₹
                           {safeOrders
                             .reduce((acc, o) => acc + o.total, 0)
@@ -1196,11 +1196,11 @@ const Orders = () => {
                           ₹
                           {safeOrders.length
                             ? (
-                                safeOrders.reduce(
-                                  (acc, o) => acc + o.total,
-                                  0,
-                                ) / safeOrders.length
-                              ).toFixed(0)
+                              safeOrders.reduce(
+                                (acc, o) => acc + o.total,
+                                0,
+                              ) / safeOrders.length
+                            ).toFixed(0)
                             : "0"}
                         </p>
                       </div>
@@ -1284,13 +1284,13 @@ const Orders = () => {
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
-                              <HiOutlineMapPin className="h-3 w-3 text-primary" />{" "}
+                              <HiOutlineMapPin className="h-3 w-3 text-orange-500" />{" "}
                               Delivery Address
                             </h4>
                             {selectedOrder.location &&
                               typeof selectedOrder.location.lat === "number" &&
                               typeof selectedOrder.location.lng ===
-                                "number" && (
+                              "number" && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1300,7 +1300,7 @@ const Orders = () => {
                                       "_blank",
                                     );
                                   }}
-                                  className="text-[10px] font-bold text-primary hover:underline">
+                                  className="text-[10px] font-bold text-orange-500 hover:underline">
                                   View on map
                                 </button>
                               )}
@@ -1322,7 +1322,7 @@ const Orders = () => {
                         </div>
                         <div>
                           <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                            <HiOutlineTruck className="h-3 w-3 text-blue-500" />{" "}
+                            <HiOutlineTruck className="h-3 w-3 text-orange-500" />{" "}
                             Driver Status
                           </h4>
                           <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
@@ -1347,7 +1347,7 @@ const Orders = () => {
                                     {selectedOrder.deliveryPartner.phone && (
                                       <a
                                         href={`tel:${selectedOrder.deliveryPartner.phone}`}
-                                        className="text-xs text-primary hover:underline font-bold flex items-center gap-0.5 ml-1"
+                                        className="text-xs text-orange-500 hover:underline font-bold flex items-center gap-0.5 ml-1"
                                       >
                                         Call Rider
                                       </a>
@@ -1374,8 +1374,8 @@ const Orders = () => {
                         </div>
                       </div>
                       <div className="space-y-3 sm:space-y-4">
-                        <div className="bg-primary/5 p-3 sm:p-4 rounded-3xl border border-primary/10">
-                          <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-3">
+                        <div className="bg-orange-500/5 p-3 sm:p-4 rounded-3xl border border-orange-500/10">
+                          <h4 className="text-xs font-black text-orange-500 uppercase tracking-widest mb-3">
                             Order Summary
                           </h4>
                           <div className="space-y-2">
@@ -1395,18 +1395,18 @@ const Orders = () => {
                                 {formatMoney(selectedOrder.pricing?.commission)}
                               </span>
                             </div>
-                            <div className="h-px bg-primary/10 my-2" />
+                            <div className="h-px bg-orange-500/10 my-2" />
                             <div className="flex justify-between text-sm">
                               <span className="font-black text-slate-900">
                                 Receivable
                               </span>
-                              <span className="font-black text-primary">
+                              <span className="font-black text-orange-500">
                                 {formatMoney(selectedOrder.total)}
                               </span>
                             </div>
                           </div>
                         </div>
-                        <div className="bg-slate-900 p-3 sm:p-4 rounded-3xl text-white shadow-xl shadow-slate-900/10">
+                        <div className="bg-slate-900 p-3 sm:p-4 rounded-3xl text-white shadow-xl shadow-orange-500/20">
                           <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
                             Payment Status
                           </h4>
@@ -1473,7 +1473,7 @@ const Orders = () => {
                       {canResendDispatch(selectedOrder) && (
                         <button
                           onClick={() => handleResendDispatch(selectedOrder.id)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all">
+                          className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all">
                           Resend Rider
                         </button>
                       )}
@@ -1532,7 +1532,7 @@ const Orders = () => {
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-2xl border text-xs font-bold cursor-pointer transition-all hover:bg-slate-50",
                       cancelReasonPreset === reason
-                        ? "border-primary bg-primary/5 text-primary"
+                        ? "border-orange-500 bg-orange-500/5 text-orange-500"
                         : "border-slate-100 text-slate-700 bg-white"
                     )}
                   >
@@ -1556,7 +1556,7 @@ const Orders = () => {
                     onChange={(e) => setCancelReason(e.target.value)}
                     placeholder="Describe your reason in detail..."
                     rows={3}
-                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-primary/5 outline-none transition-all resize-none"
+                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-orange-500/5 outline-none transition-all resize-none"
                   />
                 </div>
               )}

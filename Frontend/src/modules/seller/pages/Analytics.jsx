@@ -115,8 +115,8 @@ const Analytics = () => {
       value: statsData?.overview?.totalOrders || "0",
       trend: statsData?.overview?.ordersTrend || "0%",
       icon: HiOutlineShoppingBag,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50",
+      color: "text-orange-600",
+      bg: "bg-orange-50",
     },
     {
       label: "Avg Order Value",
@@ -282,7 +282,7 @@ const Analytics = () => {
               gradientColor={
                 stat.bg.includes("emerald")
                   ? "#ecfdf5"
-                  : stat.bg.includes("indigo")
+                  : stat.bg.includes("orange")
                     ? "#eef2ff"
                     : stat.bg.includes("amber")
                       ? "#fffbeb"
@@ -359,7 +359,7 @@ const Analytics = () => {
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                       chartRange === range
-                        ? "bg-white text-primary shadow-sm"
+                        ? "bg-white text-orange-500 shadow-sm"
                         : "text-slate-600 hover:text-slate-600",
                     )}>
                     {range}
@@ -526,7 +526,7 @@ const Analytics = () => {
                   }}
                   className="px-6 py-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors group cursor-pointer">
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 font-black text-xs group-hover:bg-primary group-hover:text-white transition-all">
+                    <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 font-black text-xs group-hover:bg-orange-500 group-hover:text-white transition-all">
                       {i + 1}
                     </div>
                     <div>
@@ -563,7 +563,7 @@ const Analytics = () => {
             <div className="p-4 bg-slate-50/50 border-t border-slate-50 text-center">
               <button
                 onClick={() => navigate("/seller/products")}
-                className="text-xs font-black text-primary uppercase tracking-widest hover:underline">
+                className="text-xs font-black text-orange-500 uppercase tracking-widest hover:underline">
                 View All Products Analytics
               </button>
             </div>
@@ -637,7 +637,7 @@ const Analytics = () => {
 
             <div className="mt-8 grid grid-cols-3 gap-4 border-t border-slate-50 pt-8">
               <div className="text-center">
-                <div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+                <div className="h-10 w-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mx-auto mb-2">
                   <HiOutlineMapPin className="h-5 w-5" />
                 </div>
                 <p className="text-[10px] font-black text-slate-900 tracking-tight">
@@ -704,11 +704,11 @@ const Analytics = () => {
                   {selectedProduct.revenue}
                 </p>
               </div>
-              <div className="p-4 bg-blue-50 rounded-2xl">
-                <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
+              <div className="p-4 bg-orange-50 rounded-2xl">
+                <p className="text-[10px] font-black text-orange-700 uppercase tracking-widest">
                   Units Sold
                 </p>
-                <p className="text-xl font-black text-blue-900">
+                <p className="text-xl font-black text-orange-900">
                   {selectedProduct.sales}
                 </p>
               </div>
@@ -719,7 +719,7 @@ const Analytics = () => {
                 Sales velocity
               </p>
               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-primary w-[75%]" />
+                <div className="h-full bg-orange-500 w-[75%]" />
               </div>
               <p className="text-[10px] text-slate-600 font-bold text-right pt-1">
                 +{selectedProduct.trend}% faster than last week
@@ -728,7 +728,7 @@ const Analytics = () => {
 
             <Button
               onClick={() => setIsProductModalOpen(false)}
-              className="w-full py-4 rounded-2xl font-black shadow-xl shadow-primary/20">
+              className="w-full py-4 rounded-2xl font-black shadow-xl shadow-orange-500/20">
               CLOSE DETAILS
             </Button>
           </div>

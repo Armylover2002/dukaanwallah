@@ -48,7 +48,7 @@ const BottomNav = ({ navItems }) => {
                     className={({ isActive }) => cn(
                         "flex flex-col items-center justify-center space-y-1 w-16 transition-all duration-300",
                         isActive
-                            ? "text-primary font-bold"
+                            ? (isSellerPanel ? "text-orange-500 font-bold" : "text-primary font-bold")
                             : (isSellerPanel ? "text-[#5C5247] hover:text-[#1A1A1A]" : "text-gray-500 hover:text-gray-300")
                     )}
                 >

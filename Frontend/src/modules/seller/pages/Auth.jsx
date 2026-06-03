@@ -160,7 +160,7 @@ export default function SellerAuth() {
           >
             <div className="mb-8 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Partner Access</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Partner Access</p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">
                   {companyName} seller login
                 </h2>
@@ -169,7 +169,7 @@ export default function SellerAuth() {
                 </p>
               </div>
               <div className="hidden h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 md:flex">
-                <ShieldCheck className="h-8 w-8 text-primary" />
+                <ShieldCheck className="h-8 w-8 text-orange-500" />
               </div>
             </div>
 
@@ -200,7 +200,7 @@ export default function SellerAuth() {
                     type="button"
                     onClick={handleSendOtp}
                     disabled={isLoading}
-                    className="h-14 w-full rounded-[24px] bg-slate-900 text-sm font-black uppercase tracking-[0.22em] text-white hover:bg-black"
+                    className="h-14 w-full rounded-[24px] bg-orange-500 text-sm font-black uppercase tracking-[0.22em] text-white hover:bg-orange-600 transition-all shadow-xl hover:shadow-orange-500/30"
                   >
                     {isLoading ? "Sending OTP..." : "Send OTP"}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -212,7 +212,7 @@ export default function SellerAuth() {
                     <label className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">
                       Verify OTP
                     </label>
-                    <div className="rounded-[24px] border border-orange-100 bg-orange-50/50 text-sm font-semibold text-primary">
+                    <div className="rounded-[24px] border border-orange-100 bg-orange-50/50 text-sm font-semibold text-orange-500">
                       Code sent to {maskedPhone}
                     </div>
                     <div className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-4">
@@ -246,7 +246,7 @@ export default function SellerAuth() {
                       type="button"
                       onClick={handleVerifyOtp}
                       disabled={isLoading}
-                      className="h-14 flex-[1.4] rounded-[24px] bg-primary text-sm font-black uppercase tracking-[0.18em] text-white hover:bg-primary/90"
+                      className="h-14 flex-[1.4] rounded-[24px] bg-orange-500 text-sm font-black uppercase tracking-[0.18em] text-white hover:bg-orange-500/90"
                     >
                       {isLoading ? "Verifying..." : "Continue"}
                     </Button>

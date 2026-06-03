@@ -4,7 +4,7 @@ import { HiOutlineBell, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutl
 import { cn } from '@/lib/utils';
 import Button from '@shared/components/ui/Button';
 
-const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClose }) => {
+const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClose, isSeller }) => {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -15,7 +15,7 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
         >
             <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-slate-50/50 flex-shrink-0">
                 <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", isSeller ? "bg-orange-500/10 text-orange-500" : "bg-primary/10 text-primary")}>
                         <HiOutlineBell className="h-4 w-4" />
                     </div>
                     <h3 className="text-sm font-black text-slate-900 tracking-tight">Notifications</h3>
@@ -23,7 +23,7 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                 {notifications.length > 0 && (
                     <button
                         onClick={onMarkAllAsRead}
-                        className="text-[10px] font-black text-primary hover:text-primary/80 uppercase tracking-widest transition-colors"
+                        className={cn("text-[10px] font-black uppercase tracking-widest transition-colors", isSeller ? "text-orange-500 hover:text-orange-500/80" : "text-primary hover:text-primary/80")}
                     >
                         Mark all as read
                     </button>
@@ -38,19 +38,19 @@ const NotificationPopup = ({ notifications, onMarkAsRead, onMarkAllAsRead, onClo
                                 key={notif._id}
                                 className={cn(
                                     "p-4 hover:bg-slate-50 transition-all cursor-pointer group relative",
-                                    !notif.isRead && "bg-primary/[0.02]"
+                                    !notif.isRead && (isSeller ? "bg-orange-500/[0.02]" : "bg-primary/[0.02]")
                                 )}
                                 onClick={() => !notif.isRead && onMarkAsRead(notif._id)}
                             >
                                 {!notif.isRead && (
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
+                                    <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-r-full", isSeller ? "bg-orange-500" : "bg-primary")} />
                                 )}
                                 <div className="flex gap-4">
                                     <div className={cn(
                                         "h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110",
                                         notif.type === 'order' ? "bg-emerald-50 text-emerald-600" :
                                             notif.type === 'payment' ? "bg-amber-50 text-amber-600" :
-                                                "bg-blue-50 text-blue-600"
+                                                (isSeller ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600")
                                     )}>
                                         {notif.type === 'order' ? <HiOutlineCheckCircle size={20} /> :
                                             notif.type === 'payment' ? <HiOutlineClock size={20} /> :

@@ -264,7 +264,7 @@ const AddProduct = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <Button
           variant="ghost"
-          className="pl-0 hover:bg-transparent hover:text-primary-600"
+          className="pl-0 hover:bg-transparent hover:text-orange-500-600"
           onClick={() => navigate(-1)}>
           <HiOutlineArrowLeft className="mr-2 h-5 w-5" />
           Back to Products
@@ -305,7 +305,7 @@ const AddProduct = () => {
               className={cn(
                 "w-full flex items-center space-x-3 px-4 py-3 rounded-md text-xs font-bold transition-all text-left",
                 modalTab === tab.id
-                  ? "bg-white text-primary shadow-sm ring-1 ring-slate-100"
+                  ? "bg-white text-orange-500 shadow-sm ring-1 ring-slate-100"
                   : "text-slate-600 hover:bg-slate-100",
               )}>
               <tab.icon className="h-4 w-4" />
@@ -340,10 +340,10 @@ const AddProduct = () => {
               <div className={cn(
                 "flex flex-col space-y-2 p-4 rounded-2xl border transition-all",
                 autoFilled
-                  ? "bg-indigo-50 border-indigo-200"
+                  ? "bg-orange-50 border-orange-200"
                   : "bg-slate-50 border-slate-100",
               )}>
-                <label className="text-[10px] sm:text-xs font-bold text-indigo-600 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                <label className="text-[10px] sm:text-xs font-bold text-orange-600 uppercase tracking-widest ml-1 flex items-center gap-1.5">
                   <HiOutlineQrCode className="h-3.5 w-3.5" />
                   Import from Product ID
                   <span className="text-[9px] font-medium text-slate-400 normal-case tracking-normal">(optional)</span>
@@ -354,13 +354,13 @@ const AddProduct = () => {
                     onChange={e => { setProductIdInput(e.target.value); setAutoFilled(false); }}
                     onKeyDown={e => e.key === 'Enter' && handleProductIdLookup()}
                     placeholder="Paste Product ID (e.g. SKU-S17VXD)"
-                    className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono font-semibold outline-none focus:ring-2 focus:ring-indigo-300 transition-all placeholder:text-slate-400 placeholder:font-sans"
+                    className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono font-semibold outline-none focus:ring-2 focus:ring-orange-300 transition-all placeholder:text-slate-400 placeholder:font-sans"
                   />
                   <button
                     type="button"
                     onClick={handleProductIdLookup}
                     disabled={!productIdInput.trim() || isLookingUp}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shrink-0"
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shrink-0"
                   >
                     {isLookingUp ? (
                       <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
@@ -373,7 +373,7 @@ const AddProduct = () => {
                   </button>
                 </div>
                 {autoFilled && (
-                  <p className="text-[10px] font-semibold text-indigo-600 ml-1 flex items-center gap-1">
+                  <p className="text-[10px] font-semibold text-orange-600 ml-1 flex items-center gap-1">
                     <HiOutlineCheckCircle className="h-3 w-3" />
                     Product data auto-filled. Review and edit below, then save.
                   </p>
@@ -389,7 +389,7 @@ const AddProduct = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-semibold outline-none ring-primary/5 focus:ring-2 transition-all"
+                  className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-semibold outline-none ring-orange-500/5 focus:ring-2 transition-all"
                   placeholder="e.g. Premium Basmati Rice"
                 />
               </div>
@@ -404,7 +404,7 @@ const AddProduct = () => {
                   }
                   onWheel={(e) => e.stopPropagation()}
                   onTouchMove={(e) => e.stopPropagation()}
-                  className="w-full px-4 py-3 bg-slate-100 border-none rounded-2xl text-sm font-semibold min-h-[160px] max-h-[260px] outline-none transition-all focus:ring-2 focus:ring-primary/5 resize-none overflow-y-auto custom-scrollbar"
+                  className="w-full px-4 py-3 bg-slate-100 border-none rounded-2xl text-sm font-semibold min-h-[160px] max-h-[260px] outline-none transition-all focus:ring-2 focus:ring-orange-500/5 resize-none overflow-y-auto custom-scrollbar"
                   placeholder="Describe the item here..."
                 />
               </div>
@@ -418,7 +418,7 @@ const AddProduct = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, brand: e.target.value })
                     }
-                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-semibold outline-none ring-primary/5 focus:ring-2 transition-all"
+                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-semibold outline-none ring-orange-500/5 focus:ring-2 transition-all"
                     placeholder="e.g. Amul"
                   />
                 </div>
@@ -450,7 +450,7 @@ const AddProduct = () => {
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     placeholder="e.g. 500"
-                    className="w-full px-4 py-3 bg-white shadow-sm ring-1 ring-slate-200 border-none rounded-xl text-lg font-bold outline-none focus:ring-2 focus:ring-primary/10"
+                    className="w-full px-4 py-3 bg-white shadow-sm ring-1 ring-slate-200 border-none rounded-xl text-lg font-bold outline-none focus:ring-2 focus:ring-orange-500/10"
                   />
                 </div>
                 <div className="space-y-1.5 flex flex-col">
@@ -479,7 +479,7 @@ const AddProduct = () => {
                     value={formData.stock}
                     onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                     placeholder="e.g. 10"
-                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-bold outline-none ring-primary/5 focus:ring-2"
+                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-bold outline-none ring-orange-500/5 focus:ring-2"
                   />
                 </div>
                 <div className="space-y-1.5 flex flex-col">
@@ -526,7 +526,7 @@ const AddProduct = () => {
                       ],
                     })
                   }
-                  className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-all">
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-orange-500/10 text-orange-500 rounded-lg text-[10px] font-bold hover:bg-orange-500/20 transition-all">
                   <HiOutlineSquaresPlus className="h-4 w-4" />
                   <span>ADD VARIANT</span>
                 </button>
@@ -549,7 +549,7 @@ const AddProduct = () => {
                           setFormData({ ...formData, variants: newVariants });
                         }}
                         placeholder="e.g. 1kg Bag"
-                        className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/10"
+                        className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-orange-500/10"
                       />
                     </div>
                     <div className="col-span-6 md:col-span-2 space-y-1">
@@ -565,7 +565,7 @@ const AddProduct = () => {
                           setFormData({ ...formData, variants: newVariants });
                         }}
                         placeholder="500"
-                        className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/10"
+                        className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500/10"
                       />
                     </div>
                     <div className="col-span-6 md:col-span-2 space-y-1">
@@ -602,7 +602,7 @@ const AddProduct = () => {
                           setFormData({ ...formData, variants: newVariants });
                         }}
                         placeholder="10"
-                        className={`w-full px-3 py-2 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 ${variant.stock && Number(variant.stock) < 1 ? "bg-red-50 ring-1 ring-red-300 text-red-600 focus:ring-red-300" : "bg-white ring-1 ring-slate-200 focus:ring-primary/10"}`}
+                        className={`w-full px-3 py-2 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 ${variant.stock && Number(variant.stock) < 1 ? "bg-red-50 ring-1 ring-red-300 text-red-600 focus:ring-red-300" : "bg-white ring-1 ring-slate-200 focus:ring-orange-500/10"}`}
                       />
                       {variant.stock && Number(variant.stock) < 1 && (
                         <p className="text-[9px] font-semibold text-red-500 ml-1">Min value is 1</p>
@@ -651,7 +651,7 @@ const AddProduct = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, header: e.target.value, category: "", subcategory: "" })
                     }
-                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-primary/5 transition-all">
+                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-orange-500/5 transition-all">
                     <option value="">Select Main Group</option>
                     {categories.map((h) => (
                       <option key={h._id || h.id} value={h._id || h.id}>
@@ -670,7 +670,7 @@ const AddProduct = () => {
                       setFormData({ ...formData, category: e.target.value, subcategory: "" })
                     }
                     disabled={!formData.header}
-                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-primary/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-orange-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                     <option value="">Select Category</option>
                     {categories
                       .find((h) => (h._id || h.id) === formData.header)
@@ -693,7 +693,7 @@ const AddProduct = () => {
                       setFormData({ ...formData, subcategory: e.target.value })
                     }
                     disabled={!formData.category}
-                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-primary/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-orange-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                     <option value="">Select Sub-Category</option>
                     {categories
                       .find((h) => (h._id || h.id) === formData.header)
@@ -717,7 +717,7 @@ const AddProduct = () => {
                   Main Cover Photo
                 </label>
                 <div className="flex flex-col md:flex-row items-start gap-6">
-                  <div className="w-48 aspect-square rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer overflow-hidden relative">
+                  <div className="w-48 aspect-square rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer overflow-hidden relative">
                     <input
                       ref={mainImageInputRef}
                       type="file"
@@ -732,8 +732,8 @@ const AddProduct = () => {
                       />
                     ) : (
                       <>
-                        <HiOutlinePhoto className="h-10 w-10 text-slate-200 group-hover:text-primary transition-colors" />
-                        <p className="text-[9px] font-bold text-slate-600 mt-2 uppercase tracking-widest group-hover:text-primary">
+                        <HiOutlinePhoto className="h-10 w-10 text-slate-200 group-hover:text-orange-500 transition-colors" />
+                        <p className="text-[9px] font-bold text-slate-600 mt-2 uppercase tracking-widest group-hover:text-orange-500">
                           Upload Cover
                         </p>
                       </>
@@ -750,7 +750,7 @@ const AddProduct = () => {
                     <button
                       type="button"
                       onClick={() => mainImageInputRef.current?.click()}
-                      className="text-[10px] font-black text-primary uppercase tracking-wider hover:underline">
+                      className="text-[10px] font-black text-orange-500 uppercase tracking-wider hover:underline">
                       Pick from Library
                     </button>
                   </div>
@@ -766,7 +766,7 @@ const AddProduct = () => {
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
-                      className="aspect-square rounded-md border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer relative overflow-hidden">
+                      className="aspect-square rounded-md border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer relative overflow-hidden">
                       {formData.galleryImages[i - 1] ? (
                         <img
                           src={formData.galleryImages[i - 1]}
@@ -779,8 +779,8 @@ const AddProduct = () => {
                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
                             onChange={(e) => handleImageUpload(e, "gallery")}
                           />
-                          <HiOutlinePlus className="h-5 w-5 text-slate-200 group-hover:text-primary transition-colors" />
-                          <p className="text-[8px] font-bold text-slate-600 mt-1 uppercase tracking-widest group-hover:text-primary">
+                          <HiOutlinePlus className="h-5 w-5 text-slate-200 group-hover:text-orange-500 transition-colors" />
+                          <p className="text-[8px] font-bold text-slate-600 mt-1 uppercase tracking-widest group-hover:text-orange-500">
                             Add
                           </p>
                         </>

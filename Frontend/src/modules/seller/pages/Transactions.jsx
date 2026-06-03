@@ -56,8 +56,8 @@ const Transactions = () => {
       label: "Total Revenue",
       value: `₹${(data?.balances?.totalRevenue || 0).toLocaleString()}`,
       icon: HiOutlineCreditCard,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50",
+      color: "text-orange-600",
+      bg: "bg-orange-50",
     },
   ];
 
@@ -151,7 +151,7 @@ const Transactions = () => {
               Transaction Ledger
               <Badge
                 variant="primary"
-                className="text-[10px] sm:text-xs px-1.5 py-0 font-bold tracking-wider uppercase bg-blue-100 text-blue-700">
+                className="text-[10px] sm:text-xs px-1.5 py-0 font-bold tracking-wider uppercase bg-orange-100 text-orange-700">
                 Audit Trail
               </Badge>
             </h1>
@@ -193,7 +193,7 @@ const Transactions = () => {
                   setIsDownloading(false);
                 }
               }}
-              className="rounded-lg px-3 py-2 sm:px-4 text-xs sm:text-sm shadow-lg shadow-primary/20 disabled:opacity-50"
+              className="rounded-lg px-3 py-2 sm:px-4 text-xs sm:text-sm shadow-lg shadow-orange-500/20 disabled:opacity-50"
               disabled={isDownloading || filteredTransactions.length === 0}>
               <HiOutlineDocumentText className="h-4 w-4 mr-1.5" />
               <span className="hidden sm:inline">{isDownloading ? "DOWNLOADING..." : "DOWNLOAD STATEMENTS"}</span>
@@ -258,7 +258,7 @@ const Transactions = () => {
               <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
               <Input
                 placeholder="Search by customer..."
-                className="pl-10 pr-4 py-2.5 rounded-lg border-none ring-1 ring-slate-100 bg-slate-50/50 focus:ring-2 focus:ring-primary/20 transition-all text-xs font-semibold"
+                className="pl-10 pr-4 py-2.5 rounded-lg border-none ring-1 ring-slate-100 bg-slate-50/50 focus:ring-2 focus:ring-orange-500/20 transition-all text-xs font-semibold"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -322,7 +322,7 @@ const Transactions = () => {
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">
+                            <p className="text-sm font-black text-slate-900 group-hover:text-orange-500 transition-colors">
                               {txn.id ?? txn.ref ?? "—"}
                             </p>
                             <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
@@ -494,7 +494,7 @@ const Transactions = () => {
               </Button>
               <Button
                 onClick={() => setIsDetailModalOpen(false)}
-                className="rounded-lg py-4 font-black shadow-xl shadow-primary/20">
+                className="rounded-lg py-4 font-black shadow-xl shadow-orange-500/20">
                 CLOSE
               </Button>
             </div>

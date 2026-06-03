@@ -107,7 +107,7 @@ const StockManagement = () => {
     }, [activeView, filterStatus]);
 
     const stats = useMemo(() => [
-        { label: 'Total Inventory', value: inventory.reduce((acc, item) => acc + item.stock, 0), icon: HiOutlineCube, color: 'text-indigo-600', bg: 'bg-indigo-50', status: 'All' },
+        { label: 'Total Inventory', value: inventory.reduce((acc, item) => acc + item.stock, 0), icon: HiOutlineCube, color: 'text-orange-600', bg: 'bg-orange-50', status: 'All' },
         { label: 'Low Stock Items', value: inventory.filter(i => i.stock > 0 && i.stock <= i.threshold).length, icon: HiOutlineExclamationTriangle, color: 'text-amber-600', bg: 'bg-amber-50', status: 'Low Stock' },
         { label: 'Out of Stock', value: inventory.filter(i => i.stock === 0).length, icon: HiOutlineArchiveBoxXMark, color: 'text-rose-600', bg: 'bg-rose-50', status: 'Out of Stock' },
         { label: 'Stock Valuation', value: `₹${inventory.reduce((acc, item) => acc + (item.stock * item.price), 0).toLocaleString()}`, icon: HiOutlineArrowsUpDown, color: 'text-emerald-600', bg: 'bg-emerald-50', status: 'In Stock' }
@@ -213,7 +213,7 @@ const StockManagement = () => {
                                     <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
                                     <Input
                                         placeholder="Search by product name or SKU..."
-                                        className="pl-10 pr-4 py-2.5 rounded-2xl border-none ring-1 ring-slate-200 bg-white focus:ring-2 focus:ring-primary/20 transition-all text-xs font-semibold"
+                                        className="pl-10 pr-4 py-2.5 rounded-2xl border-none ring-1 ring-slate-200 bg-white focus:ring-2 focus:ring-orange-500/20 transition-all text-xs font-semibold"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
@@ -240,7 +240,7 @@ const StockManagement = () => {
                                     </div>
                                     <Button
                                         onClick={() => navigate('/seller/products/add')}
-                                        className="rounded-xl px-4 py-2 text-[10px] font-bold shadow-lg shadow-primary/20"
+                                        className="rounded-xl px-4 py-2 text-[10px] font-bold shadow-lg shadow-orange-500/20"
                                     >
                                         <HiOutlinePlus className="h-4 w-4 mr-1.5" />
                                         ADD PRODUCT
@@ -337,7 +337,7 @@ const StockManagement = () => {
                                                                         )}
                                                                     </div>
                                                                     <div>
-                                                                        <h4 className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">
+                                                                        <h4 className="text-sm font-black text-slate-900 group-hover:text-orange-500 transition-colors">
                                                                             {item.name}
                                                                         </h4>
                                                                         <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
@@ -428,7 +428,7 @@ const StockManagement = () => {
                                         <div className={cn(
                                             "h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm",
                                             log.type === 'Restock' ? "bg-emerald-50 text-emerald-600" :
-                                                log.type === 'Sale' ? "bg-indigo-50 text-indigo-600" : "bg-rose-50 text-rose-600"
+                                                log.type === 'Sale' ? "bg-orange-50 text-orange-600" : "bg-rose-50 text-rose-600"
                                         )}>
                                             {log.type === 'Restock' ? <HiOutlinePlus className="h-6 w-6" /> :
                                                 log.type === 'Sale' ? <HiOutlineCube className="h-6 w-6" /> : <HiOutlineMinus className="h-6 w-6" />}
@@ -439,7 +439,7 @@ const StockManagement = () => {
                                                 <Badge className={cn(
                                                     "text-[9px] font-bold px-1.5 py-0",
                                                     log.type === 'Restock' ? "bg-emerald-100 text-emerald-700" :
-                                                        log.type === 'Sale' ? "bg-indigo-100 text-indigo-700" : "bg-rose-100 text-rose-700"
+                                                        log.type === 'Sale' ? "bg-orange-100 text-orange-700" : "bg-rose-100 text-rose-700"
                                                 )}>
                                                     {log.type.toUpperCase()}
                                                 </Badge>
@@ -537,7 +537,7 @@ const StockManagement = () => {
                                                 type="number"
                                                 value={adjustValue}
                                                 onChange={(e) => setAdjustValue(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-4 bg-slate-50 border-none rounded-2xl text-2xl font-black text-slate-900 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                                className="w-full pl-10 pr-4 py-4 bg-slate-50 border-none rounded-2xl text-2xl font-black text-slate-900 focus:ring-2 focus:ring-orange-500/20 transition-all outline-none"
                                                 placeholder="0"
                                             />
                                         </div>
@@ -548,7 +548,7 @@ const StockManagement = () => {
                                         <textarea
                                             value={adjustNote}
                                             onChange={(e) => setAdjustNote(e.target.value)}
-                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none h-20"
+                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-orange-500/20 transition-all outline-none resize-none h-20"
                                             placeholder="Reason for adjustment..."
                                         />
                                     </div>
@@ -565,7 +565,7 @@ const StockManagement = () => {
                                 </Button>
                                 <Button
                                     onClick={handleFullAdjustment}
-                                    className="flex-1 py-4 text-xs font-bold rounded-2xl shadow-xl shadow-primary/20"
+                                    className="flex-1 py-4 text-xs font-bold rounded-2xl shadow-xl shadow-orange-500/20"
                                 >
                                     SAVE CHANGES
                                 </Button>

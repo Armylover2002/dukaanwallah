@@ -173,7 +173,7 @@ const CODDepositRequests = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2 flex-wrap">
             COD Cash Handovers
-            <Badge className="text-[10px] sm:text-xs px-2 py-0 bg-blue-100 text-blue-700 border-none font-bold tracking-wider uppercase rounded">
+            <Badge className="text-[10px] sm:text-xs px-2 py-0 bg-orange-100 text-orange-700 border-none font-bold tracking-wider uppercase rounded">
               Physical Settlement
             </Badge>
           </h1>
@@ -195,7 +195,7 @@ const CODDepositRequests = () => {
       {/* Main workspace */}
       {loading ? (
         <div className="flex items-center justify-center min-h-[40vh] font-bold text-slate-500">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mr-3"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mr-3"></div>
           LOADING DEPOSITS...
         </div>
       ) : deposits.length === 0 ? (
@@ -248,7 +248,7 @@ const CODDepositRequests = () => {
                               setSelectedDeposit(item)
                               setIsPreviewModalOpen(true)
                             }}
-                            className="mt-1 flex items-center gap-1.5 text-xs text-indigo-600 font-bold bg-indigo-50 px-2.5 py-1.5 rounded hover:bg-indigo-100 transition-colors"
+                            className="mt-1 flex items-center gap-1.5 text-xs text-orange-600 font-bold bg-orange-50 px-2.5 py-1.5 rounded hover:bg-orange-100 transition-colors"
                           >
                             <HiOutlinePhoto className="w-4 h-4" /> View Rider Invoice
                           </button>
@@ -360,7 +360,7 @@ const CODDepositRequests = () => {
                 placeholder="Add store invoice ID or handover confirmation details..."
                 value={sellerNote}
                 onChange={(e) => setSellerNote(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[60px]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[60px]"
               />
             </div>
 
@@ -418,7 +418,7 @@ const CODDepositRequests = () => {
                 placeholder="Explain why this request is rejected (e.g. cash amount doesn't match physical count, wrong rider, etc.)..."
                 value={sellerNote}
                 onChange={(e) => setSellerNote(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[80px]"
                 required
               />
             </div>

@@ -103,7 +103,7 @@ export default function SellerPendingApproval() {
               {
                 label: "Status",
                 value: isRejected ? "Rejected" : "Pending review",
-                tone: isRejected ? "bg-rose-50 text-rose-700" : "bg-sky-50 text-sky-700",
+                tone: isRejected ? "bg-rose-50 text-rose-700" : "bg-orange-50 text-orange-700",
               },
             ].map((item) => (
               <div key={item.label} className="rounded-3xl border border-slate-100 bg-slate-50 p-5">
@@ -154,7 +154,7 @@ export default function SellerPendingApproval() {
                 type="button"
                 onClick={() => loadProfile(true)}
                 disabled={isRefreshing}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-white transition hover:bg-black disabled:opacity-70"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-white transition hover:bg-orange-600 disabled:opacity-70 shadow-xl hover:shadow-orange-500/30"
               >
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
                 {isRefreshing ? "Checking..." : "Refresh status"}

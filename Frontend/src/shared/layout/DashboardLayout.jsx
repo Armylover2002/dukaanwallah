@@ -348,7 +348,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
     return (
         <div className="min-h-screen bg-slate-50 relative overflow-x-hidden seller-theme-scope">
             {/* Premium Ambient Background Glow */}
-            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/15 rounded-full blur-[140px] -z-10 animate-pulse pointer-events-none" style={{ animationDuration: '8s' }}></div>
+            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-orange-500/15 rounded-full blur-[140px] -z-10 animate-pulse pointer-events-none" style={{ animationDuration: '8s' }}></div>
             <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-rose-500/15 rounded-full blur-[140px] -z-10 animate-pulse pointer-events-none" style={{ animationDelay: '4s', animationDuration: '10s' }}></div>
 
             <Sidebar
@@ -391,13 +391,13 @@ const DashboardLayout = ({ children, navItems, title }) => {
                             className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100"
                         >
                             <div className="flex flex-col items-center text-center">
-                                <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                                    <BellRing className="h-10 w-10 text-primary" />
+                                <div className="h-20 w-20 bg-orange-500/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                                    <BellRing className="h-10 w-10 text-orange-500" />
                                 </div>
 
                                 <h2 className="text-2xl font-black text-slate-900 mb-2">New Order Received!</h2>
                                 <p className="text-slate-600 font-medium mb-6">
-                                    You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span> for <span className="text-slate-900 font-bold">Rs {resolveSellerReceivable(newOrderAlert).toFixed(2)}</span>
+                                    You have a new order <span className="text-orange-500 font-bold">#{newOrderAlert.orderId}</span> for <span className="text-slate-900 font-bold">Rs {resolveSellerReceivable(newOrderAlert).toFixed(2)}</span>
                                 </p>
 
                                 {/* Timer Bar — width from real server deadline */}
@@ -405,7 +405,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     <div
                                         className={cn(
                                             "h-full transition-[width] duration-1000 ease-linear",
-                                            timeLeft < 15 ? "bg-rose-500" : "bg-primary",
+                                            timeLeft < 15 ? "bg-rose-500" : "bg-orange-500",
                                         )}
                                         style={{
                                             width: `${acceptWindowTotalRef.current > 0 ? (timeLeft / acceptWindowTotalRef.current) * 100 : 0}%`,
@@ -430,7 +430,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                                     </button>
                                     <button
                                         onClick={() => handleAcceptOrder(newOrderAlert.orderId)}
-                                        className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white font-bold hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95"
+                                        className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-orange-500 text-white font-bold hover:bg-orange-500/90 shadow-xl shadow-orange-500/20 transition-all active:scale-95"
                                     >
                                         <Check className="h-5 w-5" />
                                         Accept

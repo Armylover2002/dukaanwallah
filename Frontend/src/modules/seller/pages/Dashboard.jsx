@@ -113,8 +113,8 @@ const Dashboard = () => {
       change: "+8.2%",
       changeType: "increase",
       icon: ShoppingBag,
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-600",
+      iconBg: "bg-orange-50",
+      iconColor: "text-orange-600",
       description: "vs last month",
     },
     {
@@ -284,9 +284,9 @@ const Dashboard = () => {
               className={cn(
                 "p-6 rounded-xl text-left transition-all duration-200 shadow-sm hover:shadow-md border-2",
                 isPrimary &&
-                  "bg-primary border-primary text-white hover:bg-primary/90 hover:border-primary/90",
+                  "bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90 hover:border-orange-500/90",
                 action.variant === "outline" &&
-                  "bg-white border-slate-200 text-slate-900 hover:border-primary hover:bg-primary/5",
+                  "bg-white border-slate-200 text-slate-900 hover:border-orange-500 hover:bg-orange-500/5",
                 isEmerald &&
                   "bg-white border-slate-200 text-slate-900 hover:border-emerald-500 hover:bg-emerald-50",
               )}>
@@ -456,7 +456,7 @@ const Dashboard = () => {
         actions={
           <button
             onClick={() => navigate("/seller/orders")}
-            className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1">
+            className="text-sm font-medium text-orange-500 hover:text-orange-500/80 flex items-center gap-1">
             View All
             <ArrowUpRight className="h-4 w-4" />
           </button>
@@ -525,7 +525,7 @@ const Dashboard = () => {
                         setSelectedOrder(normalizeOrderForModal(order));
                         setIsOrderModalOpen(true);
                       }}
-                      className="text-slate-600 hover:text-primary transition-colors p-1">
+                      className="text-slate-600 hover:text-orange-500 transition-colors p-1">
                       <Eye className="h-4 w-4" />
                     </button>
                   </td>
@@ -585,7 +585,7 @@ const Dashboard = () => {
                   <div className="space-y-3 sm:space-y-4">
                     <div>
                       <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <HiOutlineMapPin className="h-3 w-3 text-primary" />{" "}
+                        <HiOutlineMapPin className="h-3 w-3 text-orange-500" />{" "}
                         Delivery Address
                       </h4>
                       <p className="text-xs font-bold text-slate-800 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
@@ -605,8 +605,8 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="space-y-3 sm:space-y-4">
-                    <div className="bg-primary/5 p-3 sm:p-4 rounded-3xl border border-primary/10">
-                      <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-3">
+                    <div className="bg-orange-500/5 p-3 sm:p-4 rounded-3xl border border-orange-500/10">
+                      <h4 className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-3">
                         Order Summary
                       </h4>
                       <div className="space-y-2">
@@ -626,18 +626,18 @@ const Dashboard = () => {
                             ₹10.00
                           </span>
                         </div>
-                        <div className="h-px bg-primary/10 my-2" />
+                        <div className="h-px bg-orange-500/10 my-2" />
                         <div className="flex justify-between text-sm">
                           <span className="font-black text-slate-900">
                             Total
                           </span>
-                          <span className="font-black text-primary">
+                          <span className="font-black text-orange-500">
                             ₹{selectedOrder.total.toFixed(2)}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div className="bg-slate-900 p-3 sm:p-4 rounded-3xl text-white shadow-xl shadow-slate-900/10">
+                    <div className="bg-slate-900 p-3 sm:p-4 rounded-3xl text-white shadow-xl shadow-orange-500/20">
                       <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
                         Payment Status
                       </h4>
@@ -725,9 +725,9 @@ const Dashboard = () => {
                         getStatusColor(selectedOrder.status) === "warning"
                           ? "bg-amber-100 text-amber-700 focus:ring-amber-200"
                           : getStatusColor(selectedOrder.status) === "info"
-                            ? "bg-blue-100 text-blue-700 focus:ring-blue-200"
+                            ? "bg-orange-100 text-orange-700 focus:ring-orange-200"
                             : getStatusColor(selectedOrder.status) === "primary"
-                              ? "bg-indigo-100 text-indigo-700 focus:ring-indigo-200"
+                              ? "bg-orange-100 text-orange-700 focus:ring-orange-200"
                               : getStatusColor(selectedOrder.status) ===
                                   "secondary"
                                 ? "bg-purple-100 text-purple-700 focus:ring-purple-200"

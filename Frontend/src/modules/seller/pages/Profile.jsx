@@ -398,7 +398,7 @@ const SellerProfile = () => {
                 <Button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="bg-slate-900 text-white hover:bg-black rounded-lg px-6 py-2 text-[10px] font-black tracking-[2px]">
+                  className="bg-orange-500 text-white hover:bg-orange-600 rounded-lg px-6 py-2 text-[10px] font-black tracking-[2px]">
                   MANAGE
                 </Button>
               )}
@@ -545,7 +545,7 @@ const SellerProfile = () => {
               <Button
                 type="button"
                 onClick={logout}
-                className="w-full bg-slate-900 hover:bg-black text-white font-black tracking-[2px] text-xs py-4 rounded-xl shadow-lg hover:shadow-slate-900/20 transition-all flex items-center justify-center gap-3">
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black tracking-[2px] text-xs py-4 rounded-xl shadow-lg hover:shadow-orange-500/30 transition-all flex items-center justify-center gap-3">
                 <LogOut size={16} /> SIGN OUT
               </Button>
             </div>
