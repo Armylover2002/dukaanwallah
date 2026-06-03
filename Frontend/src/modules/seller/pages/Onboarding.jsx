@@ -370,7 +370,7 @@ export default function SellerOnboarding() {
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-[34px] bg-orange-500-orange p-5 md:p-8 text-white shadow-[0_35px_90px_rgba(234,88,12,0.22)]"
+            className="rounded-[34px] bg-orange-500 p-5 md:p-8 text-white shadow-[0_35px_90px_rgba(234,88,12,0.22)]"
           >
             <div className="flex flex-wrap justify-between items-start gap-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
@@ -450,7 +450,7 @@ export default function SellerOnboarding() {
           >
             <section className="space-y-5">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-orange-100 p-3 text-orange-500-orange">
+                <div className="rounded-2xl bg-orange-100 p-3 text-orange-500">
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div>
@@ -612,7 +612,7 @@ export default function SellerOnboarding() {
                       type="button"
                       onClick={handleSaveOpeningHours}
                       disabled={isSavingHours}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-orange-500-orange px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
+                      className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {isSavingHours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                       {isSavingHours ? "Saving..." : "Save Hours"}
@@ -628,7 +628,7 @@ export default function SellerOnboarding() {
                     <button
                       type="button"
                       onClick={() => setIsMapOpen(true)}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500-orange px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-orange-600"
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-orange-600"
                     >
                       <MapPin className="h-4 w-4" />
                       {form.lat && form.lng ? "Change Pin" : "Pick On Map"}
@@ -738,7 +738,7 @@ export default function SellerOnboarding() {
                   <label className="text-xs font-bold text-slate-900">UPI QR image <span className="text-red-500">*</span></label>
                   <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">
                     <span className="truncate max-w-[200px]">{qrFile?.name || "Upload UPI QR image"}</span>
-                    <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500-orange px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
+                    <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
                       <Upload className="h-3.5 w-3.5" />
                       Choose
                     </span>
@@ -849,7 +849,7 @@ export default function SellerOnboarding() {
                   <label className="text-xs font-bold text-slate-900">Shop license image <span className="text-red-500">*</span></label>
                   <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">
                     <span className="truncate max-w-[200px]">{licenseFile?.name || "Upload shop license image"}</span>
-                    <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500-orange px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
+                    <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
                       <Upload className="h-3.5 w-3.5" />
                       Choose
                     </span>
@@ -867,7 +867,7 @@ export default function SellerOnboarding() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500-orange px-6 py-4 text-sm font-black uppercase tracking-[0.22em] text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-4 text-sm font-black uppercase tracking-[0.22em] text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSubmitting ? "Submitting..." : "Submit for approval"}
                 {!isSubmitting && <ArrowRight className="h-4 w-4" />}
