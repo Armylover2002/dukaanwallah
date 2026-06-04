@@ -98,7 +98,8 @@ const CategoryItem = memo(({ cat, idx, onClick }) => {
 });
 CategoryItem.displayName = "CategoryItem";
 
-const CategoriesSection = memo(({ section, navigate }) => {
+const CategoriesSection = memo(({ section }) => {
+  const navigate = useNavigate();
   const categoryConfig = section.config?.categories || {};
   const rows = categoryConfig.rows || 1;
   const visibleCount = rows * 4;
@@ -178,7 +179,8 @@ const SubcategoryItem = memo(({ cat, onClick }) => (
 ));
 SubcategoryItem.displayName = "SubcategoryItem";
 
-const SubcategoriesSection = memo(({ section, navigate }) => {
+const SubcategoriesSection = memo(({ section }) => {
+  const navigate = useNavigate();
   const items = section.config?.subcategories?.items || [];
 
   const handleSubcategoryClick = useCallback(
@@ -317,8 +319,6 @@ const SectionRenderer = ({
   categoriesById = {},
   subcategoriesById = {},
 }) => {
-  const navigate = useNavigate();
-
   return (
     <div className="space-y-8">
       {sections.map((section) => {
@@ -331,7 +331,6 @@ const SectionRenderer = ({
               <CategoriesSection
                 key={section._id}
                 section={section}
-                navigate={navigate}
               />
             );
 
@@ -340,7 +339,6 @@ const SectionRenderer = ({
               <SubcategoriesSection
                 key={section._id}
                 section={section}
-                navigate={navigate}
               />
             );
 

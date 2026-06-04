@@ -40,17 +40,10 @@ const resolveId = (req) => {
 
 const getOrderPayableAmount = (order) => {
   const pricing = order?.pricing || {};
-  const pricingTotal = Number(pricing.total ?? order?.total ?? 0);
-  const platformFee = Number(pricing.platformFee ?? 0);
-
-  // In quick-commerce, `pricing.total` is subtotal + fees (delivery/handling/gst...) minus discounts.
-  // Platform fee is stored separately and is part of what the customer pays.
-  const computed =
-    Number.isFinite(platformFee) && platformFee > 0
-      ? pricingTotal + platformFee
-      : pricingTotal;
-
-  return Number.isFinite(computed) ? Math.max(0, computed) : 0;
+  // pricing.total already includes: subtotal + deliveryFee + platformFee + gst - discount
+  // No need to add platformFee again here.
+  const total = Number(pricing.total ?? order?.total ?? 0);
+  return Number.isFinite(total) ? Math.max(0, total) : 0;
 };
 
 const normalizeOrderSummary = (order) => {
@@ -267,6 +260,18 @@ export const placeOrder = async (req, res) => {
       products,
       distanceKm,
     });
+
+    // --- SYNC FIX: Trust the frontend calculated exact fees if provided ---
+    if (typeof req.body?.deliveryFee === 'number') pricing.deliveryFee = Math.max(0, req.body.deliveryFee);
+    if (typeof req.body?.taxTotal === 'number') pricing.gst = Math.max(0, req.body.taxTotal);
+    if (typeof req.body?.platformFee === 'number') pricing.platformFee = Math.max(0, req.body.platformFee);
+
+    // Mongoose pricingSchema only has 'tax', not 'gst'. Map gst to tax so it gets saved.
+    pricing.tax = pricing.gst;
+
+    // Recalculate total with these synced values
+    pricing.total = Math.max(0, subtotal + pricing.deliveryFee + pricing.platformFee + pricing.tax - discount);
+
     const deliveryFee = Number(pricing.deliveryFee || 0);
     const total = Number(pricing.total || 0);
     const orderNumber = `QC${Date.now().toString().slice(-8)}`;
@@ -305,7 +310,7 @@ export const placeOrder = async (req, res) => {
       payment: {
         method: paymentMode,
         status: paymentMode === 'razorpay' ? 'created' : 'cod_pending',
-        amountDue: Math.max(0, total + Number(pricing.platformFee || 0)),
+        amountDue: Math.max(0, total),  // total already includes platformFee
       },
       orderStatus: 'placed',
       riderEarning: riderEarning || 0,

@@ -206,7 +206,7 @@ const ALL_CATEGORY = {
 // ---------------------------------------------------------------------------
 
 const QUICK_HEADER_RETURN_STORAGE_KEY = "food.quick.headerReturn";
-const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes (content rarely changes this fast)
 
 let globalQuickHomeCache = {
   data: null,
@@ -314,36 +314,26 @@ export const useQuickHomeData = ({ currentLocation }) => {
     if (!isSilentRefresh) setIsLoading(true);
 
     try {
+      // ── Single bootstrap call replaces 5 separate API requests ─────────────────────
+      // Location sirf optional context ke liye pass karo — blocking nahi karega
       const hasLocation =
         Number.isFinite(currentLocation?.latitude) &&
         Number.isFinite(currentLocation?.longitude);
 
-      const productParams = { limit: 20 };
+      const bootstrapParams = {};
       if (hasLocation) {
-        productParams.lat = currentLocation.latitude;
-        productParams.lng = currentLocation.longitude;
+        bootstrapParams.lat = currentLocation.latitude;
+        bootstrapParams.lng = currentLocation.longitude;
       }
 
-      // ── Fire ALL requests immediately in parallel ─────────────────────────────────
-      const catPromise = customerApi.getCategories();
-      const prodPromise = hasLocation
-        ? customerApi.getProducts(productParams)
-        : Promise.resolve({ data: { success: true, result: { items: [] } } });
-      const expPromise = customerApi
-        .getExperienceSections({ pageType: "home" })
-        .catch(() => null);
-      const sectionsPromise = hasLocation
-        ? customerApi
-            .getOfferSections({ lat: currentLocation.latitude, lng: currentLocation.longitude })
-            .catch(() => ({ data: {} }))
-        : Promise.resolve({ data: { results: [] } });
-      const heroPromise = customerApi
-        .getHeroConfig({ pageType: "home" })
-        .catch(() => null);
-
-      // ── Phase 1: Process categories first → unblock UI ASAP ────────────────
-      const catRes = await catPromise;
+      const bootstrapRes = await customerApi.getBootstrap(bootstrapParams);
       if (seq !== fetchDataSeqRef.current) return;
+
+      if (!bootstrapRes?.data?.success) {
+        throw new Error('Bootstrap fetch failed');
+      }
+
+      const payload = bootstrapRes.data.result;
 
       const newCache = {
         categories: [ALL_CATEGORY],
@@ -357,111 +347,98 @@ export const useQuickHomeData = ({ currentLocation }) => {
         subcategoryMap: {},
       };
 
-      // --- Categories ---
-      if (catRes.data.success) {
-        const dbCats = catRes.data.results || catRes.data.result || [];
+      // ── Categories ─────────────────────────────────────────────────────────────
+      const dbCats = payload.categories || [];
 
-        const catMap = {};
-        const subMap = {};
-        dbCats.forEach((c) => {
-          if (c.type === "category") catMap[c._id] = c;
-          else if (c.type === "subcategory") subMap[c._id] = c;
-        });
-        setCategoryMap(catMap);
-        setSubcategoryMap(subMap);
-        newCache.categoryMap = catMap;
-        newCache.subcategoryMap = subMap;
+      const catMap = {};
+      const subMap = {};
+      dbCats.forEach((c) => {
+        if (c.type === "category") catMap[c._id] = c;
+        else if (c.type === "subcategory") subMap[c._id] = c;
+      });
+      setCategoryMap(catMap);
+      setSubcategoryMap(subMap);
+      newCache.categoryMap = catMap;
+      newCache.subcategoryMap = subMap;
 
-        const formattedHeaders = dbCats
-          .filter((c) => c.type === "header")
-          .map(buildHeaderCategory);
+      const formattedHeaders = dbCats
+        .filter((c) => c.type === "header")
+        .map(buildHeaderCategory);
 
-        const allFromAdmin = formattedHeaders.find(
-          (h) => h.slug?.toLowerCase() === "all" || h.name?.toLowerCase() === "all"
-        );
-        const mergedAll = allFromAdmin
-          ? { ...ALL_CATEGORY, icon: allFromAdmin.icon || ALL_CATEGORY.icon }
-          : ALL_CATEGORY;
+      const allFromAdmin = formattedHeaders.find(
+        (h) => h.slug?.toLowerCase() === "all" || h.name?.toLowerCase() === "all"
+      );
+      const mergedAll = allFromAdmin
+        ? { ...ALL_CATEGORY, icon: allFromAdmin.icon || ALL_CATEGORY.icon }
+        : ALL_CATEGORY;
 
-        const headersWithoutAll = formattedHeaders.filter(
-          (h) => !(h.slug?.toLowerCase() === "all" || h.name?.toLowerCase() === "all")
-        );
-        const finalCategories = [mergedAll, ...headersWithoutAll];
-        setCategories(finalCategories);
-        newCache.categories = finalCategories;
+      const headersWithoutAll = formattedHeaders.filter(
+        (h) => !(h.slug?.toLowerCase() === "all" || h.name?.toLowerCase() === "all")
+      );
+      const finalCategories = [mergedAll, ...headersWithoutAll];
+      setCategories(finalCategories);
+      newCache.categories = finalCategories;
 
-        // Restore active category from session
-        let initialActive = mergedAll;
-        const storedHeaderReturn = window.sessionStorage.getItem(QUICK_HEADER_RETURN_STORAGE_KEY);
-        const storedExpReturn = window.sessionStorage.getItem("experienceReturn");
-        const restoreId =
-          (storedHeaderReturn && JSON.parse(storedHeaderReturn)?.headerId) ||
-          (storedExpReturn && JSON.parse(storedExpReturn)?.headerId);
-        if (restoreId) {
-          const match = finalCategories.find((h) => h._id === restoreId || h.id === restoreId);
-          if (match) initialActive = match;
-        }
-        setActiveCategory(initialActive);
-        newCache.activeCategory = initialActive;
-
-        const formattedQuick = dbCats
-          .filter((c) => c.type === "category")
-          .map((c) => ({ id: c._id, name: c.name, image: getQuickCategoryImage(c) }));
-        setQuickCategories(formattedQuick);
-        newCache.quickCategories = formattedQuick;
+      // Restore active category from session
+      let initialActive = mergedAll;
+      const storedHeaderReturn = window.sessionStorage.getItem(QUICK_HEADER_RETURN_STORAGE_KEY);
+      const storedExpReturn = window.sessionStorage.getItem("experienceReturn");
+      const restoreId =
+        (storedHeaderReturn && JSON.parse(storedHeaderReturn)?.headerId) ||
+        (storedExpReturn && JSON.parse(storedExpReturn)?.headerId);
+      if (restoreId) {
+        const match = finalCategories.find((h) => h._id === restoreId || h.id === restoreId);
+        if (match) initialActive = match;
       }
+      setActiveCategory(initialActive);
+      newCache.activeCategory = initialActive;
 
-      // 🔑 Categories ready → show the UI immediately, don’t wait for products/sections
+      const formattedQuick = dbCats
+        .filter((c) => c.type === "category")
+        .map((c) => ({ id: c._id, name: c.name, image: getQuickCategoryImage(c) }));
+      setQuickCategories(formattedQuick);
+      newCache.quickCategories = formattedQuick;
+
+      // 🔑 Categories ready → UI immediately unblock karo
       setIsBootstrapped(true);
       setIsLoading(false);
 
-      // ── Phase 2: Wait for remaining data (UI already visible) ────────────
-      const [prodRes, expRes, sectionsRes, heroRes] = await Promise.all([
-        prodPromise, expPromise, sectionsPromise, heroPromise,
-      ]);
+      // ── Products (already in bootstrap payload) ────────────────────────────
+      const rawProducts = payload.products || [];
+      const formatted = rawProducts.map(formatProduct);
+      setProducts(formatted);
+      newCache.products = formatted;
 
-      if (seq !== fetchDataSeqRef.current) return;
+      // ── Experience Sections ───────────────────────────────────────────
+      const sections = payload.experienceSections || [];
+      setExperienceSections(sections);
+      newCache.experienceSections = sections;
 
-      // --- Products ---
-      if (prodRes.data.success) {
-        const formatted = extractArray(prodRes.data.results ?? prodRes.data.result).map(formatProduct);
-        setProducts(formatted);
-        newCache.products = formatted;
-      }
-
-      // --- Experience sections ---
-      if (expRes?.data?.success) {
-        const sections = extractArray(expRes.data.result ?? expRes.data.results ?? expRes.data);
-        setExperienceSections(sections);
-        newCache.experienceSections = sections;
-      }
-
-      // --- Offer sections ---
-      const offerSecs = extractArray(sectionsRes?.data?.results ?? sectionsRes?.data?.result ?? sectionsRes?.data);
+      // ── Offer Sections ───────────────────────────────────────────────
+      const offerSecs = payload.offerSections || [];
       setOfferSections(offerSecs);
       newCache.offerSections = offerSecs;
 
-      // --- Hero config ---
-      if (heroRes?.data?.success) {
-        const payload = heroRes.data.result ?? heroRes.data.results ?? heroRes.data;
-        const config =
-          payload?.banners?.items?.length > 0 || payload?.categoryIds?.length > 0
-            ? { banners: payload.banners || { items: [] }, categoryIds: payload.categoryIds || [] }
-            : { banners: { items: [] }, categoryIds: [] };
-        setHeroConfig(config);
-        newCache.heroConfig = config;
-      }
+      // ── Hero Config ───────────────────────────────────────────────────
+      const heroPayload = payload.heroConfig;
+      const config =
+        heroPayload?.banners?.items?.length > 0 || heroPayload?.categoryIds?.length > 0
+          ? { banners: heroPayload.banners || { items: [] }, categoryIds: heroPayload.categoryIds || [] }
+          : { banners: { items: [] }, categoryIds: [] };
+      setHeroConfig(config);
+      newCache.heroConfig = config;
 
-      // Save complete cache only after all data is ready
+      // Save complete cache
       globalQuickHomeCache.data = newCache;
       globalQuickHomeCache.lastFetched = Date.now();
     } catch (err) {
       // Surface errors only in dev
-      if (import.meta.env?.DEV) console.error("Error fetching quick home data:", err);
+      if (import.meta.env?.DEV) console.error("Quick home bootstrap error:", err);
     } finally {
       if (seq === fetchDataSeqRef.current) setIsLoading(false);
     }
   }, [currentLocation, getQuickCategoryImage, buildHeaderCategory]);
+
 
   useEffect(() => {
     fetchData();

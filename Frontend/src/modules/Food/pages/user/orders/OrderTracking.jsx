@@ -1742,21 +1742,21 @@ export default function OrderTracking() {
             <div className="bg-gray-50 rounded-xl p-4 space-y-3">
               <p className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-1">Bill Summary</p>
               {[
-                ["Item Total", order?.subtotal],
-                Number(order?.packagingFee) > 0 && ["Packaging Charges", order?.packagingFee],
-                Number(order?.platformFee) > 0 && ["Platform Fee", order?.platformFee],
-                ["Delivery Fee", order?.deliveryFee],
-                ["Taxes & Charges (GST)", order?.gst],
+                ["Item Total", order?.pricing?.subtotal || order?.subtotal],
+                Number(order?.pricing?.packagingFee || order?.packagingFee) > 0 && ["Packaging Charges", order?.pricing?.packagingFee || order?.packagingFee],
+                Number(order?.pricing?.platformFee || order?.platformFee) > 0 && ["Platform Fee", order?.pricing?.platformFee || order?.platformFee],
+                ["Delivery Fee", order?.pricing?.deliveryFee || order?.deliveryFee],
+                ["Taxes & Charges (GST)", order?.pricing?.tax || order?.pricing?.gst || order?.gst],
               ].filter(Boolean).map(([label, val]) => (
                 <div key={label} className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">{label}</span>
                   <span className="text-gray-900 font-medium">₹{Number(val || 0).toFixed(2)}</span>
                 </div>
               ))}
-              {Number(order?.discount) > 0 && (
+              {Number(order?.pricing?.discount || order?.discount) > 0 && (
                 <div className="flex justify-between items-center text-sm text-green-600 font-medium">
                   <span>Discount Applied</span>
-                  <span>-₹{Number(order.discount).toFixed(2)}</span>
+                  <span>-₹{Number(order?.pricing?.discount || order?.discount).toFixed(2)}</span>
                 </div>
               )}
               <div className="pt-2 border-t border-gray-200 flex justify-between items-center">

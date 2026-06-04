@@ -68,6 +68,11 @@ const OrderMobileCard = React.memo(({
   getStatusColor,
   canResendDispatch,
   handleResendDispatch,
+  handleStatusUpdate,
+  setCancellingOrder,
+  setCancelReasonPreset,
+  setCancelReason,
+  setIsCancelModalOpen,
   formatMoney
 }) => {
   return (
@@ -137,6 +142,32 @@ const OrderMobileCard = React.memo(({
           )}
         </div>
       </div>
+      {/* Accept / Cancel actions for Pending orders on mobile */}
+      {order.status.toLowerCase() === "pending" && (
+        <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+            handleStatusUpdate(order.id, "confirmed");
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all">
+            <HiOutlineCheck className="h-3.5 w-3.5" />
+            Accept Order
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCancellingOrder(order);
+              setCancelReasonPreset("Out of stock");
+              setCancelReason("");
+              setIsCancelModalOpen(true);
+            }}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-black uppercase tracking-wider active:scale-95 transition-all">
+            <HiOutlineXMark className="h-3.5 w-3.5" />
+            Reject
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 });
@@ -266,7 +297,7 @@ const OrderRow = React.memo(({
                   e.stopPropagation();
                   handleStatusUpdate(
                     order.id,
-                    "Processing",
+                    "confirmed",
                   );
                 }}
                 className="p-1.5 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-all text-slate-600 shadow-sm ring-1 ring-slate-100">
@@ -1012,6 +1043,11 @@ const Orders = () => {
                           getStatusColor={getStatusColor}
                           canResendDispatch={canResendDispatch}
                           handleResendDispatch={handleResendDispatch}
+                          handleStatusUpdate={handleStatusUpdate}
+                          setCancellingOrder={setCancellingOrder}
+                          setCancelReasonPreset={setCancelReasonPreset}
+                          setCancelReason={setCancelReason}
+                          setIsCancelModalOpen={setIsCancelModalOpen}
                           formatMoney={formatMoney}
                         />
                       ))}
@@ -1457,7 +1493,19 @@ const Orders = () => {
 
                   {/* Modal Footer */}
                   <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row gap-3 sm:gap-0 sm:items-center justify-end">
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 items-center flex-wrap">
+                      {/* Accept button — visible only when order is still Pending */}
+                      {selectedOrder.status.toLowerCase() === "pending" && (
+                        <button
+                          onClick={() => {
+                          handleStatusUpdate(selectedOrder.id, "confirmed");
+                            setIsDetailsModalOpen(false);
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-emerald-500 hover:bg-emerald-600 transition-all shadow-md shadow-emerald-500/20 active:scale-95">
+                          <HiOutlineCheck className="h-3.5 w-3.5" />
+                          Accept Order
+                        </button>
+                      )}
                       {canCancelOrder(selectedOrder) && (
                         <button
                           onClick={() => {

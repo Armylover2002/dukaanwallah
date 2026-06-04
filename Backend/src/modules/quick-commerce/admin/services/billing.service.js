@@ -295,31 +295,35 @@ export async function calculateQuickPricing({ subtotal = 0, discount = 0, produc
   const safeSubtotal = Number(subtotal || 0);
   const safeDiscount = Math.max(0, Number(discount || 0));
   const platformFee = Number(feeSettings.platformFee || 0);
+
+  // handlingFee is tracked internally for seller/category analytics but NOT charged to customer
   const handlingFee = await calculateHandlingFeeFromProducts(products);
-  
-  // Calculate delivery fee using commission rules and distance
+
+  // Delivery fee from commission rules (= rider earning)
   const deliveryFee = await getRiderEarning(distanceKm);
-  
+
   const gstRate = Number(feeSettings.gstRate || 0);
-  const tax = 0;
   const gst =
     Number.isFinite(gstRate) && gstRate > 0
       ? Math.round(safeSubtotal * (gstRate / 100))
       : 0;
-  const total = Math.max(0, safeSubtotal + deliveryFee + handlingFee + tax + gst - safeDiscount);
+
+  // Grand Total = Items + Delivery + Platform Fee + GST − Discount
+  // NOTE: handlingFee intentionally excluded from customer-facing total (admin requirement)
+  const total = Math.max(0, safeSubtotal + deliveryFee + platformFee + gst - safeDiscount);
 
   return {
     pricing: {
       subtotal: safeSubtotal,
-      tax,
       gst,
+      tax: 0,
       packagingFee: 0,
       deliveryFee,
       platformFee,
-      handlingFee,
+      handlingFee,          // stored for internal tracking, not added to total
       restaurantCommission: 0,
       discount: safeDiscount,
-      total,
+      total,                // = subtotal + deliveryFee + platformFee + gst - discount
       currency: 'INR',
     },
     snapshots: {
@@ -327,6 +331,7 @@ export async function calculateQuickPricing({ subtotal = 0, discount = 0, produc
     },
   };
 }
+
 
 export async function getActiveDeliveryCommissionRules() {
   const now = Date.now();

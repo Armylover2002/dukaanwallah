@@ -21,6 +21,11 @@ const HEART_POPUP_TRANSITION = { duration: 0.8, ease: "easeOut" };
 
 const IMG_SIZES = "(max-width: 768px) 150px, (max-width: 1024px) 200px, 250px";
 
+// Module-level constant — computed once, no per-render browser reflow
+const IS_MOBILE_SCREEN = typeof window !== "undefined" && window.innerWidth < 768;
+const HEART_ICON_SIZE = IS_MOBILE_SCREEN ? 12 : 16;
+
+
 // ─── ScallopedBadge ───────────────────────────────────────────────────────────
 
 const ScallopedBadge = React.memo(function ScallopedBadge({ text, className }) {
@@ -195,8 +200,8 @@ const ProductCard = React.memo(function ProductCard({
     [quantity, animateRemoveFromCart, product.image, removeFromCart, productId, updateQuantity],
   );
 
-  // Icon size — read once outside render
-  const heartSize = window.innerWidth < 768 ? 12 : 16;
+  // Icon size — module-level constant (no per-render reflow)
+  const heartSize = HEART_ICON_SIZE;
 
   return (
     <div

@@ -117,7 +117,7 @@ const calculateQuickCartPricing = ({ subtotal = 0, cartItems = [], feeSettings =
     handlingFee,
     platformFee,
     gstAmount,
-    grandTotal: Math.max(0, safeSubtotal + deliveryFee + handlingFee + platformFee + gstAmount),
+    grandTotal: Math.max(0, safeSubtotal + deliveryFee + platformFee + gstAmount),
   };
 };
 
@@ -740,7 +740,6 @@ const CartPage = () => {
             {[
               ['Items total', cartTotal],
               ['Delivery fee', deliveryFee],
-              ['Handling charge', handlingFee],
               ['Platform fee', platformFee],
               ['GST', gstAmount],
             ].map(([label, value]) => (

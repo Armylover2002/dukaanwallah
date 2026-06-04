@@ -149,7 +149,8 @@ const mapProduct = (product, sellerMap = {}) => {
 
 export const getHomeData = async (req, res) => {
   setPublicCache(res, 60); // 1 minute cache
-  await ensureQuickCommerceSeedData();
+  // Note: ensureQuickCommerceSeedData is called once at server startup (server.js)
+  // No need to re-run on every request — this was causing unnecessary DB overhead.
 
   const pageType = req.query?.pageType || 'home';
   const headerId = req.query?.headerId || null;
@@ -234,6 +235,96 @@ export const getHomeData = async (req, res) => {
     success: true,
     result: homeData,
   });
+};
+
+// ─── Bootstrap endpoint — single request mein sab kuch ────────────────────────
+// Ye naya endpoint 5 separate frontend calls ko 1 mein replace karta hai.
+// Cache: 2 minutes (content.service.js mein already 5-min in-memory cache hai)
+export const getBootstrapData = async (req, res) => {
+  setPublicCache(res, 120); // 2 minute HTTP cache
+
+  try {
+    // Sab parallel fetch — content.service.js ke in-memory cache se mostly serve hoga
+    const [categories, products, heroConfig, experienceSections, offerSections] = await Promise.all([
+      getQuickCategories(),
+      QuickProduct.find(publicProductFilter)
+        .select('_id name slug mainImage image categoryId subcategoryId headerId price salePrice mrp unit stock status isActive approvalStatus deliveryTime rating badge sellerId')
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean(),
+      getQuickHeroConfig({ pageType: 'home', headerId: null }),
+      getQuickExperienceSections({ pageType: 'home', headerId: null }),
+      getQuickOfferSections(),
+    ]);
+
+    // Seller map sirf agar products hain (lean select se bahut fast)
+    const sellerMap = products.length > 0 ? await buildSellerMap(products) : {};
+
+    const resolvedHero = heroConfig
+      ? {
+          ...heroConfig,
+          banners: heroConfig.banners || { items: [] },
+          categoryIds: Array.isArray(heroConfig.categoryIds) ? heroConfig.categoryIds : [],
+        }
+      : { banners: { items: [] }, categoryIds: [] };
+
+    return res.json({
+      success: true,
+      result: {
+        categories: categories.map(mapCategory),
+        products: products.map((p) => mapProduct(p, sellerMap)),
+        heroConfig: resolvedHero,
+        experienceSections: experienceSections.length ? experienceSections : [],
+        offerSections: offerSections || [],
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message || 'Bootstrap fetch failed' });
+  }
+};
+
+// ─── Lean experience endpoint — bina poora getHomeData chalaye ─────────────────
+export const getExperienceSectionsLean = async (req, res) => {
+  setPublicCache(res, 120);
+  try {
+    const pageType = req.query?.pageType || 'home';
+    const headerId = req.query?.headerId || null;
+    const sections = await getQuickExperienceSections({ pageType, headerId });
+    return res.json({ success: true, result: sections });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message || 'Failed to fetch experience sections' });
+  }
+};
+
+// ─── Lean hero endpoint — bina poora getHomeData chalaye ──────────────────────
+export const getHeroConfigLean = async (req, res) => {
+  setPublicCache(res, 300);
+  try {
+    const pageType = req.query?.pageType || 'home';
+    const headerId = req.query?.headerId || null;
+    const heroConfig = await getQuickHeroConfig({ pageType, headerId });
+    const resolved = heroConfig
+      ? {
+          ...heroConfig,
+          banners: heroConfig.banners || { items: [] },
+          categoryIds: Array.isArray(heroConfig.categoryIds) ? heroConfig.categoryIds : [],
+        }
+      : { banners: { items: [] }, categoryIds: [] };
+    return res.json({ success: true, result: resolved });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message || 'Failed to fetch hero config' });
+  }
+};
+
+// ─── Lean offer-sections endpoint — bina poora getHomeData chalaye ────────────
+export const getOfferSectionsLean = async (req, res) => {
+  setPublicCache(res, 120);
+  try {
+    const offerSections = await getQuickOfferSections();
+    return res.json({ success: true, results: offerSections || [] });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message || 'Failed to fetch offer sections' });
+  }
 };
 
 export const getCoupons = async (req, res) => {
@@ -373,7 +464,7 @@ export const getOffers = async (_req, res) => {
 
 export const getCategories = async (req, res) => {
   setPublicCache(res, 300); // 5 minutes cache
-  await ensureQuickCommerceSeedData();
+  // Note: ensureQuickCommerceSeedData runs at server startup — no need here.
 
   const { tree, parentId } = req.query;
   const categories = await getQuickCategories({ parentId });
@@ -403,7 +494,7 @@ export const getCategories = async (req, res) => {
 
 export const getProducts = async (req, res) => {
   setPublicCache(res, 60);
-  await ensureQuickCommerceSeedData();
+  // Note: ensureQuickCommerceSeedData runs at server startup — no need here.
 
   const { categoryId, search, limit } = req.query;
   const query = { ...publicProductFilter };

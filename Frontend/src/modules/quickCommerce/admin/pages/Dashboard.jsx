@@ -110,13 +110,31 @@ const AdminDashboard = () => {
             description: 'Last 30 days'
         },
         {
-            label: 'Revenue',
+            label: 'Total Revenue',
             value: `₹${overview.totalRevenue?.toLocaleString() || '0'}`,
             icon: BarChart3,
             color: 'text-emerald-600',
             bg: 'bg-emerald-50',
             trend: revenueGrowth,
             description: 'Net earnings'
+        },
+        {
+            label: 'GST Collected',
+            value: `₹${overview.gstCollected?.toLocaleString() || '0'}`,
+            icon: Database,
+            color: 'text-cyan-600',
+            bg: 'bg-cyan-50',
+            trend: '+0%',
+            description: 'Tax received'
+        },
+        {
+            label: 'Platform Charges',
+            value: `₹${overview.platformCharges?.toLocaleString() || '0'}`,
+            icon: Activity,
+            color: 'text-indigo-600',
+            bg: 'bg-indigo-50',
+            trend: '+0%',
+            description: 'Platform fees'
         },
     ];
 

@@ -180,7 +180,7 @@ const calculateQuickCheckoutPricing = ({
     deliveryFeeCharged, handlingFeeCharged, platformFeeCharged, gstAmount,
     grandTotal: Math.max(
       0,
-      safeSubtotal + deliveryFeeCharged + handlingFeeCharged +
+      safeSubtotal + deliveryFeeCharged +
       platformFeeCharged + gstAmount - safeDiscount + safeTip,
     ),
     distanceKmActual: distanceKm,
@@ -786,6 +786,7 @@ const CheckoutPage = () => {
         discountTotal: discountAmount,
         taxTotal: gstAmount,
         platformFee,
+        deliveryFee,
         timeSlot: selectedTimeSlot,
       };
 
@@ -1240,10 +1241,7 @@ const CheckoutPage = () => {
                     <span className="uppercase tracking-wider">{pricingPreview?.snapshots?.deliverySettings?.deliveryPricingMode || pricingPreview?.snapshots?.deliverySettings?.pricingMode || ""}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center px-2">
-                  <span className="text-slate-500 font-bold text-[13px] uppercase tracking-wider">Handling Fee</span>
-                  <span className="font-black text-slate-800">₹{handlingFee}</span>
-                </div>
+
                 <div className="flex justify-between items-center px-2">
                   <span className="text-slate-500 font-bold text-[13px] uppercase tracking-wider">Platform fee</span>
                   <span className="font-black text-slate-800">₹{platformFee}</span>

@@ -211,7 +211,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
   const paymentInputRefs = useRef([]);
 
   const orderId = order.orderId || order._id || "ORD";
-  const amountToCollect = order.pricing?.total || order.amountToCollect || 0;
+  const amountToCollect = order.payment?.amountDue || order.pricing?.total || order.amountToCollect || 0;
 
   const handlePaymentOtpChange = (index, value) => {
     if (value && !/^\d+$/.test(value)) return;

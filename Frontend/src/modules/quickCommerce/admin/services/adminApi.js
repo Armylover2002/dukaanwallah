@@ -129,6 +129,8 @@ async function getQuickStatsPayload() {
       activeSellers: Number(stats.sellers || 0),
       totalOrders: Number(stats.orders || 0),
       totalRevenue: Number(stats.revenue || 0),
+      gstCollected: Number(stats.gstCollected || 0),
+      platformCharges: Number(stats.platformCharges || 0),
       prevTotalOrders: 0,
       prevTotalUsers: 0,
       prevActiveSellers: 0,

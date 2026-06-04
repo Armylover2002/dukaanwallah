@@ -5,6 +5,10 @@ import {
   getCoupons,
   applyCoupon,
   getHomeData,
+  getBootstrapData,
+  getExperienceSectionsLean,
+  getHeroConfigLean,
+  getOfferSectionsLean,
   getOffers,
   getProductById,
   getProductReviews,
@@ -145,10 +149,14 @@ router.get("/health", (_req, res) =>
   res.json({ success: true, module: "quick-commerce", status: "ok" }),
 );
 
+// ─── Performance: Single bootstrap call for homepage ──────────────────────────────
+router.get("/bootstrap", getBootstrapData);
+
 router.get("/home", getHomeData);
-router.get("/experience", getHomeData); // Bridge experience to home data for now
-router.get("/experience/hero", getHomeData); // Bridge hero to home data for now
-router.get("/offer-sections", getHomeData); // Bridge offer-sections
+// Lean dedicated endpoints (replaces heavy getHomeData bridges)
+router.get("/experience", getExperienceSectionsLean);
+router.get("/experience/hero", getHeroConfigLean);
+router.get("/offer-sections", getOfferSectionsLean);
 router.get("/offers", getOffers);
 router.get("/coupons", getCoupons);
 router.post("/coupons/apply", applyCoupon);

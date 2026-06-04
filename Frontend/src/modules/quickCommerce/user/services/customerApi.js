@@ -101,6 +101,8 @@ export const customerApi = {
   getHeroConfig: (params) => quickGetWithDedupe("/quick-commerce/experience/hero", params),
   getOfferSections: (params) => quickGetWithDedupe("/quick-commerce/offer-sections", params),
   getHomeData: () => quickGetWithDedupe("/quick-commerce/home", {}),
+  // Performance: Single call jo 5 alag calls replace karta hai
+  getBootstrap: (params = {}) => quickGetWithDedupe("/quick-commerce/bootstrap", params),
 
   getCoupons: (params = {}) => quickGetWithDedupe("/quick-commerce/coupons", params),
   getActiveCoupons: (params = {}) => quickGetWithDedupe("/quick-commerce/coupons", params),

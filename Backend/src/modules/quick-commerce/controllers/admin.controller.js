@@ -356,8 +356,20 @@ export const getAdminStats = async (_req, res) => {
     Seller.countDocuments({ approvalStatus: 'approved' }),
     FoodUser.countDocuments({ role: 'USER' }),
     QuickOrder.aggregate([
-      { $match: { orderType: { $in: ['quick', 'mixed'] } } },
-      { $group: { _id: null, total: { $sum: '$pricing.total' } } },
+      { $match: { 
+          orderType: { $in: ['quick', 'mixed'] },
+          $or: [
+            { orderStatus: 'delivered' },
+            { workflowStatus: 'DELIVERED' }
+          ]
+      } },
+      { $group: { 
+          _id: null, 
+          total: { $sum: '$pricing.total' },
+          totalGst: { $sum: { $ifNull: ['$pricing.tax', { $ifNull: ['$pricing.gst', 0] }] } },
+          totalPlatformFee: { $sum: { $ifNull: ['$pricing.platformFee', 0] } }
+        } 
+      },
     ]),
   ]);
 
@@ -370,6 +382,8 @@ export const getAdminStats = async (_req, res) => {
       sellers,
       users,
       revenue: Number(revenueAgg?.[0]?.total || 0),
+      gstCollected: Number(revenueAgg?.[0]?.totalGst || 0),
+      platformCharges: Number(revenueAgg?.[0]?.totalPlatformFee || 0),
     },
   });
 };
