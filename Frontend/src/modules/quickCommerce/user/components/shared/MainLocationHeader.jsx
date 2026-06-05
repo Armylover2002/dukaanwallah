@@ -19,8 +19,10 @@ import {
   getQuickHomePath,
   getQuickSearchPath,
   getQuickWishlistPath,
+  getQuickCategoriesPath,
+  getQuickOrdersPath,
 } from "../../utils/routes";
-import LogoImage from "@/assets/Logo.png";
+import LogoImage from "@/assets/Logo.jpeg";
 import shoppingCartAnimation from "@/assets/lottie/shopping-cart.json";
 import { Sparkles } from "lucide-react";
 import { customerApi } from "../../services/customerApi";
@@ -56,6 +58,7 @@ import MicIcon from "@mui/icons-material/Mic";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
+import RestaurantIcon from "@mui/icons-material/Restaurant";
 
 // ─── Constants (module-level, never re-created) ───────────────────────────────
 
@@ -284,7 +287,7 @@ const MainLocationHeader = ({
   const routerLocation = useRouterLocation();
 
   // Stable derived values
-  const appName = settings?.appName || "App";
+  const appName = settings?.appName || "DukaanWallah";
   const logoUrl = settings?.logoUrl || LogoImage;
 
   // Memoize route paths — only recalculate when pathname changes
@@ -492,6 +495,17 @@ const MainLocationHeader = ({
                 <motion.button
                   whileHover={{ scale: 1.15, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
+                  onClick={() => navigate('/food/user')}
+                  className="text-slate-900 hover:text-[#FE5502] transition-all flex flex-col items-center justify-center gap-0.5"
+                  title="Go to Food Section"
+                >
+                  <RestaurantIcon sx={{ fontSize: 24 }} />
+                  <span className="text-[9px] font-bold hidden lg:block tracking-wide">Food</span>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.15, rotate: 5 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={goWishlist}
                   className="text-slate-900 hover:text-red-500 transition-all"
                 >
@@ -585,6 +599,34 @@ const MainLocationHeader = ({
                     <MicIcon sx={{ color: "#FE5502", fontSize: 20 }} />
                   </div>
                 </motion.div>
+              </div>
+
+              {/* Web Navigation Tabs - Hidden on Mobile */}
+              <div className="hidden md:flex items-center justify-center gap-6 lg:gap-10 pt-1 pb-2">
+                {[
+                  { name: "Delivery", path: "/food/user", active: false },
+                  { name: "Quick", path: "/quick", active: routerLocation.pathname.startsWith("/quick") && !routerLocation.pathname.includes("/categories") && !routerLocation.pathname.includes("/orders") },
+                  { name: "Category", path: getQuickCategoriesPath(), active: routerLocation.pathname.includes("/categories") },
+                  { name: "Order", path: getQuickOrdersPath(), active: routerLocation.pathname.includes("/orders") },
+                  { name: "Profile", path: "/profile", active: routerLocation.pathname === "/profile" }
+                ].map((item) => (
+                  <button
+                    key={item.name}
+                    onClick={() => navigate(item.path)}
+                    className={cn(
+                      "text-[12px] lg:text-[13px] font-bold tracking-widest relative py-1 uppercase transition-colors",
+                      item.active ? "text-white" : "text-white/70 hover:text-white"
+                    )}
+                  >
+                    {item.name}
+                    {item.active && (
+                      <motion.div
+                        layoutId="activeCategoryNavTab"
+                        className="absolute -bottom-1.5 left-0 right-0 h-[2px] bg-white rounded-full"
+                      />
+                    )}
+                  </button>
+                ))}
               </div>
 
               <motion.div

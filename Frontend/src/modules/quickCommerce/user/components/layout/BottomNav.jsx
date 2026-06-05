@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LayoutGrid, ShoppingBag, User } from 'lucide-react';
+import { Home, LayoutGrid, ShoppingBag, User, Utensils } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import {
@@ -30,6 +30,7 @@ const BottomNav = () => {
         () => [
             { label: 'Home', icon: Home, path: getQuickHomePath(location.pathname) },
             { label: 'Category', icon: LayoutGrid, path: getQuickCategoriesPath() },
+            { label: 'Food', icon: Utensils, path: '/food/user' },
             { label: 'Orders', icon: ShoppingBag, path: getQuickOrdersPath() },
             { label: 'Profile', icon: User, path: getQuickProfilePath() },
         ],

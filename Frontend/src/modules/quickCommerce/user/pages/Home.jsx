@@ -257,6 +257,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
     const resolvedColor = activeCategory?.headerColor || '#FE5502';
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(QUICK_THEME_STORAGE_KEY, resolvedColor);
+      window.dispatchEvent(new Event('quickThemeChange'));
     }
     onThemeChange({ name: activeCategory?.name || ALL_CATEGORY.name, color: resolvedColor });
   }, [activeCategory, onThemeChange]);

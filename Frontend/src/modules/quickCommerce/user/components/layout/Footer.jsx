@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Facebook, Twitter, Instagram, Youtube, Mail, MapPin, Phone } from 'lucide-react';
-import Logo from '@/assets/Logo.png';
+import Logo from '@/assets/dukaanwallah.jpeg';
 import { useSettings } from '@core/context/SettingsContext';
+import { shiftHex } from '../../utils/headerTheme';
 
 // Static link lists — defined outside so they're never recreated
 const QUICK_LINKS = ['Home', 'About Us', 'Shop', 'Blogs', 'Contact'];
@@ -18,8 +19,26 @@ const Footer = () => {
     const { settings } = useSettings();
 
     const logoUrl = settings?.logoUrl || Logo;
-    const primaryColor = settings?.primaryColor || '#0c831f';
-    const appName = settings?.appName || 'App';
+    const defaultPrimaryColor = settings?.primaryColor || '#ea580c';
+    
+    const [themeColor, setThemeColor] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.sessionStorage.getItem('food.quick.headerColor') || defaultPrimaryColor;
+        }
+        return defaultPrimaryColor;
+    });
+
+    useEffect(() => {
+        const handleThemeChange = () => {
+            const color = window.sessionStorage.getItem('food.quick.headerColor');
+            if (color) setThemeColor(color);
+        };
+        window.addEventListener('quickThemeChange', handleThemeChange);
+        return () => window.removeEventListener('quickThemeChange', handleThemeChange);
+    }, []);
+
+    const primaryColor = themeColor;
+    const appName = settings?.appName || 'DukaanWallah';
     const currentYear = useMemo(() => new Date().getFullYear(), []); // year never changes in session
 
     // Only recompute social links when settings changes
@@ -34,7 +53,19 @@ const Footer = () => {
     );
 
     return (
-        <footer className="relative bg-[#051108] pt-20 pb-10 mt-20 text-slate-300 md:bg-gradient-to-br md:from-emerald-700 md:via-green-800 md:to-emerald-900 md:pt-32 md:pb-16 md:mt-32 overflow-hidden">
+        <footer 
+            className="dynamic-footer-bg relative bg-[#1a0f05] pt-20 pb-10 mt-20 text-slate-300 md:pt-32 md:pb-16 md:mt-32 overflow-hidden transition-colors duration-500"
+            style={{
+                '--footer-gradient': `linear-gradient(to bottom right, ${shiftHex(themeColor, -20) || '#ea580c'}, ${themeColor || '#ea580c'}, ${shiftHex(themeColor, -40) || '#ea580c'})`
+            }}
+        >
+            <style>{`
+                @media (min-width: 768px) {
+                    .dynamic-footer-bg {
+                        background-image: var(--footer-gradient) !important;
+                    }
+                }
+            `}</style>
             {/* Subtle Texture/Glow Overlay */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
                 <div
@@ -102,7 +133,7 @@ const Footer = () => {
                                 <li key={label}>
                                     <a
                                         href="#"
-                                        className="hover:text-emerald-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"
+                                        className="hover:text-orange-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"
                                     >
                                         <span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all" />
                                         {label}
@@ -123,7 +154,7 @@ const Footer = () => {
                                 <li key={cat}>
                                     <a
                                         href="#"
-                                        className="hover:text-emerald-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"
+                                        className="hover:text-orange-300 transition-colors md:text-base md:font-semibold flex items-center group text-white"
                                     >
                                         <span className="hidden md:block w-0 h-px bg-white group-hover:w-4 group-hover:mr-2 transition-all" />
                                         {cat}
@@ -170,8 +201,8 @@ const Footer = () => {
                         &copy; {currentYear} {appName}. All rights reserved.
                     </p>
                     <div className="flex gap-6 justify-center md:justify-end mt-4 md:mt-0 md:gap-12">
-                        <a href="#" className="hover:text-emerald-300 md:text-base text-white/60 transition-all">Privacy Policy</a>
-                        <a href="#" className="hover:text-emerald-300 md:text-base text-white/60 transition-all">Terms of Service</a>
+                        <a href="#" className="hover:text-orange-300 md:text-base text-white/60 transition-all">Privacy Policy</a>
+                        <a href="#" className="hover:text-orange-300 md:text-base text-white/60 transition-all">Terms of Service</a>
                     </div>
                 </div>
             </div>

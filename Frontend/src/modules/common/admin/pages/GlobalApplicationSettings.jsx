@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ChevronRight, 
-  Save, 
+import {
+  ChevronRight,
+  Save,
   Loader2,
   Image as ImageIcon,
   Upload,
@@ -30,7 +30,7 @@ const SectionCard = ({ title, children, id }) => (
 const InputField = ({ label, name, value, onChange, placeholder, info }) => {
   const inputClass = "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-800 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors shadow-sm";
   const labelClass = "block text-xs font-semibold text-gray-500 mb-1.5";
-  
+
   return (
     <div className="space-y-1">
       <label className={labelClass}>{label}</label>
@@ -44,7 +44,7 @@ const InputField = ({ label, name, value, onChange, placeholder, info }) => {
           className={cn(inputClass, name === 'themeColor' && "pl-10")}
         />
         {name === 'themeColor' && (
-          <div 
+          <div
             className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-gray-200 shadow-sm"
             style={{ backgroundColor: value || '#0a0a0a' }}
           />
@@ -52,8 +52,8 @@ const InputField = ({ label, name, value, onChange, placeholder, info }) => {
       </div>
       {info && (
         <div className="mt-2 bg-[#FFF8F0] border border-orange-100 rounded-lg px-4 py-2 flex items-center gap-2">
-           <span className="text-[11px] text-gray-500 italic">Example: {info.prefix}</span>
-           <span className="text-[11px] bg-[#00BFA5] text-white px-2 py-0.5 rounded font-bold">{value || info.default}</span>
+          <span className="text-[11px] text-gray-500 italic">Example: {info.prefix}</span>
+          <span className="text-[11px] bg-[#00BFA5] text-white px-2 py-0.5 rounded font-bold">{value || info.default}</span>
         </div>
       )}
     </div>
@@ -64,31 +64,31 @@ const ImageUploadBox = ({ title, size, preview, onUpload, onClear }) => {
   const fileInputRef = useRef(null);
   return (
     <div className="space-y-3">
-       <div className="flex items-center justify-between px-0.5">
-          <label className="text-xs font-bold text-gray-500">{title}({size})</label>
-       </div>
-       <div className="aspect-[2/1] w-full rounded-xl border border-dashed border-gray-300 bg-gray-50/50 relative overflow-hidden group hover:border-indigo-300 transition-colors cursor-pointer flex items-center justify-center" onClick={() => fileInputRef.current?.click()}>
-          {preview ? (
-            <img src={preview} alt={title} className="w-full h-full object-contain p-6" />
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-2 text-gray-400">
-                <p className="text-[11px] font-bold uppercase tracking-widest">Upload Image</p>
-                <Upload size={24} strokeWidth={1.5} />
-            </div>
-          )}
-          
-          <div className="absolute top-4 right-4 flex items-center gap-2">
-             <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="w-8 h-8 rounded-lg bg-[#E6F8F6] text-[#00BFA5] shadow-sm border border-[#C2EFE9] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Upload size={14} />
-             </button>
-             {preview && (
-               <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="w-8 h-8 rounded-lg bg-[#FFF1F1] text-[#FF4D4D] shadow-sm border border-[#FEDADA] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <X size={14} />
-               </button>
-             )}
+      <div className="flex items-center justify-between px-0.5">
+        <label className="text-xs font-bold text-gray-500">{title}({size})</label>
+      </div>
+      <div className="aspect-[2/1] w-full rounded-xl border border-dashed border-gray-300 bg-gray-50/50 relative overflow-hidden group hover:border-indigo-300 transition-colors cursor-pointer flex items-center justify-center" onClick={() => fileInputRef.current?.click()}>
+        {preview ? (
+          <img src={preview} alt={title} className="w-full h-full object-contain p-6" />
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2 text-gray-400">
+            <p className="text-[11px] font-bold uppercase tracking-widest">Upload Image</p>
+            <Upload size={24} strokeWidth={1.5} />
           </div>
-          <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => { if(e.target.files[0]) onUpload(e.target.files[0]); }} />
-       </div>
+        )}
+
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="w-8 h-8 rounded-lg bg-[#E6F8F6] text-[#00BFA5] shadow-sm border border-[#C2EFE9] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Upload size={14} />
+          </button>
+          {preview && (
+            <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="w-8 h-8 rounded-lg bg-[#FFF1F1] text-[#FF4D4D] shadow-sm border border-[#FEDADA] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) onUpload(e.target.files[0]); }} />
+      </div>
     </div>
   );
 };
@@ -96,7 +96,7 @@ const ImageUploadBox = ({ title, size, preview, onUpload, onClear }) => {
 const GlobalApplicationSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   // Logos & Favicons state
   const [adminLogoPreview, setAdminLogoPreview] = useState(null);
   const [adminLogoFile, setAdminLogoFile] = useState(null);
@@ -235,82 +235,82 @@ const GlobalApplicationSettings = () => {
   };
 
   if (loading) {
-     return (
-       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-         <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-       </div>
-     );
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 lg:p-10 font-sans">
-      
+
       {/* Header */}
       <div className="mb-10 flex items-center justify-between">
         <h1 className="text-[15px] font-black text-gray-800 uppercase tracking-widest">GLOBAL SETTINGS</h1>
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-           <span>Common</span>
-           <ChevronRight size={12} strokeWidth={3} />
-           <span className="text-gray-600">Global Settings</span>
+          <span>Common</span>
+          <ChevronRight size={12} strokeWidth={3} />
+          <span className="text-gray-600">Global Settings</span>
         </div>
       </div>
 
       <div className="max-w-[1600px] mx-auto space-y-10 pb-32">
-        
+
         {/* Basic Identification */}
         <SectionCard title="Application Identification">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-              <InputField label="App Name" name="companyName" value={formData.companyName} onChange={handleChange} placeholder="AppZeto" />
-              <InputField label="Admin Theme Color" name="themeColor" value={formData.themeColor} onChange={handleChange} placeholder="#0a0a0a" />
-              <InputField label="Support Email" name="email" value={formData.email} onChange={handleChange} placeholder="admin@appzeto.com" />
-              <InputField label="Support Phone" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="0000000000" />
-              <InputField label="Office Address" name="address" value={formData.address} onChange={handleChange} placeholder="Main Street, NY" />
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+            <InputField label="App Name" name="companyName" value={formData.companyName} onChange={handleChange} placeholder="DukaanWallah" />
+            <InputField label="Admin Theme Color" name="themeColor" value={formData.themeColor} onChange={handleChange} placeholder="#0a0a0a" />
+            <InputField label="Support Email" name="email" value={formData.email} onChange={handleChange} placeholder="admin@appzeto.com" />
+            <InputField label="Support Phone" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="0000000000" />
+            <InputField label="Office Address" name="address" value={formData.address} onChange={handleChange} placeholder="Main Street, NY" />
+          </div>
         </SectionCard>
 
         {/* Individual App Assets */}
         <SectionCard title="Admin Application">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <ImageUploadBox title="Admin Logo" size="200px x 50px" preview={adminLogoPreview} onUpload={(file) => handleFileUpload(file, setAdminLogoFile, setAdminLogoPreview)} onClear={() => { setAdminLogoPreview(null); setAdminLogoFile(null); }} />
-              <ImageUploadBox title="Admin Favicon" size="80px x 80px" preview={adminFaviconPreview} onUpload={(file) => handleFileUpload(file, setAdminFaviconFile, setAdminFaviconPreview)} onClear={() => { setAdminFaviconPreview(null); setAdminFaviconFile(null); }} />
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <ImageUploadBox title="Admin Logo" size="200px x 50px" preview={adminLogoPreview} onUpload={(file) => handleFileUpload(file, setAdminLogoFile, setAdminLogoPreview)} onClear={() => { setAdminLogoPreview(null); setAdminLogoFile(null); }} />
+            <ImageUploadBox title="Admin Favicon" size="80px x 80px" preview={adminFaviconPreview} onUpload={(file) => handleFileUpload(file, setAdminFaviconFile, setAdminFaviconPreview)} onClear={() => { setAdminFaviconPreview(null); setAdminFaviconFile(null); }} />
+          </div>
         </SectionCard>
 
         <SectionCard title="User Application">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <ImageUploadBox title="User Logo" size="200px x 50px" preview={userLogoPreview} onUpload={(file) => handleFileUpload(file, setUserLogoFile, setUserLogoPreview)} onClear={() => { setUserLogoPreview(null); setUserLogoFile(null); }} />
-              <ImageUploadBox title="User Favicon" size="80px x 80px" preview={userFaviconPreview} onUpload={(file) => handleFileUpload(file, setUserFaviconFile, setUserFaviconPreview)} onClear={() => { setUserFaviconPreview(null); setUserFaviconFile(null); }} />
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <ImageUploadBox title="User Logo" size="200px x 50px" preview={userLogoPreview} onUpload={(file) => handleFileUpload(file, setUserLogoFile, setUserLogoPreview)} onClear={() => { setUserLogoPreview(null); setUserLogoFile(null); }} />
+            <ImageUploadBox title="User Favicon" size="80px x 80px" preview={userFaviconPreview} onUpload={(file) => handleFileUpload(file, setUserFaviconFile, setUserFaviconPreview)} onClear={() => { setUserFaviconPreview(null); setUserFaviconFile(null); }} />
+          </div>
         </SectionCard>
 
         <SectionCard title="Delivery Application">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <ImageUploadBox title="Delivery Logo" size="200px x 50px" preview={deliveryLogoPreview} onUpload={(file) => handleFileUpload(file, setDeliveryLogoFile, setDeliveryLogoPreview)} onClear={() => { setDeliveryLogoPreview(null); setDeliveryLogoFile(null); }} />
-              <ImageUploadBox title="Delivery Favicon" size="80px x 80px" preview={deliveryFaviconPreview} onUpload={(file) => handleFileUpload(file, setDeliveryFaviconFile, setDeliveryFaviconPreview)} onClear={() => { setDeliveryFaviconPreview(null); setDeliveryFaviconFile(null); }} />
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <ImageUploadBox title="Delivery Logo" size="200px x 50px" preview={deliveryLogoPreview} onUpload={(file) => handleFileUpload(file, setDeliveryLogoFile, setDeliveryLogoPreview)} onClear={() => { setDeliveryLogoPreview(null); setDeliveryLogoFile(null); }} />
+            <ImageUploadBox title="Delivery Favicon" size="80px x 80px" preview={deliveryFaviconPreview} onUpload={(file) => handleFileUpload(file, setDeliveryFaviconFile, setDeliveryFaviconPreview)} onClear={() => { setDeliveryFaviconPreview(null); setDeliveryFaviconFile(null); }} />
+          </div>
         </SectionCard>
 
         <SectionCard title="Restaurant Application">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <ImageUploadBox title="Restaurant Logo" size="200px x 50px" preview={restaurantLogoPreview} onUpload={(file) => handleFileUpload(file, setRestaurantLogoFile, setRestaurantLogoPreview)} onClear={() => { setRestaurantLogoPreview(null); setRestaurantLogoFile(null); }} />
-              <ImageUploadBox title="Restaurant Favicon" size="80px x 80px" preview={restaurantFaviconPreview} onUpload={(file) => handleFileUpload(file, setRestaurantFaviconFile, setRestaurantFaviconPreview)} onClear={() => { setRestaurantFaviconPreview(null); setRestaurantFaviconFile(null); }} />
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <ImageUploadBox title="Restaurant Logo" size="200px x 50px" preview={restaurantLogoPreview} onUpload={(file) => handleFileUpload(file, setRestaurantLogoFile, setRestaurantLogoPreview)} onClear={() => { setRestaurantLogoPreview(null); setRestaurantLogoFile(null); }} />
+            <ImageUploadBox title="Restaurant Favicon" size="80px x 80px" preview={restaurantFaviconPreview} onUpload={(file) => handleFileUpload(file, setRestaurantFaviconFile, setRestaurantFaviconPreview)} onClear={() => { setRestaurantFaviconPreview(null); setRestaurantFaviconFile(null); }} />
+          </div>
         </SectionCard>
 
         <SectionCard title="Seller Application">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <ImageUploadBox title="Seller Logo" size="200px x 50px" preview={sellerLogoPreview} onUpload={(file) => handleFileUpload(file, setSellerLogoFile, setSellerLogoPreview)} onClear={() => { setSellerLogoPreview(null); setSellerLogoFile(null); }} />
-              <ImageUploadBox title="Seller Favicon" size="80px x 80px" preview={sellerFaviconPreview} onUpload={(file) => handleFileUpload(file, setSellerFaviconFile, setSellerFaviconPreview)} onClear={() => { setSellerFaviconPreview(null); setSellerFaviconFile(null); }} />
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <ImageUploadBox title="Seller Logo" size="200px x 50px" preview={sellerLogoPreview} onUpload={(file) => handleFileUpload(file, setSellerLogoFile, setSellerLogoPreview)} onClear={() => { setSellerLogoPreview(null); setSellerLogoFile(null); }} />
+            <ImageUploadBox title="Seller Favicon" size="80px x 80px" preview={sellerFaviconPreview} onUpload={(file) => handleFileUpload(file, setSellerFaviconFile, setSellerFaviconPreview)} onClear={() => { setSellerFaviconPreview(null); setSellerFaviconFile(null); }} />
+          </div>
         </SectionCard>
 
       </div>
 
       {/* Persistence Controls */}
       <div className="fixed bottom-10 right-10">
-         <button onClick={handleUpdate} disabled={saving} className="bg-[#00BFA5] text-white w-16 h-16 rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(0,191,165,0.4)] hover:bg-[#00AC95] active:scale-90 transition-all disabled:opacity-50">
-            {saving ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
-         </button>
+        <button onClick={handleUpdate} disabled={saving} className="bg-[#00BFA5] text-white w-16 h-16 rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(0,191,165,0.4)] hover:bg-[#00AC95] active:scale-90 transition-all disabled:opacity-50">
+          {saving ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
+        </button>
       </div>
 
     </div>
