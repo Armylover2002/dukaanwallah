@@ -6,24 +6,23 @@ function ToggleSwitch({ enabled, onToggle }) {
     <button
       type="button"
       onClick={onToggle}
-      className={`inline-flex items-center w-11 h-6 rounded-full border transition-all ${
-        enabled
+      className={`inline-flex items-center w-11 h-6 rounded-full border transition-all ${enabled
           ? "bg-blue-600 border-blue-600 justify-end"
           : "bg-slate-200 border-slate-300 justify-start"
-      }`}
+        }`}
     >
       <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
     </button>
   )
 }
 
-export default function ZonesTable({ 
-  zones, 
-  visibleColumns, 
-  onEditZone, 
+export default function ZonesTable({
+  zones,
+  visibleColumns,
+  onEditZone,
   onViewZone,
-  onStatusToggle, 
-  onMakeDefault 
+  onStatusToggle,
+  onMakeDefault
 }) {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -207,11 +206,10 @@ export default function ZonesTable({
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition-colors ${
-                    currentPage === page
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition-colors ${currentPage === page
                       ? "bg-blue-600 text-white"
                       : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   {page}
                 </button>
