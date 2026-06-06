@@ -789,7 +789,7 @@ export default function FoodsList() {
             <DialogTitle className="text-lg font-semibold text-slate-900">Food Details</DialogTitle>
           </DialogHeader>
           {selectedFood && (
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
               <div className="flex items-center gap-4">
                 <img
                           src={withImageVersion(selectedFood.image)}

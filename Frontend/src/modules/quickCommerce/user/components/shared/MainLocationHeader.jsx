@@ -58,7 +58,6 @@ import MicIcon from "@mui/icons-material/Mic";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
-import RestaurantIcon from "@mui/icons-material/Restaurant";
 
 // ─── Constants (module-level, never re-created) ───────────────────────────────
 
@@ -466,43 +465,54 @@ const MainLocationHeader = ({
                 </div>
               </div>
 
-              {/* Center: Cart animation */}
-              <div className="flex-1 px-6">
-                <div className="flex items-center justify-end gap-3">
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.9, y: -8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
-                    style={{ opacity: cartOpacity, scale: cartScale, display: displayCart }}
-                    type="button"
-                    aria-label="Open cart"
-                    onClick={goCart}
-                    className="group relative h-12 w-12 shrink-0 rounded-2xl border border-white/55 bg-white/28 shadow-[0_16px_35px_rgba(15,23,42,0.16)] backdrop-blur-xl transition-all duration-300 hover:bg-white/42 hover:shadow-[0_18px_40px_rgba(15,23,42,0.2)]"
+              {/* Center: Navigation Links (Web Only) */}
+              <div className="flex-1 flex items-center justify-center gap-4 lg:gap-8 hidden md:flex px-4">
+                {[
+                  { name: "Delivery", path: "/food/user", active: false },
+                  { name: "Quick", path: "/quick", active: routerLocation.pathname.startsWith("/quick") && !routerLocation.pathname.includes("/categories") && !routerLocation.pathname.includes("/orders") },
+                  { name: "Category", path: getQuickCategoriesPath(), active: routerLocation.pathname.includes("/categories") },
+                  { name: "Order", path: getQuickOrdersPath(), active: routerLocation.pathname.includes("/orders") },
+                  { name: "Profile", path: "/profile", active: routerLocation.pathname === "/profile" }
+                ].map((item) => (
+                  <button
+                    key={item.name}
+                    onClick={() => navigate(item.path)}
+                    className={cn(
+                      "text-[12px] lg:text-[14px] font-extrabold tracking-wide relative py-1 lg:py-2 transition-colors uppercase",
+                      item.active ? "text-[#FE5502]" : "text-slate-600 hover:text-slate-900"
+                    )}
                   >
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/30 via-transparent to-black/5 pointer-events-none" />
-                    <div className="absolute inset-x-2 top-1 h-px bg-white/70 pointer-events-none" />
-                    <Lottie
-                      animationData={shoppingCartAnimation}
-                      loop
-                      className="pointer-events-none absolute inset-0 scale-[1.18] drop-shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition-transform duration-300 group-hover:scale-[1.25]"
-                    />
-                  </motion.button>
-                </div>
+                    {item.name}
+                    {item.active && (
+                      <motion.div
+                        layoutId="activeQuickNavTab"
+                        className="absolute -bottom-1 left-0 right-0 h-[3px] bg-[#FE5502] rounded-full"
+                      />
+                    )}
+                  </button>
+                ))}
               </div>
 
-              {/* Right: Action Icons */}
-              <div className="flex items-center gap-5 lg:gap-8 shrink-0">
+              {/* Right: Action Icons & Cart Animation */}
+              <div className="flex items-center gap-5 lg:gap-6 shrink-0">
                 <motion.button
-                  whileHover={{ scale: 1.15, rotate: 5 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => navigate('/food/user')}
-                  className="text-slate-900 hover:text-[#FE5502] transition-all flex flex-col items-center justify-center gap-0.5"
-                  title="Go to Food Section"
+                  initial={{ opacity: 0, scale: 0.9, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+                  style={{ opacity: cartOpacity, scale: cartScale, display: displayCart }}
+                  type="button"
+                  aria-label="Open cart"
+                  onClick={goCart}
+                  className="group relative h-12 w-12 shrink-0 rounded-2xl border border-white/55 bg-white/28 shadow-[0_16px_35px_rgba(15,23,42,0.16)] backdrop-blur-xl transition-all duration-300 hover:bg-white/42 hover:shadow-[0_18px_40px_rgba(15,23,42,0.2)] mr-2 hidden lg:block"
                 >
-                  <RestaurantIcon sx={{ fontSize: 24 }} />
-                  <span className="text-[9px] font-bold hidden lg:block tracking-wide">Food</span>
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/30 via-transparent to-black/5 pointer-events-none" />
+                  <div className="absolute inset-x-2 top-1 h-px bg-white/70 pointer-events-none" />
+                  <Lottie
+                    animationData={shoppingCartAnimation}
+                    loop
+                    className="pointer-events-none absolute inset-0 scale-[1.18] drop-shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition-transform duration-300 group-hover:scale-[1.25]"
+                  />
                 </motion.button>
-
                 <motion.button
                   whileHover={{ scale: 1.15, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
@@ -599,34 +609,6 @@ const MainLocationHeader = ({
                     <MicIcon sx={{ color: "#FE5502", fontSize: 20 }} />
                   </div>
                 </motion.div>
-              </div>
-
-              {/* Web Navigation Tabs - Hidden on Mobile */}
-              <div className="hidden md:flex items-center justify-center gap-6 lg:gap-10 pt-1 pb-2">
-                {[
-                  { name: "Delivery", path: "/food/user", active: false },
-                  { name: "Quick", path: "/quick", active: routerLocation.pathname.startsWith("/quick") && !routerLocation.pathname.includes("/categories") && !routerLocation.pathname.includes("/orders") },
-                  { name: "Category", path: getQuickCategoriesPath(), active: routerLocation.pathname.includes("/categories") },
-                  { name: "Order", path: getQuickOrdersPath(), active: routerLocation.pathname.includes("/orders") },
-                  { name: "Profile", path: "/profile", active: routerLocation.pathname === "/profile" }
-                ].map((item) => (
-                  <button
-                    key={item.name}
-                    onClick={() => navigate(item.path)}
-                    className={cn(
-                      "text-[12px] lg:text-[13px] font-bold tracking-widest relative py-1 uppercase transition-colors",
-                      item.active ? "text-white" : "text-white/70 hover:text-white"
-                    )}
-                  >
-                    {item.name}
-                    {item.active && (
-                      <motion.div
-                        layoutId="activeCategoryNavTab"
-                        className="absolute -bottom-1.5 left-0 right-0 h-[2px] bg-white rounded-full"
-                      />
-                    )}
-                  </button>
-                ))}
               </div>
 
               <motion.div

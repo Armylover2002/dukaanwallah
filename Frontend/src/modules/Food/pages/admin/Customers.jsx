@@ -6,9 +6,9 @@ import { exportCustomersToCSV, exportCustomersToExcel, exportCustomersToPDF } fr
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 export default function Customers() {
@@ -23,7 +23,7 @@ export default function Customers() {
   const [selectedCustomerIds, setSelectedCustomerIds] = useState([])
   const [bulkCodLoading, setBulkCodLoading] = useState(false)
   const [codUpdatingId, setCodUpdatingId] = useState(null)
-  
+
   // User Contacts state
   const [userContacts, setUserContacts] = useState([])
   const [loadingContacts, setLoadingContacts] = useState(false)
@@ -605,7 +605,7 @@ export default function Customers() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div 
+                          <div
                             className="w-10 h-10 rounded-full bg-[#FAF7F2] text-[#5C5247] flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-all border border-[#EDE8E0]"
                             onClick={() => handleViewDetails(customer._id || customer.id || customer.sl)}
                           >
@@ -622,7 +622,7 @@ export default function Customers() {
                               <span className="text-xs font-semibold">{getInitials(customer.name)}</span>
                             )}
                           </div>
-                          <span 
+                          <span
                             className="text-sm font-medium text-[#1A1A1A] cursor-pointer hover:text-[#F26522] transition-colors"
                             onClick={() => handleViewDetails(customer._id || customer.id || customer.sl)}
                           >
@@ -645,11 +645,37 @@ export default function Customers() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-[#5C5247]">{formatDateTime(customer.joiningDate)}</span>
                       </td>
+                      {/* <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => handleToggleCodAccess(getCustomerId(customer))}
+                          disabled={codUpdatingId === getCustomerId(customer)}
+                          
+                          className={`relative inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:ring-offset-2 disabled:opacity-60 ${customer.isCodAllowed !== false ? "bg-emerald-600" : "bg-slate-300"}`}
+                        >
+                          <span
+                            style={{ width: "20px", height: "20px", transform: customer.isCodAllowed !== false ? "translateX(16px)" : "translateX(0px)" }}
+                            className={`pointer-events-none inline-block transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          />
+                        </button>
+                      </td> */}
+                      {/* <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => handleToggleStatus(getCustomerId(customer))}
+                          style={{ width: "44px", height: "24px", minWidth: "44px" }}
+                          className={`relative inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:ring-offset-2 ${customer.status ? "bg-[#F26522]" : "bg-slate-300"}`}
+                        >
+                          <span
+                            style={{ width: "20px", height: "20px", transform: customer.status ? "translateX(16px)" : "translateX(0px)" }}
+                            className={`pointer-events-none inline-block transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          />
+                        </button>
+                      </td> */}
+
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleToggleCodAccess(getCustomerId(customer))}
                           disabled={codUpdatingId === getCustomerId(customer)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:ring-offset-2 disabled:opacity-60 ${customer.isCodAllowed !== false ? "bg-emerald-600" : "bg-slate-300"
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-60 ${customer.isCodAllowed !== false ? "bg-emerald-600" : "bg-slate-300"
                             }`}
                         >
                           <span
@@ -661,7 +687,7 @@ export default function Customers() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleToggleStatus(getCustomerId(customer))}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#F26522] focus:ring-offset-2 ${customer.status ? "bg-[#F26522]" : "bg-slate-300"
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${customer.status ? "bg-orange-500" : "bg-slate-300"
                             }`}
                         >
                           <span
@@ -852,7 +878,7 @@ export default function Customers() {
                       />
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9E8F7E]" />
                     </div>
-                    
+
                     <div className="bg-white border border-[#EDE8E0] rounded-xl max-h-48 overflow-y-auto divide-y divide-[#EDE8E0]">
                       {filteredUserContacts.length === 0 ? (
                         <div className="py-4 text-center text-sm text-[#5C5247]">No matching contacts found</div>

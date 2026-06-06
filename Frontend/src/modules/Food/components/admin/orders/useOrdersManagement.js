@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { exportToCSV, exportToExcel, exportToPDF, exportToJSON } from "./ordersExportUtils"
 
 import { getCachedSettings, loadBusinessSettings } from "@common/utils/businessSettings"
-const debugError = () => {}
+const debugError = () => { }
 
 
 const toNumber = (value) => {
@@ -72,7 +72,7 @@ const blobToDataUrl = (blob) =>
 const imageUrlToDataUrl = async (url) => {
   if (!url) return null
   if (url.startsWith("data:")) return url
-  
+
   const u = String(url).trim()
   // Allow all valid URLs but handle errors gracefully
   if (!u.startsWith("http") && !u.startsWith("/")) return null
@@ -300,7 +300,7 @@ export function useOrdersManagement(orders, statusKey, title) {
         : (order.date || new Date().toLocaleDateString())
 
       const settings = getCachedSettings() || await loadBusinessSettings()
-      const companyName = settings?.companyName || "Appzeto Food"
+      const companyName = settings?.companyName || "Dukaanwallah"
       const logoUrl = settings?.logo?.url || undefined
       const logoDataUrl = await imageUrlToDataUrl(logoUrl)
 
@@ -313,11 +313,11 @@ export function useOrdersManagement(orders, statusKey, title) {
       const subtotal = itemsSubtotal > 0
         ? itemsSubtotal
         : toNumber(
-            order.totalItemAmount ??
-            order.subtotal ??
-            order.pricing?.subtotal ??
-            order.totalAmount
-          )
+          order.totalItemAmount ??
+          order.subtotal ??
+          order.pricing?.subtotal ??
+          order.totalAmount
+        )
       const deliveryFee = toNumber(
         order.deliveryCharge ??
         order.deliveryFee ??
@@ -358,8 +358,8 @@ export function useOrdersManagement(orders, statusKey, title) {
       const orderStatus = formatDisplayText(order.orderStatus || order.status)
       const paymentStatus = formatDisplayText(
         order.paymentStatus
-          || order.paymentCollectionStatus
-          || (paymentType === "Cash on Delivery" ? "Not Collected" : null),
+        || order.paymentCollectionStatus
+        || (paymentType === "Cash on Delivery" ? "Not Collected" : null),
       )
       const customerName = formatDisplayText(order.customerName)
       const customerPhone = formatDisplayText(order.customerPhone)
@@ -592,12 +592,12 @@ export function useOrdersManagement(orders, statusKey, title) {
 
   const resetColumns = () => {
     setVisibleColumns({
-    si: true,
-    orderId: true,
-    orderDate: true,
-    orderType: true,
-    orderOtp: true,
-    customer: true,
+      si: true,
+      orderId: true,
+      orderDate: true,
+      orderType: true,
+      orderOtp: true,
+      customer: true,
       restaurant: true,
       foodItems: true,
       totalAmount: true,
