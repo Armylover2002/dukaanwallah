@@ -2929,3 +2929,11 @@ export const mediaAPI = {
 };
 export const heroBannerAPI = createStubAPI();
 export const publicAPI = createStubAPI();
+
+export const onboardingFeeAPI = {
+  getPublicFees: () => apiClient.get("/common/onboarding-fees/public"),
+  createOrder: (body) => apiClient.post("/common/onboarding-fees/public/create-order", body ?? {}),
+  getConfig: () => apiClient.get("/common/onboarding-fees/config", { contextModule: "admin" }),
+  updateConfig: (role, body) => apiClient.put(`/common/onboarding-fees/config/${role}`, body ?? {}, { contextModule: "admin" }),
+  getPayments: (params = {}) => apiClient.get("/common/onboarding-fees/payments", { params, contextModule: "admin" })
+};

@@ -37,8 +37,11 @@ const deliveryRegisterSchema = z.object({
         .regex(aadharRegex, 'Invalid Aadhar format')
         .optional()
         .or(z.literal('')),
-    fcmToken: z.string().optional().nullable(),
-    platform: z.enum(['web', 'mobile']).optional().default('web')
+        fcmToken: z.string().optional().nullable(),
+    platform: z.enum(['web', 'mobile']).optional().default('web'),
+    razorpayOrderId: z.string().optional(),
+    razorpayPaymentId: z.string().optional(),
+    razorpaySignature: z.string().optional()
 });
 
 export const validateDeliveryRegisterDto = (body) => {

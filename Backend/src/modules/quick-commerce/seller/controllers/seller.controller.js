@@ -1568,6 +1568,21 @@ export const updateSellerProfileController = async (req, res) => {
     }
 
     if (submitForApproval) {
+      const razorpayOrderId = str(req.body?.razorpayOrderId);
+      const razorpayPaymentId = str(req.body?.razorpayPaymentId);
+      const razorpaySignature = str(req.body?.razorpaySignature);
+
+      if (seller.approvalStatus !== "rejected") {
+        // Verify onboarding fee payment if required
+        const { verifyAndConsumeOnboardingPayment } = await import("../../../common/services/onboardingFee.service.js");
+        await verifyAndConsumeOnboardingPayment({
+          role: "SELLER",
+          paymentDetails: { razorpayOrderId, razorpayPaymentId, razorpaySignature },
+          userDetails: { name: seller.name, phone: seller.phone, email: seller.email },
+          entityId: seller._id
+        });
+      }
+
       seller.onboardingSubmitted = true;
       seller.approved = false;
       seller.approvalStatus = "pending";

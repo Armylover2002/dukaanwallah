@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
-import { deliveryAPI } from "@food/api"
+import { deliveryAPI, onboardingFeeAPI } from "@food/api"
 import { toast } from "sonner"
+import { initRazorpayPayment } from "@food/utils/razorpay"
 import { isFlutterBridgeAvailable, openCamera } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 const debugLog = (...args) => {}
@@ -186,10 +187,36 @@ export default function SignupStep2() {
     }
     return createEmptyUploadedDocs()
   })
-  const [activePicker, setActivePicker] = useState(null) // { docType: string, title: string, ref: any }
+  const [activePicker, setActivePicker] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploading, setUploading] = useState({})
   const [restoring, setRestoring] = useState({})
+  const [feeConfig, setFeeConfig] = useState(null)
+  const [fetchingFees, setFetchingFees] = useState(false)
+
+  useEffect(() => {
+    const fetchFees = async () => {
+      try {
+        setFetchingFees(true)
+        // Rejected partners re-applying don't need to pay again
+        const isRejected = sessionStorage.getItem("deliveryIsRejected") === "true"
+        if (isRejected) {
+          setFeeConfig(null)
+          return
+        }
+        const res = await onboardingFeeAPI.getPublicFees()
+        const fees = res?.data?.data || res?.data
+        if (fees && fees.DELIVERY_PARTNER) {
+          setFeeConfig(fees.DELIVERY_PARTNER)
+        }
+      } catch (err) {
+        debugError("Failed to fetch public onboarding fee for delivery partner:", err)
+      } finally {
+        setFetchingFees(false)
+      }
+    }
+    fetchFees()
+  }, [])
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
@@ -417,41 +444,171 @@ export default function SignupStep2() {
     setIsSubmitting(true)
 
     try {
-      // New number (OTP ke baad pehli baar): DB me abhi partner nahi hai,
-      // is case me register hi call karna hai (no auth token needed).
-      const response = isCompleteProfile
-        ? await deliveryAPI.register(formData)
-        : await deliveryAPI.completeProfile(formData)
+      if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
+        const orderRes = await onboardingFeeAPI.createOrder({
+          role: "DELIVERY_PARTNER",
+          name: details.name || "Delivery Partner",
+          phone: String(details.phone || "").replace(/\D/g, "").slice(0, 15),
+          email: details.email || ""
+        });
+        const orderData = orderRes?.data?.data || orderRes?.data;
+        
+        if (!orderData || !orderData.orderId) {
+          throw new Error("Failed to create onboarding payment order");
+        }
 
-      if (response?.data?.success) {
-        sessionStorage.removeItem("deliverySignupDetails")
-        sessionStorage.removeItem("deliverySignupDocs")
-        clearDB()
-        if (isCompleteProfile) {
-          sessionStorage.removeItem("deliveryNeedsRegistration")
-          const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-          sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
-          toast.success("Registration submitted. Verification is in progress.")
-          setTimeout(
-            () =>
-              navigate("/food/delivery/verification", {
-                replace: true,
-                state: { phone: pendingPhone },
-              }),
-            1200
-          )
+        if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
+          toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.");
+          formData.append("razorpayOrderId", orderData.orderId);
+          formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`);
+          formData.append("razorpaySignature", `mock_sig_${Date.now()}`);
+          
+          const response = isCompleteProfile
+            ? await deliveryAPI.register(formData)
+            : await deliveryAPI.completeProfile(formData)
+
+          if (response?.data?.success) {
+            sessionStorage.removeItem("deliverySignupDetails")
+            sessionStorage.removeItem("deliverySignupDocs")
+            clearDB()
+            if (isCompleteProfile) {
+              sessionStorage.removeItem("deliveryNeedsRegistration")
+              const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
+              sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+              toast.success("Registration submitted. Verification is in progress.")
+              setTimeout(
+                () =>
+                  navigate("/food/delivery/verification", {
+                    replace: true,
+                    state: { phone: pendingPhone },
+                  }),
+                1200
+              )
+            } else {
+              const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
+              sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+              toast.success("Profile submitted. Waiting for admin approval.")
+              setTimeout(
+                () =>
+                  navigate("/food/delivery/verification", {
+                    replace: true,
+                    state: { phone: pendingPhone },
+                  }),
+                1200
+              )
+            }
+          }
         } else {
-          const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-          sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
-          toast.success("Profile submitted. Waiting for admin approval.")
-          setTimeout(
-            () =>
-              navigate("/food/delivery/verification", {
-                replace: true,
-                state: { phone: pendingPhone },
-              }),
-            1200
-          )
+          // Open real Razorpay checkout modal
+          setIsSubmitting(false)
+          const rzpOptions = {
+            key: orderData.keyId,
+            amount: Math.round(orderData.amount * 100),
+            currency: orderData.currency || "INR",
+            order_id: orderData.orderId,
+            name: "Onboarding Fee Payment",
+            description: `Onboarding fee for ${details.name}`,
+            prefill: {
+              name: details.name || "",
+              email: details.email || "",
+              contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
+            },
+            handler: async (response) => {
+              try {
+                setIsSubmitting(true)
+                formData.append("razorpayOrderId", response.razorpay_order_id)
+                formData.append("razorpayPaymentId", response.razorpay_payment_id)
+                formData.append("razorpaySignature", response.razorpay_signature)
+
+                const apiResponse = isCompleteProfile
+                  ? await deliveryAPI.register(formData)
+                  : await deliveryAPI.completeProfile(formData)
+
+                if (apiResponse?.data?.success) {
+                  sessionStorage.removeItem("deliverySignupDetails")
+                  sessionStorage.removeItem("deliverySignupDocs")
+                  clearDB()
+                  if (isCompleteProfile) {
+                    sessionStorage.removeItem("deliveryNeedsRegistration")
+                    const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
+                    sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+                    toast.success("Registration submitted. Verification is in progress.")
+                    setTimeout(
+                      () =>
+                        navigate("/food/delivery/verification", {
+                          replace: true,
+                          state: { phone: pendingPhone },
+                        }),
+                      1200
+                    )
+                  } else {
+                    const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
+                    sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+                    toast.success("Profile submitted. Waiting for admin approval.")
+                    setTimeout(
+                      () =>
+                        navigate("/food/delivery/verification", {
+                          replace: true,
+                          state: { phone: pendingPhone },
+                        }),
+                      1200
+                    )
+                  }
+                }
+              } catch (error) {
+                debugError("Error submitting registration:", error)
+                const message = getFriendlyRegistrationError(error)
+                toast.error(message)
+              } finally {
+                setIsSubmitting(false)
+              }
+            },
+            onError: (err) => {
+              toast.error(err?.description || "Payment failed. Please try again.")
+              setIsSubmitting(false)
+            },
+            onClose: () => {
+              toast.error("Payment modal closed. Payment is required to complete signup.")
+              setIsSubmitting(false)
+            }
+          }
+          await initRazorpayPayment(rzpOptions)
+        }
+      } else {
+        const response = isCompleteProfile
+          ? await deliveryAPI.register(formData)
+          : await deliveryAPI.completeProfile(formData)
+
+        if (response?.data?.success) {
+          sessionStorage.removeItem("deliverySignupDetails")
+          sessionStorage.removeItem("deliverySignupDocs")
+          clearDB()
+          if (isCompleteProfile) {
+            sessionStorage.removeItem("deliveryNeedsRegistration")
+            const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
+            sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+            toast.success("Registration submitted. Verification is in progress.")
+            setTimeout(
+              () =>
+                navigate("/food/delivery/verification", {
+                  replace: true,
+                  state: { phone: pendingPhone },
+                }),
+              1200
+            )
+          } else {
+            const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
+            sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+            toast.success("Profile submitted. Waiting for admin approval.")
+            setTimeout(
+              () =>
+                navigate("/food/delivery/verification", {
+                  replace: true,
+                  state: { phone: pendingPhone },
+                }),
+              1200
+            )
+          }
         }
       }
     } catch (error) {
@@ -581,6 +738,15 @@ export default function SignupStep2() {
           <DocumentUpload docType="aadharPhoto" label="Aadhar Card Photo" required={true} />
           <DocumentUpload docType="panPhoto" label="PAN Card Photo" required={true} />
           <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={true} />
+
+          {feeConfig && feeConfig.isActive && feeConfig.price > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-1">
+              <h3 className="text-sm font-bold text-orange-800">Required Onboarding Fee</h3>
+              <p className="text-xs text-orange-700">
+                An onboarding fee of <span className="font-bold">₹{feeConfig.price}</span> is required to register as a delivery partner. You will pay secure online on the next step.
+              </p>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button

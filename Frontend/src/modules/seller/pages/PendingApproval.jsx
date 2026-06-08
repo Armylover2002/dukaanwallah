@@ -144,7 +144,10 @@ export default function SellerPendingApproval() {
               {isRejected && (
                 <button
                   type="button"
-                  onClick={() => navigate("/seller/onboarding")}
+                  onClick={() => {
+                    sessionStorage.setItem("sellerReonboard", "true");
+                    navigate("/seller/onboarding");
+                  }}
                   className="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-900 hover:text-slate-900"
                 >
                   Edit application

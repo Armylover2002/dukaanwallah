@@ -6,10 +6,10 @@ async function dropIndex() {
     try {
         await mongoose.connect(mongoUri);
         console.log('Connected to MongoDB');
-        
+
         const db = mongoose.connection.db;
         const collection = db.collection('food_page_contents');
-        
+
         // Try to drop the key_1 index if it exists
         try {
             await collection.dropIndex('key_1');
@@ -21,11 +21,11 @@ async function dropIndex() {
                 throw e;
             }
         }
-        
+
         const indexes = await collection.indexes();
         console.log('Remaining indexes on food_page_contents:');
         console.log(JSON.stringify(indexes, null, 2));
-        
+
         await mongoose.disconnect();
     } catch (error) {
         console.error('Error:', error);

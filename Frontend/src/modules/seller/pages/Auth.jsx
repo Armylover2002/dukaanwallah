@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, ShieldCheck, Store, KeyRound } from "lucide-react";
+import { ArrowRight, ShieldCheck, Store, KeyRound, X, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@food/components/ui/button";
@@ -26,6 +26,11 @@ export default function SellerAuth() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpPhone, setOtpPhone] = useState("");
+  const [rejectionModalData, setRejectionModalData] = useState({
+    isOpen: false,
+    reason: "",
+    userPayload: null
+  });
   const nextSellerPath =
     typeof location.state?.from === "string" &&
       location.state.from.startsWith("/seller")
@@ -107,7 +112,7 @@ export default function SellerAuth() {
         throw new Error("Login succeeded but no access token was returned");
       }
 
-      login({
+      const userPayload = {
         ...sellerUser,
         name:
           sellerUser?.name ||
@@ -122,7 +127,19 @@ export default function SellerAuth() {
         email: sellerUser?.email || "",
         token: accessToken,
         role: "seller",
-      });
+      };
+
+      if (sellerUser?.approvalStatus === "rejected") {
+        setIsLoading(false);
+        setRejectionModalData({
+          isOpen: true,
+          reason: sellerUser.approvalNotes || sellerUser.rejectionReason || "Your previous application was rejected. Please update your details and re-apply.",
+          userPayload
+        });
+        return;
+      }
+
+      login(userPayload);
       toast.success(
         sellerUser?.approved === false
           ? "OTP verified. Continue your seller setup."
@@ -316,6 +333,63 @@ export default function SellerAuth() {
           </motion.div>
         </div>
       </div>
+
+      {rejectionModalData.isOpen && (
+        <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 transform transition-all duration-300 animate-in zoom-in-95 duration-300 flex flex-col font-sans">
+            {/* Top Red Gradient Banner */}
+            <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-8 text-center text-white relative">
+              <div className="w-16 h-16 bg-white/20 rounded-2xl mx-auto flex items-center justify-center backdrop-blur-sm mb-3">
+                <X className="w-8 h-8 text-white stroke-[3px]" />
+              </div>
+              <h3 className="text-xl font-black tracking-tight uppercase">Application Rejected</h3>
+              <p className="text-white/80 text-xs font-semibold mt-1">Our review team has rejected your onboarding request.</p>
+            </div>
+            
+            {/* Reason content */}
+            <div className="p-6 space-y-4 flex-1">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rejection Reason</span>
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-slate-700 text-sm font-medium italic relative overflow-hidden">
+                  <span className="absolute -left-1 -top-2 text-7xl text-slate-200/50 pointer-events-none select-none font-serif">“</span>
+                  <p className="relative z-10 leading-relaxed font-sans">{rejectionModalData.reason}</p>
+                </div>
+              </div>
+              
+              <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex gap-3">
+                <div className="flex-1 text-xs text-amber-800 leading-relaxed font-medium">
+                  <strong>Please note:</strong> Re-onboarding will clear your previous draft. You must fill out the form entirely from scratch.
+                </div>
+              </div>
+            </div>
+            
+            {/* Buttons */}
+            <div className="px-6 pb-6 pt-2 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (rejectionModalData.userPayload) {
+                    login(rejectionModalData.userPayload);
+                    sessionStorage.setItem("sellerReonboard", "true");
+                  }
+                  setRejectionModalData({ isOpen: false, reason: "", userPayload: null });
+                  navigate("/seller/onboarding", { replace: true });
+                }}
+                className="w-full h-14 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-700 hover:to-red-600 text-white rounded-2xl font-black text-sm tracking-widest uppercase shadow-lg shadow-red-500/20 active:scale-[0.98] transition-all"
+              >
+                Re-apply / Start Fresh
+              </button>
+              <button
+                type="button"
+                onClick={() => setRejectionModalData({ isOpen: false, reason: "", userPayload: null })}
+                className="w-full h-12 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded-2xl font-bold text-sm tracking-wider transition-all"
+              >
+                Cancel / Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

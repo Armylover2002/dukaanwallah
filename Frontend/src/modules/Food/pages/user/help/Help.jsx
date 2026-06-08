@@ -406,10 +406,10 @@ export default function Help() {
                       We'll respond within 24 hours
                     </p>
                     <a
-                      href="mailto:support@appzeto.com"
+                      href="mailto:[EMAIL_ADDRESS]"
                       className="text-sm text-primary hover:underline font-medium"
                     >
-                      support@appzeto.com
+                      [EMAIL_ADDRESS]
                     </a>
                   </div>
                 </div>

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { sellerApi } from "../services/sellerApi";
+import { onboardingFeeAPI } from "../../../services/api";
+import { initRazorpayPayment } from "@food/utils/razorpay";
 import MapPicker from "@shared/components/MapPicker";
 
 const businessTypes = [
@@ -108,6 +110,27 @@ export default function SellerOnboarding() {
   const [isSavingHours, setIsSavingHours] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hoursDraft, setHoursDraft] = useState({ openingTime: "", closingTime: "" });
+  const [feeConfig, setFeeConfig] = useState(null);
+  const [fetchingFees, setFetchingFees] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState(null);
+
+  useEffect(() => {
+    const fetchFees = async () => {
+      try {
+        setFetchingFees(true);
+        const res = await onboardingFeeAPI.getPublicFees();
+        const fees = res?.data?.data || res?.data;
+        if (fees && fees.SELLER) {
+          setFeeConfig((prev) => prev === null ? null : fees.SELLER); // don't override null set by rejection
+        }
+      } catch (err) {
+        console.error("Failed to fetch public onboarding fee for seller:", err);
+      } finally {
+        setFetchingFees(false);
+      }
+    };
+    fetchFees();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -128,8 +151,23 @@ export default function SellerOnboarding() {
       try {
         const response = await sellerApi.getProfile();
         const data = response?.data?.result || {};
-        setForm((prev) => ({ ...initialState, phone: getSellerPhone(data) || prev.phone }));
-        setHoursDraft(parseOpeningHours(data?.shopInfo?.openingHours || data?.openingHours || ""));
+        
+        if (sessionStorage.getItem("sellerReonboard") === "true") {
+          sessionStorage.removeItem("sellerReonboard");
+          setForm((prev) => ({ ...initialState, phone: getSellerPhone(data) || prev.phone }));
+          setHoursDraft({ openingTime: "", closingTime: "" });
+          setRejectionReason(data.approvalNotes || data.rejectionReason || "Your previous application was rejected. Please update your details.");
+          setFeeConfig(null); // bypass payment for re-applying
+        } else {
+          setForm((prev) => ({ ...initialState, phone: getSellerPhone(data) || prev.phone }));
+          setHoursDraft(parseOpeningHours(data?.shopInfo?.openingHours || data?.openingHours || ""));
+
+          // If rejected, show reason and bypass onboarding fee
+          if (data?.approvalStatus === "rejected") {
+            setRejectionReason(data.approvalNotes || data.rejectionReason || "Your previous application was rejected. Please update your details.");
+            setFeeConfig(null); // bypass payment for re-applying
+          }
+        }
       } catch (error) {
         if (error?.response?.status !== 401) {
           toast.error("Failed to load seller onboarding data");
@@ -342,10 +380,78 @@ export default function SellerOnboarding() {
       if (qrFile) payload.append("upiQrImage", qrFile);
       if (licenseFile) payload.append("shopLicenseImage", licenseFile);
 
-      await sellerApi.updateProfile(payload);
-      await refreshUser();
-      toast.success("Application submitted for admin approval");
-      navigate("/seller/pending", { replace: true });
+      if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
+        const orderRes = await onboardingFeeAPI.createOrder({
+          role: "SELLER",
+          name: form.name || form.shopName,
+          phone: form.phone || form.alternatePhone,
+          email: form.email || ""
+        });
+        const orderData = orderRes?.data?.data || orderRes?.data;
+        
+        if (!orderData || !orderData.orderId) {
+          throw new Error("Failed to create onboarding payment order");
+        }
+
+        if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
+          toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.");
+          payload.append("razorpayOrderId", orderData.orderId);
+          payload.append("razorpayPaymentId", `mock_pay_${Date.now()}`);
+          payload.append("razorpaySignature", `mock_sig_${Date.now()}`);
+          
+          await sellerApi.updateProfile(payload);
+          await refreshUser();
+          toast.success("Application submitted for admin approval");
+          navigate("/seller/pending", { replace: true });
+        } else {
+          // Open real Razorpay modal
+          setIsSubmitting(false); // Let interactive flow proceed
+          const rzpOptions = {
+            key: orderData.keyId,
+            amount: Math.round(orderData.amount * 100),
+            currency: orderData.currency || "INR",
+            order_id: orderData.orderId,
+            name: "Onboarding Fee Payment",
+            description: `Onboarding fee for ${form.shopName}`,
+            prefill: {
+              name: form.name || "",
+              email: form.email || "",
+              contact: form.phone || ""
+            },
+            handler: async (response) => {
+              try {
+                setIsSubmitting(true);
+                payload.append("razorpayOrderId", response.razorpay_order_id);
+                payload.append("razorpayPaymentId", response.razorpay_payment_id);
+                payload.append("razorpaySignature", response.razorpay_signature);
+
+                await sellerApi.updateProfile(payload);
+                await refreshUser();
+                toast.success("Application submitted for admin approval");
+                navigate("/seller/pending", { replace: true });
+              } catch (error) {
+                toast.error(error?.response?.data?.message || "Failed to submit onboarding");
+              } finally {
+                setIsSubmitting(false);
+              }
+            },
+            onError: (err) => {
+              toast.error(err?.description || "Payment failed. Please try again.");
+              setIsSubmitting(false);
+            },
+            onClose: () => {
+              toast.error("Payment modal closed. Payment is required to complete onboarding.");
+              setIsSubmitting(false);
+            }
+          };
+          await initRazorpayPayment(rzpOptions);
+        }
+      } else {
+        await sellerApi.updateProfile(payload);
+        await refreshUser();
+        toast.success("Application submitted for admin approval");
+        navigate("/seller/pending", { replace: true });
+      }
     } catch (error) {
       toast.error(
         error?.response?.data?.message || "Failed to submit onboarding",
@@ -366,6 +472,18 @@ export default function SellerOnboarding() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.18),_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#fffaf2_100%)] px-4 py-8 font-['Outfit'] md:px-8 seller-theme-scope">
       <div className="mx-auto max-w-7xl">
+        {rejectionReason && (
+          <div className="mb-6 rounded-[20px] border border-red-200 bg-red-50 px-5 py-4 flex items-start gap-3 shadow-sm">
+            <div className="mt-0.5 shrink-0 rounded-full bg-red-100 p-2 text-red-600">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86C20.47 19 21.5 17.56 20.79 16.13L13.93 3.93a2 2 0 00-3.86 0L2.21 16.13C1.5 17.56 2.53 19 4.07 19z" /></svg>
+            </div>
+            <div>
+              <p className="text-sm font-black text-red-800">Previous Application Rejected</p>
+              <p className="mt-1 text-sm font-medium text-red-700">{rejectionReason}</p>
+              <p className="mt-2 text-xs font-semibold text-red-500">Please update your details below and resubmit. No payment will be charged for re-applying.</p>
+            </div>
+          </div>
+        )}
         <div className="grid gap-8 lg:grid-cols-[1.05fr_1.4fr]">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -858,6 +976,19 @@ export default function SellerOnboarding() {
                 </div>
               </div>
             </section>
+
+            {feeConfig && feeConfig.isActive && feeConfig.price > 0 && (
+              <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-5 mt-4 mb-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.28em] text-orange-600">
+                  Required Onboarding Fee
+                </p>
+                <p className="mt-2 text-2xl font-black text-orange-900">₹{feeConfig.price}</p>
+                <p className="mt-2 text-xs font-semibold text-orange-700">
+                  An onboarding fee is required to submit your seller registration.
+                  You will be prompted to make a secure payment via Razorpay.
+                </p>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3 border-t border-slate-100 pt-6 md:flex-row md:items-center md:justify-between">
               <p className="max-w-xl text-sm font-medium leading-6 text-slate-500">

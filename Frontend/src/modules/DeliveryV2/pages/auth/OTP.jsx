@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2, X } from "lucide-react"
 import AnimatedPage from "@food/components/user/AnimatedPage"
 import { Input } from "@food/components/ui/input"
 import { Button } from "@food/components/ui/button"
@@ -519,8 +519,8 @@ export default function DeliveryOTP() {
           </div>
 
           {/* Pending approval message – already registered, waiting for admin */}
-          {pendingMessage && (
-            <div className={`rounded-xl border p-5 text-center space-y-4 shadow-sm ${isRejected ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100"}`}>
+          {!isRejected && pendingMessage && (
+            <div className={`rounded-xl border p-5 text-center space-y-4 shadow-sm bg-amber-50 border-amber-100`}>
               <div className="space-y-2">
                 <p className={`text-sm font-semibold ${isRejected ? "text-red-800" : "text-amber-800"}`}>
                   {isRejected ? "Application Rejected" : "Pending Verification"}
@@ -544,6 +544,7 @@ export default function DeliveryOTP() {
                       const phone = authData?.phone
                       const digits = String(phone || "").replace(/\D/g, "")
                       sessionStorage.setItem("deliveryNeedsRegistration", "true")
+                      sessionStorage.setItem("deliveryIsRejected", "true")
                       const details = {
                         name: "",
                         phone: digits.slice(-10),
@@ -668,6 +669,81 @@ export default function DeliveryOTP() {
       </div>
 
     </AnimatedPage>
+
+      {isRejected && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 transform transition-all duration-300 animate-in zoom-in-95 duration-300 flex flex-col font-sans">
+            {/* Top Red Gradient Banner */}
+            <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-8 text-center text-white relative">
+              <div className="w-16 h-16 bg-white/20 rounded-2xl mx-auto flex items-center justify-center backdrop-blur-sm mb-3">
+                <X className="w-8 h-8 text-white stroke-[3px]" />
+              </div>
+              <h3 className="text-xl font-black tracking-tight uppercase">Application Rejected</h3>
+              <p className="text-white/80 text-xs font-semibold mt-1">Our review team has rejected your delivery partner request.</p>
+            </div>
+            
+            {/* Reason content */}
+            <div className="p-6 space-y-4 flex-1">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rejection Reason</span>
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-slate-700 text-sm font-medium italic relative overflow-hidden">
+                  <span className="absolute -left-1 -top-2 text-7xl text-slate-200/50 pointer-events-none select-none font-serif">“</span>
+                  <p className="relative z-10 leading-relaxed font-sans">{rejectionReason}</p>
+                </div>
+              </div>
+              
+              <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex gap-3">
+                <div className="flex-1 text-xs text-amber-800 leading-relaxed font-medium">
+                  <strong>Please note:</strong> Re-onboarding will clear your previous details and documents. You must fill out the form entirely from scratch.
+                </div>
+              </div>
+            </div>
+            
+            {/* Buttons */}
+            <div className="px-6 pb-6 pt-2 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const phone = authData?.phone;
+                  const digits = String(phone || "").replace(/\D/g, "");
+                  sessionStorage.setItem("deliveryNeedsRegistration", "true");
+                  sessionStorage.setItem("deliveryIsRejected", "true");
+                  const details = {
+                    name: "",
+                    phone: digits.slice(-10),
+                    countryCode: "+91",
+                  };
+                  sessionStorage.setItem("deliverySignupDetails", JSON.stringify(details));
+                  try {
+                    // Clear IndexedDB for fresh documents
+                    indexedDB.deleteDatabase("DeliverySignupDB");
+                  } catch (e) {
+                    console.error("Failed to delete IndexedDB:", e);
+                  }
+                  setIsRejected(false);
+                  setPendingMessage("");
+                  navigate("/food/delivery/signup/details", { replace: true });
+                }}
+                className="w-full h-14 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-700 hover:to-red-600 text-white rounded-2xl font-black text-sm tracking-widest uppercase shadow-lg shadow-red-500/20 active:scale-[0.98] transition-all"
+              >
+                Re-apply / Start Fresh
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRejected(false);
+                  setPendingMessage("");
+                  navigate("/food/delivery/login", { replace: true });
+                }}
+                className="w-full h-12 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded-2xl font-bold text-sm tracking-wider transition-all"
+              >
+                Cancel / Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -310,7 +310,10 @@ export const registerRestaurant = async (payload, files) => {
         accountType,
         featuredDish,
         offer,
-        ref
+        ref,
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature
     } = payload;
 
     if (!ownerPhone) {
@@ -385,12 +388,11 @@ export const registerRestaurant = async (payload, files) => {
             throw new ValidationError('Selected address is outside the selected zone');
         }
 
-        const restaurant = await FoodRestaurant.create({
+        const restaurantData = {
             restaurantName,
             restaurantNameNormalized,
             ownerName,
             ownerEmail,
-            // Store phone in a consistent digits-only format to match OTP login flow.
             ownerPhone: ownerPhoneDigits,
             ownerPhoneDigits,
             ownerPhoneLast10,
@@ -399,7 +401,6 @@ export const registerRestaurant = async (payload, files) => {
             zoneId: zoneId && mongoose.Types.ObjectId.isValid(String(zoneId).trim())
                 ? new mongoose.Types.ObjectId(String(zoneId).trim())
                 : undefined,
-            // Store unified location object (geo + address).
             location: {
                 type: 'Point',
                 coordinates: latNum !== null && lngNum !== null ? [lngNum, latNum] : undefined,
@@ -433,12 +434,50 @@ export const registerRestaurant = async (payload, files) => {
             ifscCode,
             accountHolderName,
             accountType,
-            estimatedDeliveryTime: estimatedDeliveryTime || '',
             featuredDish: featuredDish || '',
             offer: offer || '',
-            menuImages,
             ...images
-        });
+        };
+        if (menuImages && menuImages.length > 0) {
+            restaurantData.menuImages = menuImages;
+        }
+
+        const existingRestaurant = await FoodRestaurant.findOne({ ownerPhoneDigits });
+        let restaurant;
+
+        if (existingRestaurant) {
+            if (existingRestaurant.status === 'rejected') {
+                Object.assign(existingRestaurant, restaurantData);
+                existingRestaurant.status = 'pending';
+                existingRestaurant.approvalStatus = 'pending';
+                existingRestaurant.rejectionReason = null;
+                existingRestaurant.rejectedAt = null;
+                existingRestaurant.isActive = false;
+                await existingRestaurant.save();
+                restaurant = existingRestaurant;
+            } else {
+                throw new ValidationError('Restaurant with this owner phone already exists');
+            }
+        } else {
+            // Verify onboarding fee payment if required
+            const { verifyAndConsumeOnboardingPayment } = await import('../../../common/services/onboardingFee.service.js');
+            await verifyAndConsumeOnboardingPayment({
+                role: 'RESTAURANT',
+                paymentDetails: { razorpayOrderId, razorpayPaymentId, razorpaySignature },
+                userDetails: { name: ownerName, phone: ownerPhoneDigits, email: ownerEmail }
+            });
+
+            restaurant = await FoodRestaurant.create(restaurantData);
+
+            // Associate created restaurant ID with payment log if paid
+            if (razorpayOrderId) {
+                const { OnboardingPaymentLog } = await import('../../../common/models/onboardingPaymentLog.model.js');
+                await OnboardingPaymentLog.updateOne(
+                    { razorpayOrderId },
+                    { $set: { entityId: restaurant._id } }
+                );
+            }
+        }
 
         // --- Referral Handling ---
         const refRaw = typeof ref === 'string' ? String(ref).trim() : '';

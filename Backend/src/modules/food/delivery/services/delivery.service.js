@@ -14,17 +14,19 @@ export const registerDeliveryPartner = async (payload, files) => {
     const { 
         name, phone, email, countryCode, address, city, state, 
         vehicleType, vehicleName, vehicleNumber, drivingLicenseNumber, panNumber, aadharNumber,
-        fcmToken, platform 
+        fcmToken, platform, razorpayOrderId, razorpayPaymentId, razorpaySignature 
     } = payload;
     const refRaw = typeof payload?.ref === 'string' ? String(payload.ref).trim() : '';
+
+    let partner;
 
     const existing = await FoodDeliveryPartner.findOne({ phone });
     if (existing) {
         if (existing.status !== 'rejected') {
             throw new ValidationError('Delivery partner with this phone already exists');
         }
-        // If rejected, delete the old record so they can start fresh with same phone
-        await FoodDeliveryPartner.deleteMany({ phone });
+        // If rejected, allow update and bypass payment
+        partner = existing;
     }
 
     const images = {};
@@ -51,7 +53,7 @@ export const registerDeliveryPartner = async (payload, files) => {
         );
     }
 
-    const partner = await FoodDeliveryPartner.create({
+    const partnerData = {
         name,
         phone,
         email: email && String(email).trim() ? String(email).trim() : undefined,
@@ -67,7 +69,33 @@ export const registerDeliveryPartner = async (payload, files) => {
         aadharNumber,
         status: 'pending',
         ...images
-    });
+    };
+
+    if (partner) {
+        Object.assign(partner, partnerData);
+        partner.rejectionReason = null;
+        partner.isActive = false;
+        partner.isVerified = false;
+    } else {
+        // Verify onboarding fee payment if required
+        const { verifyAndConsumeOnboardingPayment } = await import('../../../common/services/onboardingFee.service.js');
+        await verifyAndConsumeOnboardingPayment({
+            role: 'DELIVERY_PARTNER',
+            paymentDetails: { razorpayOrderId, razorpayPaymentId, razorpaySignature },
+            userDetails: { name, phone, email }
+        });
+
+        partner = await FoodDeliveryPartner.create(partnerData);
+
+        // Associate created partner ID with payment log if paid
+        if (razorpayOrderId) {
+            const { OnboardingPaymentLog } = await import('../../../common/models/onboardingPaymentLog.model.js');
+            await OnboardingPaymentLog.updateOne(
+                { razorpayOrderId },
+                { $set: { entityId: partner._id } }
+            );
+        }
+    }
 
     // Update FCM token if provided
     if (fcmToken) {

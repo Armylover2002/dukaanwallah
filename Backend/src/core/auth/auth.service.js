@@ -432,13 +432,19 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
     );
   }
 
-  // If restaurant approval status is used, only allow login for approved restaurants.
-  if (restaurant.status && restaurant.status !== "approved") {
-    throw new AuthError(
-      restaurant.status === "pending"
-        ? "Your restaurant registration is pending approval."
-        : "Your restaurant registration has been rejected. Please contact support.",
-    );
+  // Block login for pending restaurants
+  if (restaurant.status === "pending") {
+    throw new AuthError("Your restaurant registration is pending approval.");
+  }
+
+  // For rejected restaurants — return rejection info so frontend can show modal
+  if (restaurant.status === "rejected") {
+    return {
+      isRejected: true,
+      rejectionReason: restaurant.rejectionReason || null,
+      phone,
+      needsRegistration: false,
+    };
   }
 
   const payload = { userId: restaurant._id.toString(), role: ROLES.RESTAURANT };
@@ -550,17 +556,15 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform) 
 
   if (deliveryPartner.status && deliveryPartner.status !== "approved") {
     const isRejected = deliveryPartner.status === "rejected";
-    return {
-      pendingApproval: true,
-      isRejected,
-      rejectionReason: isRejected ? deliveryPartner.rejectionReason : null,
-      message:
-        isRejected
-          ? (deliveryPartner.rejectionReason 
-              ? `Your account was rejected: ${deliveryPartner.rejectionReason}`
-              : "Your delivery account was not approved. Please contact support.")
-          : "Your account is pending admin verification. You will be notified once approved.",
-    };
+    if (!isRejected) {
+      return {
+        pendingApproval: true,
+        isRejected: false,
+        rejectionReason: null,
+        message: "Your account is pending admin verification. You will be notified once approved.",
+      };
+    }
+    // If rejected, allow login to re-onboard
   }
 
   const payload = {

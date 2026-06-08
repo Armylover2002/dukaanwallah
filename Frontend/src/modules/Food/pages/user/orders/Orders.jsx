@@ -5,9 +5,9 @@ import { orderAPI } from "@food/api"
 import { useCart } from "@food/context/CartContext"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@common/utils/businessSettings"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 export default function Orders() {
@@ -47,9 +47,9 @@ export default function Orders() {
 
   // Calculate countdown for an order
   const calculateCountdown = (order) => {
-    if (!order || 
-        order.status === 'delivered' || 
-        String(order.status).toLowerCase().includes('cancel')) {
+    if (!order ||
+      order.status === 'delivered' ||
+      String(order.status).toLowerCase().includes('cancel')) {
       return null
     }
 
@@ -241,7 +241,7 @@ export default function Orders() {
       try {
         setLoading(true)
         const rawOrdersData = await fetchAllOrders()
-        
+
         // Filter to keep only food orders in this module
         const ordersData = rawOrdersData.filter(order => {
           const type = order.orderType || order.module || 'food'
@@ -941,16 +941,15 @@ Order again from this restaurant in the ${companyName} app.`
                                 order.payment.method || 'N/A'}
                         </span>
                         {order.payment.status && (
-                          <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            (order.payment.status === 'paid' || order.payment.status === 'completed' || order.payment.status === 'captured') ? 'bg-green-100 text-green-700' :
-                            (order.payment.status === 'failed' || order.payment.status === 'cancelled') ? 'bg-red-100 text-red-700' :
-                            (order.payment.status === 'pending' || order.payment.status === 'cod_pending' || order.payment.status === 'created' || order.payment.status === 'pending_qr') ? 'bg-yellow-100 text-yellow-700' :
-                            (order.payment.status === 'refunded') ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {order.payment.status === 'cod_pending' || order.payment.status === 'created' || order.payment.status === 'pending_qr' ? 'Pending' : 
-                             order.payment.status === 'paid' || order.payment.status === 'captured' ? 'Paid' :
-                             order.payment.status}
+                          <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${(order.payment.status === 'paid' || order.payment.status === 'completed' || order.payment.status === 'captured') ? 'bg-green-100 text-green-700' :
+                              (order.payment.status === 'failed' || order.payment.status === 'cancelled') ? 'bg-red-100 text-red-700' :
+                                (order.payment.status === 'pending' || order.payment.status === 'cod_pending' || order.payment.status === 'created' || order.payment.status === 'pending_qr') ? 'bg-yellow-100 text-yellow-700' :
+                                  (order.payment.status === 'refunded') ? 'bg-blue-100 text-blue-700' :
+                                    'bg-gray-100 text-gray-700'
+                            }`}>
+                            {order.payment.status === 'cod_pending' || order.payment.status === 'created' || order.payment.status === 'pending_qr' ? 'Pending' :
+                              order.payment.status === 'paid' || order.payment.status === 'captured' ? 'Paid' :
+                                order.payment.status}
                           </span>
                         )}
                       </p>
@@ -1071,7 +1070,7 @@ Order again from this restaurant in the ${companyName} app.`
 
       {/* Footer Branding */}
       <div className="flex justify-center mt-8 mb-4">
-        <h1 className="text-4xl font-bold text-gray-200 dark:text-gray-700 tracking-tighter italic">appzeto</h1>
+        <h1 className="text-4xl font-bold text-gray-200 dark:text-gray-700 tracking-tighter italic">Dukaanwallah</h1>
       </div>
 
       {/* Rating & Feedback Modal */}
@@ -1113,8 +1112,8 @@ Order again from this restaurant in the ${companyName} app.`
                       >
                         <Star
                           className={`w-10 h-10 transition-all ${isActive
-                              ? "text-yellow-400 fill-yellow-400 drop-shadow-lg"
-                              : "text-gray-300 hover:text-yellow-200"
+                            ? "text-yellow-400 fill-yellow-400 drop-shadow-lg"
+                            : "text-gray-300 hover:text-yellow-200"
                             }`}
                         />
                       </button>
@@ -1147,8 +1146,8 @@ Order again from this restaurant in the ${companyName} app.`
                         >
                           <Star
                             className={`w-10 h-10 transition-all ${isActive
-                                ? "text-yellow-400 fill-yellow-400 drop-shadow-lg"
-                                : "text-gray-300 hover:text-yellow-200"
+                              ? "text-yellow-400 fill-yellow-400 drop-shadow-lg"
+                              : "text-gray-300 hover:text-yellow-200"
                               }`}
                           />
                         </button>

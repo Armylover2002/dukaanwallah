@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@food/components/ui/select"
-import { restaurantAPI, zoneAPI, api } from "@food/api"
+import { restaurantAPI, zoneAPI, api, onboardingFeeAPI } from "@food/api"
+import { initRazorpayPayment } from "@food/utils/razorpay"
 import { MobileTimePicker } from "@mui/x-date-pickers/MobileTimePicker"
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
@@ -421,6 +422,26 @@ export default function RestaurantOnboarding() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [feeConfig, setFeeConfig] = useState(null)
+  const [fetchingFees, setFetchingFees] = useState(false)
+
+  useEffect(() => {
+    const fetchFees = async () => {
+      try {
+        setFetchingFees(true)
+        const res = await onboardingFeeAPI.getPublicFees()
+        const fees = res?.data?.data || res?.data
+        if (fees && fees.RESTAURANT) {
+          setFeeConfig(fees.RESTAURANT)
+        }
+      } catch (err) {
+        debugError("Failed to fetch public onboarding fee:", err)
+      } finally {
+        setFetchingFees(false)
+      }
+    }
+    fetchFees()
+  }, [])
 
   const handleLogout = async () => {
     if (isLoggingOut) return
@@ -792,12 +813,84 @@ export default function RestaurantOnboarding() {
     const fetchData = async () => {
       try {
         setLoading(true)
+
+        if (sessionStorage.getItem("restaurantReonboard") === "true") {
+          sessionStorage.removeItem("restaurantReonboard")
+          setIsEditing(true)
+          setFeeConfig(null) // bypass payment for re-applying
+
+          const verifiedPhone = getVerifiedPhoneFromStoredRestaurant()
+          setStep1((prev) => ({
+            restaurantName: "",
+            pureVegRestaurant: null,
+            ownerName: "",
+            ownerEmail: "",
+            ownerPhone: verifiedPhone,
+            primaryContactNumber: verifiedPhone,
+            zoneId: "",
+            ref: "",
+            location: {
+              formattedAddress: "",
+              addressLine1: "",
+              addressLine2: "",
+              area: "",
+              city: "",
+              state: "",
+              pincode: "",
+              landmark: "",
+              latitude: "",
+              longitude: "",
+            },
+          }))
+          setStep2({
+            menuImages: [],
+            profileImage: null,
+            cuisines: [],
+            openingTime: "",
+            closingTime: "21:00",
+            openDays: [],
+          })
+          setStep3({
+            panNumber: "",
+            nameOnPan: "",
+            panImage: null,
+            gstRegistered: false,
+            gstNumber: "",
+            gstLegalName: "",
+            gstAddress: "",
+            gstImage: null,
+            fssaiNumber: "",
+            fssaiExpiry: "",
+            fssaiImage: null,
+            accountNumber: "",
+            confirmAccountNumber: "",
+            ifscCode: "",
+            accountHolderName: "",
+            accountType: "",
+          })
+          setStep4({
+            estimatedDeliveryTime: "",
+            featuredDish: "",
+            featuredPrice: "",
+            offer: "",
+          })
+          setLoading(false)
+          return
+        }
+
         // Use restaurantAPI.getCurrentRestaurant() to fetch real data
         const res = await restaurantAPI.getCurrentRestaurant()
         const data = res?.data?.data?.restaurant || res?.data?.restaurant
         
         if (data) {
-          setIsEditing(false)
+          setIsEditing(data.status === "rejected" || data.status === "pending")
+          
+          if (data.status === "rejected") {
+            setFeeConfig(null)
+            setTimeout(() => {
+               toast.error(`Previous application rejected: ${data.rejectionReason || 'Please update your details'}`)
+            }, 500)
+          }
           // Map Step 1
           setStep1((prev) => ({
             restaurantName: data.name || data.restaurantName || "",
@@ -1267,22 +1360,119 @@ export default function RestaurantOnboarding() {
         formData.append("featuredDish", step4.featuredDish || "")
         formData.append("offer", step4.offer || "")
 
-        await restaurantAPI.register(formData)
-
-        // Clear localStorage when onboarding is complete
-        clearOnboardingFromLocalStorage()
-        clearOnboardingFileCache()
-        try {
-          localStorage.setItem("restaurant_pendingPhone", normalizePhoneDigits(step1.ownerPhone))
-        } catch {}
-
-        toast.success("Registration submitted. Awaiting admin approval.", { duration: 4000 })
-        navigate("/food/restaurant/pending-verification", {
-          replace: true,
-          state: {
+        // Check if onboarding fee config exists, is active, and is greater than 0
+        if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
+          const orderRes = await onboardingFeeAPI.createOrder({
+            role: "RESTAURANT",
+            name: step1.ownerName || step1.restaurantName,
             phone: normalizePhoneDigits(step1.ownerPhone),
-          },
-        })
+            email: step1.ownerEmail || ""
+          });
+          const orderData = orderRes?.data?.data || orderRes?.data;
+          
+          if (!orderData || !orderData.orderId) {
+            throw new Error("Failed to create onboarding payment order");
+          }
+
+          if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
+            toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.");
+            formData.append("razorpayOrderId", orderData.orderId);
+            formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`);
+            formData.append("razorpaySignature", `mock_sig_${Date.now()}`);
+            
+            await restaurantAPI.register(formData);
+            
+            clearOnboardingFromLocalStorage();
+            clearOnboardingFileCache();
+            try {
+              localStorage.setItem("restaurant_pendingPhone", normalizePhoneDigits(step1.ownerPhone));
+            } catch {}
+
+            toast.success("Registration submitted. Awaiting admin approval.", { duration: 4000 });
+            navigate("/food/restaurant/pending-verification", {
+              replace: true,
+              state: {
+                phone: normalizePhoneDigits(step1.ownerPhone),
+              },
+            });
+          } else {
+            // Open real Razorpay modal
+            setSaving(false); // Enable interactive UI since payment is in progress
+            const rzpOptions = {
+              key: orderData.keyId,
+              amount: Math.round(orderData.amount * 100),
+              currency: orderData.currency || "INR",
+              order_id: orderData.orderId,
+              name: "Onboarding Fee Payment",
+              description: `Onboarding fee for ${step1.restaurantName}`,
+              prefill: {
+                name: step1.ownerName || "",
+                email: step1.ownerEmail || "",
+                contact: normalizePhoneDigits(step1.ownerPhone)
+              },
+              handler: async (response) => {
+                try {
+                  setSaving(true);
+                  formData.append("razorpayOrderId", response.razorpay_order_id);
+                  formData.append("razorpayPaymentId", response.razorpay_payment_id);
+                  formData.append("razorpaySignature", response.razorpay_signature);
+
+                  await restaurantAPI.register(formData);
+
+                  clearOnboardingFromLocalStorage();
+                  clearOnboardingFileCache();
+                  try {
+                    localStorage.setItem("restaurant_pendingPhone", normalizePhoneDigits(step1.ownerPhone));
+                  } catch {}
+
+                  toast.success("Registration submitted. Awaiting admin approval.", { duration: 4000 });
+                  navigate("/food/restaurant/pending-verification", {
+                    replace: true,
+                    state: {
+                      phone: normalizePhoneDigits(step1.ownerPhone),
+                    },
+                  });
+                } catch (err) {
+                  const msg =
+                    err?.response?.data?.message ||
+                    err?.response?.data?.error ||
+                    err?.message ||
+                    "Failed to save onboarding data";
+                  setError(msg);
+                  toast.error(msg);
+                } finally {
+                  setSaving(false);
+                }
+              },
+              onError: (err) => {
+                toast.error(err?.description || "Payment failed. Please try again.");
+                setError(err?.description || "Payment failed");
+                setSaving(false);
+              },
+              onClose: () => {
+                toast.error("Payment modal closed. Payment is required to complete onboarding.");
+                setSaving(false);
+              }
+            };
+            await initRazorpayPayment(rzpOptions);
+          }
+        } else {
+          await restaurantAPI.register(formData);
+
+          clearOnboardingFromLocalStorage();
+          clearOnboardingFileCache();
+          try {
+            localStorage.setItem("restaurant_pendingPhone", normalizePhoneDigits(step1.ownerPhone));
+          } catch {}
+
+          toast.success("Registration submitted. Awaiting admin approval.", { duration: 4000 });
+          navigate("/food/restaurant/pending-verification", {
+            replace: true,
+            state: {
+              phone: normalizePhoneDigits(step1.ownerPhone),
+            },
+          });
+        }
       }
     } catch (err) {
       const msg =
@@ -2454,6 +2644,15 @@ export default function RestaurantOnboarding() {
             Optional. Leave this blank if you do not want to highlight an offer.
           </p>
         </div>
+
+        {feeConfig && feeConfig.isActive && feeConfig.price > 0 && (
+          <div className="bg-orange-50 border border-orange-200 rounded-md p-4 space-y-2 mt-4">
+            <h3 className="text-sm font-semibold text-orange-800">Required Onboarding Fee</h3>
+            <p className="text-xs text-orange-700">
+              An onboarding fee of <span className="font-bold">₹{feeConfig.price}</span> is required to submit your registration. You will be redirected to payment on clicking "Finish".
+            </p>
+          </div>
+        )}
       </section>
     </div>
   )
