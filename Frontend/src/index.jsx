@@ -47,6 +47,8 @@ function resolveNativeInitialRoute() {
   if (pathname.startsWith('/food/')) return pathname
 
 
+  if (pathname.startsWith('/seller')) return pathname`/seller${pathname}`
+
   if (pathname.startsWith('/restaurant')) return `/food${pathname}`
   if (pathname.startsWith('/delivery')) return `/food${pathname}`
   if (pathname.startsWith('/user')) return `/food${pathname}`
