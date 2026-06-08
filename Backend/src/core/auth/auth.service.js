@@ -527,9 +527,11 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform) 
   }
 
   if (deliveryPartner.isActive === false || deliveryPartner.isDeleted === true || deliveryPartner.accountStatus === 'deleted') {
-    throw new AuthError(
-      "Your delivery account has been deleted/deactivated by admin. Please contact support.",
-    );
+    if (deliveryPartner.status !== 'rejected') {
+      throw new AuthError(
+        "Your delivery account has been deleted/deactivated by admin. Please contact support.",
+      );
+    }
   }
 
   // Update FCM token if provided - CRITICAL: do this BEFORE returning pendingApproval
@@ -556,15 +558,20 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform) 
 
   if (deliveryPartner.status && deliveryPartner.status !== "approved") {
     const isRejected = deliveryPartner.status === "rejected";
-    if (!isRejected) {
+    if (isRejected) {
       return {
         pendingApproval: true,
-        isRejected: false,
-        rejectionReason: null,
-        message: "Your account is pending admin verification. You will be notified once approved.",
+        isRejected: true,
+        rejectionReason: deliveryPartner.rejectionReason || "Application rejected by admin",
+        message: "Your application was rejected.",
       };
     }
-    // If rejected, allow login to re-onboard
+    return {
+      pendingApproval: true,
+      isRejected: false,
+      rejectionReason: null,
+      message: "Your account is pending admin verification. You will be notified once approved.",
+    };
   }
 
   const payload = {

@@ -160,6 +160,13 @@ export function clearModuleAuth(module) {
   }
   if (module === "restaurant") {
     clearRestaurantSessionCache();
+    sessionStorage.removeItem("restaurantReonboard");
+  }
+  if (module === "seller") {
+    sessionStorage.removeItem("sellerReonboard");
+  }
+  if (module === "delivery") {
+    sessionStorage.removeItem("deliveryIsRejected");
   }
   // Also clear any sessionStorage data
   sessionStorage.removeItem(`${module}AuthData`);

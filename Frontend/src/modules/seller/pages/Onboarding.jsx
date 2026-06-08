@@ -110,9 +110,10 @@ export default function SellerOnboarding() {
   const [isSavingHours, setIsSavingHours] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hoursDraft, setHoursDraft] = useState({ openingTime: "", closingTime: "" });
-  const [feeConfig, setFeeConfig] = useState(null);
+  const [feeConfig, setFeeConfig] = useState(undefined);
   const [fetchingFees, setFetchingFees] = useState(false);
   const [rejectionReason, setRejectionReason] = useState(null);
+  const [isReonboardBypass, setIsReonboardBypass] = useState(false);
 
   useEffect(() => {
     const fetchFees = async () => {
@@ -121,7 +122,7 @@ export default function SellerOnboarding() {
         const res = await onboardingFeeAPI.getPublicFees();
         const fees = res?.data?.data || res?.data;
         if (fees && fees.SELLER) {
-          setFeeConfig((prev) => prev === null ? null : fees.SELLER); // don't override null set by rejection
+          setFeeConfig(fees.SELLER);
         }
       } catch (err) {
         console.error("Failed to fetch public onboarding fee for seller:", err);
@@ -153,11 +154,10 @@ export default function SellerOnboarding() {
         const data = response?.data?.result || {};
         
         if (sessionStorage.getItem("sellerReonboard") === "true") {
-          sessionStorage.removeItem("sellerReonboard");
           setForm((prev) => ({ ...initialState, phone: getSellerPhone(data) || prev.phone }));
           setHoursDraft({ openingTime: "", closingTime: "" });
           setRejectionReason(data.approvalNotes || data.rejectionReason || "Your previous application was rejected. Please update your details.");
-          setFeeConfig(null); // bypass payment for re-applying
+          setIsReonboardBypass(true); // bypass payment for re-applying
         } else {
           setForm((prev) => ({ ...initialState, phone: getSellerPhone(data) || prev.phone }));
           setHoursDraft(parseOpeningHours(data?.shopInfo?.openingHours || data?.openingHours || ""));
@@ -165,7 +165,9 @@ export default function SellerOnboarding() {
           // If rejected, show reason and bypass onboarding fee
           if (data?.approvalStatus === "rejected") {
             setRejectionReason(data.approvalNotes || data.rejectionReason || "Your previous application was rejected. Please update your details.");
-            setFeeConfig(null); // bypass payment for re-applying
+            setIsReonboardBypass(true); // bypass payment for re-applying
+          } else if (data?.approvalStatus === "pending_approval" || data?.approvalStatus === "approved" || data?.onboardingSubmitted) {
+            setIsReonboardBypass(true); // bypass payment if already registered
           }
         }
       } catch (error) {
@@ -380,7 +382,7 @@ export default function SellerOnboarding() {
       if (qrFile) payload.append("upiQrImage", qrFile);
       if (licenseFile) payload.append("shopLicenseImage", licenseFile);
 
-      if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
+      if (feeConfig && !isReonboardBypass && feeConfig.isActive && feeConfig.price > 0) {
         const orderRes = await onboardingFeeAPI.createOrder({
           role: "SELLER",
           name: form.name || form.shopName,
@@ -401,6 +403,7 @@ export default function SellerOnboarding() {
           
           await sellerApi.updateProfile(payload);
           await refreshUser();
+          sessionStorage.removeItem("sellerReonboard");
           toast.success("Application submitted for admin approval");
           navigate("/seller/pending", { replace: true });
         } else {
@@ -427,6 +430,7 @@ export default function SellerOnboarding() {
 
                 await sellerApi.updateProfile(payload);
                 await refreshUser();
+                sessionStorage.removeItem("sellerReonboard");
                 toast.success("Application submitted for admin approval");
                 navigate("/seller/pending", { replace: true });
               } catch (error) {
@@ -449,6 +453,7 @@ export default function SellerOnboarding() {
       } else {
         await sellerApi.updateProfile(payload);
         await refreshUser();
+        sessionStorage.removeItem("sellerReonboard");
         toast.success("Application submitted for admin approval");
         navigate("/seller/pending", { replace: true });
       }
@@ -977,7 +982,7 @@ export default function SellerOnboarding() {
               </div>
             </section>
 
-            {feeConfig && feeConfig.isActive && feeConfig.price > 0 && (
+            {feeConfig && !isReonboardBypass && feeConfig.isActive && feeConfig.price > 0 && (
               <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-5 mt-4 mb-4">
                 <p className="text-[11px] font-black uppercase tracking-[0.28em] text-orange-600">
                   Required Onboarding Fee

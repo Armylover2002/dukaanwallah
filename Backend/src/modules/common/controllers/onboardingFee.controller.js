@@ -53,6 +53,27 @@ export async function createOnboardingPaymentOrder(req, res, next) {
             throw new ValidationError(`No onboarding fee configuration found or active for role: ${role}`);
         }
 
+        // Check if user has already paid in a previous (rejected) application
+        const phoneDigits = String(phone).replace(/\D/g, '').slice(-10);
+        if (phoneDigits) {
+            const existingPayment = await OnboardingPaymentLog.findOne({
+                role,
+                status: 'success',
+                'userDetails.phone': { $regex: new RegExp(phoneDigits + '$') }
+            }).sort({ createdAt: -1 });
+
+            if (existingPayment) {
+                return sendResponse(res, 201, 'Onboarding fee already paid', {
+                    orderId: `mock_ord_bypassed_${Date.now()}`,
+                    amount: config.price,
+                    currency: 'INR',
+                    keyId: getRazorpayKeyId(),
+                    isMock: true,
+                    alreadyPaid: true
+                });
+            }
+        }
+
         const price = config.price;
         const amountPaise = Math.round(price * 100);
 

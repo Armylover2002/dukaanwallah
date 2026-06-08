@@ -21,6 +21,27 @@ export async function verifyAndConsumeOnboardingPayment({ role, paymentDetails =
         return { success: true, bypassed: true };
     }
 
+    // 1.5 Check if user has already paid successfully before (e.g. they were rejected and are re-applying)
+    if (userDetails && userDetails.phone) {
+        const phoneDigits = String(userDetails.phone).replace(/\D/g, '').slice(-10);
+        if (phoneDigits) {
+            const previousPayment = await OnboardingPaymentLog.findOne({
+                role,
+                status: 'success',
+                'userDetails.phone': { $regex: new RegExp(phoneDigits + '$') }
+            }).sort({ createdAt: -1 });
+
+            if (previousPayment) {
+                // User already paid in a previous attempt. Bypass payment requirement.
+                if (entityId) {
+                    previousPayment.entityId = new mongoose.Types.ObjectId(entityId);
+                    await previousPayment.save();
+                }
+                return { success: true, bypassed: true, message: 'Previous successful payment found' };
+            }
+        }
+    }
+
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = paymentDetails;
     if (!razorpayOrderId) {
         throw new ValidationError('razorpayOrderId is required for onboarding fee payment');

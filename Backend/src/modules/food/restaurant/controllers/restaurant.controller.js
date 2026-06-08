@@ -25,9 +25,24 @@ import { sendResponse } from '../../../../utils/response.js';
 
 export const registerRestaurantController = async (req, res, next) => {
     try {
+        console.log("REGISTER RESTAURANT PAYLOAD:", req.body);
         const validated = validateRestaurantRegisterDto(req.body);
-        const restaurant = await registerRestaurant(validated, req.files);
-        return sendResponse(res, 201, 'Restaurant registered successfully', restaurant);
+
+        let authUserId = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            try {
+                const { verifyAccessToken } = await import('../../../../core/auth/token.util.js');
+                const decoded = verifyAccessToken(token);
+                authUserId = decoded.userId;
+            } catch (err) {
+                // Ignore invalid tokens
+            }
+        }
+
+        const restaurant = await registerRestaurant(validated, req.files, authUserId);
+        return sendResponse(res, 201, 'Restaurant registered successfully', { restaurant });
     } catch (error) {
         next(error);
     }

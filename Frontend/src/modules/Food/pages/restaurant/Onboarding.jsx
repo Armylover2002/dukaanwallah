@@ -422,8 +422,9 @@ export default function RestaurantOnboarding() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [feeConfig, setFeeConfig] = useState(null)
+  const [feeConfig, setFeeConfig] = useState(undefined)
   const [fetchingFees, setFetchingFees] = useState(false)
+  const [isReonboardBypass, setIsReonboardBypass] = useState(false)
 
   useEffect(() => {
     const fetchFees = async () => {
@@ -815,9 +816,8 @@ export default function RestaurantOnboarding() {
         setLoading(true)
 
         if (sessionStorage.getItem("restaurantReonboard") === "true") {
-          sessionStorage.removeItem("restaurantReonboard")
           setIsEditing(true)
-          setFeeConfig(null) // bypass payment for re-applying
+          setIsReonboardBypass(true) // bypass payment for re-applying
 
           const verifiedPhone = getVerifiedPhoneFromStoredRestaurant()
           setStep1((prev) => ({
@@ -886,10 +886,12 @@ export default function RestaurantOnboarding() {
           setIsEditing(data.status === "rejected" || data.status === "pending")
           
           if (data.status === "rejected") {
-            setFeeConfig(null)
+            setIsReonboardBypass(true)
             setTimeout(() => {
                toast.error(`Previous application rejected: ${data.rejectionReason || 'Please update your details'}`)
             }, 500)
+          } else {
+            setIsReonboardBypass(true)
           }
           // Map Step 1
           setStep1((prev) => ({
@@ -1361,7 +1363,7 @@ export default function RestaurantOnboarding() {
         formData.append("offer", step4.offer || "")
 
         // Check if onboarding fee config exists, is active, and is greater than 0
-        if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
+        if (feeConfig && !isReonboardBypass && feeConfig.isActive && feeConfig.price > 0) {
           const orderRes = await onboardingFeeAPI.createOrder({
             role: "RESTAURANT",
             name: step1.ownerName || step1.restaurantName,
@@ -1382,6 +1384,7 @@ export default function RestaurantOnboarding() {
             
             await restaurantAPI.register(formData);
             
+            sessionStorage.removeItem("restaurantReonboard");
             clearOnboardingFromLocalStorage();
             clearOnboardingFileCache();
             try {
@@ -1419,6 +1422,7 @@ export default function RestaurantOnboarding() {
 
                   await restaurantAPI.register(formData);
 
+                  sessionStorage.removeItem("restaurantReonboard");
                   clearOnboardingFromLocalStorage();
                   clearOnboardingFileCache();
                   try {
@@ -1459,6 +1463,7 @@ export default function RestaurantOnboarding() {
         } else {
           await restaurantAPI.register(formData);
 
+          sessionStorage.removeItem("restaurantReonboard");
           clearOnboardingFromLocalStorage();
           clearOnboardingFileCache();
           try {
@@ -2645,7 +2650,7 @@ export default function RestaurantOnboarding() {
           </p>
         </div>
 
-        {feeConfig && feeConfig.isActive && feeConfig.price > 0 && (
+        {feeConfig && !isReonboardBypass && feeConfig.isActive && feeConfig.price > 0 && (
           <div className="bg-orange-50 border border-orange-200 rounded-md p-4 space-y-2 mt-4">
             <h3 className="text-sm font-semibold text-orange-800">Required Onboarding Fee</h3>
             <p className="text-xs text-orange-700">

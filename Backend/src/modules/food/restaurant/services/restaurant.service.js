@@ -442,7 +442,23 @@ export const registerRestaurant = async (payload, files) => {
             restaurantData.menuImages = menuImages;
         }
 
-        const existingRestaurant = await FoodRestaurant.findOne({ ownerPhoneDigits });
+        console.log("Looking for existing restaurant with:", { ownerPhoneDigits, ownerPhoneLast10, authUserId });
+        let existingRestaurant = null;
+        
+        if (authUserId) {
+            existingRestaurant = await FoodRestaurant.findById(authUserId);
+        }
+        
+        if (!existingRestaurant) {
+            existingRestaurant = await FoodRestaurant.findOne({ 
+                $or: [
+                    { ownerPhoneDigits },
+                    ...(ownerPhoneLast10 ? [{ ownerPhoneLast10 }] : [])
+                ]
+            });
+        }
+        
+        console.log("Found existingRestaurant?", !!existingRestaurant, existingRestaurant?.status);
         let restaurant;
 
         if (existingRestaurant) {

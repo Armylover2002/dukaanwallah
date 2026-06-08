@@ -470,6 +470,7 @@ export default function SignupStep2() {
           if (response?.data?.success) {
             sessionStorage.removeItem("deliverySignupDetails")
             sessionStorage.removeItem("deliverySignupDocs")
+            sessionStorage.removeItem("deliveryIsRejected")
             clearDB()
             if (isCompleteProfile) {
               sessionStorage.removeItem("deliveryNeedsRegistration")
@@ -527,6 +528,7 @@ export default function SignupStep2() {
                 if (apiResponse?.data?.success) {
                   sessionStorage.removeItem("deliverySignupDetails")
                   sessionStorage.removeItem("deliverySignupDocs")
+                  sessionStorage.removeItem("deliveryIsRejected")
                   clearDB()
                   if (isCompleteProfile) {
                     sessionStorage.removeItem("deliveryNeedsRegistration")
@@ -582,6 +584,7 @@ export default function SignupStep2() {
         if (response?.data?.success) {
           sessionStorage.removeItem("deliverySignupDetails")
           sessionStorage.removeItem("deliverySignupDocs")
+          sessionStorage.removeItem("deliveryIsRejected")
           clearDB()
           if (isCompleteProfile) {
             sessionStorage.removeItem("deliveryNeedsRegistration")

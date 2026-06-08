@@ -45,8 +45,8 @@ async function testRegistration() {
         formData.append("pureVegRestaurant", "true");
         formData.append("ownerName", "John Doe");
         formData.append("ownerEmail", "john.doe@gmail.com");
-        formData.append("ownerPhone", "9876543210");
-        formData.append("primaryContactNumber", "9876543210");
+        formData.append("ownerPhone", "918450062012");
+        formData.append("primaryContactNumber", "918450062012");
         formData.append("zoneId", String(zone._id));
         formData.append("addressLine1", "123 Street");
         formData.append("area", "Sector 1");
