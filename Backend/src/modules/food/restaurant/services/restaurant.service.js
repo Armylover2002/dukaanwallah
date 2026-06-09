@@ -9,9 +9,9 @@ import mongoose from 'mongoose';
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { getRestaurantDiningSnapshot, submitRestaurantDiningRequest } from '../../dining/services/dining.service.js';
-import { 
-    notifyAdminsSafely, 
-    notifyOwnerSafely 
+import {
+    notifyAdminsSafely,
+    notifyOwnerSafely
 } from '../../../../core/notifications/firebase.service.js';
 import { isPointInPolygon } from '../../../../utils/geo.js';
 import { ensureDailyPassEligibility, activateDailyPass, checkRestaurantEligibilityReadOnly } from '../../subscriptions/services/wallet.service.js';
@@ -272,7 +272,7 @@ const notifyAdminsAboutRestaurantProfileReview = async (restaurantId, restaurant
     }
 };
 
-export const registerRestaurant = async (payload, files) => {
+export const registerRestaurant = async (payload, files, authUserId) => {
     const {
         restaurantName,
         ownerName,
@@ -444,20 +444,20 @@ export const registerRestaurant = async (payload, files) => {
 
         console.log("Looking for existing restaurant with:", { ownerPhoneDigits, ownerPhoneLast10, authUserId });
         let existingRestaurant = null;
-        
+
         if (authUserId) {
             existingRestaurant = await FoodRestaurant.findById(authUserId);
         }
-        
+
         if (!existingRestaurant) {
-            existingRestaurant = await FoodRestaurant.findOne({ 
+            existingRestaurant = await FoodRestaurant.findOne({
                 $or: [
                     { ownerPhoneDigits },
                     ...(ownerPhoneLast10 ? [{ ownerPhoneLast10 }] : [])
                 ]
             });
         }
-        
+
         console.log("Found existingRestaurant?", !!existingRestaurant, existingRestaurant?.status);
         let restaurant;
 
@@ -543,8 +543,8 @@ export const registerRestaurant = async (payload, files) => {
                                 referrerReward <= 0 && refereeReward <= 0
                                     ? 'reward_disabled'
                                     : limit <= 0
-                                    ? 'limit_disabled'
-                                    : 'limit_reached'
+                                        ? 'limit_disabled'
+                                        : 'limit_reached'
                         });
                     }
                 }
@@ -664,7 +664,7 @@ export const getCurrentRestaurantProfile = async (restaurantId) => {
         const eligibility = await checkRestaurantEligibilityReadOnly(restaurantId, 'RESTAURANT');
         if (isAcceptingOrders !== eligibility.shouldAppearOnline) {
             isAcceptingOrders = eligibility.shouldAppearOnline;
-            
+
             // Self-heal the database state asynchronously (non-blocking)
             FoodRestaurant.updateOne(
                 { _id: restaurantId },
@@ -1080,7 +1080,7 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
     let fssaiChanged = false;
     const incomingFssaiNumber = body.fssaiNumber !== undefined ? String(body.fssaiNumber || '').trim() : null;
     const incomingFssaiImage = body.fssaiImage !== undefined ? toUrl(body.fssaiImage) : null;
-    
+
     const currentFssaiNumber = String(currentRestaurant.fssaiNumber || '').trim();
     const currentFssaiImage = toUrl(currentRestaurant.fssaiImage) || '';
 
@@ -1090,7 +1090,7 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
     if (incomingFssaiImage !== null && incomingFssaiImage !== currentFssaiImage) {
         fssaiChanged = true;
     }
-    
+
     // Check for expiry date change
     if (body.fssaiExpiry !== undefined) {
         const incomingExpiry = String(body.fssaiExpiry || '').trim();
@@ -1184,10 +1184,10 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
                     'ownerEmail',
                     'ownerPhone',
                     'primaryContactNumber',
-                'pureVegRestaurant',
-                'profileImage',
-                'coverImages',
-                'menuImages',
+                    'pureVegRestaurant',
+                    'profileImage',
+                    'coverImages',
+                    'menuImages',
                     'openingTime',
                     'closingTime',
                     'openDays',
@@ -1719,12 +1719,12 @@ export const listPublicOffers = async (query = {}) => {
         }
 
         const dbCoupons = await RestaurantCoupon.find(couponFilter).sort({ createdAt: -1 }).lean();
-        
+
         // Resolve custom restaurantIds for mapped objects so frontend comparisons match
         const restIds = [...new Set(dbCoupons.map(c => String(c.restaurantId)))];
         const restDocs = await FoodRestaurant.find({ _id: { $in: restIds } }).select('_id restaurantId').lean();
         const customIdMap = new Map(restDocs.map(r => [String(r._id), r.restaurantId]));
-        
+
         restaurantCouponsMapped = dbCoupons.map((c) => {
             const title = c.discountType === 'percentage'
                 ? `${Number(c.discountValue) || 0}% OFF`
@@ -1897,7 +1897,7 @@ export const processRestaurantCODDeposit = async (restaurantId, depositId, { act
         if (file?.buffer) {
             restaurantProofUrl = await uploadImageBuffer(file.buffer, 'food/restaurants/cod-deposits');
         }
-        
+
         deposit.status = 'Restaurant_Accepted';
         deposit.restaurantProof = restaurantProofUrl;
         deposit.restaurantNote = restaurantNote || '';
