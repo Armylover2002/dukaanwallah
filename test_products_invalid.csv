@@ -1,7 +1,0 @@
-"name","description","brand","price","salePrice","stock","lowStockAlert","header","category","subcategory","mainImage","galleryImages","status","variantName","variantPrice","variantSalePrice","variantStock"
-"","Missing name puree","NutriBaby","110","89","120","10","Kids","Kids Food","Baby Food","https://images.unsplash.com/photo-1596263576925-d90d63691097","","active","","","",""
-"Invalid Group Product","Wrong category path","Aptamil","349","380","45","5","NonExistentGroup","NonExistentCategory","NonExistentSubcategory","https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af","","active","","","",""
-"Invalid Image Product","Bad image url product","Brand","50","40","10","2","Kids","Kids Food","Baby Food","bad_url_no_http","","active","","","",""
-"Invalid Price Product","Negative Price","Brand","-50","40","10","2","Kids","Kids Food","Baby Food","https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af","","active","","","",""
-"Invalid Stock Product","Negative Stock","Brand","50","40","-10","2","Kids","Kids Food","Baby Food","https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af","","active","","","",""
-"Invalid Status Product","Bad status","Brand","50","40","10","2","Kids","Kids Food","Baby Food","https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af","","bad_status","","","",""
