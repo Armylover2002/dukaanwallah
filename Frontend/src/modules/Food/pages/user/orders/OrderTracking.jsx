@@ -1254,7 +1254,7 @@ export default function OrderTracking() {
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(24);
-      doc.text(INVOICE_BRAND_NAME, margin, 52);
+      doc.text(companyName || INVOICE_BRAND_NAME, margin, 52);
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
       doc.text("Tax Invoice", margin, 72);
@@ -1316,15 +1316,15 @@ export default function OrderTracking() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(107, 114, 128);
-      doc.text(`${INVOICE_BRAND_NAME} order support invoice`, margin, footerY);
+      doc.text(`${companyName || INVOICE_BRAND_NAME} order support invoice`, margin, footerY);
       doc.text("This is a system-generated invoice for your order.", pageWidth - margin, footerY, { align: "right" });
-      doc.save(`${INVOICE_BRAND_NAME}_Invoice_${order?.orderId || order?.id || Date.now()}.pdf`);
+      doc.save(`${companyName || INVOICE_BRAND_NAME}_Invoice_${order?.orderId || order?.id || Date.now()}.pdf`);
       toast.success("Invoice downloaded");
     } catch (error) {
       debugError("Error generating invoice PDF:", error);
       toast.error("Failed to download invoice");
     }
-  }, [order, orderStatus, profile?.name, profile?.phone]);
+  }, [order, orderStatus, profile?.name, profile?.phone, companyName]);
 
   // ── Instruction modal opener ─────────────────────────────────────────────────
   const openInstructionsModal = useCallback(() => {

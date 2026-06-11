@@ -256,4 +256,4 @@ const CategoryProductsPage = () => {
     );
 };
 
-export { CategoryProductsPage };
+export default CategoryProductsPage;

@@ -648,7 +648,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
                 </div>
 
                 <div className="relative z-10 flex overflow-x-auto gap-3 md:gap-4 pb-5 md:pb-6 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory scroll-smooth">
-                  {products.slice(0, 12).map((product) => (
+                  {filteredProducts.slice(0, 12).map((product) => (
                     <div key={product.id} className="w-[125px] md:w-[155px] lg:w-[175px] shrink-0 snap-start">
                       <ProductCard
                         product={product}
