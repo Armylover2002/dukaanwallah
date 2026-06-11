@@ -746,6 +746,7 @@ export const ProfileDetailsV2 = () => {
                             <option value="bike">Bike</option>
                             <option value="scooter">Scooter</option>
                             <option value="bicycle">Bicycle</option>
+                            <option value="electric_bike">Electric Bike</option>
                             <option value="car">Car</option>
                         </select>
                     </div>
@@ -791,15 +792,18 @@ export const ProfileDetailsV2 = () => {
                  const num = vehicleInput.number.trim();
                  const brand = vehicleInput.brand.trim();
                  const type = vehicleInput.type;
+                 const isBicycle = type === "bicycle";
 
-                 if (!num) return toast.error("Vehicle number is required");
+                 if (!isBicycle && !num) return toast.error("Vehicle number is required");
                  if (!brand) return toast.error("Vehicle brand is required");
 
-                 // Improved validation for Indian vehicle numbers
-                 // Accept common formats like MH12AB1234 or MH12A1234
-                 const numRegex = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,2}[0-9]{4}$/i;
-                 if (!numRegex.test(num.replace(/\s+/g, ""))) {
-                    return toast.error("Please enter a valid vehicle number (e.g. MH12AB1234)");
+                 if (!isBicycle && num) {
+                   // Improved validation for Indian vehicle numbers
+                   // Accept common formats like MH12AB1234 or MH12A1234
+                   const numRegex = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,2}[0-9]{4}$/i;
+                   if (!numRegex.test(num.replace(/\s+/g, ""))) {
+                      return toast.error("Please enter a valid vehicle number (e.g. MH12AB1234)");
+                   }
                  }
 
                  try {

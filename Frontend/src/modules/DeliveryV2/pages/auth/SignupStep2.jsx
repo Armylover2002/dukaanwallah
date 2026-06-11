@@ -161,6 +161,14 @@ const getFriendlyRegistrationError = (error) => {
 export default function SignupStep2() {
   const navigate = useNavigate()
   const goBack = useDeliveryBackNavigation()
+  const signupDetailsRaw = sessionStorage.getItem("deliverySignupDetails")
+  let signupDetails = {}
+  try {
+    if (signupDetailsRaw) {
+      signupDetails = JSON.parse(signupDetailsRaw)
+    }
+  } catch (e) {}
+  const isDlOptional = signupDetails.vehicleType === "bicycle" || signupDetails.vehicleType === "electric_bike"
   const isMobileDevice =
     typeof navigator !== "undefined" &&
     /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || "")
@@ -350,7 +358,7 @@ export default function SignupStep2() {
       uploadedDocs.drivingLicensePhoto
     )
 
-    if (!hasProfilePhoto || !hasAadharPhoto || !hasPanPhoto || !hasDrivingLicensePhoto) {
+    if (!hasProfilePhoto || !hasAadharPhoto || !hasPanPhoto || (!isDlOptional && !hasDrivingLicensePhoto)) {
       toast.error("Please upload all required documents")
       return
     }
@@ -740,7 +748,7 @@ export default function SignupStep2() {
           <DocumentUpload docType="profilePhoto" label="Profile Photo" required={true} />
           <DocumentUpload docType="aadharPhoto" label="Aadhar Card Photo" required={true} />
           <DocumentUpload docType="panPhoto" label="PAN Card Photo" required={true} />
-          <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={true} />
+          <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={!isDlOptional} />
 
           {feeConfig && feeConfig.isActive && feeConfig.price > 0 && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-1">
@@ -759,13 +767,13 @@ export default function SignupStep2() {
               !hasDocumentValue(documents.profilePhoto, uploadedDocs.profilePhoto) ||
               !hasDocumentValue(documents.aadharPhoto, uploadedDocs.aadharPhoto) ||
               !hasDocumentValue(documents.panPhoto, uploadedDocs.panPhoto) ||
-              !hasDocumentValue(documents.drivingLicensePhoto, uploadedDocs.drivingLicensePhoto)
+              (!isDlOptional && !hasDocumentValue(documents.drivingLicensePhoto, uploadedDocs.drivingLicensePhoto))
             }
             className={`w-full py-4 rounded-lg font-bold text-white text-base transition-colors mt-6 ${isSubmitting ||
               !hasDocumentValue(documents.profilePhoto, uploadedDocs.profilePhoto) ||
               !hasDocumentValue(documents.aadharPhoto, uploadedDocs.aadharPhoto) ||
               !hasDocumentValue(documents.panPhoto, uploadedDocs.panPhoto) ||
-              !hasDocumentValue(documents.drivingLicensePhoto, uploadedDocs.drivingLicensePhoto)
+              (!isDlOptional && !hasDocumentValue(documents.drivingLicensePhoto, uploadedDocs.drivingLicensePhoto))
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-[#00B761] hover:bg-[#00A055]"
               }`}

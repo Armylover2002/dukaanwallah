@@ -366,7 +366,15 @@ export default function Profile() {
   const handleBecomeDeliverySubmit = async (e) => {
     e.preventDefault();
     const aadharClean = deliveryForm.aadharNumber.replace(/\s/g, "");
-    if (!deliveryForm.name || !deliveryForm.address || !deliveryForm.city || !deliveryForm.state || !deliveryForm.vehicleNumber || !deliveryForm.drivingLicenseNumber || !deliveryForm.panNumber || !aadharClean) {
+    const isBicycle = deliveryForm.vehicleType === "bicycle";
+    const isElectricBike = deliveryForm.vehicleType === "electric_bike";
+    const isVnRequired = !isBicycle;
+    const isDlRequired = !isBicycle && !isElectricBike;
+
+    if (!deliveryForm.name || !deliveryForm.address || !deliveryForm.city || !deliveryForm.state || 
+        (isVnRequired && !deliveryForm.vehicleNumber) || 
+        (isDlRequired && !deliveryForm.drivingLicenseNumber) || 
+        !deliveryForm.panNumber || !aadharClean) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -2141,6 +2149,7 @@ export default function Profile() {
                   <option value="bike">Bike</option>
                   <option value="scooter">Scooter</option>
                   <option value="bicycle">Bicycle</option>
+                  <option value="electric_bike">Electric Bike</option>
                   <option value="car">Car</option>
                 </select>
               </div>
@@ -2152,12 +2161,12 @@ export default function Profile() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Vehicle Number <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. MH12AB1234" value={deliveryForm.vehicleNumber} onChange={e => setDeliveryForm({...deliveryForm, vehicleNumber: e.target.value.toUpperCase()})} />
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Vehicle Number {deliveryForm.vehicleType !== "bicycle" && <span className="text-red-500">*</span>}</label>
+                <input required={deliveryForm.vehicleType !== "bicycle"} type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. MH12AB1234" value={deliveryForm.vehicleNumber} onChange={e => setDeliveryForm({...deliveryForm, vehicleNumber: e.target.value.toUpperCase()})} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Driving License No <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. MH1220110012345" value={deliveryForm.drivingLicenseNumber} onChange={e => setDeliveryForm({...deliveryForm, drivingLicenseNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")})} />
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Driving License No {deliveryForm.vehicleType !== "bicycle" && deliveryForm.vehicleType !== "electric_bike" && <span className="text-red-500">*</span>}</label>
+                <input required={deliveryForm.vehicleType !== "bicycle" && deliveryForm.vehicleType !== "electric_bike"} type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. MH1220110012345" value={deliveryForm.drivingLicenseNumber} onChange={e => setDeliveryForm({...deliveryForm, drivingLicenseNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")})} />
               </div>
             </div>
 

@@ -15,7 +15,7 @@ import { Mail, ArrowLeft, Shield } from "lucide-react"
 
 import { adminAPI } from "@food/api"
 import { useCompanyName } from "@food/hooks/useCompanyName"
-import { loadBusinessSettings, getCachedSettings } from "@common/utils/businessSettings"
+import { loadBusinessSettings, getCachedSettings, getAppLogo } from "@common/utils/businessSettings"
 
 export default function AdminForgotPassword() {
   const companyName = useCompanyName()
@@ -30,7 +30,7 @@ export default function AdminForgotPassword() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [resendTimer, setResendTimer] = useState(0)
-  const [logoUrl, setLogoUrl] = useState(() => getCachedSettings()?.logo?.url || null)
+  const [logoUrl, setLogoUrl] = useState(() => getAppLogo('admin'))
   const [displayCompanyName, setDisplayCompanyName] = useState(() => getCachedSettings()?.companyName || null)
   const inputRefs = useRef(Array(6).fill(null).map(() => null))
 
@@ -39,8 +39,9 @@ export default function AdminForgotPassword() {
     const fetchLogo = async () => {
       try {
         const settings = await loadBusinessSettings()
-        if (settings?.logo?.url) {
-          setLogoUrl(settings.logo.url)
+        const adminLogo = getAppLogo('admin')
+        if (adminLogo) {
+          setLogoUrl(adminLogo)
         }
         if (settings?.companyName) {
           setDisplayCompanyName(settings.companyName)
@@ -54,8 +55,9 @@ export default function AdminForgotPassword() {
     // Listen for business settings updates
     const handleSettingsUpdate = async () => {
       const settings = await loadBusinessSettings();
-      if (settings?.logo?.url) {
-        setLogoUrl(settings.logo.url);
+      const adminLogo = getAppLogo('admin')
+      if (adminLogo) {
+        setLogoUrl(adminLogo)
       }
       if (settings?.companyName) {
         setDisplayCompanyName(settings.companyName);
@@ -229,7 +231,7 @@ export default function AdminForgotPassword() {
           <CardHeader className="pb-4">
             <div className="flex w-full items-center gap-4 sm:gap-5">
               <img 
-                src="/logo.jpg" 
+                src={logoUrl || "/logo.jpg"} 
                 alt="Dukaanwallah" 
                 className="h-16 w-auto shrink-0 rounded-lg object-contain" 
               />

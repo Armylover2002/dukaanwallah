@@ -199,7 +199,7 @@ export default function AdminLogin() {
           <CardHeader className="pb-4">
             <div className="flex w-full items-center gap-4 sm:gap-5">
               <img
-                src="/logo.jpg"
+                src={logoUrl || "/logo.jpg"}
                 alt="Dukaanwallah"
                 className="h-16 w-auto shrink-0 rounded-lg object-contain"
               />

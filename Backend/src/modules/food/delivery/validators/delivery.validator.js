@@ -21,11 +21,7 @@ const deliveryRegisterSchema = z.object({
     vehicleType: z.string().optional(),
     vehicleName: z.string().optional(),
     vehicleNumber: z.string().optional(),
-    drivingLicenseNumber: z
-        .string()
-        .regex(drivingLicenseRegex, 'Invalid driving license format')
-        .optional()
-        .or(z.literal('')),
+    drivingLicenseNumber: z.string().optional().or(z.literal('')),
     ref: z.string().trim().max(64).optional().or(z.literal('')),
     panNumber: z
         .string()
@@ -37,11 +33,61 @@ const deliveryRegisterSchema = z.object({
         .regex(aadharRegex, 'Invalid Aadhar format')
         .optional()
         .or(z.literal('')),
-        fcmToken: z.string().optional().nullable(),
+    fcmToken: z.string().optional().nullable(),
     platform: z.enum(['web', 'mobile']).optional().default('web'),
     razorpayOrderId: z.string().optional(),
     razorpayPaymentId: z.string().optional(),
     razorpaySignature: z.string().optional()
+}).superRefine((data, ctx) => {
+    const isBicycle = data.vehicleType === 'bicycle';
+    const isElectricBike = data.vehicleType === 'electric_bike';
+
+    // Driving license validation
+    if (!isBicycle && !isElectricBike) {
+        if (!data.drivingLicenseNumber || !data.drivingLicenseNumber.trim()) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Driving license number is required',
+                path: ['drivingLicenseNumber']
+            });
+        } else if (!drivingLicenseRegex.test(data.drivingLicenseNumber)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Invalid driving license format',
+                path: ['drivingLicenseNumber']
+            });
+        }
+    } else {
+        if (data.drivingLicenseNumber && data.drivingLicenseNumber.trim()) {
+            if (!drivingLicenseRegex.test(data.drivingLicenseNumber)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Invalid driving license format',
+                    path: ['drivingLicenseNumber']
+                });
+            }
+        }
+    }
+
+    // Vehicle number validation
+    if (!isBicycle) {
+        if (!data.vehicleNumber || !data.vehicleNumber.trim()) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Vehicle number is required',
+                path: ['vehicleNumber']
+            });
+        } else {
+            const vehicleNumberRegex = /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{4}$/;
+            if (!vehicleNumberRegex.test(data.vehicleNumber.trim())) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Invalid Indian vehicle number format (e.g., MH12AB1234)',
+                    path: ['vehicleNumber']
+                });
+            }
+        }
+    }
 });
 
 export const validateDeliveryRegisterDto = (body) => {
@@ -61,13 +107,68 @@ const deliveryProfileUpdateSchema = z.object({
     vehicleType: z.string().optional(),
     vehicleName: z.string().optional(),
     vehicleNumber: z.string().optional(),
-    drivingLicenseNumber: z
-        .string()
-        .regex(drivingLicenseRegex, 'Invalid driving license format')
-        .optional()
-        .or(z.literal('')),
+    drivingLicenseNumber: z.string().optional().or(z.literal('')),
     fcmToken: z.string().optional().nullable(),
     platform: z.enum(['web', 'mobile']).optional().default('web')
+}).superRefine((data, ctx) => {
+    const vType = data.vehicleType;
+    const dl = data.drivingLicenseNumber;
+    const vn = data.vehicleNumber;
+
+    if (vType !== undefined) {
+        const isBicycle = vType === 'bicycle';
+        const isElectricBike = vType === 'electric_bike';
+
+        if (!isBicycle && !isElectricBike) {
+            if (dl && dl.trim()) {
+                if (!drivingLicenseRegex.test(dl)) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Invalid driving license format',
+                        path: ['drivingLicenseNumber']
+                    });
+                }
+            }
+            if (vn && vn.trim()) {
+                const vehicleNumberRegex = /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{4}$/;
+                if (!vehicleNumberRegex.test(vn.trim())) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Invalid Indian vehicle number format (e.g., MH12AB1234)',
+                        path: ['vehicleNumber']
+                    });
+                }
+            }
+        } else {
+            if (dl && dl.trim()) {
+                if (!drivingLicenseRegex.test(dl)) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Invalid driving license format',
+                        path: ['drivingLicenseNumber']
+                    });
+                }
+            }
+        }
+    } else {
+        if (dl && dl.trim() && !drivingLicenseRegex.test(dl)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Invalid driving license format',
+                path: ['drivingLicenseNumber']
+            });
+        }
+        if (vn && vn.trim()) {
+            const vehicleNumberRegex = /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{4}$/;
+            if (!vehicleNumberRegex.test(vn.trim())) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Invalid Indian vehicle number format (e.g., MH12AB1234)',
+                    path: ['vehicleNumber']
+                });
+            }
+        }
+    }
 });
 
 export const validateDeliveryProfileUpdateDto = (body) => {
