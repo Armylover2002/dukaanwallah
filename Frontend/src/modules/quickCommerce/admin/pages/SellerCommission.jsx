@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react"
 import {
   Search, Plus, Edit, Trash2, ArrowUpDown,
-  IndianRupee, Percent, Loader2, X, Building2, IndianRupee
+  Percent, Loader2, X, Building2, IndianRupee
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
 import { adminApi } from "../services/adminApi"
