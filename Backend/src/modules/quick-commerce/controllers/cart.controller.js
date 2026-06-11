@@ -81,6 +81,7 @@ const mapCart = async (idQuery) => {
         mrp,
         originalPrice: mrp,
         unit: product.unit,
+        stock: Number(product.stock ?? 0),
         quantity: item.quantity,
         lineTotal: item.quantity * unitPrice,
       };
@@ -139,8 +140,18 @@ export const addToCart = async (req, res) => {
   );
 
   const itemIndex = cart.items.findIndex((item) => String(item.productId) === String(productId));
+  const currentQty = itemIndex >= 0 ? cart.items[itemIndex].quantity : 0;
+  const targetQty = currentQty + Math.max(1, quantity);
+
+  if (targetQty > (product.stock || 0)) {
+    return res.status(400).json({
+      success: false,
+      message: `Only ${product.stock || 0} items are available in stock.`,
+    });
+  }
+
   if (itemIndex >= 0) {
-    cart.items[itemIndex].quantity = Math.max(1, cart.items[itemIndex].quantity + Math.max(1, quantity));
+    cart.items[itemIndex].quantity = targetQty;
   } else {
     cart.items.push({ productId, quantity: Math.max(1, quantity) });
   }
@@ -176,7 +187,18 @@ export const updateCartItem = async (req, res) => {
   if (!Number.isFinite(qty) || qty <= 0) {
     cart.items.splice(itemIndex, 1);
   } else {
-    cart.items[itemIndex].quantity = Math.floor(qty);
+    const product = await QuickProduct.findOne({ _id: productId, ...approvedProductFilter }).lean();
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    const targetQty = Math.floor(qty);
+    if (targetQty > (product.stock || 0)) {
+      return res.status(400).json({
+        success: false,
+        message: `Only ${product.stock || 0} items are available in stock.`,
+      });
+    }
+    cart.items[itemIndex].quantity = targetQty;
   }
 
   await cart.save();

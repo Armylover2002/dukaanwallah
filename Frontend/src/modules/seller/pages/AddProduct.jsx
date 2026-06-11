@@ -258,6 +258,375 @@ const AddProduct = () => {
     }
   };
 
+  const [addMethod, setAddMethod] = useState(null); // 'single', 'bulk', or null
+  const [csvFile, setCsvFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [criticalError, setCriticalError] = useState(null);
+
+  const downloadTemplate = () => {
+    const headers = [
+      "name", "description", "brand", "price", "salePrice", "stock", "lowStockAlert", 
+      "header", "category", "subcategory", "mainImage", "galleryImages", "status",
+      "variantName", "variantPrice", "variantSalePrice", "variantStock"
+    ];
+    const sampleRow = [
+      "Organic Baby Puree",
+      "Delicious organic baby puree mix",
+      "NutriBaby",
+      "110",
+      "89",
+      "120",
+      "10",
+      "Kids",
+      "Kids Food",
+      "Baby Food",
+      "https://images.unsplash.com/photo-1596263576925-d90d63691097",
+      "https://images.unsplash.com/photo-1596263576925-d90d63691097",
+      "active",
+      "200g Pack",
+      "110",
+      "89",
+      "120"
+    ];
+    
+    // Escaping commas by quoting values
+    const escapedRow = sampleRow.map(val => `"${String(val).replace(/"/g, '""')}"`);
+    const csvContent = [headers.join(","), escapedRow.join(",")].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "product_bulk_upload_template.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleBulkUpload = async (e) => {
+    e.preventDefault();
+    if (!csvFile) {
+      toast.error("Please select a CSV file first");
+      return;
+    }
+
+    setIsUploading(true);
+    setValidationErrors([]);
+    setCriticalError(null);
+
+    try {
+      const data = new FormData();
+      data.append("csvFile", csvFile);
+
+      const res = await sellerApi.bulkUploadProducts(data);
+      if (res.data.success) {
+        toast.success(res.data.message || "Products imported successfully!");
+        navigate("/seller/products");
+      }
+    } catch (error) {
+      const resData = error.response?.data;
+      if (resData?.errors && Array.isArray(resData.errors)) {
+        setValidationErrors(resData.errors);
+        toast.error("CSV Validation Failed. Please review the errors.");
+      } else {
+        setCriticalError(resData?.message || "Failed to upload and import products due to an unexpected server error.");
+        toast.error("Failed to upload and import products.");
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  if (addMethod === null) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in duration-300">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            className="pl-0 hover:bg-transparent hover:text-orange-600"
+            onClick={() => navigate(-1)}>
+            <HiOutlineArrowLeft className="mr-2 h-5 w-5" />
+            Back to Products
+          </Button>
+        </div>
+
+        <div className="text-center space-y-2 py-6">
+          <h2 className="text-2xl font-black text-slate-800">Add New Product</h2>
+          <p className="text-sm text-slate-500 font-medium">
+            Choose how you want to add products to your store.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Single Add */}
+          <div
+            onClick={() => setAddMethod("single")}
+            className="bg-white p-8 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl hover:border-orange-500/20 transition-all cursor-pointer group flex flex-col items-center text-center space-y-4"
+          >
+            <div className="p-4 bg-orange-50 text-orange-500 rounded-2xl group-hover:bg-orange-500 group-hover:text-white transition-all">
+              <HiOutlineCube className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">Single Product</h3>
+            <p className="text-sm text-slate-500 font-medium leading-relaxed">
+              Add a single product manually. Perfect for entering rich descriptions, uploading custom cover photos, and configuring specific item variants.
+            </p>
+            <span className="text-xs font-black text-orange-500 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+              PROCEED <HiOutlineArrowLeft className="h-4 w-4 rotate-180" />
+            </span>
+          </div>
+
+          {/* Card 2: Bulk Upload */}
+          <div
+            onClick={() => setAddMethod("bulk")}
+            className="bg-white p-8 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl hover:border-orange-500/20 transition-all cursor-pointer group flex flex-col items-center text-center space-y-4"
+          >
+            <div className="p-4 bg-orange-50 text-orange-500 rounded-2xl group-hover:bg-orange-500 group-hover:text-white transition-all">
+              <HiOutlineSquaresPlus className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">Bulk CSV Upload</h3>
+            <p className="text-sm text-slate-500 font-medium leading-relaxed">
+              Upload a spreadsheet in CSV format. Ideal for importing dozens or hundreds of products at once with external image URLs.
+            </p>
+            <span className="text-xs font-black text-orange-500 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+              PROCEED <HiOutlineArrowLeft className="h-4 w-4 rotate-180" />
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (addMethod === "bulk") {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in duration-300">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            className="pl-0 hover:bg-transparent hover:text-orange-600"
+            onClick={() => setAddMethod(null)}>
+            <HiOutlineArrowLeft className="mr-2 h-5 w-5" />
+            Change Method
+          </Button>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-slate-900">Bulk Product Upload</h3>
+            <p className="text-sm text-slate-500 font-medium">
+              Upload a CSV file to add products in bulk.
+            </p>
+          </div>
+
+          <form onSubmit={handleBulkUpload} className="space-y-6">
+            {/* Warning Alert */}
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 space-y-3 animate-in slide-in-from-top duration-300">
+              <h4 className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                ⚠️ Upload Recommendation & SKU Guidelines
+              </h4>
+              <p className="text-xs text-amber-700 font-semibold leading-relaxed">
+                <strong>Limit Upload Count:</strong> We recommend uploading at most <strong>100 products</strong> in a single CSV file. Uploading extremely large batches at once may cause processing timeouts or database performance issues.
+              </p>
+              <div className="border-t border-amber-200/60 pt-3 space-y-2 text-xs text-amber-700 font-medium">
+                <p className="leading-relaxed font-semibold text-amber-800 bg-amber-100/50 p-3 rounded-lg flex flex-col gap-1.5">
+                  <span>💡 <strong>Automatic SKU Generation:</strong></span>
+                  <span>Unique product and variant SKUs will be automatically generated by the server based on the product name and variant name (e.g. <code>SKU-RICE-DAAWAT-[RANDOM-ID]</code> and <code>SKU-RICE-DAAWAT-[RANDOM-ID]-1KG</code>).</span>
+                  <span><strong>Do not</strong> include <code>sku</code> or <code>variantSku</code> columns in your CSV.</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Drag & Drop selector */}
+            <div className="border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-orange-500 hover:bg-orange-500/5 transition-all relative">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    setCsvFile(e.target.files[0]);
+                    setValidationErrors([]);
+                  }
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <HiOutlineSquaresPlus className="h-12 w-12 text-slate-300 mb-3" />
+              {csvFile ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-slate-800">{csvFile.name}</p>
+                  <p className="text-xs text-slate-400 font-medium">
+                    {(csvFile.size / 1024).toFixed(2)} KB
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-slate-700">
+                    Click to browse or drag & drop CSV file
+                  </p>
+                  <p className="text-xs text-slate-400 font-medium">
+                    Spreadsheet file (.csv) only
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Template Download & Instructions */}
+            <div className="bg-slate-50/80 rounded-2xl p-6 border border-slate-100 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    CSV Structure Template
+                  </h4>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Make sure your CSV contains all required headers and correct formatting.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={downloadTemplate}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition-all shadow-sm shrink-0 self-start sm:self-center"
+                >
+                  Download CSV Template
+                </button>
+              </div>
+
+              <div className="border-t border-slate-200/60 pt-4 space-y-2">
+                <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  Supported Fields & Formats:
+                </p>
+                <ul className="text-xs text-slate-500 font-medium space-y-1.5 list-disc list-inside">
+                  <li><strong className="text-slate-700">General Info</strong>: <code>name</code> (required), <code>description</code>, <code>brand</code>.</li>
+                  <li><strong className="text-slate-700">Pricing & Stock</strong>: <code>price</code> (required), <code>salePrice</code> (discounted price), <code>stock</code> (required), <code>lowStockAlert</code>.</li>
+                  <li><strong className="text-slate-700">Groups / Categories</strong>: <code>header</code>, <code>category</code>, <code>subcategory</code> (look up by names) OR <code>headerId</code>, <code>categoryId</code>, <code>subcategoryId</code> (24-char IDs).</li>
+                  <li><strong className="text-slate-700">Photos</strong>: <code>mainImage</code> (Cover photo URL starting with http/https), <code>galleryImages</code> (comma-separated URLs).</li>
+                  <li><strong className="text-slate-700">Item Variants</strong>: <code>variantName</code> (defaults to Default/weight), <code>variantPrice</code>, <code>variantSalePrice</code>, <code>variantStock</code>. Multiple rows with same name automatically group into single product with variants.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setAddMethod(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!csvFile || isUploading}
+                className="min-w-[150px]"
+              >
+                {isUploading ? "Importing..." : "Upload & Import"}
+              </Button>
+            </div>
+
+            {/* Uploading loading overlay modal */}
+            {isUploading && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl border border-slate-100 scale-in duration-200">
+                  <div className="flex justify-center">
+                    <div className="relative flex items-center justify-center animate-bounce">
+                      <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin"></div>
+                      <HiOutlineArrowPath className="absolute h-6 w-6 text-orange-500 animate-spin" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-black text-slate-800">Uploading & Processing</h3>
+                    <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                      Please wait while we validate your CSV data, process categories, verify SKU integrity, and create your products in bulk.
+                    </p>
+                  </div>
+                  <div className="bg-orange-50/50 rounded-xl py-2 px-4 inline-flex items-center gap-2 text-xs font-bold text-orange-600">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                    </span>
+                    Do not close this page
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Validation errors overlay modal */}
+            {validationErrors.length > 0 && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="bg-white rounded-3xl p-8 max-w-2xl w-full text-left space-y-6 shadow-2xl border border-slate-100 flex flex-col max-h-[85vh]">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4 shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-rose-50 text-rose-500 rounded-2xl text-xl">
+                        ⚠️
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black text-slate-800">CSV Validation Failed</h3>
+                        <p className="text-xs text-slate-500 font-medium">
+                          We found {validationErrors.length} errors in your CSV file.
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setValidationErrors([])}
+                      className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-2.5 custom-scrollbar pr-2 py-1">
+                    {validationErrors.map((err, idx) => (
+                      <div key={idx} className="p-3.5 bg-rose-50/50 border border-rose-100/50 rounded-xl flex items-start gap-2.5">
+                        <span className="text-rose-500 font-bold mt-0.5 text-xs shrink-0">•</span>
+                        <p className="text-xs text-rose-800 font-bold leading-relaxed">{err}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end gap-3 border-t border-slate-100 pt-4 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setValidationErrors([])}
+                      className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
+                    >
+                      Go Back & Fix
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Critical server error overlay modal */}
+            {criticalError && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl border border-slate-100">
+                  <div className="flex justify-center">
+                    <div className="p-4 bg-rose-50 text-rose-500 rounded-full">
+                      <span className="text-3xl">🚫</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-black text-slate-800">Import Failed</h3>
+                    <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                      {criticalError}
+                    </p>
+                  </div>
+                  <div className="flex justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setCriticalError(null)}
+                      className="px-6 py-2.5 bg-rose-500 text-white rounded-xl text-xs font-bold hover:bg-rose-600 transition-all shadow-md"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
       {/* Header */}

@@ -296,14 +296,23 @@ const ProductDetailSheet = () => {
     }, [toggleWishlistGlobal, selectedProduct, isWishlisted, showToast]);
 
     const handleAddToCart = useCallback(() => {
+        const stock = Number(selectedProduct.stock ?? 0);
+        if (stock <= 0) {
+            showToast("This product is out of stock", "error");
+            return;
+        }
         addToCart(selectedProduct);
         showToast(`${selectedProduct.name} added to cart`, 'success');
     }, [addToCart, selectedProduct, showToast]);
 
-    const handleIncrement = useCallback(
-        () => updateQuantity(productId, 1),
-        [updateQuantity, productId]
-    );
+    const handleIncrement = useCallback(() => {
+        const stock = Number(selectedProduct.stock ?? 0);
+        if (quantity >= stock) {
+            showToast(`Only ${stock} items are available in stock.`, "error");
+            return;
+        }
+        updateQuantity(productId, 1);
+    }, [updateQuantity, productId, selectedProduct, quantity, showToast]);
 
     const handleDecrement = useCallback(() => {
         if (quantity === 1) removeFromCart(productId);

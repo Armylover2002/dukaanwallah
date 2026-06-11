@@ -18,6 +18,7 @@ import { Seller } from "../models/seller.model.js";
 import { SellerNotification } from "../models/sellerNotification.model.js";
 import { SellerOrder } from "../models/sellerOrder.model.js";
 import { SellerProduct } from "../models/sellerProduct.model.js";
+import { QuickCategory } from "../../models/category.model.js";
 import { SellerReturn } from "../models/sellerReturn.model.js";
 import { SellerStockAdjustment } from "../models/sellerStockAdjustment.model.js";
 import { SellerTransaction } from "../models/sellerTransaction.model.js";
@@ -83,11 +84,11 @@ const buildSellerAddressFromParentOrder = (order) => {
     city: String(order?.deliveryAddress?.city || "").trim(),
     ...(Array.isArray(coords) && coords.length === 2
       ? {
-          location: {
-            lat: Number(coords[1]),
-            lng: Number(coords[0]),
-          },
-        }
+        location: {
+          lat: Number(coords[1]),
+          lng: Number(coords[0]),
+        },
+      }
       : {}),
   };
 };
@@ -98,10 +99,10 @@ const buildSellerOrderFromParentOrder = async (order, sellerId) => {
 
   const quickItems = Array.isArray(order?.items)
     ? order.items.filter(
-        (item) =>
-          item?.type === "quick" &&
-          String(item?.sourceId || "").trim() === sellerKey,
-      )
+      (item) =>
+        item?.type === "quick" &&
+        String(item?.sourceId || "").trim() === sellerKey,
+    )
     : [];
   if (!quickItems.length) return null;
 
@@ -119,11 +120,11 @@ const buildSellerOrderFromParentOrder = async (order, sellerId) => {
   const allocatedDeliveryFee =
     quickSubtotal > 0
       ? Number(
-          (
-            (Number(order?.pricing?.deliveryFee || 0) * sellerSubtotal) /
-            quickSubtotal
-          ).toFixed(2),
-        )
+        (
+          (Number(order?.pricing?.deliveryFee || 0) * sellerSubtotal) /
+          quickSubtotal
+        ).toFixed(2),
+      )
       : 0;
   const { commissionAmount } = await getSellerCommissionSnapshot(
     sellerId,
@@ -195,9 +196,9 @@ const buildSellerOrderFromParentOrder = async (order, sellerId) => {
       city: addr?.city || "",
       location: addr?.location
         ? {
-            lat: addr.location.coordinates?.[1],
-            lng: addr.location.coordinates?.[0],
-          }
+          lat: addr.location.coordinates?.[1],
+          lng: addr.location.coordinates?.[0],
+        }
         : undefined,
     },
     payment: {
@@ -514,8 +515,8 @@ const reconcileSellerDeliveredOrders = async (sellerId) => {
 
   const parentOrders = parentIds.length
     ? await QuickOrder.find({ _id: { $in: parentIds } })
-        .select("_id orderId orderStatus workflowStatus updatedAt")
-        .lean()
+      .select("_id orderId orderStatus workflowStatus updatedAt")
+      .lean()
     : [];
 
   const parentMap = new Map(parentOrders.map((p) => [String(p._id), p]));
@@ -612,7 +613,7 @@ const reconcileSellerDeliveredOrders = async (sellerId) => {
 const parseProductPayload = (req, existingProduct = null) => {
   const mainUpload = arr(req.files?.mainImage)[0];
   const galleryUploads = arr(req.files?.galleryImages);
-  
+
   let bodyGallery = [];
   if (req.body?.galleryImages) {
     if (Array.isArray(req.body.galleryImages)) {
@@ -687,16 +688,16 @@ const parseProductPayload = (req, existingProduct = null) => {
       galleryUploads.length > 0
         ? galleryUploads.map(toDataUrl).filter(Boolean)
         : bodyGallery.length > 0
-        ? bodyGallery
-        : arr(existingProduct?.galleryImages),
+          ? bodyGallery
+          : arr(existingProduct?.galleryImages),
     mrp: num(
       req.body?.mrp,
       req.body?.salePrice ??
-        req.body?.price ??
-        existingProduct?.mrp ??
-        firstVariant?.salePrice ??
-        firstVariant?.price ??
-        0,
+      req.body?.price ??
+      existingProduct?.mrp ??
+      firstVariant?.salePrice ??
+      firstVariant?.price ??
+      0,
     ),
     unit:
       str(req.body?.unit) ||
@@ -823,9 +824,9 @@ const serializeLedger = (transactions) =>
       : "",
     time: item.createdAt
       ? new Date(item.createdAt).toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+        hour: "2-digit",
+        minute: "2-digit",
+      })
       : "",
     customer:
       item.type === "Withdrawal"
@@ -1208,9 +1209,9 @@ export const getSellerStockHistoryController = async (req, res) => {
         ...item,
         product: item.productId
           ? {
-              _id: item.productId._id,
-              name: item.productId.name,
-            }
+            _id: item.productId._id,
+            name: item.productId.name,
+          }
           : null,
       })),
     });
@@ -1678,7 +1679,7 @@ export const getSellerOrdersController = async (req, res) => {
   try {
     const sellerId = sellerScope(req);
     const sellerKey = String(sellerId);
-    
+
     const page = Math.max(1, num(req.query?.page, 1));
     const limit = Math.max(1, Math.min(100, num(req.query?.limit, 50)));
     const skip = (page - 1) * limit;
@@ -1778,8 +1779,8 @@ export const getSellerOrdersController = async (req, res) => {
 
     const deliveryPartners = deliveryPartnerIds.length
       ? await FoodDeliveryPartner.find({ _id: { $in: deliveryPartnerIds } })
-          .select("_id name phone vehicleType vehicleNumber")
-          .lean()
+        .select("_id name phone vehicleType vehicleNumber")
+        .lean()
       : [];
 
     const deliveryPartnerMap = new Map(
@@ -1825,12 +1826,12 @@ export const getSellerOrdersController = async (req, res) => {
         dispatchStatus: quickOrder?.dispatch?.status || "unassigned",
         deliveryPartner: acceptedPartner
           ? {
-              _id: acceptedPartner._id,
-              name: acceptedPartner.name || "Delivery Partner",
-              phone: riderPhone,
-              vehicleType: acceptedPartner.vehicleType || "",
-              vehicleNumber: acceptedPartner.vehicleNumber || "",
-            }
+            _id: acceptedPartner._id,
+            name: acceptedPartner.name || "Delivery Partner",
+            phone: riderPhone,
+            vehicleType: acceptedPartner.vehicleType || "",
+            vehicleNumber: acceptedPartner.vehicleNumber || "",
+          }
           : null,
       };
     });
@@ -2386,9 +2387,9 @@ export const getSellerStatsController = async (req, res) => {
           ? `${createdAt.getFullYear()}-${createdAt.getMonth()}`
           : range === "weekly"
             ? `week-${Math.min(
-                3,
-                Math.floor((now - createdAt) / (7 * 24 * 60 * 60 * 1000)),
-              )}`
+              3,
+              Math.floor((now - createdAt) / (7 * 24 * 60 * 60 * 1000)),
+            )}`
             : `${createdAt.getFullYear()}-${createdAt.getMonth()}-${createdAt.getDate()}`;
 
       const bucket = chartBuckets.get(key);
@@ -2488,9 +2489,9 @@ export const getSellerStatsController = async (req, res) => {
           topCity: orders[0]?.address?.city || "Local",
           peakTime: orders[0]?.createdAt
             ? `${String(new Date(orders[0].createdAt).getHours()).padStart(
-                2,
-                "0",
-              )}:00`
+              2,
+              "0",
+            )}:00`
             : "12:00",
           topDevice: balances.totalRevenue > 0 ? "Mobile" : "N/A",
         },
@@ -2575,14 +2576,14 @@ export const getSellerCODDepositsController = async (req, res, next) => {
   try {
     const sellerId = sellerScope(req);
     const { FoodDeliveryCashDeposit } = await import("../../../food/delivery/models/foodDeliveryCashDeposit.model.js");
-    
-    const deposits = await FoodDeliveryCashDeposit.find({ 
-      quickZoneHubSellerId: sellerId, 
-      depositType: 'quick_zone_hub' 
+
+    const deposits = await FoodDeliveryCashDeposit.find({
+      quickZoneHubSellerId: sellerId,
+      depositType: 'quick_zone_hub'
     })
-    .populate('deliveryPartnerId', 'name phone')
-    .sort({ createdAt: -1 })
-    .lean();
+      .populate('deliveryPartnerId', 'name phone')
+      .sort({ createdAt: -1 })
+      .lean();
 
     return sendResponse(res, 200, "COD deposits fetched successfully", deposits);
   } catch (error) {
@@ -2599,9 +2600,9 @@ export const processSellerCODDepositController = async (req, res, next) => {
 
     const { FoodDeliveryCashDeposit } = await import("../../../food/delivery/models/foodDeliveryCashDeposit.model.js");
 
-    const deposit = await FoodDeliveryCashDeposit.findOne({ 
-      _id: id, 
-      quickZoneHubSellerId: sellerId 
+    const deposit = await FoodDeliveryCashDeposit.findOne({
+      _id: id,
+      quickZoneHubSellerId: sellerId
     });
 
     if (!deposit) {
@@ -2634,6 +2635,441 @@ export const processSellerCODDepositController = async (req, res, next) => {
     }
   } catch (error) {
     next(error);
+  }
+};
+
+const parseCSV = (text) => {
+  const lines = [];
+  let row = [""];
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        row[row.length - 1] += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push("");
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      lines.push(row.map(cell => cell.trim()));
+      row = [""];
+    } else {
+      row[row.length - 1] += char;
+    }
+  }
+  if (row.length > 1 || row[0] !== "") {
+    lines.push(row.map(cell => cell.trim()));
+  }
+  return lines;
+};
+
+export const bulkUploadSellerProductsController = async (req, res) => {
+  try {
+    const sellerId = sellerScope(req);
+
+    if (!req.file) {
+      return sendError(res, 400, "Please upload a CSV file");
+    }
+
+    const csvText = req.file.buffer.toString("utf-8");
+    const rows = parseCSV(csvText);
+
+    if (rows.length < 2) {
+      return sendError(res, 400, "CSV file is empty or only contains headers");
+    }
+
+    const headers = rows[0].map((h) => String(h || "").trim().toLowerCase());
+
+    // ─── Aliases ────────────────────────────────────────────────────────────
+    const nameAliases = ["name", "title", "product title", "productname"];
+    const descriptionAliases = ["description", "about", "about this item", "aboutitem", "desc"];
+    const brandAliases = ["brand", "brand name", "brandname"];
+    const skuAliases = ["sku", "product code", "productcode", "code"];
+    const priceAliases = ["price", "standard price", "selling price"];
+    const salePriceAliases = ["saleprice", "sale price", "discounted price", "discountedprice"];
+    const stockAliases = ["stock", "quantity", "qty", "stock level", "inventory"];
+    const lowStockAlertAliases = ["lowstockalert", "low stock alert", "alert limit"];
+    const headerIdAliases = ["headerid", "header_id", "main group id", "maingroupid"];
+    const headerAliases = ["header", "main group", "maingroup", "group"];
+    const categoryIdAliases = ["categoryid", "category_id", "specific category id"];
+    const categoryAliases = ["category", "specific category", "specificcategory"];
+    const subcategoryIdAliases = ["subcategoryid", "subcategory_id", "sub-category id"];
+    const subcategoryAliases = ["subcategory", "sub-category", "sub category"];
+    const mainImageAliases = ["mainimage", "main image", "cover photo", "image url", "image"];
+    const galleryImagesAliases = ["galleryimages", "gallery images", "photos", "additional images"];
+    const statusAliases = ["status", "state", "publish status"];
+    const variantNameAliases = ["variantname", "variant name", "weight", "size", "unit"];
+    const variantPriceAliases = ["variantprice", "variant price"];
+    const variantSalePriceAliases = ["variantsaleprice", "variant sale price", "variant discounted price"];
+    const variantStockAliases = ["variantstock", "variant stock", "variant quantity"];
+    const variantSkuAliases = ["variantsku", "variant sku", "variant code"];
+    const variantsAliases = ["variants", "variant list"];
+    const tagsAliases = ["tags", "product tags"];
+
+    // ─── Check required header ───────────────────────────────────────────────
+    const hasAnyHeader = (aliases) => aliases.some((a) => headers.includes(a.toLowerCase()));
+
+    if (!hasAnyHeader(nameAliases)) {
+      return sendError(res, 400, "CSV is missing the product title/name column.");
+    }
+
+    // ─── Helper: get value by aliases ────────────────────────────────────────
+    const getVal = (row, aliases) => {
+      for (const alias of aliases) {
+        const idx = headers.indexOf(alias.toLowerCase());
+        if (idx !== -1) return String(row[idx] || "").trim();
+      }
+      return "";
+    };
+
+    // ─── Load categories once ────────────────────────────────────────────────
+    const dbCategories = await QuickCategory.find({ isActive: { $ne: false } }).lean();
+    const categoriesMap = new Map(dbCategories.map((c) => [String(c._id), c]));
+
+    // FIX: O(1) category name lookup instead of O(n) .find() per product
+    const categoryNameMap = new Map(
+      dbCategories.map((c) => [
+        `${c.type}:${String(c.parentId || "")}:${String(c.name || "").trim().toLowerCase()}`,
+        c,
+      ])
+    );
+
+    const findCategoryByName = (name, type, parentId = null) => {
+      const key = `${type}:${String(parentId || "")}:${String(name || "").trim().toLowerCase()}`;
+      return categoryNameMap.get(key) || null;
+    };
+
+    // ─── Group rows by product name ──────────────────────────────────────────
+    const errors = [];
+    const productGroups = new Map();
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.length === 0 || (row.length === 1 && !row[0])) continue;
+
+      const rowNum = i + 1;
+      const name = getVal(row, nameAliases);
+
+      if (!name) {
+        errors.push(`Row ${rowNum}: Product Title/Name is required.`);
+        continue;
+      }
+
+      const nameKey = name.toLowerCase().trim();
+      if (!productGroups.has(nameKey)) productGroups.set(nameKey, []);
+      productGroups.get(nameKey).push({ row, rowNum });
+    }
+
+    // ─── Validate all product groups, collect errors first ──────────────────
+    const productsToCreate = [];
+
+    for (const [, group] of productGroups) {
+      if (errors.length > 100) {
+        errors.push("Too many validation errors. Showing first 100.");
+        break;
+      }
+
+      const firstItem = group[0];
+      const firstRow = firstItem.row;
+      const mainRowNum = firstItem.rowNum;
+
+      const name = getVal(firstRow, nameAliases);
+      const description = getVal(firstRow, descriptionAliases);
+      const brand = getVal(firstRow, brandAliases);
+      const statusStr = getVal(firstRow, statusAliases).toLowerCase();
+      const lowStockAlertStr = getVal(firstRow, lowStockAlertAliases) || "5";
+      const mainImage = getVal(firstRow, mainImageAliases);
+      const galleryImagesStr = getVal(firstRow, galleryImagesAliases);
+
+      const groupErrors = [];
+
+      if (statusStr && statusStr !== "active" && statusStr !== "inactive") {
+        groupErrors.push(`Row ${mainRowNum}: Status must be either 'active' or 'inactive'.`);
+      }
+
+      const lowStockAlert = parseInt(lowStockAlertStr, 10);
+      if (lowStockAlertStr && (isNaN(lowStockAlert) || lowStockAlert < 0)) {
+        groupErrors.push(
+          `Row ${mainRowNum}: Low Stock Alert must be a valid number greater than or equal to 0.`
+        );
+      }
+
+      let resolvedHeaderId = null;
+      let resolvedCategoryId = null;
+      let resolvedSubcategoryId = null;
+
+      const headerIdStr = getVal(firstRow, headerIdAliases);
+      const headerNameStr = getVal(firstRow, headerAliases);
+      const categoryIdStr = getVal(firstRow, categoryIdAliases);
+      const categoryNameStr = getVal(firstRow, categoryAliases);
+      const subcategoryIdStr = getVal(firstRow, subcategoryIdAliases);
+      const subcategoryNameStr = getVal(firstRow, subcategoryAliases);
+
+      if (headerIdStr && mongoose.Types.ObjectId.isValid(headerIdStr)) {
+        const node = categoriesMap.get(headerIdStr);
+        if (node && node.type === "header") resolvedHeaderId = headerIdStr;
+      }
+      if (!resolvedHeaderId && headerNameStr) {
+        const node = findCategoryByName(headerNameStr, "header");
+        if (node) resolvedHeaderId = String(node._id);
+      }
+      if (!resolvedHeaderId) {
+        groupErrors.push(
+          `Row ${mainRowNum}: Main Group (headerId or name) is missing, invalid, or does not exist.`
+        );
+      }
+
+      if (resolvedHeaderId) {
+        if (categoryIdStr && mongoose.Types.ObjectId.isValid(categoryIdStr)) {
+          const node = categoriesMap.get(categoryIdStr);
+          if (node && node.type === "category" && String(node.parentId) === resolvedHeaderId) {
+            resolvedCategoryId = categoryIdStr;
+          }
+        }
+        if (!resolvedCategoryId && categoryNameStr) {
+          const node = findCategoryByName(categoryNameStr, "category", resolvedHeaderId);
+          if (node) resolvedCategoryId = String(node._id);
+        }
+      }
+      if (!resolvedCategoryId) {
+        groupErrors.push(
+          `Row ${mainRowNum}: Specific Category (categoryId or name) is missing, invalid, or does not belong to the selected Main Group.`
+        );
+      }
+
+      if (resolvedCategoryId) {
+        if (subcategoryIdStr && mongoose.Types.ObjectId.isValid(subcategoryIdStr)) {
+          const node = categoriesMap.get(subcategoryIdStr);
+          if (
+            node &&
+            node.type === "subcategory" &&
+            String(node.parentId) === resolvedCategoryId
+          ) {
+            resolvedSubcategoryId = subcategoryIdStr;
+          }
+        }
+        if (!resolvedSubcategoryId && subcategoryNameStr) {
+          const node = findCategoryByName(subcategoryNameStr, "subcategory", resolvedCategoryId);
+          if (node) resolvedSubcategoryId = String(node._id);
+        }
+      }
+      if (!resolvedSubcategoryId) {
+        groupErrors.push(
+          `Row ${mainRowNum}: Sub-Category (subcategoryId or name) is missing, invalid, or does not belong to the selected Category.`
+        );
+      }
+
+      if (mainImage && !/^https?:\/\/.+/i.test(mainImage)) {
+        groupErrors.push(
+          `Row ${mainRowNum}: Main Cover Photo URL is invalid. It must start with http:// or https://.`
+        );
+      }
+
+      const galleryImages = [];
+      if (galleryImagesStr) {
+        const urls = galleryImagesStr
+          .split(",")
+          .map((u) => u.trim())
+          .filter(Boolean);
+        for (const url of urls) {
+          if (!/^https?:\/\/.+/i.test(url)) {
+            groupErrors.push(
+              `Row ${mainRowNum}: Gallery image URL '${url}' is invalid. It must start with http:// or https://.`
+            );
+          } else {
+            galleryImages.push(url);
+          }
+        }
+      }
+
+      const variantsList = [];
+
+      for (const { row, rowNum } of group) {
+        const inlineVariantsStr = getVal(row, variantsAliases);
+
+        if (inlineVariantsStr) {
+          let inlineList = [];
+
+          if (inlineVariantsStr.startsWith("[")) {
+            try {
+              inlineList = JSON.parse(inlineVariantsStr);
+            } catch {
+              groupErrors.push(`Row ${rowNum}: Invalid JSON format in variants column.`);
+            }
+          } else {
+            const parts = inlineVariantsStr
+              .split(/[;/]/)
+              .map((p) => p.trim())
+              .filter(Boolean);
+            parts.forEach((part) => {
+              const subParts = part.split(":").map((sp) => sp.trim());
+              inlineList.push({
+                name: subParts[0],
+                price: parseFloat(subParts[1] || "0"),
+                salePrice: parseFloat(subParts[2] || subParts[1] || "0"),
+                stock: parseInt(subParts[3] || "0", 10),
+              });
+            });
+          }
+
+          inlineList.forEach((v, vIdx) => {
+            const vLabel = `${rowNum} (variant #${vIdx + 1})`;
+            const vName = v.name || "Default";
+            const vPrice = parseFloat(v.price);
+            const vSalePrice = parseFloat(v.salePrice ?? v.price);
+            const vStock = parseInt(v.stock, 10);
+
+            if (isNaN(vPrice) || vPrice < 0)
+              groupErrors.push(`Row ${vLabel}: Variant price must be a valid number >= 0.`);
+            if (isNaN(vSalePrice) || vSalePrice < 0)
+              groupErrors.push(`Row ${vLabel}: Variant discounted price must be a valid number >= 0.`);
+            if (isNaN(vStock) || vStock < 0)
+              groupErrors.push(`Row ${vLabel}: Variant stock must be a valid number >= 0.`);
+
+            variantsList.push({
+              name: vName,
+              price: isNaN(vPrice) ? 0 : vPrice,
+              salePrice: isNaN(vSalePrice) ? (isNaN(vPrice) ? 0 : vPrice) : vSalePrice,
+              stock: isNaN(vStock) ? 0 : vStock,
+            });
+          });
+        } else {
+          const vName = getVal(row, variantNameAliases) || "Default";
+          const priceStr = getVal(row, variantPriceAliases) || getVal(row, priceAliases);
+          const salePriceStr = getVal(row, variantSalePriceAliases) || getVal(row, salePriceAliases);
+          const stockStr = getVal(row, variantStockAliases) || getVal(row, stockAliases);
+
+          const price = parseFloat(priceStr);
+          const salePrice = salePriceStr ? parseFloat(salePriceStr) : price;
+          const stock = parseInt(stockStr, 10);
+
+          if (isNaN(price) || price < 0)
+            groupErrors.push(`Row ${rowNum}: Price must be a valid number >= 0.`);
+          if (salePriceStr && (isNaN(salePrice) || salePrice < 0))
+            groupErrors.push(`Row ${rowNum}: Discounted Price must be a valid number >= 0.`);
+          if (isNaN(stock) || stock < 0)
+            groupErrors.push(`Row ${rowNum}: Stock must be a valid number >= 0.`);
+
+          variantsList.push({
+            name: vName,
+            price: isNaN(price) ? 0 : price,
+            salePrice: isNaN(salePrice) ? (isNaN(price) ? 0 : price) : salePrice,
+            stock: isNaN(stock) ? 0 : stock,
+          });
+        }
+      }
+
+      if (variantsList.length === 0) {
+        groupErrors.push(`Row ${mainRowNum}: Product must have at least one variant.`);
+      }
+
+      errors.push(...groupErrors);
+
+      if (groupErrors.length === 0 && errors.length === 0) {
+        // Generate unique main SKU based on product name
+        const cleanName = String(name || "")
+          .toUpperCase()
+          .trim()
+          .replace(/[^A-Z0-9\s-]/g, "")
+          .replace(/[\s-]+/g, "-");
+        
+        const baseSku = `SKU-${cleanName}`.substring(0, 40);
+        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const productSku = `${baseSku}-${randomSuffix}`;
+
+        // Map SKUs to variants list with name-based suffixes
+        const finalizedVariants = [];
+        const variantSkuSet = new Set();
+        variantsList.forEach((v, idx) => {
+          const vName = v.name || "Default";
+          let vSkuSuffix = `V${idx + 1}`;
+          if (vName && vName.toLowerCase() !== "default") {
+            const cleanVariant = String(vName)
+              .toUpperCase()
+              .trim()
+              .replace(/[^A-Z0-9\s-]/g, "")
+              .replace(/[\s-]+/g, "-");
+            if (cleanVariant) {
+              vSkuSuffix = cleanVariant;
+            }
+          }
+          let proposedSku = `${productSku}-${vSkuSuffix}`;
+          if (variantSkuSet.has(proposedSku)) {
+            proposedSku = `${productSku}-${vSkuSuffix}-V${idx + 1}`;
+          }
+          variantSkuSet.add(proposedSku);
+          finalizedVariants.push({
+            ...v,
+            sku: proposedSku
+          });
+        });
+
+        const firstVariant = finalizedVariants[0];
+        const finalSlug = `${slugify(name)}-${Math.random().toString(36).substring(2, 7)}`;
+        const status = statusStr === "inactive" ? "inactive" : "active";
+        const tagsStr = getVal(firstRow, tagsAliases);
+        const tags = tagsStr ? tagsStr.split(",").map((t) => t.trim()).filter(Boolean) : [];
+
+        productsToCreate.push({
+          sellerId,
+          name,
+          slug: finalSlug,
+          sku: productSku,
+          description,
+          price: firstVariant.price,
+          salePrice: firstVariant.salePrice,
+          stock: firstVariant.stock,
+          lowStockAlert: isNaN(lowStockAlert) ? 5 : lowStockAlert,
+          brand,
+          weight: firstVariant.name !== "Default" ? firstVariant.name : "",
+          unit: firstVariant.name !== "Default" ? firstVariant.name : "",
+          tags,
+          mainImage: mainImage || "",
+          image: mainImage || "",
+          galleryImages,
+          headerId: new mongoose.Types.ObjectId(resolvedHeaderId),
+          categoryId: new mongoose.Types.ObjectId(resolvedCategoryId),
+          subcategoryId: new mongoose.Types.ObjectId(resolvedSubcategoryId),
+          status,
+          variants: finalizedVariants,
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "CSV Validation Failed",
+        errors,
+      });
+    }
+
+    // ─── Batch insert all products in one DB call ────────────────────────────
+    const createdProducts = await SellerProduct.insertMany(productsToCreate);
+
+    // FIX: Run all notification syncs in parallel instead of sequential awaits
+    await Promise.all(
+      createdProducts.map((product) => syncSellerInventoryNotification(sellerId, product))
+    );
+
+    const totalVariants = createdProducts.reduce((sum, p) => sum + p.variants.length, 0);
+
+    return res.json({
+      success: true,
+      message: `Successfully imported ${createdProducts.length} products with a total of ${totalVariants} variants.`,
+      result: { count: createdProducts.length },
+    });
+  } catch (error) {
+    return sendError(res, 500, error.message || "Bulk upload failed");
   }
 };
 

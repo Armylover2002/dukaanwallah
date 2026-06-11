@@ -248,6 +248,9 @@ const readStoredCheckoutState = () => {
 // ─── Extracted memoized sub-components ───────────────────────────────────────
 
 const CartItem = React.memo(function CartItem({ item, onMoveToWishlist, onUpdateQuantity, onRemove }) {
+  const { showToast } = useToast();
+  const stock = Number(item.stock ?? 0);
+
   return (
     <div className="flex items-start gap-3 pb-4 border-b border-slate-100 last:border-0 last:pb-0">
       <div className="h-20 w-20 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0">
@@ -255,7 +258,7 @@ const CartItem = React.memo(function CartItem({ item, onMoveToWishlist, onUpdate
       </div>
       <div className="flex-1 min-w-0">
         <h4 className="font-bold text-slate-800 mb-1">{item.name}</h4>
-        <p className="text-xs text-slate-500 mb-2">75 g</p>
+        <p className="text-xs text-slate-500 mb-2">{item.weight || item.unit || "1 unit"}</p>
         <button
           onClick={() => onMoveToWishlist(item)}
           className="text-xs text-slate-500 underline hover:text-[#0c831f] transition-colors">
@@ -271,8 +274,16 @@ const CartItem = React.memo(function CartItem({ item, onMoveToWishlist, onUpdate
           </button>
           <span className="text-white font-bold min-w-[20px] text-center">{item.quantity}</span>
           <button
-            onClick={() => onUpdateQuantity(item.id, 1)}
-            className="text-white p-1 hover:bg-white/20 rounded transition-colors">
+            onClick={() => {
+              if (item.quantity >= stock) {
+                showToast(`Only ${stock} items are available in stock.`, "error");
+                return;
+              }
+              onUpdateQuantity(item.id, 1);
+            }}
+            disabled={item.quantity >= stock}
+            className="text-white p-1 hover:bg-white/20 rounded transition-colors disabled:opacity-40"
+          >
             <Plus size={14} strokeWidth={3} />
           </button>
         </div>

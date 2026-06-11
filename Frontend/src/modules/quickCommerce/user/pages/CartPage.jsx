@@ -131,7 +131,7 @@ const CartItem = React.memo(({ item, onRemove, onUpdateQuantity, showToast }) =>
   const handleRemove = useCallback(() => onRemove(item), [onRemove, item]);
   const handleDecr = useCallback(() => onUpdateQuantity(item.id || item._id, -1), [onUpdateQuantity, item.id, item._id]);
   const handleIncr = useCallback(() => {
-    if (item.quantity >= stock) { showToast(`Only ${stock} in stock`, 'error'); return; }
+    if (item.quantity >= stock) { showToast(`Only ${stock} items are available in stock.`, 'error'); return; }
     onUpdateQuantity(item.id || item._id, 1);
   }, [onUpdateQuantity, item.id, item._id, item.quantity, stock, showToast]);
 

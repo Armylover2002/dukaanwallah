@@ -39,6 +39,13 @@ export const sellerApi = {
       }),
     ),
 
+  bulkUploadProducts: (formData) =>
+    call(
+      axiosInstance.post("/seller/products/bulk", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    ),
+
   updateProduct: (productId, formData) =>
     call(
       axiosInstance.put(`/seller/products/${String(productId)}`, formData, {

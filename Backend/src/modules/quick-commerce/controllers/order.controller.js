@@ -236,6 +236,22 @@ export const placeOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No valid items found in cart' });
     }
 
+    // Validate stock for all items
+    for (const item of items) {
+      const prodIdStr = String(item.productId);
+      const product = products.find((p) => String(p._id) === prodIdStr) ||
+                      (typeof fallbackProducts !== 'undefined' ? fallbackProducts.find((p) => String(p._id) === prodIdStr) : null);
+      if (product) {
+        const availableStock = Number(product.stock ?? 0);
+        if (item.quantity > availableStock) {
+          return res.status(400).json({
+            success: false,
+            message: `Only ${availableStock} items are available in stock for ${product.name}.`,
+          });
+        }
+      }
+    }
+
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const discount = Math.max(0, Number(req.body?.discountTotal || 0));
     const deliveryAddress = normalizeDeliveryAddress(req.body?.address);
@@ -327,6 +343,14 @@ export const placeOrder = async (req, res) => {
         },
       ],
     });
+
+    // Decrement stock for each item in the order
+    for (const item of items) {
+      await QuickProduct.updateOne(
+        { _id: item.productId },
+        { $inc: { stock: -item.quantity } }
+      );
+    }
 
     const sellerBuckets = new Map();
     items.forEach((item) => {
@@ -684,6 +708,16 @@ export const cancelOrder = async (req, res) => {
     }
 
     await order.save();
+
+    // Increment stock back for each order item upon cancellation
+    for (const item of order.items) {
+      if (item.itemId) {
+        await QuickProduct.updateOne(
+          { _id: item.itemId },
+          { $inc: { stock: item.quantity } }
+        );
+      }
+    }
 
     await SellerOrder.updateMany(
       {

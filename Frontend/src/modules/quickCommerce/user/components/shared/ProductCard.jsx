@@ -178,7 +178,7 @@ const ProductCard = React.memo(function ProductCard({
       e.stopPropagation();
       const stock = Number(product.stock ?? Infinity);
       if (quantity >= stock) {
-        showToast(`Only ${stock} in stock`, "error");
+        showToast(`Only ${stock} items are available in stock.`, "error");
         return;
       }
       updateQuantity(productId, 1);

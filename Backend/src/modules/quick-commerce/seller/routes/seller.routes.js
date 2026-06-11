@@ -36,6 +36,7 @@ import {
   processSellerCODDepositController,
   browseSellerCatalogController,
   lookupProductBySkuController,
+  bulkUploadSellerProductsController,
 } from "../controllers/seller.controller.js";
 
 const router = express.Router();
@@ -61,6 +62,7 @@ router.get("/products/:productId", ...sellerOnly, getSellerProductByIdController
 router.get("/catalog/browse", ...sellerOnly, browseSellerCatalogController);
 router.get("/catalog/lookup", ...sellerOnly, lookupProductBySkuController);
 router.post("/products", ...sellerOnly, productUpload, createSellerProductController);
+router.post("/products/bulk", ...sellerOnly, upload.single("csvFile"), bulkUploadSellerProductsController);
 router.put(
   "/products/:productId",
   ...sellerOnly,

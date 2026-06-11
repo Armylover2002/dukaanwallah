@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { customerApi } from "../services/customerApi";
 import { useAuth } from "@core/context/AuthContext";
 import { useCart as useFoodCart } from "@food/context/CartContext";
+import { useToast } from "@shared/components/ui/Toast";
 
 const CartContext = createContext();
 const QUICK_CART_STORAGE_KEY = "quick_commerce_cart";
@@ -129,6 +130,7 @@ const shrinkCartItem = (item) => {
     mrp: Number(item.mrp || 0),
     originalPrice: Number(item.originalPrice || 0),
     quantity: Number(item.quantity || 0),
+    stock: Number(item.stock ?? 0),
     image: item.image,
     mainImage: item.mainImage,
     weight: item.weight,
@@ -198,6 +200,7 @@ const persistQuickCartSnapshot = (items) => {
 
 const useStandaloneQuickCart = (isBridged = false) => {
   const { isAuthenticated } = useAuth();
+  const { showToast } = useToast();
   const [cart, setCart] = useState(() => readStoredQuickCart());
 
   const [loading, setLoading] = useState(Boolean(isAuthenticated));
@@ -215,6 +218,7 @@ const useStandaloneQuickCart = (isBridged = false) => {
       productId: getProductId(item),
       itemId: getProductId(item),
       quantity: Number(item.quantity || 1),
+      stock: Number(item.stock ?? 0),
       categoryId: item.categoryId || null,
       subcategoryId: item.subcategoryId || null,
       headerId: item.headerId || null,
@@ -294,11 +298,20 @@ const useStandaloneQuickCart = (isBridged = false) => {
   const addToCart = async (product) => {
     const id = getProductId(product);
     if (!id) return;
+
+    const existingItem = cart.find((item) => getProductId(item) === id);
+    const stock = Number(product.stock ?? (existingItem ? existingItem.stock : 0) ?? 0);
+    const currentQty = existingItem ? existingItem.quantity : 0;
+    const targetQty = currentQty + 1;
+
+    if (targetQty > stock) {
+      showToast(`Only ${stock} items are available in stock.`, "error");
+      return;
+    }
+
     setCart((prev) => {
-      const existingItem = prev.find((item) => getProductId(item) === id);
-      if (existingItem) {
-        const stock = Number(existingItem.stock ?? product.stock ?? Infinity);
-        if (existingItem.quantity >= stock) return prev; // already at stock limit
+      const existing = prev.find((item) => getProductId(item) === id);
+      if (existing) {
         return prev.map((item) =>
           getProductId(item) === id ? { ...item, quantity: item.quantity + 1 } : item,
         );
@@ -320,6 +333,7 @@ const useStandaloneQuickCart = (isBridged = false) => {
           restaurant: getQuickStoreName(product),
           restaurantId: getQuickStoreId(product),
           quantity: 1,
+          stock,
           categoryId: product.categoryId || null,
           subcategoryId: product.subcategoryId || null,
           headerId: product.headerId || null,
@@ -337,7 +351,13 @@ const useStandaloneQuickCart = (isBridged = false) => {
         syncCart(response.data?.result?.items || response.data?.items);
       } catch (error) {
         pendingRequestsRef.current -= 1;
-        if (pendingRequestsRef.current === 0) await fetchCart();
+        if (error?.response?.status === 400) {
+          const errMsg = error?.response?.data?.message || `Only ${stock} items are available in stock.`;
+          showToast(errMsg, "error");
+          await fetchCart();
+        } else if (pendingRequestsRef.current === 0) {
+          await fetchCart();
+        }
       }
     }
   };
@@ -364,19 +384,26 @@ const useStandaloneQuickCart = (isBridged = false) => {
     if (!resolvedProductId) return;
     const currentItem = cart.find((item) => getProductId(item) === resolvedProductId);
     if (!currentItem) return;
-    const stock = Number(currentItem.stock ?? Infinity);
-    const newQty = Math.max(0, Math.min(currentItem.quantity + delta, stock));
-    if (newQty === currentItem.quantity && delta > 0) return; // already at stock limit
+    const stock = Number(currentItem.stock ?? 0);
+    const newQty = Math.max(0, currentItem.quantity + delta);
+
+    if (delta > 0 && newQty > stock) {
+      showToast(`Only ${stock} items are available in stock.`, "error");
+      return;
+    }
+
     if (newQty === 0) {
       removeFromCart(resolvedProductId);
       return;
     }
+
     setCart((prev) =>
       prev.map((item) =>
         getProductId(item) === resolvedProductId ? { ...item, quantity: newQty } : item,
       ),
     );
-      if (isAuthenticated) {
+
+    if (isAuthenticated) {
       pendingRequestsRef.current += 1;
       try {
         await customerApi.updateCartQuantity({
@@ -386,8 +413,11 @@ const useStandaloneQuickCart = (isBridged = false) => {
         pendingRequestsRef.current -= 1;
       } catch (error) {
         pendingRequestsRef.current -= 1;
-        // If item not found in backend cart, try adding it
-        if (error?.response?.status === 404) {
+        if (error?.response?.status === 400) {
+          const errMsg = error?.response?.data?.message || `Only ${stock} items are available in stock.`;
+          showToast(errMsg, "error");
+          await fetchCart();
+        } else if (error?.response?.status === 404) {
           try {
             await customerApi.addToCart({
               productId: resolvedProductId,
@@ -395,6 +425,11 @@ const useStandaloneQuickCart = (isBridged = false) => {
             });
           } catch (addError) {
             console.error("Failed to fallback-add item to cart", addError);
+            if (addError?.response?.status === 400) {
+              const errMsg = addError?.response?.data?.message || `Only ${stock} items are available in stock.`;
+              showToast(errMsg, "error");
+              await fetchCart();
+            }
           }
         } else if (pendingRequestsRef.current === 0) {
           await fetchCart();
@@ -452,12 +487,14 @@ const useStandaloneQuickCart = (isBridged = false) => {
     cartTotal,
     cartCount,
     loading,
+    fetchCart,
   };
 };
 
 export const CartProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const foodCart = useFoodCart();
+  const { showToast } = useToast();
   const isUsingFoodCart = foodCart?._isProvider === true;
   const standaloneCart = useStandaloneQuickCart(isUsingFoodCart);
 
@@ -484,6 +521,15 @@ export const CartProvider = ({ children }) => {
       const existingItem = quickItemsFromFoodCart.find(
         (item) => getProductId(item) === normalizedProduct.id,
       );
+      const stock = Number(product.stock ?? (existingItem ? existingItem.stock : 0) ?? 0);
+      const currentQty = existingItem ? Number(existingItem.quantity || 0) : 0;
+      const targetQty = currentQty + 1;
+
+      if (targetQty > stock) {
+        showToast(`Only ${stock} items are available in stock.`, "error");
+        return;
+      }
+
       const nextQuickItems = existingItem
         ? quickItemsFromFoodCart.map((item) =>
             getProductId(item) === normalizedProduct.id
@@ -503,6 +549,12 @@ export const CartProvider = ({ children }) => {
           });
         } catch (error) {
           console.error("Failed to sync bridged addToCart to backend", error);
+          if (error?.response?.status === 400) {
+            const errMsg = error?.response?.data?.message || `Only ${stock} items are available in stock.`;
+            showToast(errMsg, "error");
+            foodCart.updateQuantity(normalizedProduct.id, currentQty);
+            persistQuickCartSnapshot(quickItemsFromFoodCart);
+          }
         }
       }
     };
@@ -530,7 +582,14 @@ export const CartProvider = ({ children }) => {
       if (!resolvedProductId) return;
       const currentItem = foodCart.getCartItem(resolvedProductId);
       if (!currentItem) return;
+      const stock = Number(currentItem.stock ?? 0);
       const nextQuantity = Math.max(0, (currentItem.quantity || 0) + delta);
+
+      if (delta > 0 && nextQuantity > stock) {
+        showToast(`Only ${stock} items are available in stock.`, "error");
+        return;
+      }
+
       const nextQuickItems =
         nextQuantity === 0
           ? quickItemsFromFoodCart.filter(
@@ -569,6 +628,12 @@ export const CartProvider = ({ children }) => {
           }
         } catch (error) {
           console.error("Failed to sync bridged updateQuantity to backend", error);
+          if (error?.response?.status === 400) {
+            const errMsg = error?.response?.data?.message || `Only ${stock} items are available in stock.`;
+            showToast(errMsg, "error");
+            foodCart.updateQuantity(resolvedProductId, currentItem.quantity);
+            persistQuickCartSnapshot(quickItemsFromFoodCart);
+          }
         }
       }
     };
@@ -616,5 +681,5 @@ export const CartProvider = ({ children }) => {
     foodCart?.getCartItem,
   ]);
 
-  return <CartContext.Provider value={bridgedValue}>{children}</CartContext.Provider>;
+  return <CartContext.Provider value={{ ...bridgedValue, showToast }}>{children}</CartContext.Provider>;
 };

@@ -342,7 +342,7 @@ const ProductDetailPage = () => {
   const handleIncrement = useCallback(() => {
     if (!product) return;
     const stock = Number(product.stock ?? Infinity);
-    if (quantity >= stock) { showToast(`Only ${stock} in stock`, "error"); return; }
+    if (quantity >= stock) { showToast(`Only ${stock} items are available in stock.`, "error"); return; }
     updateQuantity(product.id || product._id, 1);
   }, [product, quantity, updateQuantity, showToast]);
 
