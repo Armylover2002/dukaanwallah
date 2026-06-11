@@ -123,6 +123,14 @@ const GlobalApplicationSettings = () => {
   const [sellerFaviconPreview, setSellerFaviconPreview] = useState(null);
   const [sellerFaviconFile, setSellerFaviconFile] = useState(null);
 
+  const [sellerLoginBannerPreview, setSellerLoginBannerPreview] = useState(null);
+  const [sellerLoginBannerFile, setSellerLoginBannerFile] = useState(null);
+  const [sellerLoginBannerActive, setSellerLoginBannerActive] = useState(true);
+
+  const [restaurantLoginBannerPreview, setRestaurantLoginBannerPreview] = useState(null);
+  const [restaurantLoginBannerFile, setRestaurantLoginBannerFile] = useState(null);
+  const [restaurantLoginBannerActive, setRestaurantLoginBannerActive] = useState(true);
+
   const [formData, setFormData] = useState({
     companyName: "",
     themeColor: "#0a0a0a",
@@ -160,6 +168,12 @@ const GlobalApplicationSettings = () => {
 
         if (settings.sellerLogo?.url) setSellerLogoPreview(settings.sellerLogo.url);
         if (settings.sellerFavicon?.url) setSellerFaviconPreview(settings.sellerFavicon.url);
+
+        if (settings.sellerLoginBanner?.url) setSellerLoginBannerPreview(settings.sellerLoginBanner.url);
+        setSellerLoginBannerActive(settings.sellerLoginBanner?.active !== false);
+
+        if (settings.restaurantLoginBanner?.url) setRestaurantLoginBannerPreview(settings.restaurantLoginBanner.url);
+        setRestaurantLoginBannerActive(settings.restaurantLoginBanner?.active !== false);
       }
     } catch (err) {
       console.error('Fetch error:', err);
@@ -193,6 +207,10 @@ const GlobalApplicationSettings = () => {
         email: formData.email,
         phoneNumber: formData.phoneNumber,
         address: formData.address,
+        sellerLoginBannerUrl: sellerLoginBannerPreview ? undefined : "",
+        sellerLoginBannerActive: sellerLoginBannerActive,
+        restaurantLoginBannerUrl: restaurantLoginBannerPreview ? undefined : "",
+        restaurantLoginBannerActive: restaurantLoginBannerActive,
       };
 
       const files = {};
@@ -211,6 +229,9 @@ const GlobalApplicationSettings = () => {
 
       if (sellerLogoFile) files.sellerLogo = sellerLogoFile;
       if (sellerFaviconFile) files.sellerFavicon = sellerFaviconFile;
+
+      if (sellerLoginBannerFile) files.sellerLoginBanner = sellerLoginBannerFile;
+      if (restaurantLoginBannerFile) files.restaurantLoginBanner = restaurantLoginBannerFile;
 
       const response = await adminAPI.updateBusinessSettings(dataToSend, files);
       const updatedSettings = response?.data?.data || response?.data;
@@ -301,6 +322,54 @@ const GlobalApplicationSettings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <ImageUploadBox title="Seller Logo" size="200px x 50px" preview={sellerLogoPreview} onUpload={(file) => handleFileUpload(file, setSellerLogoFile, setSellerLogoPreview)} onClear={() => { setSellerLogoPreview(null); setSellerLogoFile(null); }} />
             <ImageUploadBox title="Seller Favicon" size="80px x 80px" preview={sellerFaviconPreview} onUpload={(file) => handleFileUpload(file, setSellerFaviconFile, setSellerFaviconPreview)} onClear={() => { setSellerFaviconPreview(null); setSellerFaviconFile(null); }} />
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Portal Login Banners">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="space-y-4">
+              <ImageUploadBox 
+                title="Seller Login Banner" 
+                size="1920px x 1080px (Landscape)" 
+                preview={sellerLoginBannerPreview} 
+                onUpload={(file) => handleFileUpload(file, setSellerLoginBannerFile, setSellerLoginBannerPreview)} 
+                onClear={() => { setSellerLoginBannerPreview(null); setSellerLoginBannerFile(null); }} 
+              />
+              <div className="flex items-center gap-3 mt-4">
+                <input 
+                  type="checkbox" 
+                  id="sellerLoginBannerActive" 
+                  checked={sellerLoginBannerActive}
+                  onChange={(e) => setSellerLoginBannerActive(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-gray-200 rounded focus:ring-indigo-500 cursor-pointer"
+                />
+                <label htmlFor="sellerLoginBannerActive" className="text-xs font-semibold text-gray-700 cursor-pointer select-none">
+                  Activate Seller Login Banner
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <ImageUploadBox 
+                title="Restaurant Login Banner" 
+                size="1920px x 1080px (Landscape)" 
+                preview={restaurantLoginBannerPreview} 
+                onUpload={(file) => handleFileUpload(file, setRestaurantLoginBannerFile, setRestaurantLoginBannerPreview)} 
+                onClear={() => { setRestaurantLoginBannerPreview(null); setRestaurantLoginBannerFile(null); }} 
+              />
+              <div className="flex items-center gap-3 mt-4">
+                <input 
+                  type="checkbox" 
+                  id="restaurantLoginBannerActive" 
+                  checked={restaurantLoginBannerActive}
+                  onChange={(e) => setRestaurantLoginBannerActive(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-gray-200 rounded focus:ring-indigo-500 cursor-pointer"
+                />
+                <label htmlFor="restaurantLoginBannerActive" className="text-xs font-semibold text-gray-700 cursor-pointer select-none">
+                  Activate Restaurant Login Banner
+                </label>
+              </div>
+            </div>
           </div>
         </SectionCard>
 

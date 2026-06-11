@@ -1005,7 +1005,7 @@ export const adminAPI = {
     const fileFields = [
       'logo', 'adminLogo', 'adminFavicon', 'userLogo', 'userFavicon', 
       'deliveryLogo', 'deliveryFavicon', 'restaurantLogo', 'restaurantFavicon', 
-      'sellerLogo', 'sellerFavicon', 'favicon'
+      'sellerLogo', 'sellerFavicon', 'favicon', 'loginBanner', 'sellerLoginBanner', 'restaurantLoginBanner'
     ];
     fileFields.forEach(field => {
       if (files[field]) {

@@ -48,7 +48,9 @@ export async function updateGlobalSettings(req, res, next) {
         
         const { 
             companyName, email, phoneCountryCode, phoneNumber, address, state, pincode, region, 
-            adminLogoUrl, adminFaviconUrl, userLogoUrl, userFaviconUrl, deliveryLogoUrl, deliveryFaviconUrl, restaurantLogoUrl, restaurantFaviconUrl, sellerLogoUrl, sellerFaviconUrl,
+            adminLogoUrl, adminFaviconUrl, userLogoUrl, userFaviconUrl, deliveryLogoUrl, deliveryFaviconUrl, restaurantLogoUrl, restaurantFaviconUrl, sellerLogoUrl, sellerFaviconUrl, loginBannerUrl,
+            sellerLoginBannerUrl, restaurantLoginBannerUrl,
+            sellerLoginBannerActive, restaurantLoginBannerActive,
             themeColor, modules 
         } = data;
         
@@ -89,18 +91,37 @@ export async function updateGlobalSettings(req, res, next) {
         const mediaFields = [
             'adminLogo', 'adminFavicon', 'userLogo', 'userFavicon', 
             'deliveryLogo', 'deliveryFavicon', 'restaurantLogo', 'restaurantFavicon', 
-            'sellerLogo', 'sellerFavicon'
+            'sellerLogo', 'sellerFavicon', 'loginBanner', 'sellerLoginBanner', 'restaurantLoginBanner'
         ];
         mediaFields.forEach(field => {
             const urlKey = `${field}Url`;
             if (data[urlKey] !== undefined) {
                 settings[field] = {
                     url: String(data[urlKey] || '').trim(),
-                    publicId: settings[field]?.publicId || ''
+                    publicId: settings[field]?.publicId || '',
+                    active: settings[field]?.active !== undefined ? settings[field].active : true
                 };
                 settings.markModified(field);
             }
         });
+
+        if (sellerLoginBannerActive !== undefined) {
+            settings.sellerLoginBanner = {
+                url: settings.sellerLoginBanner?.url || '',
+                publicId: settings.sellerLoginBanner?.publicId || '',
+                active: !!sellerLoginBannerActive
+            };
+            settings.markModified('sellerLoginBanner');
+        }
+        if (restaurantLoginBannerActive !== undefined) {
+            settings.restaurantLoginBanner = {
+                url: settings.restaurantLoginBanner?.url || '',
+                publicId: settings.restaurantLoginBanner?.publicId || '',
+                active: !!restaurantLoginBannerActive
+            };
+            settings.markModified('restaurantLoginBanner');
+        }
+
         if (themeColor !== undefined) {
             settings.themeColor = themeColor;
         }
@@ -129,7 +150,10 @@ export async function updateGlobalSettings(req, res, next) {
                 { name: 'restaurantLogo', folder: 'business/logos/restaurant' },
                 { name: 'restaurantFavicon', folder: 'business/favicons/restaurant' },
                 { name: 'sellerLogo', folder: 'business/logos/seller' },
-                { name: 'sellerFavicon', folder: 'business/favicons/seller' }
+                { name: 'sellerFavicon', folder: 'business/favicons/seller' },
+                { name: 'loginBanner', folder: 'business/banners/login' },
+                { name: 'sellerLoginBanner', folder: 'business/banners/seller_login' },
+                { name: 'restaurantLoginBanner', folder: 'business/banners/restaurant_login' }
             ];
 
             for (const field of mediaUploadFields) {
@@ -137,9 +161,10 @@ export async function updateGlobalSettings(req, res, next) {
                     const result = await uploadImageBufferDetailed(req.files[field.name][0].buffer, field.folder);
                     settings[field.name] = {
                         url: result.secure_url,
-                        publicId: result.public_id
+                        publicId: result.public_id,
+                        active: settings[field.name]?.active !== undefined ? settings[field.name].active : true
                     };
-                    settings.markModified(field);
+                    settings.markModified(field.name);
                 }
             }
         }

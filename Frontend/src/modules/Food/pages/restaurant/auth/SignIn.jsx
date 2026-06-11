@@ -9,9 +9,37 @@ import { Label } from "@food/components/ui/label"
 import { Checkbox } from "@food/components/ui/checkbox"
 import loginBg from "@food/assets/loginbanner.png"
 import { useCompanyName } from "@food/hooks/useCompanyName"
+import { loadBusinessSettings, getAppLogo } from "@common/utils/businessSettings"
+
 
 export default function RestaurantSignIn() {
   const navigate = useNavigate()
+  const [logoUrl, setLogoUrl] = useState(() => getAppLogo('restaurant'))
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        await loadBusinessSettings()
+        const logo = getAppLogo('restaurant')
+        if (logo) {
+          setLogoUrl(logo)
+        }
+      } catch (error) {
+        console.warn("Failed to load business settings logo:", error)
+      }
+    }
+    fetchLogo()
+
+    const handleSettingsUpdate = async () => {
+      await loadBusinessSettings()
+      const logo = getAppLogo('restaurant')
+      if (logo) {
+        setLogoUrl(logo)
+      }
+    }
+    window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
+    return () => window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate)
+  }, [])
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [remember, setRemember] = useState(false)
@@ -96,9 +124,13 @@ export default function RestaurantSignIn() {
             className="flex items-center gap-3"
             style={{ animation: "fadeInDown 0.7s ease-out both" }}
           >
-            <div className="h-11 w-11 rounded-xl bg-primary-orange flex items-center justify-center text-white shadow-lg">
-              <UtensilsCrossed className="h-6 w-6" />
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-11 w-auto object-contain shrink-0" />
+            ) : (
+              <div className="h-11 w-11 rounded-xl bg-primary-orange flex items-center justify-center text-white shadow-lg overflow-hidden shrink-0">
+                <UtensilsCrossed className="h-6 w-6" />
+              </div>
+            )}
             <div className="flex flex-col items-start">
               <span className="text-2xl font-bold tracking-wide text-primary-orange">
                 {companyName}

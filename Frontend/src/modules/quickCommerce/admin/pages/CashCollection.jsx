@@ -6,7 +6,7 @@ import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import Modal from '@shared/components/ui/Modal';
 import {
-    CircleDollarSign,
+    CircleIndianRupee,
     Search,
     Truck,
     Clock,
@@ -166,7 +166,7 @@ const CashCollection = () => {
                     <h1 className="ds-h1 flex items-center gap-3">
                         Cash Collection Hub
                         <div className="p-1.5 bg-emerald-100 rounded-lg">
-                            <CircleDollarSign className="h-5 w-5 text-emerald-600" />
+                            <CircleIndianRupee className="h-5 w-5 text-emerald-600" />
                         </div>
                     </h1>
                     <p className="ds-description mt-1">Manage physical cash collected by delivery partners and track settlements.</p>
@@ -416,7 +416,7 @@ const CashCollection = () => {
                                     </div>
                                     <span className="text-[10px] font-bold opacity-60">{Math.min(Math.round((selectedRider.currentCash / selectedRider.limit) * 100), 100)}%</span>
                                 </div>
-                                <CircleDollarSign className="absolute -bottom-4 -right-4 h-20 w-20 opacity-10" />
+                                <CircleIndianRupee className="absolute -bottom-4 -right-4 h-20 w-20 opacity-10" />
                             </Card>
                             <Card className="p-6 border-none bg-slate-50 ring-1 ring-slate-100 rounded-xl">
                                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Pending COD Orders</p>
@@ -453,7 +453,7 @@ const CashCollection = () => {
                                     ))
                                 ) : (
                                     <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                                        <CircleDollarSign className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+                                        <CircleIndianRupee className="h-10 w-10 text-slate-200 mx-auto mb-3" />
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Recent Collections</p>
                                     </div>
                                 )}
@@ -486,7 +486,7 @@ const CashCollection = () => {
                     <div className="ds-section-spacing py-4">
                         <div className="text-center space-y-4">
                             <div className="h-20 w-20 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mx-auto shadow-inner border border-emerald-100">
-                                <CircleDollarSign className="h-10 w-10" />
+                                <CircleIndianRupee className="h-10 w-10" />
                             </div>
                             <div>
                                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Record Cash Receive</h3>

@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react"
-import { Download, ChevronDown, FileText, DollarSign, Settings, FileSpreadsheet, Code, Loader2 } from "lucide-react"
+import { Download, ChevronDown, FileText, IndianRupee, Settings, FileSpreadsheet, Code, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
 import { exportReportsToCSV, exportReportsToExcel, exportReportsToPDF, exportReportsToJSON } from "@food/components/admin/reports/reportsExportUtils"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
 
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 export default function TaxReport() {
@@ -31,11 +31,11 @@ export default function TaxReport() {
   const fetchTaxReport = async () => {
     try {
       setLoading(true)
-      
+
       let fromDate = null
       let toDate = null
       const now = new Date()
-      
+
       if (filters.dateRangeType === "Today") {
         fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
         toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
@@ -104,7 +104,7 @@ export default function TaxReport() {
       let fromDate = null
       let toDate = null
       const now = new Date()
-      
+
       if (filters.dateRangeType === "Today") {
         fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
         toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
@@ -266,7 +266,7 @@ export default function TaxReport() {
                 <p className="text-2xl font-bold text-blue-600">{stats.totalIncome}</p>
               </div>
               <div className="w-14 h-14 rounded-lg bg-yellow-100 flex items-center justify-center">
-                <DollarSign className="w-8 h-8 text-yellow-600" />
+                <IndianRupee className="w-8 h-8 text-yellow-600" />
               </div>
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function TaxReport() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <button 
+              <button
                 onClick={() => setIsSettingsOpen(true)}
                 className="p-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all"
               >
@@ -380,7 +380,7 @@ export default function TaxReport() {
                         <span className="text-sm font-medium text-slate-900">{report.totalTax}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button 
+                        <button
                           onClick={() => handleViewDetails(report)}
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                         >
@@ -432,7 +432,7 @@ export default function TaxReport() {
               </span>
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="p-6 max-h-[70vh] overflow-y-auto">
             {detailLoading ? (
               <div className="flex flex-col items-center justify-center py-12">

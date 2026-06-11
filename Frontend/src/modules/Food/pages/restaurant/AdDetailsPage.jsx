@@ -3,11 +3,11 @@ import { motion } from "framer-motion"
 import { useNavigate, useParams } from "react-router-dom"
 import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation"
 import Lenis from "lenis"
-import { 
+import {
   ArrowLeft,
   Calendar,
   Megaphone,
-  DollarSign,
+  IndianRupee,
   Edit
 } from "lucide-react"
 import { Card, CardContent } from "@food/components/ui/card"
@@ -47,7 +47,7 @@ export default function AdDetailsPage() {
     <div className="min-h-screen bg-[#f6e9dc] overflow-x-hidden pb-24 md:pb-6">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50 flex items-center gap-3">
-        <button 
+        <button
           onClick={goBack}
           className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
         >
@@ -71,152 +71,152 @@ export default function AdDetailsPage() {
 
         {adData && (
           <>
-        {/* Ad ID and Status Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Card className="bg-white shadow-sm border border-gray-100">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-gray-900">
-                  Ads ID #{adData.id}
-                </h2>
-                <span className="bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1 rounded-full">
-                  {adData.status}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            {/* Ad ID and Status Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="bg-white shadow-sm border border-gray-100">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-bold text-gray-900">
+                      Ads ID #{adData.id}
+                    </h2>
+                    <span className="bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1 rounded-full">
+                      {adData.status}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        {/* Ad Information Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <Card className="bg-white shadow-sm border border-gray-100">
-            <CardContent className="p-4 space-y-3">
-              {/* Ads Created */}
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  <Calendar className="w-5 h-5 text-[#ff8100]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 mb-0.5">Ads Created</p>
-                  <p className="text-sm font-medium text-gray-900">{adData.adsCreated}</p>
-                </div>
-              </div>
+            {/* Ad Information Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <Card className="bg-white shadow-sm border border-gray-100">
+                <CardContent className="p-4 space-y-3">
+                  {/* Ads Created */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Calendar className="w-5 h-5 text-[#ff8100]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 mb-0.5">Ads Created</p>
+                      <p className="text-sm font-medium text-gray-900">{adData.adsCreated}</p>
+                    </div>
+                  </div>
 
-              {/* Duration */}
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  <Calendar className="w-5 h-5 text-[#ff8100]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 mb-0.5">Duration</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {adData.duration.start} - {adData.duration.end}
-                  </p>
-                </div>
-              </div>
+                  {/* Duration */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Calendar className="w-5 h-5 text-[#ff8100]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 mb-0.5">Duration</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {adData.duration.start} - {adData.duration.end}
+                      </p>
+                    </div>
+                  </div>
 
-              {/* Ads Details */}
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  <Megaphone className="w-5 h-5 text-[#ff8100]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 mb-0.5">Ads Details</p>
-                  <p className="text-sm font-bold text-gray-900">{adData.adsDetails}</p>
-                </div>
-              </div>
+                  {/* Ads Details */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Megaphone className="w-5 h-5 text-[#ff8100]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 mb-0.5">Ads Details</p>
+                      <p className="text-sm font-bold text-gray-900">{adData.adsDetails}</p>
+                    </div>
+                  </div>
 
-              {/* Payment Status */}
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  <DollarSign className="w-5 h-5 text-[#ff8100]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 mb-0.5">Payment Status</p>
-                  <p className="text-sm font-medium text-red-600">{adData.paymentStatus}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+                  {/* Payment Status */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <IndianRupee className="w-5 h-5 text-[#ff8100]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 mb-0.5">Payment Status</p>
+                      <p className="text-sm font-medium text-red-600">{adData.paymentStatus}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        {/* Ad Content Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <Card className="bg-white shadow-sm border border-gray-100">
-            <CardContent className="p-4 space-y-4">
-              {/* Title */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1.5">Title</h3>
-                <p className="text-sm text-gray-600">{adData.title}</p>
-              </div>
+            {/* Ad Content Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <Card className="bg-white shadow-sm border border-gray-100">
+                <CardContent className="p-4 space-y-4">
+                  {/* Title */}
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-1.5">Title</h3>
+                    <p className="text-sm text-gray-600">{adData.title}</p>
+                  </div>
 
-              {/* Description */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1.5">Description</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{adData.description}</p>
-              </div>
+                  {/* Description */}
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-1.5">Description</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">{adData.description}</p>
+                  </div>
 
-              {/* Pause Note */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1.5">Pause Note</h3>
-                <p className="text-sm text-gray-600">{adData.pauseNote}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+                  {/* Pause Note */}
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-1.5">Pause Note</h3>
+                    <p className="text-sm text-gray-600">{adData.pauseNote}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        {/* Image Section Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <Card className="bg-white shadow-sm border border-gray-100">
-            <CardContent className="p-4 space-y-4">
-              {/* Profile Image */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Profile Image</h3>
-                <div className="w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
-                  <img 
-                    src={adData.profileImage}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.src = `https://ui-avatars.com/api/?name=Hungry+PUPPETS&background=ff8100&color=fff&size=200`
-                    }}
-                  />
-                </div>
-              </div>
+            {/* Image Section Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
+              <Card className="bg-white shadow-sm border border-gray-100">
+                <CardContent className="p-4 space-y-4">
+                  {/* Profile Image */}
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">Profile Image</h3>
+                    <div className="w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+                      <img
+                        src={adData.profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=Hungry+PUPPETS&background=ff8100&color=fff&size=200`
+                        }}
+                      />
+                    </div>
+                  </div>
 
-              {/* Cover Image */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Cover Image</h3>
-                <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-                  <img 
-                    src={adData.coverImage}
-                    alt="Cover"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.src = `https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop`
-                    }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+                  {/* Cover Image */}
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">Cover Image</h3>
+                    <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-200">
+                      <img
+                        src={adData.coverImage}
+                        alt="Cover"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = `https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop`
+                        }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </>
         )}
       </div>
@@ -239,7 +239,7 @@ export default function AdDetailsPage() {
 
       {/* Bottom Navigation Bar */}
       <BottomNavbar onMenuClick={() => setShowMenu(true)} />
-      
+
       {/* Menu Overlay */}
       <MenuOverlay showMenu={showMenu} setShowMenu={setShowMenu} />
     </div>

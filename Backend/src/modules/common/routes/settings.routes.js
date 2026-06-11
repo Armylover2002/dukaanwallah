@@ -21,7 +21,10 @@ router.patch('/', authMiddleware, requireRoles('ADMIN'), upload.fields([
     { name: 'restaurantLogo', maxCount: 1 },
     { name: 'restaurantFavicon', maxCount: 1 },
     { name: 'sellerLogo', maxCount: 1 },
-    { name: 'sellerFavicon', maxCount: 1 }
+    { name: 'sellerFavicon', maxCount: 1 },
+    { name: 'loginBanner', maxCount: 1 },
+    { name: 'sellerLoginBanner', maxCount: 1 },
+    { name: 'restaurantLoginBanner', maxCount: 1 }
 ]), settingsController.updateGlobalSettings);
 
 export default router;

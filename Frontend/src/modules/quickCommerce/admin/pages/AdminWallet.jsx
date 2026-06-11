@@ -5,7 +5,7 @@ import PageHeader from '@shared/components/ui/PageHeader';
 import StatCard from '@shared/components/ui/StatCard';
 import {
     TrendingUp,
-    DollarSign,
+    IndianRupee,
     Building2,
     Clock,
     CreditCard,
@@ -140,7 +140,7 @@ const AdminWallet = () => {
             label: 'Total Admin Earning',
             value: `₹${(walletData.stats?.totalAdminEarning || 0).toLocaleString()}`,
             description: 'Net profit for platform',
-            icon: DollarSign,
+            icon: IndianRupee,
             color: 'purple',
             bg: 'bg-purple-50',
             iconColor: 'text-purple-500'
@@ -572,7 +572,7 @@ const AdminWallet = () => {
                             {[
                                 { label: 'Platform Revenue Report', icon: TrendingUp, path: '/admin' },
                                 { label: 'Settlement History', icon: History, path: '/admin/delivery-funds' },
-                                { label: 'Tax Statements', icon: DollarSign, path: '#' },
+                                { label: 'Tax Statements', icon: IndianRupee, path: '#' },
                             ].map((link, i) => (
                                 <button
                                     key={i}

@@ -5,7 +5,7 @@ import PageHeader from "@shared/components/ui/PageHeader";
 import Badge from "@shared/components/ui/Badge";
 import StatCard from "@shared/components/ui/StatCard";
 import {
-  DollarSign,
+  IndianRupee,
   Truck,
   Package,
   TrendingUp,
@@ -102,7 +102,7 @@ const Dashboard = () => {
       value: statsData?.overview?.totalSales || "₹0",
       change: "+12.5%",
       changeType: "increase",
-      icon: DollarSign,
+      icon: IndianRupee,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
       description: "vs last month",
@@ -157,7 +157,7 @@ const Dashboard = () => {
     {
       title: "View Earnings",
       description: "Check your revenue and payouts",
-      icon: DollarSign,
+      icon: IndianRupee,
       path: "/seller/earnings",
       variant: "outline-emerald", // white bg, border, emerald accent
     },
@@ -284,11 +284,11 @@ const Dashboard = () => {
               className={cn(
                 "p-6 rounded-xl text-left transition-all duration-200 shadow-sm hover:shadow-md border-2",
                 isPrimary &&
-                  "bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90 hover:border-orange-500/90",
+                "bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90 hover:border-orange-500/90",
                 action.variant === "outline" &&
-                  "bg-white border-slate-200 text-slate-900 hover:border-orange-500 hover:bg-orange-500/5",
+                "bg-white border-slate-200 text-slate-900 hover:border-orange-500 hover:bg-orange-500/5",
                 isEmerald &&
-                  "bg-white border-slate-200 text-slate-900 hover:border-emerald-500 hover:bg-emerald-50",
+                "bg-white border-slate-200 text-slate-900 hover:border-emerald-500 hover:bg-emerald-50",
               )}>
               <div className="flex items-start gap-4">
                 <div
@@ -729,13 +729,13 @@ const Dashboard = () => {
                             : getStatusColor(selectedOrder.status) === "primary"
                               ? "bg-orange-100 text-orange-700 focus:ring-orange-200"
                               : getStatusColor(selectedOrder.status) ===
-                                  "secondary"
+                                "secondary"
                                 ? "bg-purple-100 text-purple-700 focus:ring-purple-200"
                                 : getStatusColor(selectedOrder.status) ===
-                                    "success"
+                                  "success"
                                   ? "bg-emerald-100 text-emerald-700 focus:ring-emerald-200"
                                   : getStatusColor(selectedOrder.status) ===
-                                      "error"
+                                    "error"
                                     ? "bg-rose-100 text-rose-700 focus:ring-rose-200"
                                     : "bg-slate-100 text-slate-700 focus:ring-slate-200",
                       )}>

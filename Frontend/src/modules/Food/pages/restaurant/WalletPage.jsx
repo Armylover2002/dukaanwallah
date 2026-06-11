@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom"
 import Lenis from "lenis"
 import BottomNavbar from "@food/components/restaurant/BottomNavbar"
 import MenuOverlay from "@food/components/restaurant/MenuOverlay"
-import { 
-  Wallet, 
-  DollarSign, 
+import {
+  Wallet,
+  IndianRupee,
   Clock,
   CheckCircle,
   TrendingUp,
@@ -34,13 +34,13 @@ export default function WalletPage() {
   const [showMenu, setShowMenu] = useState(false)
   const [showRechargeModal, setShowRechargeModal] = useState(false)
   const [rechargeAmount, setRechargeAmount] = useState("")
-  
+
   // Real database state
   const [loading, setLoading] = useState(true)
   const [wallet, setWallet] = useState(null)
   const [subscription, setSubscription] = useState(null)
   const [submittingRecharge, setSubmittingRecharge] = useState(false)
-  
+
   const fetchWalletData = async () => {
     try {
       setLoading(true)
@@ -48,7 +48,7 @@ export default function WalletPage() {
         restaurantAPI.getSubscriptionWallet(),
         restaurantAPI.getMySubscription()
       ])
-      
+
       if (walletRes.data?.success) {
         setWallet(walletRes.data.data)
       }
@@ -82,10 +82,10 @@ export default function WalletPage() {
     try {
       setSubmittingRecharge(true)
       const response = await restaurantAPI.createSubscriptionTopupOrder(amount)
-      
+
       if (response.data?.success) {
         const orderData = response.data.data
-        
+
         await initRazorpayPayment({
           key: orderData.key,
           amount: orderData.amount,
@@ -176,8 +176,8 @@ export default function WalletPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
             Subscription Center
           </h1>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="border-[#ff8100] text-[#ff8100] hidden md:flex"
             onClick={() => navigate('/food/restaurant/business-plan')}
           >
@@ -206,14 +206,14 @@ export default function WalletPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mb-6">
               <p className="text-slate-400 text-sm mb-1">Available Credits</p>
               <h2 className="text-4xl font-black text-white">{formatCurrency(wallet?.subscriptionBalance || 0)}</h2>
             </div>
 
             <div className="flex gap-3">
-              <Button 
+              <Button
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-xl shadow-lg shadow-blue-900/20"
                 onClick={() => {
                   if (isLowBalance) setRechargeAmount(requiredRecharge.toString())
@@ -223,7 +223,7 @@ export default function WalletPage() {
                 Recharge Credits
               </Button>
             </div>
-            
+
             <p className="text-[10px] text-slate-500 mt-4 flex items-center gap-1">
               <Info className="w-3 h-3" />
               Credits are strictly non-withdrawable and used for platform fees.
@@ -257,9 +257,8 @@ export default function WalletPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`text-[10px] font-black px-2 py-1 rounded-md uppercase ${
-                    activePass ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
-                  }`}>
+                  <span className={`text-[10px] font-black px-2 py-1 rounded-md uppercase ${activePass ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
+                    }`}>
                     {activePass ? 'Active' : 'Expired'}
                   </span>
                   {activePass && (
@@ -284,9 +283,8 @@ export default function WalletPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`text-[10px] font-black px-2 py-1 rounded-md uppercase ${
-                    subStatus === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
-                  }`}>
+                  <span className={`text-[10px] font-black px-2 py-1 rounded-md uppercase ${subStatus === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+                    }`}>
                     {subStatus === 'active' ? 'Active' : 'None'}
                   </span>
                   {subscription?.expiryDate && (
@@ -320,17 +318,16 @@ export default function WalletPage() {
               </div>
             ) : (
               ledger.map((tx, index) => (
-                <div 
+                <div
                   key={tx.id || index}
                   className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0"
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-full ${
-                      tx.type === 'TOPUP' ? 'bg-green-50 text-green-600' : 
-                      tx.type === 'DAILY_DEDUCTION' ? 'bg-red-50 text-red-600' : 
-                      'bg-blue-50 text-blue-600'
-                    }`}>
-                      {tx.type === 'TOPUP' ? <TrendingUp className="w-5 h-5" /> : <DollarSign className="w-5 h-5" />}
+                    <div className={`p-3 rounded-full ${tx.type === 'TOPUP' ? 'bg-green-50 text-green-600' :
+                        tx.type === 'DAILY_DEDUCTION' ? 'bg-red-50 text-red-600' :
+                          'bg-blue-50 text-blue-600'
+                      }`}>
+                      {tx.type === 'TOPUP' ? <TrendingUp className="w-5 h-5" /> : <IndianRupee className="w-5 h-5" />}
                     </div>
                     <div>
                       <p className="text-sm font-bold text-gray-900">{tx.type.replace(/_/g, ' ')}</p>
@@ -338,9 +335,8 @@ export default function WalletPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-sm font-black ${
-                      ['TOPUP', 'REFERRAL_REWARD'].includes(tx.type) ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <p className={`text-sm font-black ${['TOPUP', 'REFERRAL_REWARD'].includes(tx.type) ? 'text-green-600' : 'text-red-600'
+                      }`}>
                       {['TOPUP', 'REFERRAL_REWARD'].includes(tx.type) ? '+' : '-'}{formatCurrency(tx.amount)}
                     </p>
                     <p className="text-[10px] text-gray-400">Bal: {formatCurrency(tx.afterBalance)}</p>

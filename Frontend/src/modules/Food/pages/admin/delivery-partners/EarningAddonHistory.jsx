@@ -1,31 +1,31 @@
 import { useState, useEffect, useMemo } from "react"
-import { 
-  Search, 
-  Settings, 
-  ArrowUpDown, 
-  Download, 
-  ChevronDown, 
-  FileText, 
-  FileSpreadsheet, 
-  Code, 
-  Check, 
-  Columns, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  DollarSign, 
-  RefreshCw, 
-  User, 
-  Package, 
-  Wallet 
+import {
+  Search,
+  Settings,
+  ArrowUpDown,
+  Download,
+  ChevronDown,
+  FileText,
+  FileSpreadsheet,
+  Code,
+  Check,
+  Columns,
+  CheckCircle,
+  XCircle,
+  Clock,
+  IndianRupee,
+  RefreshCw,
+  User,
+  Package,
+  Wallet
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 export default function EarningAddonHistory() {
@@ -64,11 +64,11 @@ export default function EarningAddonHistory() {
         historyCount: response.data.data?.history?.length || 0,
         pagination: response.data.data?.pagination
       })
-      
+
       if (response.data.success) {
         const historyData = response.data.data.history || []
         debugLog('? Earning Addon History fetched:', historyData.length, 'records')
-        
+
         // Log sample data for debugging
         if (historyData.length > 0) {
           debugLog('?? Sample history record:', {
@@ -79,7 +79,7 @@ export default function EarningAddonHistory() {
             earningAmount: historyData[0].earningAmount
           })
         }
-        
+
         setHistory(historyData)
         if (historyData.length === 0) {
           debugLog('?? No history records found in database')
@@ -128,7 +128,7 @@ export default function EarningAddonHistory() {
     if (!searchQuery.trim()) {
       return history
     }
-    
+
     const query = searchQuery.toLowerCase().trim()
     return history.filter(item =>
       item.deliveryman?.toLowerCase().includes(query) ||
@@ -232,9 +232,9 @@ export default function EarningAddonHistory() {
     try {
       setIsCheckingCompletions(true)
       debugLog('?? Checking completions for all delivery partners...')
-      
+
       const res = await adminAPI.checkEarningAddonCompletions("all", true)
-      
+
       if (res.data.success) {
         const found = res.data.data.completionsFound || 0
         if (found > 0) {
@@ -313,7 +313,7 @@ export default function EarningAddonHistory() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <button 
+              <button
                 onClick={() => setIsSettingsOpen(true)}
                 className="p-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all"
               >
@@ -450,7 +450,7 @@ export default function EarningAddonHistory() {
                         {visibleColumns.earningAmount && (
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4 text-emerald-500" />
+                              <IndianRupee className="w-4 h-4 text-emerald-500" />
                               <span className="text-sm font-medium text-slate-900">{"\u20B9"}{item.totalEarning?.toFixed(2) || item.earningAmount?.toFixed(2) || '0.00'}</span>
                             </div>
                           </td>
@@ -556,7 +556,7 @@ export default function EarningAddonHistory() {
                 {/* Amount Info - Highlighted */}
                 <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border-2 border-emerald-200">
                   <div className="p-2 bg-emerald-100 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                    <IndianRupee className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-emerald-700 uppercase tracking-wide mb-1">Amount to Credit</p>

@@ -52,6 +52,20 @@ const globalSettingsSchema = new mongoose.Schema(
             url: { type: String, default: '' },
             publicId: { type: String, default: '' }
         },
+        loginBanner: {
+            url: { type: String, default: '' },
+            publicId: { type: String, default: '' }
+        },
+        sellerLoginBanner: {
+            url: { type: String, default: '' },
+            publicId: { type: String, default: '' },
+            active: { type: Boolean, default: true }
+        },
+        restaurantLoginBanner: {
+            url: { type: String, default: '' },
+            publicId: { type: String, default: '' },
+            active: { type: Boolean, default: true }
+        },
         themeColor: { type: String, default: '#0a0a0a' },
         modules: {
             food: { type: Boolean, default: true },

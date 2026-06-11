@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Edit, Loader2, Plus, Save, Settings, Trash2, Truck, DollarSign, Check, X } from 'lucide-react';
+import { Edit, Loader2, Plus, Save, Settings, Trash2, Truck, IndianRupee, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@shared/components/ui/Toast';
 import { adminApi } from '../services/adminApi';
@@ -197,7 +197,7 @@ export default function BillingCharges() {
         ? null
         : Number(ruleForm.maxDistance);
     const commissionPerKm = Number(ruleForm.commissionPerKm || 0);
-    
+
     // Non-base slabs (minDistance > 0) MUST have basePayout as 0
     const basePayout = minDistance === 0 ? Number(ruleForm.basePayout || 0) : 0;
 
@@ -371,7 +371,7 @@ export default function BillingCharges() {
               </h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
+
               {/* Min Distance (KM) */}
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Min Distance (KM)</label>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
-  DollarSign,
+  IndianRupee,
   CheckCircle2,
   QrCode,
   Loader2,
@@ -158,11 +158,10 @@ const OtpModal = ({ order, onVerified, onClose }) => {
               value={digit}
               onChange={(e) => handleOtpChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
-              className={`w-14 h-18 bg-gray-50 border-2 rounded-2xl text-center text-3xl font-bold transition-all ${
-                isOtpVerified
-                  ? "border-green-500 bg-green-50 text-green-700"
-                  : "border-gray-200 focus:border-green-600 text-gray-700"
-              }`}
+              className={`w-14 h-18 bg-gray-50 border-2 rounded-2xl text-center text-3xl font-bold transition-all ${isOtpVerified
+                ? "border-green-500 bg-green-50 text-green-700"
+                : "border-gray-200 focus:border-green-600 text-gray-700"
+                }`}
             />
           ))}
         </div>
@@ -255,7 +254,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
         // toast.success("Payment Received Successfully!");
         setShowQrModal(false);
       }
-    } catch (e) {}
+    } catch (e) { }
   }, [orderId]);
 
   const handleManualCheck = async () => {
@@ -318,7 +317,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
             <div className="flex items-center gap-3">
               <div
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isPaid ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>
-                <DollarSign className="w-7 h-7" />
+                <IndianRupee className="w-7 h-7" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
@@ -360,11 +359,10 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
                 <button
                   onClick={generateQr}
                   disabled={isGeneratingQr}
-                  className={`w-full py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
-                    selectedMode === "qr"
-                      ? "bg-amber-600 text-white shadow-lg ring-2 ring-amber-300 ring-offset-2"
-                      : "bg-white border-2 border-amber-200 text-amber-800"
-                  }`}>
+                  className={`w-full py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${selectedMode === "qr"
+                    ? "bg-amber-600 text-white shadow-lg ring-2 ring-amber-300 ring-offset-2"
+                    : "bg-white border-2 border-amber-200 text-amber-800"
+                    }`}>
                   {isGeneratingQr ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
@@ -375,12 +373,11 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
 
                 <button
                   onClick={handleCashSelection}
-                  className={`w-full py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
-                    selectedMode === "cash"
-                      ? "bg-amber-600 text-white shadow-lg ring-2 ring-amber-300 ring-offset-2"
-                      : "bg-white border-2 border-amber-200 text-amber-800"
-                  }`}>
-                  <DollarSign className="w-5 h-5" />
+                  className={`w-full py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${selectedMode === "cash"
+                    ? "bg-amber-600 text-white shadow-lg ring-2 ring-amber-300 ring-offset-2"
+                    : "bg-white border-2 border-amber-200 text-amber-800"
+                    }`}>
+                  <IndianRupee className="w-5 h-5" />
                   Cash in Hand
                 </button>
               </div>
@@ -403,11 +400,10 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
                         handlePaymentOtpChange(i, e.target.value)
                       }
                       onKeyDown={(e) => handlePaymentKeyDown(i, e)}
-                      className={`w-14 h-18 bg-gray-50 border-2 rounded-2xl text-center text-3xl font-bold transition-all ${
-                        isPaymentOtpVerified
-                          ? "border-green-500 bg-green-50 text-green-700"
-                          : "border-gray-200 focus:border-green-600 text-gray-700"
-                      }`}
+                      className={`w-14 h-18 bg-gray-50 border-2 rounded-2xl text-center text-3xl font-bold transition-all ${isPaymentOtpVerified
+                        ? "border-green-500 bg-green-50 text-green-700"
+                        : "border-gray-200 focus:border-green-600 text-gray-700"
+                        }`}
                     />
                   ))}
                 </div>
@@ -544,7 +540,7 @@ export const DeliveryVerificationModal = ({ order, onComplete, onClose }) => {
           key="otp-modal"
           order={order}
           onVerified={handleOtpVerified}
-          onClose={onClose || (() => {})}
+          onClose={onClose || (() => { })}
         />
       )}
       {step === "payment" && (
@@ -553,12 +549,12 @@ export const DeliveryVerificationModal = ({ order, onComplete, onClose }) => {
           order={order}
           otpString={verifiedOtp}
           onComplete={onComplete}
-          onClose={onClose || (() => {})}
+          onClose={onClose || (() => { })}
         />
       )}
       {step === "complete" && (
         <div className="absolute inset-x-0 bottom-0 z-120 p-0 sm:p-4 h-full flex items-end justify-center pointer-events-none">
-          <Backdrop onClose={onClose || (() => {})} />
+          <Backdrop onClose={onClose || (() => { })} />
           <motion.div
             key="complete-modal"
             initial={{ y: "100%" }}

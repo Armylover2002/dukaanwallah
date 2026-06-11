@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Phone, User, AlertCircle, Loader2, UtensilsCrossed } from "lucide-react"
 import { restaurantAPI } from "@food/api"
@@ -15,6 +15,8 @@ import {
 } from "@food/components/ui/select"
 import loginBg from "@food/assets/loginbanner.png"
 import { useCompanyName } from "@food/hooks/useCompanyName"
+import { loadBusinessSettings, getAppLogo, getRestaurantLoginBanner } from "@common/utils/businessSettings"
+
 
 const countryCodes = [
   { code: "+91", country: "IN", flag: "🇮🇳" },
@@ -22,6 +24,48 @@ const countryCodes = [
 
 export default function RestaurantSignup() {
   const navigate = useNavigate()
+  const [logoUrl, setLogoUrl] = useState(() => getAppLogo('restaurant'))
+  const [bannerUrl, setBannerUrl] = useState(() => {
+    const banner = getRestaurantLoginBanner()
+    return (banner && banner.url && banner.active) ? banner.url : loginBg
+  })
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        await loadBusinessSettings()
+        const logo = getAppLogo('restaurant')
+        if (logo) {
+          setLogoUrl(logo)
+        }
+        const banner = getRestaurantLoginBanner()
+        if (banner && banner.url && banner.active) {
+          setBannerUrl(banner.url)
+        } else {
+          setBannerUrl(loginBg)
+        }
+      } catch (error) {
+        console.warn("Failed to load business settings:", error)
+      }
+    }
+    fetchSettings()
+
+    const handleSettingsUpdate = async () => {
+      await loadBusinessSettings()
+      const logo = getAppLogo('restaurant')
+      if (logo) {
+        setLogoUrl(logo)
+      }
+      const banner = getRestaurantLoginBanner()
+      if (banner && banner.url && banner.active) {
+        setBannerUrl(banner.url)
+      } else {
+        setBannerUrl(loginBg)
+      }
+    }
+    window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
+    return () => window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate)
+  }, [])
   const [formData, setFormData] = useState({
     phone: "",
     countryCode: "+91",
@@ -139,7 +183,7 @@ export default function RestaurantSignup() {
       {/* Left image section */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
-          src={loginBg}
+          src={bannerUrl}
           alt="Restaurant background"
           className="w-full h-full object-cover"
         />
@@ -169,9 +213,13 @@ export default function RestaurantSignup() {
             className="flex items-center gap-3"
             style={{ animation: "fadeInDown 0.7s ease-out both" }}
           >
-            <div className="h-11 w-11 rounded-xl bg-[#FE5502] flex items-center justify-center text-white shadow-lg">
-              <UtensilsCrossed className="h-6 w-6" />
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-11 w-auto object-contain shrink-0" />
+            ) : (
+              <div className="h-11 w-11 rounded-xl bg-[#FE5502] flex items-center justify-center text-white shadow-lg overflow-hidden shrink-0">
+                <UtensilsCrossed className="h-6 w-6" />
+              </div>
+            )}
             <div className="flex flex-col items-start">
               <span className="text-2xl font-bold tracking-wide text-[#FE5502]">
                 {companyName}

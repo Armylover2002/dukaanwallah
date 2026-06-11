@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Save, Loader2, DollarSign, Plus, Trash2, Edit, Check, X, Truck, Store } from "lucide-react"
+import { Save, Loader2, IndianRupee, Plus, Trash2, Edit, Check, X, Truck, Store } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
@@ -161,7 +161,7 @@ export default function FeeSettings() {
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-            <DollarSign className="w-6 h-6 text-white" />
+            <IndianRupee className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Delivery & Platform Fee</h1>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react"
-import { 
-  Search, Plus, Edit, Trash2, ArrowUpDown, 
-  DollarSign, Percent, Loader2, X, Building2, IndianRupee
+import {
+  Search, Plus, Edit, Trash2, ArrowUpDown,
+  IndianRupee, Percent, Loader2, X, Building2, IndianRupee
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
 import { adminApi } from "../services/adminApi"
@@ -204,8 +204,8 @@ export default function SellerCommission() {
     if (!formData.defaultCommission.value || parseFloat(formData.defaultCommission.value) < 0) {
       errors.defaultCommission = "Default commission value is required"
     }
-    if (formData.defaultCommission.type === "percentage" && 
-        (parseFloat(formData.defaultCommission.value) < 0 || parseFloat(formData.defaultCommission.value) > 100)) {
+    if (formData.defaultCommission.type === "percentage" &&
+      (parseFloat(formData.defaultCommission.value) < 0 || parseFloat(formData.defaultCommission.value) > 100)) {
       errors.defaultCommission = "Percentage must be between 0-100"
     }
     setFormErrors(errors)
@@ -256,7 +256,7 @@ export default function SellerCommission() {
               </span>
             </div>
             {canCreate && (
-              <button 
+              <button
                 onClick={handleAdd}
                 className="px-4 py-2.5 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2 transition-all shadow-md"
               >
@@ -361,10 +361,10 @@ export default function SellerCommission() {
           </DialogHeader>
           <div className="p-4 space-y-4">
             <div className="relative">
-              <input 
-                type="text" 
-                placeholder="Search approved sellers..." 
-                value={searchQuery} 
+              <input
+                type="text"
+                placeholder="Search approved sellers..."
+                value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full text-sm rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500"
               />
@@ -408,8 +408,8 @@ export default function SellerCommission() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Commission Type</label>
-                <select 
-                  value={formData.defaultCommission.type} 
+                <select
+                  value={formData.defaultCommission.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, defaultCommission: { ...prev.defaultCommission, type: e.target.value } }))}
                   className="w-full px-3 py-2 text-sm border rounded-lg bg-white"
                 >
@@ -419,9 +419,9 @@ export default function SellerCommission() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Value</label>
-                <input 
-                  type="number" 
-                  value={formData.defaultCommission.value} 
+                <input
+                  type="number"
+                  value={formData.defaultCommission.value}
                   onChange={(e) => setFormData(prev => ({ ...prev, defaultCommission: { ...prev.defaultCommission, value: e.target.value } }))}
                   className={`w-full px-3 py-2 text-sm border rounded-lg ${formErrors.defaultCommission ? "border-red-500" : "border-slate-300"}`}
                   placeholder="e.g., 10"
@@ -431,19 +431,19 @@ export default function SellerCommission() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Notes (Optional)</label>
-              <textarea 
-                value={formData.notes} 
+              <textarea
+                value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border rounded-lg resize-none" 
-                rows="3" 
+                className="w-full px-3 py-2 text-sm border rounded-lg resize-none"
+                rows="3"
                 placeholder="Commission details or remarks..."
               />
             </div>
           </div>
           <DialogFooter className="px-6 py-4 bg-slate-50 border-t">
             <button onClick={() => setIsAddEditOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border bg-white">Cancel</button>
-            <button 
-              onClick={handleSave} 
+            <button
+              onClick={handleSave}
               disabled={saving}
               className="px-6 py-2 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
             >

@@ -210,6 +210,30 @@ export const getAppLogo = (appType) => {
 };
 
 /**
+ * Get the login banner URL with fallback
+ */
+export const getLoginBanner = () => {
+  const settings = getCachedSettings();
+  return settings?.loginBanner?.url || null;
+};
+
+/**
+ * Get the seller login banner configurations
+ */
+export const getSellerLoginBanner = () => {
+  const settings = getCachedSettings();
+  return settings?.sellerLoginBanner || { url: '', active: true };
+};
+
+/**
+ * Get the restaurant login banner configurations
+ */
+export const getRestaurantLoginBanner = () => {
+  const settings = getCachedSettings();
+  return settings?.restaurantLoginBanner || { url: '', active: true };
+};
+
+/**
  * Get app specific favicon with fallback to common favicon
  */
 export const getAppFavicon = (appType) => {

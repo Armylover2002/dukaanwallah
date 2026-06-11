@@ -32,7 +32,7 @@ import {
   X,
   LayoutDashboard,
   Gift,
-  DollarSign,
+  IndianRupee,
   Image,
   Bell,
   MessageSquare,
@@ -53,7 +53,7 @@ import {
   Database,
   Zap,
   Phone,
-  IndianRupee,
+
   PiggyBank,
   Lock,
 
@@ -106,7 +106,7 @@ const iconMap = {
   Utensils,
   Megaphone,
   Gift,
-  DollarSign,
+  IndianRupee,
   Image,
   Bell,
   MessageSquare,
@@ -127,7 +127,7 @@ const iconMap = {
   Database,
   Zap,
   Phone,
-  IndianRupee,
+
   PiggyBank,
   Lock,
 

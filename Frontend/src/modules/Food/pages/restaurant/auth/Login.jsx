@@ -4,6 +4,8 @@ import { ShieldCheck } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { restaurantAPI } from "@food/api"
 import { useCompanyName } from "@food/hooks/useCompanyName"
+import { loadBusinessSettings, getAppLogo, getRestaurantLoginBanner } from "@common/utils/businessSettings"
+import loginBg from "@food/assets/loginbanner.png"
 
 const DEFAULT_COUNTRY_CODE = "+91"
 const countryCodes = [
@@ -14,6 +16,48 @@ export default function RestaurantLogin() {
   const companyName = useCompanyName()
   const navigate = useNavigate()
   const phoneInputRef = useRef(null)
+  const [logoUrl, setLogoUrl] = useState(() => getAppLogo('restaurant'))
+  const [bannerUrl, setBannerUrl] = useState(() => {
+    const banner = getRestaurantLoginBanner()
+    return (banner && banner.url && banner.active) ? banner.url : loginBg
+  })
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        await loadBusinessSettings()
+        const logo = getAppLogo('restaurant')
+        if (logo) {
+          setLogoUrl(logo)
+        }
+        const banner = getRestaurantLoginBanner()
+        if (banner && banner.url && banner.active) {
+          setBannerUrl(banner.url)
+        } else {
+          setBannerUrl(loginBg)
+        }
+      } catch (error) {
+        console.warn("Failed to load business settings:", error)
+      }
+    }
+    fetchSettings()
+
+    const handleSettingsUpdate = async () => {
+      await loadBusinessSettings()
+      const logo = getAppLogo('restaurant')
+      if (logo) {
+        setLogoUrl(logo)
+      }
+      const banner = getRestaurantLoginBanner()
+      if (banner && banner.url && banner.active) {
+        setBannerUrl(banner.url)
+      } else {
+        setBannerUrl(loginBg)
+      }
+    }
+    window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
+    return () => window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate)
+  }, [])
   const [formData, setFormData] = useState(() => {
     const saved = sessionStorage.getItem("restaurantLoginPhone")
     return {
@@ -123,106 +167,153 @@ export default function RestaurantLogin() {
   const isValidPhone = !validatePhone(formData.phone, formData.countryCode)
 
   return (
-    <div
-      className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain font-sans"
-      style={{ paddingBottom: keyboardInset ? `${keyboardInset + 24}px` : undefined }}
-    >
-      {/* Curved Header Background */}
-      <div className="relative h-[300px] w-full bg-[#FE5502] overflow-hidden">
-        {/* Abstract Circles like in the image */}
-        <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white/10" />
-        <div className="absolute top-20 -right-10 w-64 h-64 rounded-full bg-white/10" />
-        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-white/5" />
-
-        <div className="absolute bottom-0 w-full h-[100px] bg-white rounded-t-[100px] shadow-[0_-20px_40px_rgba(0,0,0,0.05)]" />
-      </div>
-
-      <div id="login-content" className="flex-1 flex flex-col items-center px-4 sm:px-8 -mt-12 sm:-mt-16 z-10 overflow-hidden">
-        <div className="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full shadow-xl flex items-center justify-center border-4 border-slate-50 mb-4 sm:mb-6">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-[#FE5502] rounded-2xl mx-auto flex items-center justify-center transform rotate-12 shadow-lg mb-1">
-              <ShieldCheck className="w-8 h-8 text-white -rotate-12" />
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center space-y-1.5 sm:space-y-2 mb-6 sm:mb-10">
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight lowercase">
-            {companyName}
-          </h1>
-          <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest">
-            Partner Login
-          </p>
-        </div>
-
-        <div className="w-full max-w-[400px] flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1">Registered Mobile Number</label>
-              
-              <div className="flex items-center gap-2 h-16 bg-slate-50 border border-slate-100 rounded-[32px] px-6 focus-within:border-[#FE5502]/30 focus-within:ring-4 focus-within:ring-[#FE5502]/5 transition-all overflow-hidden">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-slate-900 text-lg">{formData.countryCode}</span>
-                </div>
-                
-                <div className="w-[1px] h-6 bg-slate-200 ml-2" />
-
-                <input
-                  ref={phoneInputRef}
-                  type="tel"
-                  maxLength={10}
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  enterKeyHint="done"
-                  placeholder="Mobile number"
-                  value={formData.phone}
-                  onChange={handlePhoneChange}
-                  onFocus={ensurePhoneFieldVisible}
-                  className="min-w-0 flex-1 h-12 bg-transparent border-0 outline-none ring-0 shadow-none focus:border-0 focus:outline-none focus:ring-0 focus:shadow-none text-left text-lg font-bold leading-none tracking-[0.02em] text-slate-900 placeholder-slate-300 caret-[#FE5502] px-2"
-                  style={{ WebkitTextFillColor: "#0f172a", opacity: 1 }}
-                />
-              </div>
-
-              {error && (
-                <p className="text-[#FE5502] text-xs font-bold italic ml-4 animate-bounce">
-                  {error}
-                </p>
-              )}
-            </div>
-
-            <Button
-              onClick={handleSendOTP}
-              disabled={!isValidPhone || isSending}
-              className={`w-full h-14 sm:h-16 rounded-[32px] font-black text-base sm:text-lg tracking-widest uppercase transition-all duration-300 ${
-                isValidPhone && !isSending
-                  ? "bg-[#FE5502] hover:bg-[#E64D02] text-white shadow-lg shadow-[#FE5502]/20 transform active:scale-[0.98]"
-                  : "bg-slate-100 text-slate-400 cursor-not-allowed"
-              }`}
-            >
-              {isSending ? "Processing..." : "Continue"}
-            </Button>
-          </div>
-
-          <div className={`text-center pt-4 pb-2 ${keyboardInset ? "hidden" : ""}`}>
-            <p className="text-slate-400 text-xs font-medium">
-              By logging in, you agree to our <br />
-              <button
-                type="button"
-                onClick={() => navigate("/food/restaurant/terms")}
-                className="bg-transparent border-0 p-0 text-[#FE5502] font-bold hover:underline cursor-pointer"
-              >
-                Terms & Conditions
-              </button>
+    <div className="min-h-screen w-full flex bg-white overflow-hidden font-sans">
+      {/* Left image section */}
+      <div className="hidden lg:flex lg:w-1/2 relative">
+        <img
+          src={bannerUrl}
+          alt="Restaurant background"
+          className="w-full h-full object-cover"
+        />
+        {/* Orange half-circle text block attached to the left with animation */}
+        <div className="absolute inset-0 flex items-center text-white pointer-events-none">
+          <div
+            className="bg-[#FE5502]/80 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]"
+            style={{ animation: "slideInLeft 0.8s ease-out both" }}
+          >
+            <h1 className="text-3xl xl:text-4xl font-extrabold mb-4 tracking-wide leading-tight">
+              WELCOME TO
+              <br />
+              {companyName.toUpperCase()}
+            </h1>
+            <p className="text-base xl:text-lg opacity-95 max-w-xl">
+              Manage your restaurant, orders and website easily from a single dashboard.
             </p>
           </div>
         </div>
       </div>
 
-      <div className={`pb-8 text-center ${keyboardInset ? "hidden" : ""}`}>
+      {/* Right form section */}
+      <div
+        className="w-full lg:w-1/2 h-screen flex flex-col overflow-y-auto overscroll-contain bg-white"
+        style={{ paddingBottom: keyboardInset ? `${keyboardInset + 24}px` : undefined }}
+      >
+        {/* Curved Header Background - Mobile Only */}
+        <div className="relative h-[260px] sm:h-[300px] w-full bg-[#FE5502] overflow-hidden lg:hidden">
+          {/* Abstract Circles like in the image */}
+          <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white/10" />
+          <div className="absolute top-20 -right-10 w-64 h-64 rounded-full bg-white/10" />
+          <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-white/5" />
+
+          <div className="absolute bottom-0 w-full h-[100px] bg-white rounded-t-[100px] shadow-[0_-20px_40px_rgba(0,0,0,0.05)]" />
+        </div>
+
+        {/* Desktop Header Top Padding (if lg screen) */}
+        <div className="hidden lg:block lg:h-12" />
+
+        <div id="login-content" className="flex-1 flex flex-col items-center px-4 sm:px-8 -mt-12 sm:-mt-16 lg:mt-0 z-10 lg:justify-center">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-20 sm:h-24 w-auto object-contain mb-4 sm:mb-6 rounded-2xl" />
+          ) : (
+            <div className="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full shadow-xl flex items-center justify-center border-4 border-slate-50 mb-4 sm:mb-6 overflow-hidden lg:shadow-md lg:border-2">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[#FE5502] rounded-2xl mx-auto flex items-center justify-center transform rotate-12 shadow-lg mb-1">
+                  <ShieldCheck className="w-8 h-8 text-white -rotate-12" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="text-center space-y-1.5 sm:space-y-2 mb-6 sm:mb-10">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight lowercase">
+              {companyName}
+            </h1>
+            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest">
+              Partner Login
+            </p>
+          </div>
+
+          <div className="w-full max-w-[400px] flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-bottom-4 duration-500 lg:flex-none lg:gap-6">
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1">Registered Mobile Number</label>
+
+                <div className="flex items-center gap-2 h-16 bg-slate-50 border border-slate-100 rounded-[32px] px-6 focus-within:border-[#FE5502]/30 focus-within:ring-4 focus-within:ring-[#FE5502]/5 transition-all overflow-hidden">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-slate-900 text-lg">{formData.countryCode}</span>
+                  </div>
+
+                  <div className="w-[1px] h-6 bg-slate-200 ml-2" />
+
+                  <input
+                    ref={phoneInputRef}
+                    type="tel"
+                    maxLength={10}
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    enterKeyHint="done"
+                    placeholder="Mobile number"
+                    value={formData.phone}
+                    onChange={handlePhoneChange}
+                    onFocus={ensurePhoneFieldVisible}
+                    className="min-w-0 flex-1 h-12 bg-transparent border-0 outline-none ring-0 shadow-none focus:border-0 focus:outline-none focus:ring-0 focus:shadow-none text-left text-lg font-bold leading-none tracking-[0.02em] text-slate-900 placeholder-slate-300 caret-[#FE5502] px-2"
+                    style={{ WebkitTextFillColor: "#0f172a", opacity: 1 }}
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-[#FE5502] text-xs font-bold italic ml-4 animate-bounce">
+                    {error}
+                  </p>
+                )}
+              </div>
+
+              <Button
+                onClick={handleSendOTP}
+                disabled={!isValidPhone || isSending}
+                className={`w-full h-14 sm:h-16 rounded-[32px] font-black text-base sm:text-lg tracking-widest uppercase transition-all duration-300 ${isValidPhone && !isSending
+                  ? "bg-[#FE5502] hover:bg-[#E64D02] text-white shadow-lg shadow-[#FE5502]/20 transform active:scale-[0.98]"
+                  : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  }`}
+              >
+                {isSending ? "Processing..." : "Continue"}
+              </Button>
+            </div>
+
+            <div className={`text-center pt-4 pb-2 lg:pb-0 ${keyboardInset ? "hidden" : ""}`}>
+              <p className="text-slate-400 text-xs font-medium">
+                By logging in, you agree to our <br />
+                <button
+                  type="button"
+                  onClick={() => navigate("/food/restaurant/terms")}
+                  className="bg-transparent border-0 p-0 text-[#FE5502] font-bold hover:underline cursor-pointer"
+                >
+                  Terms & Conditions
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={`pb-8 text-center mt-auto pt-6 ${keyboardInset ? "hidden" : ""}`}>
           <p className="text-[10px] font-black text-slate-300 tracking-[0.2em] uppercase">
             &copy; {new Date().getFullYear()} {companyName.toUpperCase()} PARTNER
           </p>
+        </div>
       </div>
+
+      <style>{`
+        @keyframes slideInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   )
 }

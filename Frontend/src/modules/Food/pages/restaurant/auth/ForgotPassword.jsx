@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Mail, ArrowLeft, Lock, Eye, EyeOff } from "lucide-react"
 import { Button } from "@food/components/ui/button"
@@ -6,11 +6,45 @@ import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@food/components/ui/card"
 import loginBg from "@food/assets/loginbanner.png"
+import { loadBusinessSettings, getRestaurantLoginBanner } from "@common/utils/businessSettings"
 import { restaurantAPI } from "@food/api"
 
 export default function RestaurantForgotPassword() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1) // 1: email, 2: OTP, 3: new password
+  const [bannerUrl, setBannerUrl] = useState(() => {
+    const banner = getRestaurantLoginBanner()
+    return (banner && banner.url && banner.active) ? banner.url : loginBg
+  })
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        await loadBusinessSettings()
+        const banner = getRestaurantLoginBanner()
+        if (banner && banner.url && banner.active) {
+          setBannerUrl(banner.url)
+        } else {
+          setBannerUrl(loginBg)
+        }
+      } catch (error) {
+        console.warn("Failed to load business settings:", error)
+      }
+    }
+    fetchSettings()
+
+    const handleSettingsUpdate = async () => {
+      await loadBusinessSettings()
+      const banner = getRestaurantLoginBanner()
+      if (banner && banner.url && banner.active) {
+        setBannerUrl(banner.url)
+      } else {
+        setBannerUrl(loginBg)
+      }
+    }
+    window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
+    return () => window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate)
+  }, [])
   const [email, setEmail] = useState("")
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
   const [newPassword, setNewPassword] = useState("")
@@ -198,7 +232,7 @@ export default function RestaurantForgotPassword() {
       {/* Left image section */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
-          src={loginBg}
+          src={bannerUrl}
           alt="Restaurant background"
           className="w-full h-full object-cover"
         />

@@ -104,7 +104,7 @@ export const quickAdminSidebarMenu = [
           { label: "Returned", path: "/admin/quick-commerce/orders/returned", permissionKey: "returned" },
         ],
       },
-      { type: "link", label: "Fees & Charges", permissionKey: "billing", path: "/admin/quick-commerce/billing", icon: "DollarSign" },
+      { type: "link", label: "Fees & Charges", permissionKey: "billing", path: "/admin/quick-commerce/billing", icon: "IndianRupee " },
       { type: "link", label: "My Profile", permissionKey: "profile", path: "/admin/quick-commerce/profile", icon: "User" },
     ],
   },

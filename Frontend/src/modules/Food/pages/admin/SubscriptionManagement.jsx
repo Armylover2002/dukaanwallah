@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { 
-    Search, Download, Plus, Edit3, Trash2, ChevronDown, FileText, 
-    FileSpreadsheet, Code, Check, Settings2, Loader2, AlertCircle, 
-    Calendar, DollarSign, Activity, Truck, CreditCard, Clock, RefreshCw, 
-    Layers, ArrowUpRight, Copy 
+import {
+    Search, Download, Plus, Edit3, Trash2, ChevronDown, FileText,
+    FileSpreadsheet, Code, Check, Settings2, Loader2, AlertCircle,
+    Calendar, IndianRupee, Activity, Truck, CreditCard, Clock, RefreshCw,
+    Layers, ArrowUpRight, Copy
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog";
@@ -14,9 +14,9 @@ import dayjs from "dayjs";
 import { useAuth } from "@core/context/AuthContext";
 import { getCurrentUser } from "@food/utils/auth";
 import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions";
-import { 
-    ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
-    Tooltip as ChartTooltip, PieChart, Pie, Cell, Legend 
+import {
+    ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
+    Tooltip as ChartTooltip, PieChart, Pie, Cell, Legend
 } from "recharts";
 
 const DURATION_UNITS = [
@@ -98,9 +98,9 @@ export default function SubscriptionManagement() {
     const fetchPlans = async () => {
         try {
             setLoading(true);
-            const response = await adminAPI.getSubscriptionPlans({ 
+            const response = await adminAPI.getSubscriptionPlans({
                 userType: activeTab,
-                includeInactive: showInactive 
+                includeInactive: showInactive
             });
             setPlans(normalizePlans(response.data));
         } catch (error) {
@@ -116,7 +116,7 @@ export default function SubscriptionManagement() {
     }, [activeTab, showInactive]);
 
     const filteredPlans = useMemo(() => {
-        return normalizePlans(plans).filter(plan => 
+        return normalizePlans(plans).filter(plan =>
             plan.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
         );
     }, [plans, searchQuery]);
@@ -212,7 +212,7 @@ export default function SubscriptionManagement() {
     // --- NEW SUBSCRIPTION BUSINESS OVERVIEW STATE & LOGIC ---
     const [overviewData, setOverviewData] = useState(null);
     const [overviewLoading, setOverviewLoading] = useState(true);
-    
+
     const [analyticsData, setAnalyticsData] = useState(null);
     const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
@@ -221,7 +221,7 @@ export default function SubscriptionManagement() {
     const [historyLoading, setHistoryLoading] = useState(true);
 
     const [searchParams, setSearchParams] = useSearchParams();
-    
+
     // History filters synchronized with URL state
     const historyPage = parseInt(searchParams.get("page")) || 1;
     const historySearch = searchParams.get("search") || "";
@@ -321,7 +321,7 @@ export default function SubscriptionManagement() {
                 export: "true"
             };
             const response = await adminAPI.getSubscriptionHistory(params, { responseType: 'blob' });
-            
+
             const blob = new Blob([response.data], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -354,7 +354,7 @@ export default function SubscriptionManagement() {
                     <p className="text-sm text-slate-500 mt-1">Manage plans for restaurants and delivery partners</p>
                 </div>
                 {canCreatePlan && (
-                    <button 
+                    <button
                         onClick={() => handleOpenModal()}
                         className="bg-[#FE5502] hover:bg-[#E64D02] text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
                     >
@@ -403,7 +403,7 @@ export default function SubscriptionManagement() {
                 <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="relative w-full sm:w-80">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
+                        <input
                             type="text"
                             placeholder="Search by plan name..."
                             value={searchQuery}
@@ -411,15 +411,14 @@ export default function SubscriptionManagement() {
                             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FE5502]/20 focus:border-[#FE5502] transition-all"
                         />
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setShowInactive(!showInactive)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                showInactive 
-                                    ? 'bg-orange-50 text-[#FE5502] border border-orange-200' 
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${showInactive
+                                    ? 'bg-orange-50 text-[#FE5502] border border-orange-200'
                                     : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                            }`}
+                                }`}
                         >
                             <AlertCircle className="w-4 h-4" />
                             <span>{showInactive ? 'Hide Archived' : 'Show Archived'}</span>
@@ -475,7 +474,7 @@ export default function SubscriptionManagement() {
                                             <span className="text-sm font-medium text-slate-700">{plan.durationValue} {plan.durationUnit}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <button 
+                                            <button
                                                 onClick={() => toggleStatus(plan)}
                                                 disabled={!canEditPlan}
                                                 className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${plan.isActive ? 'bg-green-500' : 'bg-slate-300'}`}
@@ -486,7 +485,7 @@ export default function SubscriptionManagement() {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 {canEditPlan && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleOpenModal(plan)}
                                                         className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                     >
@@ -494,7 +493,7 @@ export default function SubscriptionManagement() {
                                                     </button>
                                                 )}
                                                 {canDeletePlan && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleDelete(plan._id)}
                                                         className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                                     >
@@ -526,7 +525,7 @@ export default function SubscriptionManagement() {
             {/* Sub Overview Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {/* Total Revenue */}
-                <div 
+                <div
                     onClick={() => handleClearFilters()}
                     className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.98] group"
                 >
@@ -539,13 +538,13 @@ export default function SubscriptionManagement() {
                             <p className="text-[10px] text-slate-400 mt-1">All time collected</p>
                         </div>
                         <div className="p-2.5 rounded-lg bg-orange-50 text-[#FE5502] transition-colors group-hover:bg-[#FE5502] group-hover:text-white">
-                            <DollarSign className="w-5 h-5" />
+                            <IndianRupee className="w-5 h-5" />
                         </div>
                     </div>
                 </div>
 
                 {/* Active Paid Users */}
-                <div 
+                <div
                     onClick={() => updateFilter("status", "active")}
                     className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.98] group"
                 >
@@ -566,7 +565,7 @@ export default function SubscriptionManagement() {
                 </div>
 
                 {/* Daily Pass Usage */}
-                <div 
+                <div
                     onClick={() => updateFilter("type", "DAILY_DEDUCTION")}
                     className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.98] group"
                 >
@@ -587,7 +586,7 @@ export default function SubscriptionManagement() {
                 </div>
 
                 {/* Wallet Recharge Revenue */}
-                <div 
+                <div
                     onClick={() => updateFilter("type", "TOPUP")}
                     className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.98] group"
                 >
@@ -606,7 +605,7 @@ export default function SubscriptionManagement() {
                 </div>
 
                 {/* Recurring Plan Revenue */}
-                <div 
+                <div
                     onClick={() => updateFilter("type", "WEEKLY_SUBSCRIPTION")}
                     className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.98] group"
                 >
@@ -625,7 +624,7 @@ export default function SubscriptionManagement() {
                 </div>
 
                 {/* Expiring Soon */}
-                <div 
+                <div
                     onClick={() => updateFilter("status", "expiring")}
                     className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-[0.98] group"
                 >
@@ -665,8 +664,8 @@ export default function SubscriptionManagement() {
                                 <AreaChart data={analyticsData.revenueTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#FE5502" stopOpacity={0.2}/>
-                                            <stop offset="95%" stopColor="#FE5502" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#FE5502" stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor="#FE5502" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -895,7 +894,7 @@ export default function SubscriptionManagement() {
                                             {/* User Details */}
                                             <td className="px-5 py-3.5">
                                                 <div className="flex flex-col">
-                                                    <a 
+                                                    <a
                                                         href={userSearchPath}
                                                         className="text-xs font-bold text-[#FE5502] hover:underline flex items-center gap-1"
                                                     >
@@ -903,9 +902,8 @@ export default function SubscriptionManagement() {
                                                         <ArrowUpRight className="w-3 h-3" />
                                                     </a>
                                                     <span className="text-[10px] text-slate-500">{item.userEmail || item.userPhone || ''}</span>
-                                                    <span className={`inline-block w-fit px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider mt-1 ${
-                                                        item.userType === 'RESTAURANT' ? 'bg-orange-50 text-[#FE5502]' : 'bg-blue-50 text-blue-600'
-                                                    }`}>
+                                                    <span className={`inline-block w-fit px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider mt-1 ${item.userType === 'RESTAURANT' ? 'bg-orange-50 text-[#FE5502]' : 'bg-blue-50 text-blue-600'
+                                                        }`}>
                                                         {item.userType === 'RESTAURANT' ? 'Restaurant' : 'Delivery boy'}
                                                     </span>
                                                 </div>
@@ -916,7 +914,7 @@ export default function SubscriptionManagement() {
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="text-xs font-bold text-slate-900">{item.planName}</span>
                                                     {item.isLegacyPricing && (
-                                                        <span 
+                                                        <span
                                                             title="Pricing is estimated from linked plan details because no immutable snapshot was captured at purchase time."
                                                             className="inline-flex items-center px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800 text-[8px] font-black uppercase tracking-wider cursor-help"
                                                         >
@@ -938,9 +936,8 @@ export default function SubscriptionManagement() {
 
                                             {/* Amount */}
                                             <td className="px-5 py-3.5">
-                                                <span className={`text-xs font-bold ${
-                                                    item.referenceType === 'DAY_PASS' ? 'text-slate-600' : 'text-emerald-600 font-black'
-                                                }`}>
+                                                <span className={`text-xs font-bold ${item.referenceType === 'DAY_PASS' ? 'text-slate-600' : 'text-emerald-600 font-black'
+                                                    }`}>
                                                     {item.referenceType === 'DAY_PASS' ? '-' : '+'}₹{item.amountPaid}
                                                 </span>
                                             </td>
@@ -966,7 +963,7 @@ export default function SubscriptionManagement() {
                                                         {item.transactionId ? `${item.transactionId.substring(0, 10)}...` : '--'}
                                                     </span>
                                                     {item.transactionId && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => copyToClipboard(item.transactionId)}
                                                             className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
                                                         >
@@ -978,18 +975,16 @@ export default function SubscriptionManagement() {
 
                                             {/* Status */}
                                             <td className="px-5 py-3.5 text-right">
-                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
-                                                    item.status === 'Active' ? 'bg-green-50 text-green-600' :
-                                                    item.status === 'Grace' ? 'bg-amber-50 text-amber-600' :
-                                                    item.status === 'Expired' ? 'bg-red-50 text-red-600' :
-                                                    'bg-slate-100 text-slate-500'
-                                                }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${
-                                                        item.status === 'Active' ? 'bg-green-500' :
-                                                        item.status === 'Grace' ? 'bg-amber-500' :
-                                                        item.status === 'Expired' ? 'bg-red-500' :
-                                                        'bg-slate-400'
-                                                    }`} />
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${item.status === 'Active' ? 'bg-green-50 text-green-600' :
+                                                        item.status === 'Grace' ? 'bg-amber-50 text-amber-600' :
+                                                            item.status === 'Expired' ? 'bg-red-50 text-red-600' :
+                                                                'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${item.status === 'Active' ? 'bg-green-500' :
+                                                            item.status === 'Grace' ? 'bg-amber-500' :
+                                                                item.status === 'Expired' ? 'bg-red-500' :
+                                                                    'bg-slate-400'
+                                                        }`} />
                                                     <span>{item.status}</span>
                                                 </span>
                                             </td>
@@ -1038,15 +1033,15 @@ export default function SubscriptionManagement() {
                             {editingPlan ? 'Edit Subscription Plan' : 'Create New Subscription Plan'}
                         </DialogTitle>
                     </DialogHeader>
-                    
+
                     <form onSubmit={handleSubmit} className="p-6 space-y-5 bg-white">
                         <div className="space-y-1.5">
                             <label className="text-sm font-semibold text-slate-700">Plan Name</label>
-                            <input 
+                            <input
                                 type="text"
                                 required
                                 value={formData.name}
-                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 placeholder="e.g. Premium Monthly"
                                 className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#FE5502]/10 focus:border-[#FE5502] transition-all placeholder:text-slate-400"
                             />
@@ -1054,9 +1049,9 @@ export default function SubscriptionManagement() {
 
                         <div className="space-y-1.5">
                             <label className="text-sm font-semibold text-slate-700">Description</label>
-                            <textarea 
+                            <textarea
                                 value={formData.description}
-                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 placeholder="What's included in this plan? (e.g. Priority support, lower commissions)"
                                 rows="3"
                                 className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#FE5502]/10 focus:border-[#FE5502] transition-all placeholder:text-slate-400 resize-none"
@@ -1068,12 +1063,12 @@ export default function SubscriptionManagement() {
                                 <label className="text-sm font-semibold text-slate-700">Price (₹)</label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
-                                    <input 
+                                    <input
                                         type="number"
                                         required
                                         min="0"
                                         value={formData.price}
-                                        onChange={(e) => setFormData({...formData, price: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                                         placeholder="0.00"
                                         className="w-full pl-8 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-[#FE5502]/10 focus:border-[#FE5502] transition-all"
                                     />
@@ -1082,9 +1077,9 @@ export default function SubscriptionManagement() {
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-slate-700">Duration Unit</label>
                                 <div className="relative">
-                                    <select 
+                                    <select
                                         value={formData.durationUnit}
-                                        onChange={(e) => setFormData({...formData, durationUnit: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
                                         className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#FE5502]/10 focus:border-[#FE5502] transition-all appearance-none cursor-pointer"
                                     >
                                         {DURATION_UNITS.map(unit => (
@@ -1099,33 +1094,32 @@ export default function SubscriptionManagement() {
                         <div className="grid grid-cols-2 gap-5">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-slate-700">Duration Value</label>
-                                <input 
+                                <input
                                     type="number"
                                     required
                                     min="1"
                                     value={formData.durationValue}
-                                    onChange={(e) => setFormData({...formData, durationValue: Number(e.target.value)})}
+                                    onChange={(e) => setFormData({ ...formData, durationValue: Number(e.target.value) })}
                                     className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#FE5502]/10 focus:border-[#FE5502] transition-all"
                                 />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-slate-700">Payment Behavior</label>
-                                <div className={`h-[42px] px-4 rounded-xl text-[10px] font-black tracking-wider flex items-center justify-center border transition-colors ${
-                                    formData.durationUnit === 'DAY' 
-                                        ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                                <div className={`h-[42px] px-4 rounded-xl text-[10px] font-black tracking-wider flex items-center justify-center border transition-colors ${formData.durationUnit === 'DAY'
+                                        ? 'bg-blue-50 text-blue-600 border-blue-100'
                                         : 'bg-orange-50 text-[#FE5502] border-orange-100'
-                                }`}>
+                                    }`}>
                                     {formData.durationUnit === 'DAY' ? 'ONE-TIME CHECKOUT' : 'RECURRING SUBSCRIPTION'}
                                 </div>
                             </div>
                         </div>
 
                         <div className="pt-2">
-                            <div 
-                                onClick={() => setFormData({...formData, isActive: !formData.isActive})}
+                            <div
+                                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
                                 className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors group"
                             >
-                                <button 
+                                <button
                                     type="button"
                                     className={`relative inline-flex h-5 w-10 shrink-0 items-center rounded-full transition-colors focus:outline-none ${formData.isActive ? 'bg-green-500' : 'bg-slate-300'}`}
                                 >
@@ -1143,14 +1137,14 @@ export default function SubscriptionManagement() {
                         </div>
 
                         <DialogFooter className="pt-4 flex items-center gap-3 sm:justify-end border-t border-slate-100 -mx-6 px-6 -mb-6 pb-6 mt-6 bg-slate-50/50">
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => setIsModalOpen(false)}
                                 className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors rounded-xl hover:bg-slate-100"
                             >
                                 Cancel
                             </button>
-                            <button 
+                            <button
                                 type="submit"
                                 disabled={isSubmitting}
                                 className="bg-[#FE5502] hover:bg-[#E64D02] text-white px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 disabled:opacity-70 transition-all shadow-lg shadow-orange-200"

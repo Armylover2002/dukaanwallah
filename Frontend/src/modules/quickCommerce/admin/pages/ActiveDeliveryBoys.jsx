@@ -15,7 +15,7 @@ import {
     Truck,
     User,
     Star,
-    DollarSign,
+    IndianRupee,
     ShieldCheck,
     XCircle,
     Pencil,
@@ -258,7 +258,7 @@ const ActiveDeliveryBoys = () => {
                                             <div className="bg-slate-50 p-3 rounded-2xl">
                                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Today Earnings</p>
                                                 <div className="flex items-center gap-1.5">
-                                                    <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                                                    <IndianRupee className="h-3.5 w-3.5 text-emerald-500" />
                                                     <span className="text-xs font-black text-slate-900">₹{rider.todayEarnings}</span>
                                                 </div>
                                             </div>

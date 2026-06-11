@@ -1,4 +1,4 @@
-import { Plus, Pencil, Calendar, Clock, DollarSign } from "lucide-react"
+import { Plus, Pencil, Calendar, Clock, IndianRupee } from "lucide-react"
 import { useState, useEffect } from "react"
 import {
   Dialog,
@@ -44,19 +44,19 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
 
   const validateForm = () => {
     const newErrors = {}
-    
+
     if (!formData.title.trim()) {
       newErrors.title = "Title is required"
     }
-    
+
     if (!formData.dateStart) {
       newErrors.dateStart = "Start date is required"
     }
-    
+
     if (!formData.dateEnd) {
       newErrors.dateEnd = "End date is required"
     }
-    
+
     if (formData.dateStart && formData.dateEnd) {
       const start = new Date(formData.dateStart)
       const end = new Date(formData.dateEnd)
@@ -64,19 +64,19 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
         newErrors.dateEnd = "End date must be after start date"
       }
     }
-    
+
     if (!formData.timeStart) {
       newErrors.timeStart = "Start time is required"
     }
-    
+
     if (!formData.timeEnd) {
       newErrors.timeEnd = "End time is required"
     }
-    
+
     if (!formData.price || parseFloat(formData.price) <= 0) {
       newErrors.price = "Price must be greater than 0"
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -104,7 +104,7 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
             {campaign ? "Update food campaign information" : "Create a new food campaign"}
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-6 space-y-6">
             <div>
@@ -116,9 +116,8 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Enter campaign title"
-                className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                  errors.title ? "border-red-500" : "border-slate-300"
-                }`}
+                className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.title ? "border-red-500" : "border-slate-300"
+                  }`}
                 required
               />
               {errors.title && (
@@ -136,9 +135,8 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
                     type="date"
                     value={formData.dateStart}
                     onChange={(e) => setFormData(prev => ({ ...prev, dateStart: e.target.value }))}
-                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                      errors.dateStart ? "border-red-500" : "border-slate-300"
-                    }`}
+                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.dateStart ? "border-red-500" : "border-slate-300"
+                      }`}
                     required
                   />
                   <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -157,9 +155,8 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
                     type="date"
                     value={formData.dateEnd}
                     onChange={(e) => setFormData(prev => ({ ...prev, dateEnd: e.target.value }))}
-                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                      errors.dateEnd ? "border-red-500" : "border-slate-300"
-                    }`}
+                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.dateEnd ? "border-red-500" : "border-slate-300"
+                      }`}
                     required
                   />
                   <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -180,9 +177,8 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
                     type="time"
                     value={formData.timeStart}
                     onChange={(e) => setFormData(prev => ({ ...prev, timeStart: e.target.value }))}
-                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                      errors.timeStart ? "border-red-500" : "border-slate-300"
-                    }`}
+                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.timeStart ? "border-red-500" : "border-slate-300"
+                      }`}
                     required
                   />
                   <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -201,9 +197,8 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
                     type="time"
                     value={formData.timeEnd}
                     onChange={(e) => setFormData(prev => ({ ...prev, timeEnd: e.target.value }))}
-                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                      errors.timeEnd ? "border-red-500" : "border-slate-300"
-                    }`}
+                    className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.timeEnd ? "border-red-500" : "border-slate-300"
+                      }`}
                     required
                   />
                   <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -226,12 +221,11 @@ export default function AddEditFoodCampaignDialog({ isOpen, onOpenChange, campai
                   value={formData.price}
                   onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                   placeholder="0.00"
-                  className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                    errors.price ? "border-red-500" : "border-slate-300"
-                  }`}
+                  className={`w-full px-4 py-2.5 pr-10 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.price ? "border-red-500" : "border-slate-300"
+                    }`}
                   required
                 />
-                <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <IndianRupee className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
               {errors.price && (
                 <p className="text-xs text-red-500 mt-1">{errors.price}</p>

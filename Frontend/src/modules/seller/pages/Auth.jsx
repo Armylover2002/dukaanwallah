@@ -1,7 +1,7 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, ShieldCheck, Store, KeyRound, X, ShieldAlert } from "lucide-react";
+import { ArrowLeft, ArrowRight, ShieldCheck, Store, KeyRound, X, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@food/components/ui/button";
@@ -11,7 +11,10 @@ import { useSettings } from "@core/context/SettingsContext";
 import { sellerApi } from "../services/sellerApi";
 import {
   getAppLogo,
+  getSellerLoginBanner,
+  loadBusinessSettings,
 } from "@common/utils/businessSettings"
+import loginBg from "@food/assets/loginbanner.png";
 
 const DEFAULT_COUNTRY_CODE = "+91";
 
@@ -24,8 +27,10 @@ export default function SellerAuth() {
   const [step, setStep] = useState("phone");
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
+  const [otp, setOtp] = useState(["", "", "", ""]);
   const [otpPhone, setOtpPhone] = useState("");
+  const [focusedIndex, setFocusedIndex] = useState(null);
+  const inputRefs = useRef([]);
   const [rejectionModalData, setRejectionModalData] = useState({
     isOpen: false,
     reason: "",
@@ -44,12 +49,59 @@ export default function SellerAuth() {
 
 
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('seller'))
+  const [bannerUrl, setBannerUrl] = useState(() => {
+    const banner = getSellerLoginBanner()
+    return (banner && banner.url && banner.active) ? banner.url : loginBg
+  })
 
   useEffect(() => {
     if (settings) {
       setLogoUrl(getAppLogo('seller'))
+      const banner = getSellerLoginBanner()
+      if (banner && banner.url && banner.active) {
+        setBannerUrl(banner.url)
+      } else {
+        setBannerUrl(loginBg)
+      }
     }
   }, [settings])
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        await loadBusinessSettings()
+        const logo = getAppLogo('seller')
+        if (logo) {
+          setLogoUrl(logo)
+        }
+        const banner = getSellerLoginBanner()
+        if (banner && banner.url && banner.active) {
+          setBannerUrl(banner.url)
+        } else {
+          setBannerUrl(loginBg)
+        }
+      } catch (error) {
+        console.warn("Failed to load business settings:", error)
+      }
+    }
+    fetchSettings()
+
+    const handleSettingsUpdate = async () => {
+      await loadBusinessSettings()
+      const logo = getAppLogo('seller')
+      if (logo) {
+        setLogoUrl(logo)
+      }
+      const banner = getSellerLoginBanner()
+      if (banner && banner.url && banner.active) {
+        setBannerUrl(banner.url)
+      } else {
+        setBannerUrl(loginBg)
+      }
+    }
+    window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
+    return () => window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate)
+  }, [])
 
 
 
@@ -84,8 +136,15 @@ export default function SellerAuth() {
             : "OTP generated, but no debug code was returned.",
       );
       setOtpPhone(resolvedPhone);
-      setOtp(devOtp ? String(devOtp) : "");
+
+      const resolvedOtpArray = devOtp ? String(devOtp).split("").slice(0, 4) : ["", "", "", ""];
+      while (resolvedOtpArray.length < 4) resolvedOtpArray.push("");
+      setOtp(resolvedOtpArray);
+
       setStep("otp");
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 100);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to send OTP");
     } finally {
@@ -93,10 +152,10 @@ export default function SellerAuth() {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    const code = String(otp || "").replace(/\D/g, "").slice(0, 6);
+  const handleVerifyOtp = async (otpValue = null) => {
+    const code = otpValue || otp.join("").replace(/\D/g, "").slice(0, 4);
     if (code.length < 4) {
-      toast.error("Enter the OTP you received");
+      toast.error("Enter the 4-digit OTP you received");
       return;
     }
 
@@ -153,184 +212,255 @@ export default function SellerAuth() {
       );
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "OTP verification failed");
+      setOtp(["", "", "", ""]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOtpChange = (index, value) => {
+    if (value && !/^\d$/.test(value)) {
+      return;
+    }
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value && index < 3) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    if (newOtp.every((digit) => digit !== "") && newOtp.length === 4) {
+      handleVerifyOtp(newOtp.join(""));
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace") {
+      if (otp[index]) {
+        const newOtp = [...otp];
+        newOtp[index] = "";
+        setOtp(newOtp);
+      } else if (index > 0) {
+        inputRefs.current[index - 1]?.focus();
+        const newOtp = [...otp];
+        newOtp[index - 1] = "";
+        setOtp(newOtp);
+      }
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text");
+    const digits = pastedData.replace(/\D/g, "").slice(0, 4).split("");
+    const newOtp = ["", "", "", ""];
+    digits.forEach((digit, i) => {
+      if (i < 4) {
+        newOtp[i] = digit;
+      }
+    });
+    setOtp(newOtp);
+    if (digits.length === 4) {
+      handleVerifyOtp(newOtp.join(""));
+    } else {
+      inputRefs.current[digits.length]?.focus();
     }
   };
 
   const isPhoneValid = phone.length === 10;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white md:bg-[#fcfaf6] md:px-6 md:py-10 font-['Outfit'] seller-theme-scope flex flex-col">
-      <div className="hidden md:block absolute inset-0 pointer-events-none">
-        <div className="absolute left-[-8%] top-[-8%] h-72 w-72 rounded-full bg-[#d9f99d]/40 blur-3xl" />
-        <div className="absolute bottom-[-10%] right-[-5%] h-80 w-80 rounded-full bg-[#86efac]/30 blur-3xl" />
+    <div className="min-h-screen w-full flex bg-white overflow-hidden font-sans">
+      {/* Left image section */}
+      <div className="hidden lg:flex lg:w-1/2 relative">
+        <img
+          src={bannerUrl}
+          alt="Seller background"
+          className="w-full h-full object-cover"
+        />
+        {/* Orange half-circle text block attached to the left with animation */}
+        <div className="absolute inset-0 flex items-center text-white pointer-events-none">
+          <div
+            className="bg-[#f26522]/80 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]"
+            style={{ animation: "slideInLeft 0.8s ease-out both" }}
+          >
+            <h1 className="text-3xl xl:text-4xl font-extrabold mb-4 tracking-wide leading-tight">
+              WELCOME TO
+              <br />
+              {companyName.toUpperCase()}
+            </h1>
+            <p className="text-base xl:text-lg opacity-95 max-w-xl">
+              Manage your store, products and sales easily from a single dashboard.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="relative mx-auto flex flex-1 w-full max-w-6xl overflow-hidden md:rounded-[36px] md:border md:border-white/70 bg-white md:shadow-[0_40px_120px_rgba(15,23,42,0.08)] flex-col md:flex-row md:min-h-[calc(100vh-5rem)]">
-        {/* Desktop Left Panel */}
-        <div className="hidden w-[42%] flex-col justify-between bg-[linear-gradient(160deg,#0f172a_0%,#431407_60%,#f26522_100%)] p-10 text-white md:flex">
-          <div>
-            <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em]">
-              <Store className="h-4 w-4" />
-              Seller Console
+      {/* Right form section */}
+      <div className="w-full lg:w-1/2 h-screen flex flex-col overflow-y-auto overscroll-contain bg-white">
+
+        {/* Curved Header Background - Mobile Only */}
+        <div className="relative h-[260px] sm:h-[300px] w-full bg-[#f26522] overflow-hidden lg:hidden">
+          {/* Abstract Circles like in the image */}
+          <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white/10" />
+          <div className="absolute top-20 -right-10 w-64 h-64 rounded-full bg-white/10" />
+          <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-white/5" />
+
+          <div className="absolute bottom-0 w-full h-[100px] bg-white rounded-t-[100px] shadow-[0_-20px_40px_rgba(0,0,0,0.05)]" />
+
+          {/* Back Button (Mobile) */}
+          {step === "otp" && (
+            <button
+              onClick={() => { setStep("phone"); setOtp(["", "", "", ""]); setOtpPhone(""); }}
+              className="absolute top-10 sm:top-12 left-6 sm:left-8 p-2.5 sm:p-3 bg-white shadow-xl rounded-full text-[#f26522] hover:scale-110 active:scale-95 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Desktop Header Top Padding or Back Button (if lg screen) */}
+        {step === "otp" ? (
+          <div className="hidden lg:flex px-8 pt-8 items-center justify-start">
+            <button
+              onClick={() => { setStep("phone"); setOtp(["", "", "", ""]); setOtpPhone(""); }}
+              className="p-2.5 bg-slate-50 border border-slate-200 shadow-sm rounded-full text-[#f26522] hover:scale-110 active:scale-95 transition-all"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <div className="hidden lg:block lg:h-12" />
+        )}
+
+        {/* Center content */}
+        <div id="login-content" className="flex-1 flex flex-col items-center px-4 sm:px-8 -mt-12 sm:-mt-16 lg:mt-0 z-10 lg:justify-center">
+
+          {/* Logo Section */}
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-20 sm:h-24 w-auto object-contain mb-4 sm:mb-6 rounded-2xl" />
+          ) : (
+            <div className="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full shadow-xl flex items-center justify-center border-4 border-slate-50 mb-4 sm:mb-6 overflow-hidden lg:shadow-md lg:border-2">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[#f26522] rounded-2xl mx-auto flex items-center justify-center transform rotate-12 shadow-lg mb-1">
+                  <ShieldCheck className="w-8 h-8 text-white -rotate-12" />
+                </div>
+              </div>
             </div>
-            <h1 className="mt-8 text-4xl font-black leading-tight">
-              Grow your store with a seller-first login flow.
+          )}
+
+          {/* Title / Subtitle Header */}
+          <div className="text-center space-y-1.5 sm:space-y-2 mb-6 sm:mb-10">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight lowercase">
+              {step === "phone" ? companyName : "verify otp"}
             </h1>
-            <p className="mt-4 max-w-md text-sm font-medium text-white/80">
-              Based on your Blinkit reference, adapted to this project's live OTP backend so partners can actually sign in.
+            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest">
+              {step === "phone" ? "Seller Partner Login" : `Sent to ${maskedPhone}`}
             </p>
           </div>
 
-          <div className="space-y-3 text-sm font-semibold text-white/85">
-            <div className="rounded-2xl bg-white/10 px-4 py-3">Fast OTP login for store owners</div>
+          {/* Form wrapper */}
+          <div className="w-full max-w-[400px] flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-bottom-4 duration-500 lg:flex-none lg:gap-6">
+
+            {step === "phone" ? (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1">
+                    Registered Mobile Number
+                  </label>
+
+                  <div className="flex items-center gap-2 h-16 bg-slate-50 border border-slate-100 rounded-[32px] px-6 focus-within:border-[#f26522]/30 focus-within:ring-4 focus-within:ring-[#f26522]/5 transition-all overflow-hidden">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-900 text-lg">{DEFAULT_COUNTRY_CODE}</span>
+                    </div>
+
+                    <div className="w-[1px] h-6 bg-slate-200 ml-2" />
+
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      inputMode="numeric"
+                      placeholder="Mobile number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      className="min-w-0 flex-1 h-12 bg-transparent border-0 outline-none ring-0 shadow-none focus:border-0 focus:outline-none focus:ring-0 focus:shadow-none text-left text-lg font-bold leading-none tracking-[0.02em] text-slate-900 placeholder-slate-300 caret-[#f26522] px-2"
+                      style={{ WebkitTextFillColor: "#0f172a", opacity: 1 }}
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSendOtp}
+                  disabled={!isPhoneValid || isLoading}
+                  className={`w-full h-14 sm:h-16 rounded-[32px] font-black text-base sm:text-lg tracking-widest uppercase transition-all duration-300 ${isPhoneValid && !isLoading
+                    ? "bg-[#f26522] hover:bg-[#d5581e] text-white shadow-lg shadow-[#f26522]/20 transform active:scale-[0.98]"
+                    : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    }`}
+                >
+                  {isLoading ? "Processing..." : "Continue"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+
+                {/* 6-Digit Grid */}
+                <div className="flex justify-center gap-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      onPaste={index === 0 ? handleOtpPaste : undefined}
+                      onFocus={() => setFocusedIndex(index)}
+                      onBlur={() => setFocusedIndex(null)}
+                      disabled={isLoading}
+                      className={`w-10 h-14 sm:w-12 sm:h-16 bg-slate-50 border-2 rounded-2xl text-center text-2xl font-black text-slate-900 focus:outline-none transition-all duration-300 ${focusedIndex === index
+                        ? "border-[#f26522] ring-4 ring-[#f26522]/10 shadow-lg bg-white"
+                        : "border-slate-100"
+                        }`}
+                    />
+                  ))}
+                </div>
+
+                <Button
+                  onClick={() => handleVerifyOtp()}
+                  disabled={isLoading || otp.join("").length < 4}
+                  className={`w-full h-14 sm:h-16 rounded-[32px] font-black text-base sm:text-lg tracking-widest uppercase transition-all duration-300 ${otp.join("").length >= 4 && !isLoading
+                    ? "bg-[#f26522] hover:bg-[#d5581e] text-white shadow-lg shadow-[#f26522]/20 transform active:scale-[0.98]"
+                    : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    }`}
+                >
+                  {isLoading ? "Verifying..." : "Verify Code"}
+                </Button>
+              </div>
+            )}
+
+            <div className="text-center pt-4 pb-2 lg:pb-0">
+              <p className="text-slate-400 text-xs font-medium">
+                By logging in, you agree to our <br />
+                <button
+                  type="button"
+                  onClick={() => navigate("/seller/terms")}
+                  className="bg-transparent border-0 p-0 text-[#f26522] font-bold hover:underline cursor-pointer"
+                >
+                  Terms & Conditions
+                </button>
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Right Panel / Mobile Full Screen */}
-        <div className="flex w-full flex-col flex-1 md:w-[58%] md:justify-center relative">
-
-          {/* Mobile Orange Header */}
-          <div className="flex flex-col items-center justify-center bg-[#f26522] rounded-b-[40px] px-6 pt-12 pb-10 md:hidden">
-            <div className="h-20 w-20 flex items-center justify-center rounded-2xl bg-white overflow-hidden shrink-0">
-              {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="h-full w-full object-cover rounded-2xl" />
-              ) : (
-                <ShieldCheck className="h-10 w-10 text-orange-500" />
-              )}
-            </div>
-            <h2 className="mt-4 text-[26px] font-black tracking-tight text-white">{companyName}</h2>
-            <div className="mt-3 rounded-full bg-white/20 px-5 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-white">
-              Seller Partner
-            </div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full px-6 py-8 md:px-12 flex-1 flex flex-col"
-          >
-            {/* Desktop Header */}
-            <div className="hidden md:flex mb-8 items-center justify-between">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-500">Partner Access</p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">
-                  {companyName} seller login
-                </h2>
-                <p className="mt-2 text-sm font-medium text-slate-500">
-                  Use your registered store phone number to receive a one-time code.
-                </p>
-              </div>
-              <div className="h-16 w-16 flex items-center justify-center rounded-2xl bg-slate-100 overflow-hidden shrink-0 shadow-sm">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="h-full w-full object-cover rounded-2xl" />
-                ) : (
-                  <ShieldCheck className="h-8 w-8 text-orange-500" />
-                )}
-              </div>
-            </div>
-
-            {/* Mobile Header Text */}
-            <div className="md:hidden text-center mb-8">
-              <h2 className="text-[22px] font-black text-slate-900 tracking-tight">Sign in to your account</h2>
-              <p className="mt-1.5 text-[15px] font-medium text-slate-500">Login with your phone number</p>
-            </div>
-
-            <div className="w-full max-w-md mx-auto flex-1 flex flex-col justify-between">
-              <div className="space-y-6 md:rounded-[32px] md:border md:border-slate-200 md:bg-slate-50/70 md:p-6">
-                {step === "phone" ? (
-                  <div className="p-2 md:p-0">
-                    <div className="space-y-2">
-                      <div className="flex gap-3 items-center justify-center">
-                        <div className="flex h-[48px] items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-semibold text-slate-900 shrink-0">
-                          <span className="text-[10px] font-bold uppercase text-slate-500 mr-2">IN</span> {DEFAULT_COUNTRY_CODE}
-                        </div>
-                        <input
-                          type="tel"
-                          inputMode="numeric"
-                          maxLength={10}
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                          placeholder="Enter 10-digit mobile number"
-                          className="h-[48px] flex-1 rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-semibold text-slate-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:font-normal placeholder:text-slate-400"
-                        />
-                      </div>
-                      <p className="text-left text-xs text-slate-500 ml-1">Enter exactly 10 digits</p>
-                    </div>
-
-                    {/* Desktop Button (since mobile has it at the bottom) */}
-                    <div className="hidden md:block mt-6">
-                      <Button
-                        type="button"
-                        onClick={handleSendOtp}
-                        disabled={isLoading || !isPhoneValid}
-                        className="h-[52px] w-full rounded-full bg-[#f26522] text-[15px] font-bold text-white hover:bg-[#d5581e] transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:text-slate-400"
-                      >
-                        {isLoading ? "Sending OTP..." : "Continue"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-2 md:p-0">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-slate-600">Code sent to {maskedPhone}</p>
-                        <button onClick={() => { setStep("phone"); setOtp(""); setOtpPhone(""); }} className="text-xs font-bold text-[#f26522] hover:underline">Edit</button>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 h-[48px]">
-                        <KeyRound className="h-5 w-5 text-slate-400" />
-                        <input
-                          type="tel"
-                          inputMode="numeric"
-                          maxLength={6}
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                          placeholder="Enter 6-digit OTP"
-                          className="flex-1 bg-transparent text-lg font-bold tracking-widest text-slate-900 outline-none placeholder:tracking-normal placeholder:text-slate-300 placeholder:text-[15px]"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Desktop Button */}
-                    <div className="hidden md:block mt-6">
-                      <Button
-                        type="button"
-                        onClick={handleVerifyOtp}
-                        disabled={isLoading || otp.length < 4}
-                        className="h-[52px] w-full rounded-full bg-[#f26522] text-[15px] font-bold text-white hover:bg-[#d5581e] transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:text-slate-400"
-                      >
-                        {isLoading ? "Verifying..." : "Verify & Login"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile Bottom Button Fixed */}
-              <div className="md:hidden mt-auto pt-8 pb-4">
-                {step === "phone" ? (
-                  <Button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={isLoading || !isPhoneValid}
-                    className={"w-full h-[52px] rounded-xl font-bold text-[16px] transition-all "}
-                  >
-                    {isLoading ? "Sending..." : "Continue"}
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={handleVerifyOtp}
-                    disabled={isLoading || otp.length < 4}
-                    className={"w-full h-[52px] rounded-xl font-bold text-[16px] transition-all "}
-                  >
-                    {isLoading ? "Verifying..." : "Continue"}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </motion.div>
+        <div className="pb-8 text-center mt-auto pt-6">
+          <p className="text-[10px] font-black text-slate-300 tracking-[0.2em] uppercase">
+            &copy; {new Date().getFullYear()} {companyName.toUpperCase()} SELLER PARTNER
+          </p>
         </div>
       </div>
 
@@ -345,7 +475,7 @@ export default function SellerAuth() {
               <h3 className="text-xl font-black tracking-tight uppercase">Application Rejected</h3>
               <p className="text-white/80 text-xs font-semibold mt-1">Our review team has rejected your onboarding request.</p>
             </div>
-            
+
             {/* Reason content */}
             <div className="p-6 space-y-4 flex-1">
               <div className="space-y-1">
@@ -355,14 +485,14 @@ export default function SellerAuth() {
                   <p className="relative z-10 leading-relaxed font-sans">{rejectionModalData.reason}</p>
                 </div>
               </div>
-              
+
               <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex gap-3">
                 <div className="flex-1 text-xs text-amber-800 leading-relaxed font-medium">
                   <strong>Please note:</strong> Re-onboarding will clear your previous draft. You must fill out the form entirely from scratch.
                 </div>
               </div>
             </div>
-            
+
             {/* Buttons */}
             <div className="px-6 pb-6 pt-2 flex flex-col gap-2.5">
               <button
@@ -390,6 +520,19 @@ export default function SellerAuth() {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes slideInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

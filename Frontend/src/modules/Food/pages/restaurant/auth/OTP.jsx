@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, ShieldCheck, Timer, RefreshCw, X } from "lucide-react"
+import loginBg from "@food/assets/loginbanner.png"
 import { Button } from "@food/components/ui/button"
 import { restaurantAPI } from "@food/api"
 import {
@@ -9,20 +10,63 @@ import {
 } from "@food/utils/auth"
 import { checkOnboardingStatus, isRestaurantOnboardingComplete } from "@food/utils/onboardingUtils"
 import { useCompanyName } from "@food/hooks/useCompanyName"
+import { loadBusinessSettings, getAppLogo, getRestaurantLoginBanner } from "@common/utils/businessSettings"
 
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 export default function RestaurantOTP() {
   const companyName = useCompanyName()
   const navigate = useNavigate()
+  const [logoUrl, setLogoUrl] = useState(() => getAppLogo('restaurant'))
+  const [bannerUrl, setBannerUrl] = useState(() => {
+    const banner = getRestaurantLoginBanner()
+    return (banner && banner.url && banner.active) ? banner.url : loginBg
+  })
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        await loadBusinessSettings()
+        const logo = getAppLogo('restaurant')
+        if (logo) {
+          setLogoUrl(logo)
+        }
+        const banner = getRestaurantLoginBanner()
+        if (banner && banner.url && banner.active) {
+          setBannerUrl(banner.url)
+        } else {
+          setBannerUrl(loginBg)
+        }
+      } catch (error) {
+        console.warn("Failed to load business settings:", error)
+      }
+    }
+    fetchSettings()
+
+    const handleSettingsUpdate = async () => {
+      await loadBusinessSettings()
+      const logo = getAppLogo('restaurant')
+      if (logo) {
+        setLogoUrl(logo)
+      }
+      const banner = getRestaurantLoginBanner()
+      if (banner && banner.url && banner.active) {
+        setBannerUrl(banner.url)
+      } else {
+        setBannerUrl(loginBg)
+      }
+    }
+    window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
+    return () => window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate)
+  }, [])
   const [otp, setOtp] = useState(["", "", "", ""])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [resendTimer, setResendTimer] = useState(0)
   const [authData, setAuthData] = useState(null)
-  const [contactInfo, setContactInfo] = useState("") 
+  const [contactInfo, setContactInfo] = useState("")
   const [focusedIndex, setFocusedIndex] = useState(null)
   const [keyboardOffset, setKeyboardOffset] = useState(0)
   const inputRefs = useRef([])
@@ -353,121 +397,161 @@ export default function RestaurantOTP() {
   }
 
   return (
-    <div
-      className={`h-[100dvh] bg-white flex flex-col font-sans ${keyboardOffset > 0 ? "overflow-y-auto overflow-x-hidden" : "overflow-hidden"}`}
-      style={keyboardOffset > 0 ? { paddingBottom: `${Math.min(keyboardOffset, 360)}px` } : undefined}
-    >
-      {/* Curved Header Background */}
-      <div className="relative h-[240px] sm:h-[300px] w-full bg-[#FE5502] overflow-hidden">
-        {/* Abstract Circles like in the image */}
-        <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white/10" />
-        <div className="absolute top-20 -right-10 w-64 h-64 rounded-full bg-white/10" />
-        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-white/5" />
-        
-        {/* The dominant curve */}
-        <div className="absolute bottom-0 w-full h-[100px] bg-white rounded-t-[100px] shadow-[0_-20px_40px_rgba(0,0,0,0.05)]" />
-        
-        {/* Back Button */}
-        <button
-          onClick={() => navigate("/food/restaurant/login")}
-          className="absolute top-10 sm:top-12 left-6 sm:left-8 p-2.5 sm:p-3 bg-white shadow-xl rounded-full text-[#FE5502] hover:scale-110 active:scale-95 transition-all"
-        >
-          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
-      </div>
-
-      <div className="flex-1 flex flex-col items-center px-4 sm:px-8 -mt-12 sm:-mt-16 z-10 overflow-hidden">
-        {/* Central Logo / Branding */}
-        <div className="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full shadow-xl flex items-center justify-center border-4 border-slate-50 mb-4 sm:mb-6 overflow-hidden">
-          <div className="text-center">
-             <div className="w-16 h-16 bg-[#FE5502] rounded-2xl mx-auto flex items-center justify-center transform rotate-12 shadow-lg mb-1">
-                <ShieldCheck className="w-8 h-8 text-white -rotate-12" />
-             </div>
+    <div className="min-h-screen w-full flex bg-white overflow-hidden font-sans">
+      {/* Left image section */}
+      <div className="hidden lg:flex lg:w-1/2 relative">
+        <img
+          src={bannerUrl}
+          alt="Restaurant background"
+          className="w-full h-full object-cover"
+        />
+        {/* Orange half-circle text block attached to the left with animation */}
+        <div className="absolute inset-0 flex items-center text-white pointer-events-none">
+          <div
+            className="bg-[#FE5502]/80 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]"
+            style={{ animation: "slideInLeft 0.8s ease-out both" }}
+          >
+            <h1 className="text-3xl xl:text-4xl font-extrabold mb-4 tracking-wide leading-tight">
+              WELCOME TO
+              <br />
+              {companyName.toUpperCase()}
+            </h1>
+            <p className="text-base xl:text-lg opacity-95 max-w-xl">
+              Manage your restaurant, orders and website easily from a single dashboard.
+            </p>
           </div>
         </div>
+      </div>
 
-        <div className="text-center space-y-1.5 sm:space-y-2 mb-6 sm:mb-10">
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight lowercase">
-            verify otp
-          </h2>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed">
-            Sent to <span className="text-[#FE5502] font-black">{contactInfo}</span>
-          </p>
+      {/* Right form section */}
+      <div
+        className={`w-full lg:w-1/2 h-screen flex flex-col ${keyboardOffset > 0 ? "overflow-y-auto overflow-x-hidden" : "overflow-hidden"}`}
+        style={keyboardOffset > 0 ? { paddingBottom: `${Math.min(keyboardOffset, 360)}px` } : undefined}
+      >
+        {/* Curved Header Background - Mobile Only */}
+        <div className="relative h-[240px] sm:h-[300px] w-full bg-[#FE5502] overflow-hidden lg:hidden">
+          {/* Abstract Circles like in the image */}
+          <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full bg-white/10" />
+          <div className="absolute top-20 -right-10 w-64 h-64 rounded-full bg-white/10" />
+          <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-white/5" />
+
+          {/* The dominant curve */}
+          <div className="absolute bottom-0 w-full h-[100px] bg-white rounded-t-[100px] shadow-[0_-20px_40px_rgba(0,0,0,0.05)]" />
+
+          {/* Back Button */}
+          <button
+            onClick={() => navigate("/food/restaurant/login")}
+            className="absolute top-10 sm:top-12 left-6 sm:left-8 p-2.5 sm:p-3 bg-white shadow-xl rounded-full text-[#FE5502] hover:scale-110 active:scale-95 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
         </div>
 
-        <div className="w-full max-w-[400px] flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="space-y-6">
-            <div ref={otpSectionRef} className="flex justify-center gap-4">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  onPaste={(e) => handlePaste(index, e)}
-                  onFocus={() => setFocusedIndex(index)}
-                  onBlur={() => setFocusedIndex(null)}
-                  disabled={isLoading}
-                  className={`w-12 h-14 sm:w-14 sm:h-16 bg-slate-50 border-2 rounded-2xl text-center text-2xl font-black text-slate-900 focus:outline-none transition-all duration-300 ${
-                    error 
-                      ? "border-red-500 bg-red-50" 
-                      : focusedIndex === index 
-                        ? "border-[#FE5502] ring-4 ring-[#FE5502]/10 shadow-lg bg-white" 
-                        : "border-slate-100"
-                  }`}
-                />
-              ))}
+        {/* Back Button - Desktop Only */}
+        <div className="hidden lg:flex px-8 pt-8 items-center justify-start">
+          <button
+            onClick={() => navigate("/food/restaurant/login")}
+            className="p-2.5 bg-slate-50 border border-slate-200 shadow-sm rounded-full text-[#FE5502] hover:scale-110 active:scale-95 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center px-4 sm:px-8 -mt-12 sm:-mt-16 lg:mt-0 z-10 lg:justify-center">
+          {/* Central Logo / Branding */}
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-20 sm:h-24 w-auto object-contain mb-4 sm:mb-6 rounded-2xl" />
+          ) : (
+            <div className="w-28 h-28 sm:w-32 sm:h-32 bg-white rounded-full shadow-xl flex items-center justify-center border-4 border-slate-50 mb-4 sm:mb-6 overflow-hidden lg:shadow-md lg:border-2">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[#FE5502] rounded-2xl mx-auto flex items-center justify-center transform rotate-12 shadow-lg mb-1">
+                  <ShieldCheck className="w-8 h-8 text-white -rotate-12" />
+                </div>
+              </div>
             </div>
+          )}
 
-            {error && (
-              <p className="text-[#FE5502] text-xs font-bold text-center italic animate-pulse">
-                {error}
-              </p>
-            )}
+          <div className="text-center space-y-1.5 sm:space-y-2 mb-6 sm:mb-10">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight lowercase">
+              verify otp
+            </h2>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed">
+              Sent to <span className="text-[#FE5502] font-black">{contactInfo}</span>
+            </p>
+          </div>
 
-            <div className="space-y-3">
-              <Button
-                onClick={() => handleVerify()}
-                disabled={isLoading || !isOtpComplete}
-                className={`w-full h-14 sm:h-16 rounded-[32px] font-black text-base sm:text-lg tracking-widest uppercase shadow-lg transition-all duration-300 ${
-                  isOtpComplete && !isLoading
-                    ? "bg-[#FE5502] hover:bg-[#E64D02] text-white shadow-[#FE5502]/20 transform active:scale-[0.98]"
-                    : "bg-slate-100 text-slate-300 cursor-not-allowed"
-                }`}
-              >
-                {isLoading ? "Verifying..." : "Verify Code"}
-              </Button>
-
-              <div className="flex flex-col items-center gap-4">
-                {resendTimer > 0 ? (
-                  <div className="flex items-center gap-2 text-slate-400 text-xs font-black tracking-widest uppercase">
-                    <Timer className="w-4 h-4 text-[#FE5502]" />
-                    RESEND IN <span className="text-[#FE5502]">{resendTimer}S</span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleResend}
+          <div className="w-full max-w-[400px] flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-bottom-4 duration-500 lg:flex-none lg:gap-6">
+            <div className="space-y-6">
+              <div ref={otpSectionRef} className="flex justify-center gap-4">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => (inputRefs.current[index] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    onPaste={(e) => handlePaste(index, e)}
+                    onFocus={() => setFocusedIndex(index)}
+                    onBlur={() => setFocusedIndex(null)}
                     disabled={isLoading}
-                    className="flex items-center gap-2 text-[#FE5502] font-black text-xs tracking-widest uppercase hover:underline"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    RESEND CODE
-                  </button>
-                )}
+                    className={`w-12 h-14 sm:w-14 sm:h-16 bg-slate-50 border-2 rounded-2xl text-center text-2xl font-black text-slate-900 focus:outline-none transition-all duration-300 ${error
+                        ? "border-red-500 bg-red-50"
+                        : focusedIndex === index
+                          ? "border-[#FE5502] ring-4 ring-[#FE5502]/10 shadow-lg bg-white"
+                          : "border-slate-100"
+                      }`}
+                  />
+                ))}
+              </div>
+
+              {error && (
+                <p className="text-[#FE5502] text-xs font-bold text-center italic animate-pulse">
+                  {error}
+                </p>
+              )}
+
+              <div className="space-y-3">
+                <Button
+                  onClick={() => handleVerify()}
+                  disabled={isLoading || !isOtpComplete}
+                  className={`w-full h-14 sm:h-16 rounded-[32px] font-black text-base sm:text-lg tracking-widest uppercase shadow-lg transition-all duration-300 ${isOtpComplete && !isLoading
+                      ? "bg-[#FE5502] hover:bg-[#E64D02] text-white shadow-[#FE5502]/20 transform active:scale-[0.98]"
+                      : "bg-slate-100 text-slate-300 cursor-not-allowed"
+                    }`}
+                >
+                  {isLoading ? "Verifying..." : "Verify Code"}
+                </Button>
+
+                <div className="flex flex-col items-center gap-4">
+                  {resendTimer > 0 ? (
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-black tracking-widest uppercase">
+                      <Timer className="w-4 h-4 text-[#FE5502]" />
+                      RESEND IN <span className="text-[#FE5502]">{resendTimer}S</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleResend}
+                      disabled={isLoading}
+                      className="flex items-center gap-2 text-[#FE5502] font-black text-xs tracking-widest uppercase hover:underline"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      RESEND CODE
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="py-3 text-center">
+        <div className="py-3 text-center mt-auto pt-6">
           <p className="text-[10px] font-black text-slate-300 tracking-[0.2em] uppercase">
             SECURE VERIFICATION SYSTEM &bull; {companyName.toUpperCase()}
           </p>
+        </div>
       </div>
 
       {rejectionModalData.isOpen && (
@@ -481,7 +565,7 @@ export default function RestaurantOTP() {
               <h3 className="text-xl font-black tracking-tight uppercase">Application Rejected</h3>
               <p className="text-white/80 text-xs font-semibold mt-1">Our review team has rejected your onboarding request.</p>
             </div>
-            
+
             {/* Reason content */}
             <div className="p-6 space-y-4 flex-1">
               <div className="space-y-1">
@@ -491,14 +575,14 @@ export default function RestaurantOTP() {
                   <p className="relative z-10 leading-relaxed font-sans">{rejectionModalData.reason}</p>
                 </div>
               </div>
-              
+
               <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex gap-3">
                 <div className="flex-1 text-xs text-amber-800 leading-relaxed font-medium">
                   <strong>Please note:</strong> Re-onboarding will clear your previous draft. You must fill out the form entirely from scratch.
                 </div>
               </div>
             </div>
-            
+
             {/* Buttons */}
             <div className="px-6 pb-6 pt-2 flex flex-col gap-2.5">
               <button
@@ -528,6 +612,19 @@ export default function RestaurantOTP() {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes slideInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   )
 }

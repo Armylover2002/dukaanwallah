@@ -5,7 +5,7 @@ import Button from "@shared/components/ui/Button";
 import {
   TrendingUp,
   BarChart3,
-  DollarSign,
+  IndianRupee,
   Download,
   Banknote,
   ArrowDownToLine,
@@ -132,7 +132,7 @@ const Earnings = () => {
                 <p className="text-xs text-orange-200 mt-2">After all deductions</p>
               </div>
               <div className="p-3 bg-white/20 rounded-xl">
-                <DollarSign className="h-8 w-8 text-white" />
+                <IndianRupee className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="mt-8 flex items-center text-orange-100 bg-white/10 w-fit px-3 py-1 rounded-full text-sm">
@@ -241,51 +241,51 @@ const Earnings = () => {
             {(Array.isArray(data?.monthlyChart) ? data.monthlyChart : []).length === 0 ? (
               <p className="text-slate-600 text-sm font-medium">No monthly revenue data yet.</p>
             ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.monthlyChart}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#f1f5f9"
-                />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }}
-                  tickFormatter={(value) => `₹${value}`}
-                />
-                <Tooltip
-                  cursor={{ fill: "#f8fafc" }}
-                  contentStyle={{
-                    borderRadius: "12px",
-                    border: "none",
-                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                  }}
-                  formatter={(value) => [`₹${value.toLocaleString()}`, "Revenue"]}
-                />
-                <Bar
-                  dataKey="revenue"
-                  fill="url(#colorRevenue)"
-                  radius={[6, 6, 0, 0]}
-                  barSize={40}
-                />
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={1} />
-                    <stop offset="95%" stopColor="#818cf8" stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.monthlyChart}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f1f5f9"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }}
+                    tickFormatter={(value) => `₹${value}`}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "#f8fafc" }}
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border: "none",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                    }}
+                    formatter={(value) => [`₹${value.toLocaleString()}`, "Revenue"]}
+                  />
+                  <Bar
+                    dataKey="revenue"
+                    fill="url(#colorRevenue)"
+                    radius={[6, 6, 0, 0]}
+                    barSize={40}
+                  />
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={1} />
+                      <stop offset="95%" stopColor="#818cf8" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </div>
         </Card>
