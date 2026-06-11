@@ -106,13 +106,17 @@ router.patch('/profile', authMiddleware, requireRestaurant, async (req, res, nex
 }, updateRestaurantProfileController);
 router.patch('/availability', authMiddleware, requireRestaurant, async (req, res, next) => {
     await invalidateCache('restaurants:*');
+    await invalidateCache('restaurant_detail:*');
     next();
 }, updateRestaurantAcceptingOrdersController);
-router.patch('/profile', authMiddleware, requireRestaurant, updateRestaurantProfileController);
-router.patch('/availability', authMiddleware, requireRestaurant, updateRestaurantAcceptingOrdersController);
 router.patch('/dining-settings', authMiddleware, requireRestaurant, updateCurrentRestaurantDiningSettingsController);
 router.get('/outlet-timings', authMiddleware, requireRestaurant, getCurrentRestaurantOutletTimingsController);
-router.put('/outlet-timings', authMiddleware, requireRestaurant, upsertCurrentRestaurantOutletTimingsController);
+router.put('/outlet-timings', authMiddleware, requireRestaurant, async (req, res, next) => {
+    await invalidateCache('restaurants:*');
+    await invalidateCache('restaurant_detail:*');
+    await invalidateCache('restaurant_timings:*');
+    next();
+}, upsertCurrentRestaurantOutletTimingsController);
 router.get('/finance', authMiddleware, requireRestaurant, getRestaurantFinanceController);
 router.get('/finance/cod-verification', authMiddleware, requireRestaurant, getRestaurantCODDepositsController);
 router.post('/finance/cod-verification/:id/action', authMiddleware, requireRestaurant, upload.single('restaurantProof'), processRestaurantCODDepositController);

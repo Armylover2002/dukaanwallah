@@ -3,6 +3,7 @@ import { FoodRestaurantWallet } from '../models/restaurantWallet.model.js';
 import { FoodReferralSettings } from '../../admin/models/referralSettings.model.js';
 import { FoodReferralLog } from '../../admin/models/referralLog.model.js';
 import { FoodRestaurantOutletTimings } from '../models/outletTimings.model.js';
+import { attachOutletTimingsToRestaurants } from './outletTimings.service.js';
 import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import mongoose from 'mongoose';
@@ -1557,6 +1558,7 @@ export const listApprovedRestaurants = async (query = {}) => {
         ]);
 
         const total = totalDocs?.[0]?.count || 0;
+        await attachOutletTimingsToRestaurants(pageDocs);
         return { restaurants: pageDocs, total, page, limit };
     }
 
@@ -1596,6 +1598,8 @@ export const listApprovedRestaurants = async (query = {}) => {
         // Keep menuImages as an array for fallbacks; allow both string and {url} on client.
         menuImages: Array.isArray(r.menuImages) ? r.menuImages : []
     }));
+
+    await attachOutletTimingsToRestaurants(restaurants);
 
     return { restaurants, total, page, limit };
 };

@@ -86,3 +86,18 @@ export async function upsertOutletTimingsForRestaurant(restaurantId, outletTimin
     return { outletTimings: toClientShape(doc) };
 }
 
+export async function attachOutletTimingsToRestaurants(restaurants) {
+    if (!Array.isArray(restaurants) || restaurants.length === 0) return restaurants;
+    const ids = restaurants.map((r) => r._id);
+    const docs = await FoodRestaurantOutletTimings.find({ restaurantId: { $in: ids } }).lean();
+    const map = {};
+    for (const doc of docs) {
+        map[String(doc.restaurantId)] = toClientShape(doc);
+    }
+    const fallback = toClientShape({ timings: defaultTimings() });
+    for (const r of restaurants) {
+        const rId = String(r._id);
+        r.outletTimings = map[rId] || fallback;
+    }
+    return restaurants;
+}
