@@ -287,11 +287,34 @@ const handleFlutterRazorpayPayment = (rzpOptions) => {
         let lastError = null
 
         for (const handlerName of handlerNames) {
+          if (settled) return
+
           try {
-            const result = await window.flutter_inappwebview.callHandler(handlerName, payload)
+            debugLog(`Trying handler: ${handlerName}`)
+            const callPromise = window.flutter_inappwebview.callHandler(handlerName, payload)
+
+            // Attach a late-resolution listener for synchronous handlers
+            callPromise.then((res) => {
+              if (res && typeof res === "object") {
+                const paymentId = res.razorpay_payment_id || res.paymentId || res.payment_id
+                if (paymentId) {
+                  finishSuccess(res)
+                } else if (res.error || res.cancelled) {
+                  finishFailure(res.error || "Payment cancelled")
+                }
+              }
+            }).catch((e) => {
+              // Ignore late errors since they are handled/logged in the loop
+            })
+
+            // Race the call with a 600ms timeout to detect unregistered/hanging handlers
+            const result = await Promise.race([
+              callPromise,
+              new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 600))
+            ])
+
             invoked = true
 
-            // Agar handler result synchronously return karta hai, use karo
             if (result && typeof result === "object") {
               const paymentId = result.razorpay_payment_id || result.paymentId || result.payment_id
               if (paymentId) {
@@ -304,23 +327,30 @@ const handleFlutterRazorpayPayment = (rzpOptions) => {
               }
             }
 
-            // Handler call accepted ho gaya, result callback se aayega
+            // Resolved under 600ms (e.g. returned void/null immediately)
+            // This means the handler is registered and accepted the call.
             break
+
           } catch (err) {
+            if (err.message === "timeout") {
+              debugWarn(`Handler ${handlerName} timed out (probably unregistered)`)
+              continue
+            }
             lastError = err
-            debugWarn(`Handler ${handlerName} failed or not registered:`, err)
+            debugWarn(`Handler ${handlerName} rejected:`, err)
           }
         }
 
+        if (settled) return
+
         if (!invoked) {
-          finishFailure(lastError || new Error("No working payment handler found on Flutter app"))
-          return
+          debugWarn("No handler resolved quickly. Waiting for callback anyway in case a synchronous handler is running.")
         }
 
-        // Handler call ho gaya, ab callback ka wait karo (safety timeout ke saath)
+        // Set safety timeout for callbacks
         timeoutId = setTimeout(() => {
           finishFailure(new Error("Payment timed out. Please try again."))
-        }, 5 * 60 * 1000) // 5 minutes
+        }, 5 * 60 * 1000)
       }
 
       tryHandlers()
