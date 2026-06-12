@@ -168,7 +168,7 @@ const getFriendlyRegistrationError = (error) => {
 
 // ─── FIX: Flutter WebView detect karne ka helper ───────────────────────────
 const isFlutterWebView = () => {
-  return typeof window !== "undefined" && !!window.flutter_inappwebview
+  return typeof window !== "undefined" && window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === "function"
 }
 
 // ─── FIX: Flutter ke through Razorpay payment handle karna ─────────────────
@@ -179,24 +179,55 @@ const handleFlutterRazorpayPayment = (rzpOptions) => {
   return new Promise((resolve, reject) => {
     // Flutter ko payment initiate karne ka signal do
     try {
-      window.flutter_inappwebview.callHandler("initRazorpayPayment", {
+      const payload = {
+        // Standard Razorpay options keys
+        key: rzpOptions.key,
+        order_id: rzpOptions.order_id,
+        
+        // CamelCase fallback keys
         keyId: rzpOptions.key,
         orderId: rzpOptions.order_id,
+        
         amount: rzpOptions.amount,
         currency: rzpOptions.currency || "INR",
         name: rzpOptions.name,
         description: rzpOptions.description,
         prefill: rzpOptions.prefill,
-      }).then((result) => {
-        // Flutter ne payment complete kiya
-        if (result && result.razorpay_payment_id) {
-          resolve(result)
-        } else {
-          reject(new Error(result?.error || "Payment cancelled or failed"))
+        notes: rzpOptions.notes || {}
+      }
+
+      const tryHandlers = async () => {
+        const handlerNames = ["initRazorpayPayment", "initRazorpay", "razorpayPayment", "startRazorpay"]
+        let lastError = null
+
+        for (const handlerName of handlerNames) {
+          try {
+            const result = await window.flutter_inappwebview.callHandler(handlerName, payload)
+            if (result) {
+              const paymentId = result.razorpay_payment_id || result.paymentId || result.payment_id
+              const orderId = result.razorpay_order_id || result.orderId || result.order_id || rzpOptions.order_id
+              const signature = result.razorpay_signature || result.signature || ""
+
+              if (paymentId) {
+                return {
+                  razorpay_payment_id: paymentId,
+                  razorpay_order_id: orderId,
+                  razorpay_signature: signature
+                }
+              }
+            }
+          } catch (err) {
+            lastError = err
+            debugWarn(`Handler ${handlerName} failed or not registered:`, err)
+          }
         }
-      }).catch((err) => {
-        reject(new Error(err?.message || "Payment failed"))
-      })
+        throw lastError || new Error("No working payment handler found on Flutter app")
+      }
+
+      tryHandlers()
+        .then(resolve)
+        .catch(reject)
+
     } catch (e) {
       reject(new Error("Flutter payment bridge unavailable"))
     }
