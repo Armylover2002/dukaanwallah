@@ -20,7 +20,7 @@ const Footer = () => {
 
     const logoUrl = settings?.logoUrl || Logo;
     const defaultPrimaryColor = settings?.primaryColor || '#ea580c';
-    
+
     const [themeColor, setThemeColor] = useState(() => {
         if (typeof window !== 'undefined') {
             return window.sessionStorage.getItem('food.quick.headerColor') || defaultPrimaryColor;
@@ -39,6 +39,7 @@ const Footer = () => {
 
     const primaryColor = themeColor;
     const appName = settings?.appName || 'DukaanWallah';
+    console.log("settings?.appName :",);
     const currentYear = useMemo(() => new Date().getFullYear(), []); // year never changes in session
 
     // Only recompute social links when settings changes
@@ -51,9 +52,9 @@ const Footer = () => {
             })),
         [settings],
     );
-
+    console.log("logoUrl :", logoUrl);
     return (
-        <footer 
+        <footer
             className="dynamic-footer-bg relative bg-[#1a0f05] pt-20 pb-10 mt-20 text-slate-300 md:pt-32 md:pb-16 md:mt-32 overflow-hidden transition-colors duration-500"
             style={{
                 '--footer-gradient': `linear-gradient(to bottom right, ${shiftHex(themeColor, -20) || '#ea580c'}, ${themeColor || '#ea580c'}, ${shiftHex(themeColor, -40) || '#ea580c'})`
@@ -198,7 +199,7 @@ const Footer = () => {
 
                 <div className="border-t border-white/10 mt-12 pt-8 text-center text-sm md:flex md:justify-between md:text-left md:mt-24 md:pt-12">
                     <p className="md:text-base text-white/60">
-                        &copy; {currentYear} {appName}. All rights reserved.
+                        &copy; {currentYear} Dukaanwallah. All rights reserved.
                     </p>
                     <div className="flex gap-6 justify-center md:justify-end mt-4 md:mt-0 md:gap-12">
                         <a href="#" className="hover:text-orange-300 md:text-base text-white/60 transition-all">Privacy Policy</a>
