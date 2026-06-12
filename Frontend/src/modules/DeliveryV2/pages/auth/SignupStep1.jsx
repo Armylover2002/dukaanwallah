@@ -11,8 +11,19 @@ const debugError = (...args) => {}
 const DB_NAME = "DeliverySignupDB"
 const STORE_NAME = "documents"
 
+let cachedDB = null
 const initDB = () => {
   return new Promise((resolve) => {
+    if (cachedDB) {
+      return resolve(cachedDB)
+    }
+    // WebView mein indexedDB available nahi bhi ho sakta
+    if (typeof indexedDB === 'undefined' || !indexedDB) {
+      return resolve(null)
+    }
+    // Safety timeout: WebView mein indexedDB.open() kabhi kabhi hang karta hai
+    // 2 seconds ke baad null return kar do taaki UI stuck na rahe
+    const timeoutId = setTimeout(() => resolve(null), 2000)
     try {
       const request = indexedDB.open(DB_NAME, 1)
       request.onupgradeneeded = (e) => {
@@ -21,9 +32,17 @@ const initDB = () => {
           db.createObjectStore(STORE_NAME)
         }
       }
-      request.onsuccess = (e) => resolve(e.target.result)
-      request.onerror = () => resolve(null)
+      request.onsuccess = (e) => {
+        clearTimeout(timeoutId)
+        cachedDB = e.target.result
+        resolve(cachedDB)
+      }
+      request.onerror = () => {
+        clearTimeout(timeoutId)
+        resolve(null)
+      }
     } catch (e) {
+      clearTimeout(timeoutId)
       resolve(null)
     }
   })

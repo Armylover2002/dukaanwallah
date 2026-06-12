@@ -13,8 +13,12 @@ const debugError = (...args) => {}
 const DB_NAME = "DeliverySignupDB"
 const STORE_NAME = "documents"
 
+let cachedDB = null
 const initDB = () => {
   return new Promise((resolve) => {
+    if (cachedDB) {
+      return resolve(cachedDB)
+    }
     // WebView mein indexedDB available nahi bhi ho sakta
     if (typeof indexedDB === 'undefined' || !indexedDB) {
       return resolve(null)
@@ -32,7 +36,8 @@ const initDB = () => {
       }
       request.onsuccess = (e) => {
         clearTimeout(timeoutId)
-        resolve(e.target.result)
+        cachedDB = e.target.result
+        resolve(cachedDB)
       }
       request.onerror = () => {
         clearTimeout(timeoutId)
@@ -259,14 +264,16 @@ export default function SignupStep2() {
       }, 4000)
 
       try {
-        for (const type of docTypes) {
-          const file = await getFileFromDB(type)
-          if (file && (file instanceof File || file instanceof Blob)) {
-            const restoredFile = file instanceof File ? file : new File([file], `${type}.jpg`, { type: file.type || "image/jpeg" })
-            restored[type] = restoredFile
-            hasRestored = true
-          }
-        }
+        await Promise.all(
+          docTypes.map(async (type) => {
+            const file = await getFileFromDB(type)
+            if (file && (file instanceof File || file instanceof Blob)) {
+              const restoredFile = file instanceof File ? file : new File([file], `${type}.jpg`, { type: file.type || "image/jpeg" })
+              restored[type] = restoredFile
+              hasRestored = true
+            }
+          })
+        )
       } catch (e) {
         debugError("Error loading saved files from DB:", e)
       } finally {

@@ -99,18 +99,98 @@ const fileToDataUrl = (file) =>
     }
   })
 
+const DB_NAME = "RestaurantOnboardingDB"
+const STORE_NAME = "onboarding_files"
+
+let cachedDB = null
+const initDB = () => {
+  return new Promise((resolve) => {
+    if (cachedDB) {
+      return resolve(cachedDB)
+    }
+    if (typeof indexedDB === 'undefined' || !indexedDB) {
+      return resolve(null)
+    }
+    const timeoutId = setTimeout(() => resolve(null), 2000)
+    try {
+      const request = indexedDB.open(DB_NAME, 1)
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME)
+        }
+      }
+      request.onsuccess = (e) => {
+        clearTimeout(timeoutId)
+        cachedDB = e.target.result
+        resolve(cachedDB)
+      }
+      request.onerror = () => {
+        clearTimeout(timeoutId)
+        resolve(null)
+      }
+    } catch (e) {
+      clearTimeout(timeoutId)
+      resolve(null)
+    }
+  })
+}
+
+const saveFileToDB = async (key, file) => {
+  if (!file) return removeFileFromDB(key)
+  const db = await initDB()
+  if (!db) return
+  return new Promise((resolve) => {
+    try {
+      const transaction = db.transaction(STORE_NAME, "readwrite")
+      const store = transaction.objectStore(STORE_NAME)
+      store.put(file, key)
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = () => resolve()
+    } catch (e) {
+      resolve()
+    }
+  })
+}
+
+const getFileFromDB = async (key) => {
+  const db = await initDB()
+  if (!db) return null
+  return new Promise((resolve) => {
+    try {
+      const transaction = db.transaction(STORE_NAME, "readonly")
+      const store = transaction.objectStore(STORE_NAME)
+      const request = store.get(key)
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => resolve(null)
+    } catch (e) {
+      resolve(null)
+    }
+  })
+}
+
+const removeFileFromDB = async (key) => {
+  const db = await initDB()
+  if (!db) return
+  try {
+    const transaction = db.transaction(STORE_NAME, "readwrite")
+    transaction.objectStore(STORE_NAME).delete(key)
+  } catch (e) {
+    debugError("Error removing file from DB:", e)
+  }
+}
+
 const serializeDraftImage = async (value, fallbackPrefix) => {
-  if (!value) return null
+  if (!value) {
+    await removeFileFromDB(fallbackPrefix)
+    return null
+  }
 
   if (isUploadableFile(value)) {
-    if (Number(value.size || 0) > ONBOARDING_DRAFT_FILE_MAX_SIZE) {
-      return null
-    }
-
-    const dataUrl = await fileToDataUrl(value)
+    await saveFileToDB(fallbackPrefix, value)
     return {
-      kind: "draft-file",
-      dataUrl,
+      kind: "db-file",
+      dbKey: fallbackPrefix,
       name: value.name || `${fallbackPrefix}-${Date.now()}.jpg`,
       mimeType: value.type || "image/jpeg",
       lastModified: Number(value.lastModified || Date.now()),
@@ -123,8 +203,19 @@ const serializeDraftImage = async (value, fallbackPrefix) => {
   return null
 }
 
-const restoreDraftImage = (value, fallbackPrefix) => {
+const restoreDraftImage = async (value, fallbackPrefix) => {
   if (!value) return null
+
+  if (value?.kind === "db-file" && value?.dbKey) {
+    try {
+      const file = await getFileFromDB(value.dbKey)
+      if (file && (file instanceof File || file instanceof Blob)) {
+        return file instanceof File ? file : new File([file], value.name || `${fallbackPrefix}.jpg`, { type: value.mimeType || file.type || "image/jpeg" })
+      }
+    } catch {
+      return null
+    }
+  }
 
   if (value?.kind === "draft-file" && value?.dataUrl) {
     try {
@@ -240,6 +331,14 @@ const clearOnboardingFromLocalStorage = () => {
   try {
     localStorage.removeItem(ONBOARDING_STORAGE_KEY)
     localStorage.removeItem("restaurant_pendingPhone")
+    const docKeys = [
+      "restaurant-profile",
+      "pan-image",
+      "gst-image",
+      "fssai-image",
+      ...Array.from({ length: 20 }, (_, i) => `menu-image-${i + 1}`)
+    ]
+    docKeys.forEach(key => removeFileFromDB(key))
   } catch (error) {
     debugError("Failed to clear onboarding data from localStorage:", error)
   }
@@ -666,110 +765,314 @@ export default function RestaurantOnboarding() {
   }
 
 
-  // Load from localStorage on mount and check URL parameter
+  // Load from localStorage/server on mount and check URL parameter
   useEffect(() => {
     setVerifiedPhoneNumber(getVerifiedPhoneFromStoredRestaurant())
 
-    // Check if step is specified in URL (from OTP login redirect)
+    const initOnboardingData = async () => {
+      try {
+        setLoading(true)
+
+        let serverData = null
+        let isReonboard = sessionStorage.getItem("restaurantReonboard") === "true"
+
+        if (isReonboard) {
+          setIsEditing(true)
+          setIsReonboardBypass(true) // bypass payment for re-applying
+        } else {
+          try {
+            const res = await restaurantAPI.getCurrentRestaurant()
+            serverData = res?.data?.data?.restaurant || res?.data?.restaurant
+          } catch (err) {
+            setIsEditing(true)
+            if (err?.response?.status === 401) {
+              debugError("Authentication error fetching onboarding:", err)
+            } else {
+              debugError("Error fetching onboarding data:", err)
+            }
+          }
+        }
+
+        const verifiedPhone = getVerifiedPhoneFromStoredRestaurant()
+
+        // 1. Initial Default State
+        let initialStep1 = {
+          restaurantName: "",
+          pureVegRestaurant: null,
+          ownerName: "",
+          ownerEmail: "",
+          ownerPhone: verifiedPhone,
+          primaryContactNumber: verifiedPhone,
+          zoneId: "",
+          ref: "",
+          location: {
+            formattedAddress: "",
+            addressLine1: "",
+            addressLine2: "",
+            area: "",
+            city: "",
+            state: "",
+            pincode: "",
+            landmark: "",
+            latitude: "",
+            longitude: "",
+          },
+        }
+
+        let initialStep2 = {
+          menuImages: [],
+          profileImage: null,
+          cuisines: [],
+          openingTime: "",
+          closingTime: "21:00",
+          openDays: [],
+        }
+
+        let initialStep3 = {
+          panNumber: "",
+          nameOnPan: "",
+          panImage: null,
+          gstRegistered: false,
+          gstNumber: "",
+          gstLegalName: "",
+          gstAddress: "",
+          gstImage: null,
+          fssaiNumber: "",
+          fssaiExpiry: "",
+          fssaiImage: null,
+          accountNumber: "",
+          confirmAccountNumber: "",
+          ifscCode: "",
+          accountHolderName: "",
+          accountType: "",
+        }
+
+        let initialStep4 = {
+          estimatedDeliveryTime: "",
+          featuredDish: "",
+          featuredPrice: "",
+          offer: "",
+        }
+
+        // 2. Overlay Server Data
+        if (serverData) {
+          setIsEditing(serverData.status === "rejected" || serverData.status === "pending")
+
+          if (serverData.status === "rejected") {
+            setIsReonboardBypass(true)
+            setTimeout(() => {
+               toast.error(`Previous application rejected: ${serverData.rejectionReason || 'Please update your details'}`)
+            }, 500)
+          } else {
+            setIsReonboardBypass(true)
+          }
+
+          initialStep1 = {
+            restaurantName: serverData.name || serverData.restaurantName || "",
+            pureVegRestaurant: typeof serverData.pureVegRestaurant === "boolean" ? serverData.pureVegRestaurant : null,
+            ownerName: serverData.ownerName || "",
+            ownerEmail: serverData.ownerEmail || "",
+            ownerPhone: serverData.ownerPhone || verifiedPhone,
+            zoneId: normalizeZoneIdValue(serverData.zoneId) || "",
+            primaryContactNumber: serverData.primaryContactNumber || verifiedPhone,
+            ref: "",
+            location: {
+              formattedAddress: serverData.location?.formattedAddress || serverData.location?.address || "",
+              addressLine1: serverData.location?.addressLine1 || "",
+              addressLine2: serverData.location?.addressLine2 || "",
+              area: serverData.location?.area || "",
+              city: serverData.location?.city || "",
+              state: serverData.location?.state || "",
+              pincode: serverData.location?.pincode || "",
+              landmark: serverData.location?.landmark || "",
+              latitude: serverData.location?.latitude ?? "",
+              longitude: serverData.location?.longitude ?? "",
+            },
+          }
+
+          initialStep2 = {
+            menuImages: serverData.menuImages || [],
+            profileImage: serverData.profileImage || null,
+            cuisines: serverData.cuisines || [],
+            openingTime: normalizeTimeValue(serverData.openingTime),
+            closingTime: normalizeTimeValue(serverData.closingTime),
+            openDays: serverData.openDays || [],
+          }
+
+          initialStep3 = {
+            panNumber: serverData.panNumber || "",
+            nameOnPan: serverData.nameOnPan || "",
+            panImage: serverData.panImage || null,
+            gstRegistered: !!serverData.gstRegistered,
+            gstNumber: serverData.gstNumber || "",
+            gstLegalName: serverData.gstLegalName || "",
+            gstAddress: serverData.gstAddress || "",
+            gstImage: serverData.gstImage || null,
+            fssaiNumber: serverData.fssaiNumber || "",
+            fssaiExpiry: serverData.fssaiExpiry ? String(serverData.fssaiExpiry).split('T')[0] : "",
+            fssaiImage: serverData.fssaiImage || null,
+            accountNumber: serverData.accountNumber || "",
+            confirmAccountNumber: serverData.accountNumber || "",
+            ifscCode: (serverData.ifscCode || "").toUpperCase(),
+            accountHolderName: serverData.accountHolderName || "",
+            accountType: normalizeAccountTypeValue(serverData.accountType || ""),
+          }
+
+          initialStep4 = {
+            estimatedDeliveryTime: serverData.estimatedDeliveryTime || "",
+            featuredDish: serverData.featuredDish || "",
+            featuredPrice: serverData.featuredPrice || "",
+            offer: serverData.offer || "",
+          }
+        } else if (!isReonboard) {
+          setIsEditing(true)
+        }
+
+        // 3. Overlay Local Progress from localStorage / IndexedDB
+        const localData = loadOnboardingFromLocalStorage()
+        if (localData) {
+          if (localData.step1) {
+            initialStep1 = {
+              ...initialStep1,
+              ...localData.step1,
+              zoneId: normalizeZoneIdValue(localData.step1.zoneId) || initialStep1.zoneId,
+              location: {
+                ...initialStep1.location,
+                ...(localData.step1.location || {}),
+              }
+            }
+          }
+          if (localData.step2) {
+            const restoredMenuImages = await Promise.all(
+              (localData.step2.menuImages || []).map((img, index) =>
+                restoreDraftImage(img, `menu-image-${index + 1}`)
+              )
+            )
+            const filteredMenuImages = restoredMenuImages.filter(Boolean)
+            const cachedMenuImages = onboardingFileCache.step2.menuImages || []
+            const restoredProfileImage = await restoreDraftImage(
+              localData.step2.profileImage,
+              "restaurant-profile",
+            )
+            const cachedProfileImage = onboardingFileCache.step2.profileImage || null
+
+            initialStep2 = {
+              ...initialStep2,
+              ...localData.step2,
+              menuImages: [...filteredMenuImages, ...cachedMenuImages],
+              profileImage: cachedProfileImage || restoredProfileImage || initialStep2.profileImage,
+              openingTime: normalizeTimeValue(localData.step2.openingTime) || initialStep2.openingTime,
+              closingTime: normalizeTimeValue(localData.step2.closingTime) || initialStep2.closingTime,
+            }
+          }
+          if (localData.step3) {
+            const restoredPanImage = await restoreDraftImage(localData.step3.panImage, "pan-image")
+            const restoredGstImage = await restoreDraftImage(localData.step3.gstImage, "gst-image")
+            const restoredFssaiImage = await restoreDraftImage(localData.step3.fssaiImage, "fssai-image")
+
+            initialStep3 = {
+              ...initialStep3,
+              ...localData.step3,
+              panImage: onboardingFileCache.step3.panImage || restoredPanImage || initialStep3.panImage,
+              gstImage: onboardingFileCache.step3.gstImage || restoredGstImage || initialStep3.gstImage,
+              fssaiImage: onboardingFileCache.step3.fssaiImage || restoredFssaiImage || initialStep3.fssaiImage,
+              ifscCode: (localData.step3.ifscCode || initialStep3.ifscCode || "").toUpperCase(),
+              accountType: normalizeAccountTypeValue(localData.step3.accountType || initialStep3.accountType),
+            }
+          }
+          if (localData.step4) {
+            initialStep4 = {
+              ...initialStep4,
+              ...localData.step4,
+            }
+          }
+        }
+
+        // Apply initialized values to React state
+        setStep1(initialStep1)
+        setStep2(initialStep2)
+        setStep3(initialStep3)
+        setStep4(initialStep4)
+
+        // 4. Handle Routing step parameter
+        const stepParam = searchParams.get("step")
+        let stepToShow = 1
+        if (stepParam) {
+          const stepNum = parseInt(stepParam, 10)
+          if (stepNum >= 1 && stepNum <= 4) {
+            stepToShow = stepNum
+            setStep(stepNum)
+          }
+        } else {
+          if (localData?.currentStep) {
+            stepToShow = localData.currentStep
+            hasRestoredDraftStepRef.current = true
+          } else if (serverData) {
+            if (serverData.status === "approved" || serverData.status === "pending") {
+              stepToShow = 1
+            } else {
+              const combinedData = {
+                completedSteps: serverData?.onboarding?.completedSteps,
+                step1: initialStep1,
+                step2: {
+                  ...initialStep2,
+                  deliveryTimings: {
+                    openingTime: initialStep2.openingTime,
+                    closingTime: initialStep2.closingTime,
+                  },
+                  menuImageUrls: initialStep2.menuImages,
+                  profileImageUrl: initialStep2.profileImage,
+                },
+                step3: {
+                  pan: {
+                    panNumber: initialStep3.panNumber,
+                    nameOnPan: initialStep3.nameOnPan,
+                    image: initialStep3.panImage,
+                  },
+                  gst: {
+                    isRegistered: !!initialStep3.gstRegistered,
+                    gstNumber: initialStep3.gstNumber,
+                    legalName: initialStep3.gstLegalName,
+                    address: initialStep3.gstAddress,
+                    image: initialStep3.gstImage,
+                  },
+                  fssai: {
+                    registrationNumber: initialStep3.fssaiNumber,
+                    expiryDate: initialStep3.fssaiExpiry,
+                    image: initialStep3.fssaiImage,
+                  },
+                  bank: {
+                    accountNumber: initialStep3.accountNumber,
+                    ifscCode: initialStep3.ifscCode,
+                    accountHolderName: initialStep3.accountHolderName,
+                    accountType: initialStep3.accountType,
+                  },
+                }
+              }
+              const determined = determineStepToShow(combinedData)
+              stepToShow = determined || 1
+            }
+          }
+          goToStep(stepToShow, { replace: true })
+        }
+      } catch (err) {
+        setIsEditing(true)
+        debugError("Error during onboarding initialization:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    initOnboardingData()
+  }, [])
+
+  // Sync step parameter changes to the step state without resetting other states
+  useEffect(() => {
     const stepParam = searchParams.get("step")
     if (stepParam) {
       const stepNum = parseInt(stepParam, 10)
       if (stepNum >= 1 && stepNum <= 4) {
         setStep(stepNum)
-      }
-    } else {
-      goToStep(1, { replace: true })
-    }
-
-    const localData = loadOnboardingFromLocalStorage()
-    if (localData) {
-      if (localData.step1) {
-        setStep1({
-          restaurantName: localData.step1.restaurantName || "",
-          pureVegRestaurant:
-            typeof localData.step1.pureVegRestaurant === "boolean"
-              ? localData.step1.pureVegRestaurant
-              : null,
-          ownerName: localData.step1.ownerName || "",
-          ownerEmail: localData.step1.ownerEmail || "",
-          ownerPhone: localData.step1.ownerPhone || "",
-          primaryContactNumber: localData.step1.primaryContactNumber || "",
-          zoneId: normalizeZoneIdValue(localData.step1.zoneId),
-          location: {
-            formattedAddress: localData.step1.location?.formattedAddress || "",
-            addressLine1: localData.step1.location?.addressLine1 || "",
-            addressLine2: localData.step1.location?.addressLine2 || "",
-            area: localData.step1.location?.area || "",
-            city: localData.step1.location?.city || "",
-            state: localData.step1.location?.state || "",
-            pincode: localData.step1.location?.pincode || "",
-            landmark: localData.step1.location?.landmark || "",
-            latitude: localData.step1.location?.latitude ?? "",
-            longitude: localData.step1.location?.longitude ?? "",
-          },
-        })
-      }
-      if (localData.step2) {
-        const restoredMenuImages = (localData.step2.menuImages || [])
-          .map((img, index) => restoreDraftImage(img, `menu-image-${index + 1}`))
-          .filter(Boolean)
-        const cachedMenuImages = onboardingFileCache.step2.menuImages || []
-        const restoredProfileImage = restoreDraftImage(
-          localData.step2.profileImage,
-          "restaurant-profile",
-        )
-        const cachedProfileImage = onboardingFileCache.step2.profileImage || null
-
-        setStep2({
-          menuImages: [...restoredMenuImages, ...cachedMenuImages],
-          profileImage: cachedProfileImage || restoredProfileImage,
-          cuisines: localData.step2.cuisines || [],
-          openingTime: normalizeTimeValue(localData.step2.openingTime),
-          closingTime: normalizeTimeValue(localData.step2.closingTime),
-          openDays: localData.step2.openDays || [],
-        })
-      }
-      if (localData.step3) {
-        setStep3({
-          panNumber: localData.step3.panNumber || "",
-          nameOnPan: localData.step3.nameOnPan || "",
-          panImage:
-            onboardingFileCache.step3.panImage ||
-            restoreDraftImage(localData.step3.panImage, "pan-image") ||
-            null,
-          gstRegistered: localData.step3.gstRegistered || false,
-          gstNumber: localData.step3.gstNumber || "",
-          gstLegalName: localData.step3.gstLegalName || "",
-          gstAddress: localData.step3.gstAddress || "",
-          gstImage:
-            onboardingFileCache.step3.gstImage ||
-            restoreDraftImage(localData.step3.gstImage, "gst-image") ||
-            null,
-          fssaiNumber: localData.step3.fssaiNumber || "",
-          fssaiExpiry: localData.step3.fssaiExpiry || "",
-          fssaiImage:
-            onboardingFileCache.step3.fssaiImage ||
-            restoreDraftImage(localData.step3.fssaiImage, "fssai-image") ||
-            null,
-          accountNumber: localData.step3.accountNumber || "",
-          confirmAccountNumber: localData.step3.confirmAccountNumber || "",
-          ifscCode: (localData.step3.ifscCode || "").toUpperCase(),
-          accountHolderName: localData.step3.accountHolderName || "",
-          accountType: normalizeAccountTypeValue(localData.step3.accountType || ""),
-        })
-      }
-      if (localData.step4) {
-        setStep4({
-          estimatedDeliveryTime: localData.step4.estimatedDeliveryTime || "",
-          featuredDish: localData.step4.featuredDish || "",
-          featuredPrice: localData.step4.featuredPrice || "",
-          offer: localData.step4.offer || "",
-        })
-      }
-      // Only set step from localStorage if URL doesn't have a step parameter
-      if (localData.currentStep && !stepParam) {
-        hasRestoredDraftStepRef.current = true
-        goToStep(localData.currentStep, { replace: true })
       }
     }
   }, [searchParams])
@@ -837,179 +1140,6 @@ export default function RestaurantOnboarding() {
       previewUrlCacheRef.current.clear()
     }
   }, [])
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-
-        if (sessionStorage.getItem("restaurantReonboard") === "true") {
-          setIsEditing(true)
-          setIsReonboardBypass(true) // bypass payment for re-applying
-
-          const verifiedPhone = getVerifiedPhoneFromStoredRestaurant()
-          setStep1((prev) => ({
-            restaurantName: "",
-            pureVegRestaurant: null,
-            ownerName: "",
-            ownerEmail: "",
-            ownerPhone: verifiedPhone,
-            primaryContactNumber: verifiedPhone,
-            zoneId: "",
-            ref: "",
-            location: {
-              formattedAddress: "",
-              addressLine1: "",
-              addressLine2: "",
-              area: "",
-              city: "",
-              state: "",
-              pincode: "",
-              landmark: "",
-              latitude: "",
-              longitude: "",
-            },
-          }))
-          setStep2({
-            menuImages: [],
-            profileImage: null,
-            cuisines: [],
-            openingTime: "",
-            closingTime: "21:00",
-            openDays: [],
-          })
-          setStep3({
-            panNumber: "",
-            nameOnPan: "",
-            panImage: null,
-            gstRegistered: false,
-            gstNumber: "",
-            gstLegalName: "",
-            gstAddress: "",
-            gstImage: null,
-            fssaiNumber: "",
-            fssaiExpiry: "",
-            fssaiImage: null,
-            accountNumber: "",
-            confirmAccountNumber: "",
-            ifscCode: "",
-            accountHolderName: "",
-            accountType: "",
-          })
-          setStep4({
-            estimatedDeliveryTime: "",
-            featuredDish: "",
-            featuredPrice: "",
-            offer: "",
-          })
-          setLoading(false)
-          return
-        }
-
-        // Use restaurantAPI.getCurrentRestaurant() to fetch real data
-        const res = await restaurantAPI.getCurrentRestaurant()
-        const data = res?.data?.data?.restaurant || res?.data?.restaurant
-        
-        if (data) {
-          setIsEditing(data.status === "rejected" || data.status === "pending")
-          
-          if (data.status === "rejected") {
-            setIsReonboardBypass(true)
-            setTimeout(() => {
-               toast.error(`Previous application rejected: ${data.rejectionReason || 'Please update your details'}`)
-            }, 500)
-          } else {
-            setIsReonboardBypass(true)
-          }
-          // Map Step 1
-          setStep1((prev) => ({
-            restaurantName: data.name || data.restaurantName || "",
-            pureVegRestaurant: typeof data.pureVegRestaurant === "boolean" ? data.pureVegRestaurant : null,
-            ownerName: data.ownerName || "",
-            ownerEmail: data.ownerEmail || "",
-            ownerPhone: data.ownerPhone || "",
-            zoneId: normalizeZoneIdValue(data.zoneId) || prev.zoneId || "",
-            primaryContactNumber: data.primaryContactNumber || "",
-            location: {
-              formattedAddress: data.location?.formattedAddress || data.location?.address || "",
-              addressLine1: data.location?.addressLine1 || "",
-              addressLine2: data.location?.addressLine2 || "",
-              area: data.location?.area || "",
-              city: data.location?.city || "",
-              state: data.location?.state || "",
-              pincode: data.location?.pincode || "",
-              landmark: data.location?.landmark || "",
-              latitude: data.location?.latitude ?? "",
-              longitude: data.location?.longitude ?? "",
-            },
-          }))
-
-          // Map Step 2
-          setStep2({
-            menuImages: data.menuImages || [],
-            profileImage: data.profileImage || null,
-            cuisines: data.cuisines || [],
-            openingTime: normalizeTimeValue(data.openingTime),
-            closingTime: normalizeTimeValue(data.closingTime),
-            openDays: data.openDays || [],
-          })
-
-          // Map Step 3
-          setStep3({
-            panNumber: data.panNumber || "",
-            nameOnPan: data.nameOnPan || "",
-            panImage: data.panImage || null,
-            gstRegistered: !!data.gstRegistered,
-            gstNumber: data.gstNumber || "",
-            gstLegalName: data.gstLegalName || "",
-            gstAddress: data.gstAddress || "",
-            gstImage: data.gstImage || null,
-            fssaiNumber: data.fssaiNumber || "",
-            fssaiExpiry: data.fssaiExpiry ? String(data.fssaiExpiry).split('T')[0] : "",
-            fssaiImage: data.fssaiImage || null,
-            accountNumber: data.accountNumber || "",
-            confirmAccountNumber: data.accountNumber || "",
-            ifscCode: (data.ifscCode || "").toUpperCase(),
-            accountHolderName: data.accountHolderName || "",
-            accountType: normalizeAccountTypeValue(data.accountType || ""),
-          })
-
-          // Map Step 4
-          setStep4({
-            estimatedDeliveryTime: data.estimatedDeliveryTime || "",
-            featuredDish: data.featuredDish || "",
-            featuredPrice: data.featuredPrice || "",
-            offer: data.offer || "",
-          })
-
-          // Only determine step automatically if not specified in URL
-          const stepParam = searchParams.get("step")
-          if (!stepParam && !hasRestoredDraftStepRef.current) {
-            // If already registered/pending, stay on step 1 for editing
-            if (data.status === "approved" || data.status === "pending") {
-               goToStep(1, { replace: true })
-            } else {
-               const stepToShow = determineStepToShow({ step1: data, step2: data, step3: data, step4: data })
-               goToStep(stepToShow, { replace: true })
-            }
-          }
-        } else {
-          setIsEditing(true)
-        }
-      } catch (err) {
-        setIsEditing(true)
-        if (err?.response?.status === 401) {
-          debugError("Authentication error fetching onboarding:", err)
-        } else {
-          debugError("Error fetching onboarding data:", err)
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [searchParams])
 
   const handleUpload = async (file, folder) => {
     try {

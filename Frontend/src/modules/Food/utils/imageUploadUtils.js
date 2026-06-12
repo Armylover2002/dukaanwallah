@@ -190,7 +190,7 @@ export const openGallery = async ({ onSelectFile, fileNamePrefix = "gallery-phot
       return
     }
 
-    const result = await window.flutter_inappwebview.callHandler("openCamera", {
+    const result = await window.flutter_inappwebview.callHandler("openGallery", {
       source: "gallery",
       accept: "image/*",
       multiple: false,
@@ -198,7 +198,15 @@ export const openGallery = async ({ onSelectFile, fileNamePrefix = "gallery-phot
     })
 
     const isSuccess = result?.success === true || Boolean(result?.base64 || result?.base64String || result?.data?.base64)
-    if (!result || !isSuccess) return
+    
+    // If the native openGallery handler is not registered or failed, fall back to browser upload
+    if (!result || !isSuccess) {
+      openTransientImageInput({
+        onSelectFile,
+        accept: "image/*",
+      })
+      return
+    }
 
     let selectedFile = null
     const base64Value = result?.base64 || result?.base64String || result?.data?.base64
