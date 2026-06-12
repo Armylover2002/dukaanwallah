@@ -174,20 +174,20 @@ const isFlutterWebView = () => {
 // ─── FIX: Flutter ke through Razorpay payment handle karna ─────────────────
 // Agar app mein ho to Flutter ko payment details bhejna padega
 // aur Flutter native Razorpay SDK se payment karega.
-// Flutter success ke baad result wapas bhejega via JS channel.
+// Flutter success ke baad result wapas bhejega via global JS callback ya
+// postMessage (callHandler ka return value reliable nahi hota har app mein).
 const handleFlutterRazorpayPayment = (rzpOptions) => {
   return new Promise((resolve, reject) => {
-    // Flutter ko payment initiate karne ka signal do
     try {
       const payload = {
         // Standard Razorpay options keys
         key: rzpOptions.key,
         order_id: rzpOptions.order_id,
-        
+
         // CamelCase fallback keys
         keyId: rzpOptions.key,
         orderId: rzpOptions.order_id,
-        
+
         amount: rzpOptions.amount,
         currency: rzpOptions.currency || "INR",
         name: rzpOptions.name,
@@ -196,38 +196,134 @@ const handleFlutterRazorpayPayment = (rzpOptions) => {
         notes: rzpOptions.notes || {}
       }
 
+      let settled = false
+      let timeoutId = null
+
+      const cleanup = () => {
+        if (timeoutId) clearTimeout(timeoutId)
+          // Remove all global callback hooks we registered
+          ;["onRazorpaySuccess", "onRazorpayPaymentSuccess", "onPaymentSuccess", "razorpayPaymentSuccess"]
+            .forEach((name) => {
+              if (window[name] === handleSuccess) delete window[name]
+            })
+          ;["onRazorpayFailure", "onRazorpayPaymentFailure", "onPaymentFailure", "onPaymentError", "razorpayPaymentFailure"]
+            .forEach((name) => {
+              if (window[name] === handleFailure) delete window[name]
+            })
+        window.removeEventListener("message", handleMessage)
+      }
+
+      const finishSuccess = (result) => {
+        if (settled) return
+        settled = true
+        cleanup()
+
+        const paymentId = result?.razorpay_payment_id || result?.paymentId || result?.payment_id
+        const orderId = result?.razorpay_order_id || result?.orderId || result?.order_id || rzpOptions.order_id
+        const signature = result?.razorpay_signature || result?.signature || ""
+
+        if (!paymentId) {
+          reject(new Error("Payment succeeded but payment ID missing from Flutter response"))
+          return
+        }
+
+        resolve({
+          razorpay_payment_id: paymentId,
+          razorpay_order_id: orderId,
+          razorpay_signature: signature
+        })
+      }
+
+      const finishFailure = (err) => {
+        if (settled) return
+        settled = true
+        cleanup()
+        const msg = (typeof err === "string" ? err : err?.error?.description || err?.description || err?.message) || "Payment failed or cancelled"
+        reject(new Error(msg))
+      }
+
+      // ─── Global callback hooks: Flutter calls these back after native Razorpay finishes ───
+      const handleSuccess = (result) => finishSuccess(result)
+      const handleFailure = (err) => finishFailure(err)
+
+        ;["onRazorpaySuccess", "onRazorpayPaymentSuccess", "onPaymentSuccess", "razorpayPaymentSuccess"]
+          .forEach((name) => { window[name] = handleSuccess })
+        ;["onRazorpayFailure", "onRazorpayPaymentFailure", "onPaymentFailure", "onPaymentError", "razorpayPaymentFailure"]
+          .forEach((name) => { window[name] = handleFailure })
+
+      // ─── Kuch Flutter apps window.postMessage se result bhejte hain ───
+      const handleMessage = (event) => {
+        let data = event.data
+        if (typeof data === "string") {
+          try { data = JSON.parse(data) } catch (e) { return }
+        }
+        if (!data || typeof data !== "object") return
+
+        const type = data.type || data.event || ""
+        if (/razorpay/i.test(type) && /success/i.test(type)) {
+          finishSuccess(data.payload || data.result || data)
+        } else if (/razorpay/i.test(type) && /(fail|error|cancel)/i.test(type)) {
+          finishFailure(data.payload || data.result || data)
+        } else if (data.razorpay_payment_id || data.paymentId || data.payment_id) {
+          finishSuccess(data)
+        }
+      }
+      window.addEventListener("message", handleMessage)
+
+      // ─── Native handler ko call karo (result return ho ya na ho) ───
       const tryHandlers = async () => {
-        const handlerNames = ["initRazorpayPayment", "initRazorpay", "razorpayPayment", "startRazorpay"]
+        const handlerNames = [
+          "initRazorpayPayment",
+          "initRazorpay",
+          "razorpayPayment",
+          "startRazorpay",
+          "openRazorpayCheckout",
+          "openRazorpay",
+          "startPayment",
+          "razorpayCheckout"
+        ]
+
+        let invoked = false
         let lastError = null
 
         for (const handlerName of handlerNames) {
           try {
             const result = await window.flutter_inappwebview.callHandler(handlerName, payload)
-            if (result) {
-              const paymentId = result.razorpay_payment_id || result.paymentId || result.payment_id
-              const orderId = result.razorpay_order_id || result.orderId || result.order_id || rzpOptions.order_id
-              const signature = result.razorpay_signature || result.signature || ""
+            invoked = true
 
+            // Agar handler result synchronously return karta hai, use karo
+            if (result && typeof result === "object") {
+              const paymentId = result.razorpay_payment_id || result.paymentId || result.payment_id
               if (paymentId) {
-                return {
-                  razorpay_payment_id: paymentId,
-                  razorpay_order_id: orderId,
-                  razorpay_signature: signature
-                }
+                finishSuccess(result)
+                return
+              }
+              if (result.error || result.cancelled) {
+                finishFailure(result.error || "Payment cancelled")
+                return
               }
             }
+
+            // Handler call accepted ho gaya, result callback se aayega
+            break
           } catch (err) {
             lastError = err
             debugWarn(`Handler ${handlerName} failed or not registered:`, err)
           }
         }
-        throw lastError || new Error("No working payment handler found on Flutter app")
+
+        if (!invoked) {
+          finishFailure(lastError || new Error("No working payment handler found on Flutter app"))
+          return
+        }
+
+        // Handler call ho gaya, ab callback ka wait karo (safety timeout ke saath)
+        timeoutId = setTimeout(() => {
+          finishFailure(new Error("Payment timed out. Please try again."))
+        }, 5 * 60 * 1000) // 5 minutes
       }
 
       tryHandlers()
-        .then(resolve)
-        .catch(reject)
-
     } catch (e) {
       reject(new Error("Flutter payment bridge unavailable"))
     }
