@@ -55,24 +55,52 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
       return ""
     }
 
-    const fetchDishesFromDB = async () => {
+    const fetchItemsFromDB = async () => {
       setLoadingFoods(true)
       try {
-        const dishesRes = await restaurantAPI.getPublicDishes({ limit: 800 })
+        const [dishesRes, restaurantsRes] = await Promise.all([
+          restaurantAPI.getPublicDishes({ limit: 800 }).catch(() => null),
+          restaurantAPI.getRestaurants().catch(() => null)
+        ])
+        
         const dishes =
           dishesRes?.data?.data?.dishes ||
           dishesRes?.data?.dishes ||
           []
 
-        const normalized = (Array.isArray(dishes) ? dishes : [])
+        const restaurants =
+          restaurantsRes?.data?.data?.restaurants ||
+          restaurantsRes?.data?.restaurants ||
+          []
+
+        const normalizedDishes = (Array.isArray(dishes) ? dishes : [])
           .filter((dish) => dish?.name)
           .map((dish, index) => ({
             id: dish?.id || dish?._id || `dish-${index}`,
             name: String(dish.name).trim(),
             image: getImageUrl(dish?.image),
+            type: 'dish'
           }))
 
-        setAllFoods(normalized)
+        const normalizedRestaurants = (Array.isArray(restaurants) ? restaurants : [])
+          .filter((rest) => rest?.name)
+          .map((rest, index) => {
+            const coverImages = rest.coverImages && rest.coverImages.length > 0
+              ? rest.coverImages.map(img => img.url || img).filter(Boolean)
+              : []
+            const fallbackImages = rest.menuImages && rest.menuImages.length > 0
+              ? rest.menuImages.map(img => img.url || img).filter(Boolean)
+              : []
+            const image = coverImages[0] || fallbackImages[0] || rest.profileImage?.url || ""
+            return {
+              id: rest?.id || rest?._id || rest?.restaurantId || `rest-${index}`,
+              name: String(rest.name).trim(),
+              image: getImageUrl(image),
+              type: 'restaurant'
+            }
+          })
+
+        setAllFoods([...normalizedRestaurants, ...normalizedDishes])
       } catch {
         setAllFoods([])
       } finally {
@@ -81,7 +109,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
     }
 
     loadRecentSuggestions()
-    fetchDishesFromDB()
+    fetchItemsFromDB()
   }, [isOpen])
 
   useEffect(() => {
@@ -133,7 +161,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
     e.preventDefault()
     if (searchValue.trim()) {
       saveRecentSearch(searchValue)
-      navigate(`/user/search?q=${encodeURIComponent(searchValue.trim())}`)
+      navigate(`/food/user/search?q=${encodeURIComponent(searchValue.trim())}`)
       onClose()
       onSearchChange("")
     }
@@ -141,7 +169,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
   const handleFoodClick = (food) => {
     saveRecentSearch(food.name)
-    navigate(`/user/search?q=${encodeURIComponent(food.name)}`)
+    navigate(`/food/user/search?q=${encodeURIComponent(food.name)}`)
     onClose()
     onSearchChange("")
   }

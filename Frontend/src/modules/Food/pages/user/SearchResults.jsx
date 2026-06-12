@@ -772,7 +772,7 @@ export default function SearchResults() {
           {/* Search Bar with Back Button */}
           <div className="flex items-center gap-2 px-3 sm:px-4 md:px-6 lg:px-8 py-3 md:py-4 border-b border-gray-100 dark:border-gray-800">
             <button
-              onClick={() => navigate('/user')}
+              onClick={() => navigate('/food/user')}
               className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-gray-300" />

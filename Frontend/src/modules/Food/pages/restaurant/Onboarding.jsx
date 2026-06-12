@@ -352,6 +352,32 @@ const isPointInPolygon = (lat, lng, polygon) => {
   return inside
 }
 
+/**
+ * Calculate the center of a zone polygon to serve as a geofencing fallback.
+ */
+const getZoneCenter = (zone) => {
+  if (!zone || !Array.isArray(zone.coordinates) || zone.coordinates.length === 0) return null
+  let latSum = 0
+  let lngSum = 0
+  let count = 0
+  zone.coordinates.forEach((coord) => {
+    const lat = Number(coord?.latitude || coord?.lat || (Array.isArray(coord) && coord.length >= 2 ? coord[1] : NaN))
+    const lng = Number(coord?.longitude || coord?.lng || (Array.isArray(coord) && coord.length >= 2 ? coord[0] : NaN))
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      latSum += lat
+      lngSum += lng
+      count++
+    }
+  })
+  if (count > 0) {
+    return {
+      latitude: Number((latSum / count).toFixed(6)),
+      longitude: Number((lngSum / count).toFixed(6)),
+    }
+  }
+  return null
+}
+
 function TimeSelector({ label, value, onChange }) {
   const timeValue = stringToTime(value)
 
@@ -534,6 +560,8 @@ export default function RestaurantOnboarding() {
   const locationSearchInputRef = useRef(null)
   const placesAutocompleteRef = useRef(null)
   const mapsScriptLoadedRef = useRef(false)
+  // Track whether user picked from Places suggestion (has lat/lng) or typed manually
+  const [locationPickedFromSuggestion, setLocationPickedFromSuggestion] = useState(false)
   const hasRestoredDraftStepRef = useRef(false)
   const menuImagesInputRef = useRef(null)
   const profileImageInputRef = useRef(null)
@@ -1241,6 +1269,94 @@ export default function RestaurantOnboarding() {
     // Validate current step before proceeding
     let validationErrors = []
     if (step === 1) {
+      // If coordinates are missing, let's try to geocode the address
+      if (!step1.location?.latitude || !step1.location?.longitude) {
+        try {
+          const apiKey = await getGoogleMapsApiKey()
+          if (apiKey) {
+            const queryAddress = [
+              step1.location?.formattedAddress,
+              step1.location?.addressLine1,
+              step1.location?.area,
+              step1.location?.city,
+              step1.location?.state,
+              step1.location?.pincode
+            ].filter(Boolean).join(", ")
+
+            if (queryAddress.trim()) {
+              const res = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(queryAddress)}&key=${apiKey}`
+              )
+              const data = await res.json()
+              if (data?.results?.[0]?.geometry?.location) {
+                const { lat, lng } = data.results[0].geometry.location
+                const latVal = Number(lat.toFixed(6))
+                const lngVal = Number(lng.toFixed(6))
+                
+                const comps = data.results[0].address_components || []
+                const getComp = (types) => comps.find((c) => types.some((t) => c.types?.includes(t)))?.long_name || ""
+                const pCode = getComp(["postal_code"])
+                const area = getComp(["sublocality_level_1", "sublocality", "neighborhood"]) || getComp(["locality"])
+                const city = getComp(["locality"]) || getComp(["administrative_area_level_2"])
+                const state = getComp(["administrative_area_level_1"])
+
+                setStep1((prev) => ({
+                  ...prev,
+                  location: {
+                    ...prev.location,
+                    latitude: latVal,
+                    longitude: lngVal,
+                    area: prev.location.area || area,
+                    city: prev.location.city || city,
+                    state: prev.location.state || state,
+                    pincode: prev.location.pincode || pCode,
+                  }
+                }))
+                
+                step1.location = {
+                  ...step1.location,
+                  latitude: latVal,
+                  longitude: lngVal,
+                  area: step1.location.area || area,
+                  city: step1.location.city || city,
+                  state: step1.location.state || state,
+                  pincode: step1.location.pincode || pCode,
+                }
+                setLocationPickedFromSuggestion(true)
+              }
+            }
+          }
+        } catch (e) {
+          debugWarn("Failed to geocode address on Next:", e)
+        }
+      }
+
+      // If coordinates are STILL missing, let's fall back to the selected zone's center!
+      if (!step1.location?.latitude || !step1.location?.longitude) {
+        if (step1.zoneId) {
+          const selectedZone = zones.find((z) => String(z._id || z.id) === step1.zoneId)
+          if (selectedZone) {
+            const center = getZoneCenter(selectedZone)
+            if (center) {
+              setStep1((prev) => ({
+                ...prev,
+                location: {
+                  ...prev.location,
+                  latitude: center.latitude,
+                  longitude: center.longitude
+                }
+              }))
+              step1.location = {
+                ...step1.location,
+                latitude: center.latitude,
+                longitude: center.longitude
+              }
+              toast.info("Using center coordinates of selected zone for geocoding fallback.")
+            }
+          }
+        }
+      }
+
       validationErrors = validateStep1()
     } else if (step === 2) {
       validationErrors = validateStep2()
@@ -1687,7 +1803,37 @@ export default function RestaurantOnboarding() {
               className="mt-1 bg-white text-sm text-black! dark:text-white! placeholder:text-gray-500 dark:placeholder:text-gray-400 caret-black dark:caret-white"
               style={{ color: "#000", WebkitTextFillColor: "#000" }}
               placeholder="Start typing your restaurant address..."
+              onChange={(e) => {
+                // Jab user manually type kare (suggestion nahi aaya) toh
+                // typed text ko formattedAddress mein save karo fallback ke liye
+                const typed = e.target.value
+                setLocationPickedFromSuggestion(false)
+                if (typed) {
+                  setStep1((prev) => ({
+                    ...prev,
+                    location: {
+                      ...prev.location,
+                      formattedAddress: typed,
+                    }
+                  }))
+                }
+              }}
             />
+            {/* Warning: manual entry ke baad suggestion nahi chuna */}
+            {step1.location?.formattedAddress &&
+              !locationPickedFromSuggestion &&
+              !step1.location?.latitude && (
+              <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                <span>⚠️</span>
+                <span>Please select a suggestion from the dropdown for accurate location. Manual entry may cause delivery issues.</span>
+              </p>
+            )}
+            {locationPickedFromSuggestion && (
+              <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                <span>✅</span>
+                <span>Location confirmed from suggestion.</span>
+              </p>
+            )}
             <p className="text-[11px] text-gray-500 mt-1">
               Select a suggestion to auto-fill area/city/state/pincode and coordinates.
             </p>
@@ -1890,10 +2036,14 @@ export default function RestaurantOnboarding() {
                 if (locationSearchInputRef.current) {
                   locationSearchInputRef.current.value = ""
                 }
+                setLocationPickedFromSuggestion(false)
                 return prev
               }
             }
           }
+
+          // Mark as picked from suggestion (has coordinates)
+          setLocationPickedFromSuggestion(true)
 
           return {
             ...prev,

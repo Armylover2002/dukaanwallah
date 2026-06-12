@@ -4,7 +4,7 @@ import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-
 import { deliveryAPI, onboardingFeeAPI } from "@food/api"
 import { toast } from "sonner"
 import { initRazorpayPayment } from "@food/utils/razorpay"
-import { isFlutterBridgeAvailable, openCamera } from "@food/utils/imageUploadUtils"
+import { isFlutterBridgeAvailable, openCamera, openGallery } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -15,6 +15,13 @@ const STORE_NAME = "documents"
 
 const initDB = () => {
   return new Promise((resolve) => {
+    // WebView mein indexedDB available nahi bhi ho sakta
+    if (typeof indexedDB === 'undefined' || !indexedDB) {
+      return resolve(null)
+    }
+    // Safety timeout: WebView mein indexedDB.open() kabhi kabhi hang karta hai
+    // 2 seconds ke baad null return kar do taaki UI stuck na rahe
+    const timeoutId = setTimeout(() => resolve(null), 2000)
     try {
       const request = indexedDB.open(DB_NAME, 1)
       request.onupgradeneeded = (e) => {
@@ -23,9 +30,16 @@ const initDB = () => {
           db.createObjectStore(STORE_NAME)
         }
       }
-      request.onsuccess = (e) => resolve(e.target.result)
-      request.onerror = () => resolve(null)
+      request.onsuccess = (e) => {
+        clearTimeout(timeoutId)
+        resolve(e.target.result)
+      }
+      request.onerror = () => {
+        clearTimeout(timeoutId)
+        resolve(null)
+      }
     } catch (e) {
+      clearTimeout(timeoutId)
       resolve(null)
     }
   })
@@ -238,6 +252,12 @@ export default function SignupStep2() {
 
       setRestoring(Object.fromEntries(docTypes.map(t => [t, true])))
 
+      // Safety net: WebView mein IndexedDB hang ho sakta hai,
+      // max 4 seconds baad Restoring... clear kar do
+      const safetyTimer = setTimeout(() => {
+        setRestoring({})
+      }, 4000)
+
       try {
         for (const type of docTypes) {
           const file = await getFileFromDB(type)
@@ -250,6 +270,7 @@ export default function SignupStep2() {
       } catch (e) {
         debugError("Error loading saved files from DB:", e)
       } finally {
+        clearTimeout(safetyTimer)
         setRestoring({})
       }
 
@@ -329,7 +350,10 @@ export default function SignupStep2() {
   }
 
   const handlePickFromGallery = (docType) => {
-    fileInputRefs.current[docType]?.click()
+    openGallery({
+      onSelectFile: (file) => handleFileSelect(docType, file),
+      fileNamePrefix: `signup-${docType}`
+    })
   }
 
   const handleRemove = (docType) => {

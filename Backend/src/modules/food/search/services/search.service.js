@@ -63,8 +63,8 @@ export const searchUnified = async (query = {}, options = {}) => {
     const term = String(q || '').trim();
     const regex = term ? new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
 
-    // 1. Initial Filter (approved status and basic conditions)
-    const restaurantFilter = { status: 'approved' };
+    // 1. Initial Filter - sirf deleted restaurants hide karein, status restrict mat karo
+    const restaurantFilter = { isDeleted: { $ne: true }, accountStatus: { $ne: 'deleted' } };
     
     console.log(`[Search-Service] Querying with term: "${term}", categoryId: "${categoryId}", zoneId: "${zoneId}"`);
 

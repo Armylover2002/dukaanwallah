@@ -1683,6 +1683,9 @@ export function useLocation() {
     // The background fetch will set the location, or we'll use the cached/DB location
     // Only set fallback if we have no location after all attempts
 
+    let permStatusObj = null;
+    let permListener = null;
+
     // Request fresh location in BACKGROUND (non-blocking)
     // CRITICAL FIX: Only auto-request if permission is ALREADY granted
     // This prevents "Requests geolocation permission on page load" warning
@@ -1693,6 +1696,24 @@ export function useLocation() {
         if (navigator.permissions && navigator.permissions.query) {
           try {
             const result = await navigator.permissions.query({ name: 'geolocation' });
+            permStatusObj = result;
+            permListener = () => {
+              if (result.state === 'granted') {
+                debugLog("?? Geolocation permission changed to granted! Fetching fresh location...");
+                getLocation(true, true).then((freshLoc) => {
+                  if (freshLoc) {
+                    setLocation(freshLoc);
+                    setPermissionGranted(true);
+                    window.dispatchEvent(new CustomEvent("userLocationUpdated", { detail: { location: freshLoc } }));
+                  }
+                }).catch(() => {});
+              } else {
+                setPermissionGranted(false);
+              }
+            };
+            result.addEventListener('change', permListener);
+            result.onchange = permListener;
+
             if (result.state === 'granted') {
               permissionGranted = true;
             } else {
@@ -1774,6 +1795,10 @@ export function useLocation() {
       clearTimeout(loadingTimeout)
       debugLog("?? Cleaning up location watcher")
       stopWatchingLocation()
+      if (permStatusObj && permListener) {
+        permStatusObj.removeEventListener('change', permListener);
+        permStatusObj.onchange = null;
+      }
     }
   }, [])
 

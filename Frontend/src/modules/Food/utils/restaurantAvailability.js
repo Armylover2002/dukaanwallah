@@ -163,7 +163,24 @@ export const getRestaurantAvailabilityStatus = (restaurant, now = new Date(), op
     }
   }
 
-  const dayName = DAY_NAMES[now.getDay()]
+  // --- TIMEZONE FIX for Android WebView ---
+  // WebView mein new Date() kabhi kabhi UTC time deta hai instead of local IST time.
+  // IST = UTC + 5:30 = UTC + 330 minutes
+  // Hum Intl.DateTimeFormat use karke IST-aware time nikalte hain
+  let istNow = now
+  try {
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    const parsed = new Date(istString)
+    if (!isNaN(parsed.getTime())) {
+      istNow = parsed
+    }
+  } catch {
+    // Fallback: manually add IST offset (UTC+5:30 = 330 minutes)
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000)
+    istNow = new Date(utcMs + (330 * 60000))
+  }
+
+  const dayName = DAY_NAMES[istNow.getDay()]
   const todayTiming = getTodayTiming(restaurant, dayName)
 
   // Legacy openDays can get stale; enforce only when no explicit outlet timing exists for today.
@@ -204,7 +221,7 @@ export const getRestaurantAvailabilityStatus = (restaurant, now = new Date(), op
 
   const openingMinutes = parseTimeToMinutes(openingTime)
   const closingMinutes = parseTimeToMinutes(closingTime)
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const nowMinutes = istNow.getHours() * 60 + istNow.getMinutes()
   const hasExplicitWindow = Boolean(openingTime || closingTime)
   // If a restaurant provides only one side of the window, treat timings as not enforced
   // (prevents accidental "offline" due to partial data).

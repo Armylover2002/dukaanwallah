@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
-import { useSearchParams, Link, useNavigate } from "react-router-dom"
+import { useSearchParams, Link, useNavigate, useLocation as useRouterLocation } from "react-router-dom"
 import { 
   ArrowLeft, Star, Clock, Search, SlidersHorizontal, 
   ChevronDown, Bookmark, BadgePercent, Mic, Grid2x2,
@@ -40,13 +40,14 @@ const SEARCH_HISTORY_KEY = "professional_search_history_v1"
 export default function ProfessionalSearch() {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useRouterLocation()
-  const initialQuery = location.state?.query || searchParams.get("q") || ""
   const navigate = useNavigate()
   const { location: userCoords } = useGeoLocation()
   const { zoneId } = useZone(userCoords)
-  
-  const [query, setQuery] = useState(initialQuery)
-  const debouncedQuery = useDebounce(query, 500)
+
+  // URL se query sync - jab bhi URL change ho, query update ho
+  const urlQuery = searchParams.get("q") || location.state?.query || ""
+  const [query, setQuery] = useState(urlQuery)
+  const debouncedQuery = useDebounce(query, 400)
   
   const [results, setResults] = useState({ restaurants: [], dishes: [] })
   const [loading, setLoading] = useState(false)
@@ -54,6 +55,14 @@ export default function ProfessionalSearch() {
   const [categories, setCategories] = useState([])
   const [selectedCategoryId, setSelectedCategoryId] = useState(searchParams.get("cat") || null)
   const [history, setHistory] = useState([])
+
+  // URL query change hone par query state sync karein
+  useEffect(() => {
+    const currentUrlQuery = searchParams.get("q") || ""
+    if (currentUrlQuery && currentUrlQuery !== query) {
+      setQuery(currentUrlQuery)
+    }
+  }, [searchParams])
 
   // Load search history
   useEffect(() => {
@@ -100,9 +109,12 @@ export default function ProfessionalSearch() {
           restaurants: all.filter(r => r.matchType === 'restaurant' || !r.matchType),
           dishes: all.filter(r => r.matchType === 'food')
         })
+      } else {
+        setResults({ restaurants: [], dishes: [] })
       }
     } catch (err) {
       console.error("Search failed", err)
+      setResults({ restaurants: [], dishes: [] })
     } finally {
       setLoading(false)
     }
@@ -111,7 +123,7 @@ export default function ProfessionalSearch() {
   useEffect(() => {
     performSearch(debouncedQuery, selectedCategoryId)
     if (debouncedQuery) {
-        setSearchParams({ q: debouncedQuery, ...(selectedCategoryId ? { cat: selectedCategoryId } : {}) })
+        setSearchParams({ q: debouncedQuery, ...(selectedCategoryId ? { cat: selectedCategoryId } : {}) }, { replace: true })
     }
   }, [debouncedQuery, selectedCategoryId, performSearch, setSearchParams])
 
@@ -264,10 +276,10 @@ export default function ProfessionalSearch() {
                 </div>
                 <div className="grid gap-4">
                   {results.dishes.map((r) => (
-                    <Link to={`/user/restaurants/${r.slug || r._id}${r.matchedDishId ? `?dish=${r.matchedDishId}` : ''}`} key={r._id} className="flex gap-4 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 hover:shadow-md transition-shadow group">
+                    <Link to={`/food/user/restaurants/${r.slug || r._id}${r.matchedDishId ? `?dish=${r.matchedDishId}` : ''}`} key={r._id} className="flex gap-4 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 hover:shadow-md transition-shadow group">
                        <div className="w-24 h-24 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
                            <img 
-                            src={getMediaUrl(r.matchedDishImage || r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
+                            src={getMediaUrl(r.matchedDishImage || r.profileImage || (Array.isArray(r.coverImages) && r.coverImages[0]) || r.image || (Array.isArray(r.images) && r.images[0]))} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                             onError={(e) => (e.target.src = "/placeholder-dish.jpg")}
                           />
@@ -281,7 +293,7 @@ export default function ProfessionalSearch() {
                           <div className="text-[#FE5502] text-[10px] font-bold uppercase tracking-wider mb-1">
                              Matched: {r.matchedDish || query}
                           </div>
-                          <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{r.restaurantName}</h3>
+                          <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{r.restaurantName || r.name}</h3>
                           <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-zinc-400 mt-1">
                              <div className="flex items-center gap-1">
                                 <Star className="w-3 h-3 text-[#FE5502] fill-[#FE5502]" />
@@ -308,17 +320,17 @@ export default function ProfessionalSearch() {
                 </div>
                 <div className="grid gap-6">
                   {results.restaurants.map((r) => (
-                    <Link to={`/user/restaurants/${r._id}`} key={r._id} className="block group">
+                    <Link to={`/food/user/restaurants/${r.restaurantId || r._id}`} key={r._id} className="block group">
                       <div className="relative rounded-3xl overflow-hidden aspect-[16/9] mb-3 bg-slate-200">
                          <img 
-                          src={getMediaUrl(r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
+                          src={getMediaUrl((Array.isArray(r.coverImages) && r.coverImages[0]) || r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => (e.target.src = "/placeholder-restaurant.jpg")}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
                            <div>
-                              <h3 className="text-xl font-bold text-white mb-1">{r.restaurantName}</h3>
+                              <h3 className="text-xl font-bold text-white mb-1">{r.restaurantName || r.name}</h3>
                               <p className="text-white/80 text-xs line-clamp-1">{r.cuisines?.join(", ")}</p>
                            </div>
                            <div className="bg-white/20 backdrop-blur-md border border-white/30 px-2 py-1 rounded-lg flex items-center gap-1">

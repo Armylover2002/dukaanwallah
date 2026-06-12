@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
-import { openCamera } from "@food/utils/imageUploadUtils"
+import { openCamera, openGallery } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -567,7 +567,12 @@ export default function SignupStep1() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => vehicleFileInputRef.current?.click()}
+                    onClick={() => {
+                      openGallery({
+                        onSelectFile: handleVehicleImageSelect,
+                        fileNamePrefix: "signup-vehicle"
+                      })
+                    }}
                     className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#00B761] text-white text-xs font-bold cursor-pointer hover:bg-[#00A055] transition-all active:scale-95"
                   >
                     <ImageIcon className="w-4 h-4" />

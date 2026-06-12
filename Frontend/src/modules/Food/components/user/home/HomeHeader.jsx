@@ -74,8 +74,8 @@ const isMeaningfulLocationValue = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
   return Boolean(
     normalized &&
-      normalized !== "select location" &&
-      normalized !== "current location"
+    normalized !== "select location" &&
+    normalized !== "current location"
   );
 };
 
@@ -123,8 +123,8 @@ const isColorDark = (color) => {
   if (c.length === 3) c = c.split('').map(x => x + x).join('');
   const rgb = parseInt(c, 16);
   const r = (rgb >> 16) & 0xff;
-  const g = (rgb >>  8) & 0xff;
-  const b = (rgb >>  0) & 0xff;
+  const g = (rgb >> 8) & 0xff;
+  const b = (rgb >> 0) & 0xff;
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) < 140;
 };
 
@@ -174,7 +174,7 @@ export default function HomeHeader({
   const textColorClass = isFood ? "text-gray-900" : (isDarkTheme ? "text-white" : "text-gray-900");
   const subtextColorClass = isFood ? "text-gray-500" : (isDarkTheme ? "text-white/80" : "text-gray-600");
   const iconColor = isFood ? theme.accent : (isDarkTheme ? "#ffffff" : "#111827");
-  
+
   const walletPath = isFood ? "/food/user/wallet" : "/quick/wallet";
   const { title: locationTitle, subtitle: locationSubtitle } = useMemo(
     () => buildLocationDisplay(savedAddressText, location),
@@ -188,7 +188,7 @@ export default function HomeHeader({
     if (isFood) {
       const playPromise = video.play();
       if (playPromise?.catch) {
-        playPromise.catch(() => {});
+        playPromise.catch(() => { });
       }
       return;
     }
@@ -206,12 +206,12 @@ export default function HomeHeader({
       source: "broadcast",
       time: item.createdAt
         ? new Date(item.createdAt).toLocaleString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          })
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
         : "Just now",
     }));
     return [...remoteItems, ...localItems].sort(
@@ -238,8 +238,8 @@ export default function HomeHeader({
   };
 
   const handleVoiceSearch = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    // e.preventDefault();
+    // e.stopPropagation();
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -267,17 +267,17 @@ export default function HomeHeader({
   };
 
   return (
-    <motion.div 
+    <motion.div
       className={cn("relative transition-all duration-400 pb-0 border-none outline-none z-50", isFood ? "bg-white" : "bg-transparent")}
       style={!isFood ? { backgroundColor: theme.accent } : undefined}
     >
       {/* 1. Sticky Main Header Top Section */}
-      <header 
+      <header
         className={cn("sticky top-0 z-50 px-4 py-3 transition-colors duration-300 outline-none", isFood ? "bg-white/85 backdrop-blur-md shadow-sm border-b border-gray-100" : "border-b-0 border-none")}
         style={!isFood ? { backgroundColor: "transparent" } : undefined}
       >
         <div className="flex items-center justify-between">
-          
+
           {/* Location Selector (Left) */}
           <button
             type="button"
@@ -387,7 +387,7 @@ export default function HomeHeader({
       </header>
 
       {/* 2. Category Switcher Row */}
-      <div 
+      <div
         className="px-4 py-2 flex space-x-2 transition-colors duration-300 outline-none border-none"
         style={{ backgroundColor: "transparent" }}
       >
@@ -404,7 +404,7 @@ export default function HomeHeader({
             }
             setActiveTab(tab.id);
           };
-          
+
           return (
             <button
               key={tab.id}
@@ -446,28 +446,28 @@ export default function HomeHeader({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
               <Search className="h-5 w-5" style={{ color: theme.accent }} strokeWidth={2} />
             </div>
-            
+
             <input
+              onClick={() => navigate("/food/user/search")}
               type="text"
-              readOnly
-              onClick={handleSearchFocus}
               placeholder={placeholders?.[placeholderIndex] || "Search for food, groceries..."}
               className="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-[8px] text-sm bg-gray-50 focus:ring-brand-orange focus:border-brand-orange text-gray-900 placeholder:text-gray-400 font-normal cursor-pointer"
             />
 
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center space-x-2 z-20">
-              <button 
-                type="button" 
-                onClick={handleVoiceSearch} 
+              <button
+                type="button"
+                // onClick={handleVoiceSearch} 
+                onClick={() => navigate("/food/user/search")}
                 style={{ color: theme.accent }}
                 className={cn("p-1 hover:scale-105 active:scale-95 transition-all border-0 bg-transparent", isListening && "animate-pulse")}
                 aria-label="Voice search"
               >
                 <Mic className="h-5 w-5" strokeWidth={2} />
               </button>
-              
+
               <div className="h-6 w-[1px] bg-gray-300"></div>
-              
+
               <div className="flex items-center space-x-1 pl-1">
                 <span className="text-[10px] font-bold text-[#2e7d32] uppercase">Veg</span>
                 <div className="scale-[0.8] flex items-center h-5">
@@ -486,10 +486,10 @@ export default function HomeHeader({
       {/* 4. Banner Carousel Card */}
       {isFood && bannerComponent && (
         <div className="relative z-10 w-full px-4 py-2 mt-0">
-          <div 
+          <div
             className="rounded-2xl overflow-hidden shadow-sm relative"
-            style={{ 
-              background: vegMode ? "linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)" : "linear-gradient(135deg, #ff6b00 0%, #ff8c33 100%)" 
+            style={{
+              background: vegMode ? "linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)" : "linear-gradient(135deg, #ff6b00 0%, #ff8c33 100%)"
             }}
           >
             {bannerComponent}

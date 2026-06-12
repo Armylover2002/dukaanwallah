@@ -295,6 +295,60 @@ export function useLocationSimple() {
           setPermissionGranted(false)
         })
     }
+
+    // Geolocation permission observer
+    let permStatusObj = null
+    let permListener = null
+
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        permStatusObj = result
+        permListener = () => {
+          if (result.state === 'granted') {
+            getCurrentLocation(true)
+              .then((locationData) => {
+                setLocation(locationData)
+                setPermissionGranted(true)
+                setError(null)
+                // Notify other panels/hooks
+                window.dispatchEvent(new CustomEvent("userLocationUpdated", { detail: { location: locationData } }))
+              })
+              .catch(() => {})
+          } else {
+            setPermissionGranted(false)
+          }
+        }
+        result.addEventListener('change', permListener)
+        result.onchange = permListener
+      }).catch(() => {})
+    }
+
+    // Sync with external updates
+    const applyExternalLocationUpdate = (event) => {
+      try {
+        const nextLocation = event?.detail?.location || JSON.parse(localStorage.getItem("userLocation") || "null")
+        if (nextLocation && typeof nextLocation === "object") {
+          setLocation(nextLocation)
+          setPermissionGranted(
+            Number.isFinite(Number(nextLocation.latitude)) &&
+            Number.isFinite(Number(nextLocation.longitude))
+          )
+          setError(null)
+        }
+      } catch (err) {
+        debugWarn("Failed to apply external location update:", err)
+      }
+    }
+
+    window.addEventListener("userLocationUpdated", applyExternalLocationUpdate)
+
+    return () => {
+      window.removeEventListener("userLocationUpdated", applyExternalLocationUpdate)
+      if (permStatusObj && permListener) {
+        permStatusObj.removeEventListener('change', permListener)
+        permStatusObj.onchange = null
+      }
+    }
   }, [])
 
   return {

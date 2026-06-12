@@ -2,19 +2,19 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search, Menu, ChevronRight, MapPin, X, Bell } from "lucide-react"
 import { restaurantAPI } from "@food/api"
-import { 
-  loadBusinessSettings, 
-  getCachedSettings, 
+import {
+  loadBusinessSettings,
+  getCachedSettings,
   getCompanyName,
   getAppLogo,
   getAppFavicon,
-  updateBrowserFavicon 
+  updateBrowserFavicon
 } from "@common/utils/businessSettings"
 import useNotificationInbox from "@food/hooks/useNotificationInbox"
 
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 const extractRestaurantPayload = (response) =>
   response?.data?.data?.restaurant ||
@@ -110,7 +110,7 @@ export default function RestaurantNavbar({
   // Format full address from location object - using stored data only, no live fetching
   const formatAddress = (location) => {
     if (!location) return ""
-    
+
     // Priority 1: Use formattedAddress if available (stored address from database)
     if (location.formattedAddress && location.formattedAddress.trim() !== "" && location.formattedAddress !== "Select location") {
       // Check if it's just coordinates (latitude, longitude format)
@@ -119,37 +119,37 @@ export default function RestaurantNavbar({
         return location.formattedAddress.trim()
       }
     }
-    
+
     // Priority 2: Use address field if available
     if (location.address && location.address.trim() !== "") {
       return location.address.trim()
     }
-    
+
     // Priority 3: Build from individual components
     const parts = []
-    
+
     // Add street address (addressLine1 or street)
     if (location.addressLine1) {
       parts.push(location.addressLine1.trim())
     } else if (location.street) {
       parts.push(location.street.trim())
     }
-    
+
     // Add addressLine2 if available
     if (location.addressLine2) {
       parts.push(location.addressLine2.trim())
     }
-    
+
     // Add area if available
     if (location.area) {
       parts.push(location.area.trim())
     }
-    
+
     // Add landmark if available
     if (location.landmark) {
       parts.push(location.landmark.trim())
     }
-    
+
     // Add city if available and not already in area
     if (location.city) {
       const city = location.city.trim()
@@ -159,7 +159,7 @@ export default function RestaurantNavbar({
         parts.push(city)
       }
     }
-    
+
     // Add state if available
     if (location.state) {
       const state = location.state.trim()
@@ -169,13 +169,13 @@ export default function RestaurantNavbar({
         parts.push(state)
       }
     }
-    
+
     // Add zipCode/pincode if available
     if (location.zipCode || location.pincode || location.postalCode) {
       const zip = (location.zipCode || location.pincode || location.postalCode).trim()
       parts.push(zip)
     }
-    
+
     return parts.length > 0 ? parts.join(", ") : ""
   }
 
@@ -187,7 +187,7 @@ export default function RestaurantNavbar({
   // Update location when restaurantData or propLocation changes
   useEffect(() => {
     let newLocation = ""
-    
+
     // Priority 1: Explicit prop takes highest priority
     if (propLocation && propLocation.trim() !== "") {
       newLocation = propLocation.trim()
@@ -202,12 +202,12 @@ export default function RestaurantNavbar({
         directAddress: restaurantData.address,
         fullLocation: restaurantData.location
       })
-      
+
       if (restaurantData.location) {
         // Use stored formattedAddress first (from database)
-        if (restaurantData.location.formattedAddress && 
-            restaurantData.location.formattedAddress.trim() !== "" && 
-            restaurantData.location.formattedAddress !== "Select location") {
+        if (restaurantData.location.formattedAddress &&
+          restaurantData.location.formattedAddress.trim() !== "" &&
+          restaurantData.location.formattedAddress !== "Select location") {
           // Check if it's just coordinates (latitude, longitude format)
           const isCoordinates = /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(restaurantData.location.formattedAddress.trim())
           if (!isCoordinates) {
@@ -215,7 +215,7 @@ export default function RestaurantNavbar({
             debugLog('? Using formattedAddress:', newLocation)
           }
         }
-        
+
         // If formattedAddress is not available or is coordinates, try formatAddress function
         if (!newLocation) {
           const formatted = formatAddress(restaurantData.location)
@@ -224,23 +224,23 @@ export default function RestaurantNavbar({
             debugLog('? Using formatAddress result:', newLocation)
           }
         }
-        
+
         // Additional fallback: check if address is directly on location
         if (!newLocation && restaurantData.location.address && restaurantData.location.address.trim() !== "") {
           newLocation = restaurantData.location.address.trim()
           debugLog('? Using location.address:', newLocation)
         }
       }
-      
+
       // Priority 3: Fallback - check if address is directly on restaurantData (not in location object)
       if (!newLocation && restaurantData.address && restaurantData.address.trim() !== "") {
         newLocation = restaurantData.address.trim()
         debugLog('? Using restaurantData.address:', newLocation)
       }
     }
-    
+
     setLocation(newLocation)
-    
+
     // Debug log
     if (newLocation) {
       debugLog('?? Restaurant address displayed:', newLocation)
@@ -273,13 +273,13 @@ export default function RestaurantNavbar({
     updateStatus()
 
     // Listen for status changes from RestaurantStatus page
-  const handleStatusChange = (event) => {
+    const handleStatusChange = (event) => {
       const isOnline = event.detail?.isOnline || false
       setStatus(isOnline ? "Online" : "Offline")
-  }
+    }
 
     window.addEventListener('restaurantStatusChanged', handleStatusChange)
-    
+
     return () => {
       window.removeEventListener('restaurantStatusChanged', handleStatusChange)
     }
@@ -370,23 +370,19 @@ export default function RestaurantNavbar({
         {showOfflineOnlineTag && (
           <button
             onClick={handleStatusClick}
-            className={`flex items-center gap-1.5 px-2 py-1 border rounded-full hover:opacity-80 transition-all ${
-              status === "Online" 
-                ? "bg-[#FE5502]/10 border-[#FE5502]/30" 
+            className={`flex items-center gap-1.5 px-2 py-1 border rounded-full hover:opacity-80 transition-all ${status === "Online"
+                ? "bg-[#FE5502]/10 border-[#FE5502]/30"
                 : "bg-gray-100 border-gray-300"
-            }`}
+              }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              status === "Online" ? "bg-[#FE5502]" : "bg-gray-500"
-            }`}></span>
-            <span className={`text-sm font-medium ${
-              status === "Online" ? "text-[#FE5502]" : "text-gray-700"
-            }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${status === "Online" ? "bg-[#FE5502]" : "bg-gray-500"
+              }`}></span>
+            <span className={`text-sm font-medium ${status === "Online" ? "text-[#FE5502]" : "text-gray-700"
+              }`}>
               {status}
             </span>
-            <ChevronRight className={`w-4 h-4 ${
-              status === "Online" ? "text-[#FE5502]" : "text-gray-700"
-            }`} />
+            <ChevronRight className={`w-4 h-4 ${status === "Online" ? "text-[#FE5502]" : "text-gray-700"
+              }`} />
           </button>
         )}
 
@@ -403,17 +399,17 @@ export default function RestaurantNavbar({
 
         {/* Notifications Icon */}
         {showNotifications && (
-            <button
-              onClick={handleNotificationsClick}
-              className="relative p-2 ml-1 hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5 text-gray-700" />
-              {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 border border-white" />
-              )}
-            </button>
-          )}
+          <button
+            onClick={handleNotificationsClick}
+            className="relative p-2 ml-1 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Notifications"
+          >
+            <Bell className="w-5 h-5 text-gray-700" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 border border-white" />
+            )}
+          </button>
+        )}
 
         {/* Hamburger Menu Icon */}
         <button

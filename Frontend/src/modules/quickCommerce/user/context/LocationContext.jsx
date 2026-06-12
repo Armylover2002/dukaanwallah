@@ -385,6 +385,82 @@ export const LocationProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Listen to geolocation permission status changes
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.permissions || !navigator.permissions.query) return;
+
+    let active = true;
+    let permStatusObj = null;
+    let permListener = null;
+
+    navigator.permissions.query({ name: 'geolocation' }).then((status) => {
+      if (!active) return;
+      permStatusObj = status;
+      permListener = () => {
+        if (status.state === 'granted') {
+          fetchAndCacheLocation().then((res) => {
+            if (res && res.ok && res.location) {
+              // Notify other hooks
+              const mappedLoc = {
+                latitude: res.location.latitude,
+                longitude: res.location.longitude,
+                city: res.location.city,
+                state: res.location.state,
+                pincode: res.location.pincode,
+                address: res.location.name,
+                formattedAddress: res.location.name
+              };
+              window.dispatchEvent(new CustomEvent("userLocationUpdated", { detail: { location: mappedLoc } }));
+            }
+          }).catch(() => {});
+        }
+      };
+
+      status.addEventListener('change', permListener);
+      status.onchange = permListener;
+    }).catch(() => {});
+
+    return () => {
+      active = false;
+      if (permStatusObj && permListener) {
+        permStatusObj.removeEventListener('change', permListener);
+        permStatusObj.onchange = null;
+      }
+    };
+  }, []);
+
+  // Sync with external updates
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const applyExternalLocationUpdate = (event) => {
+      try {
+        const nextLocation = event?.detail?.location || JSON.parse(localStorage.getItem("userLocation") || "null");
+        if (nextLocation && typeof nextLocation === "object") {
+          updateLocation(
+            {
+              name: nextLocation.formattedAddress || nextLocation.address || `Lat ${Number(nextLocation.latitude).toFixed(5)}, Lng ${Number(nextLocation.longitude).toFixed(5)}`,
+              time: "12-15 mins",
+              city: nextLocation.city || "Indore",
+              state: nextLocation.state || "Madhya Pradesh",
+              pincode: nextLocation.pincode || "452018",
+              latitude: nextLocation.latitude,
+              longitude: nextLocation.longitude,
+            },
+            { persist: true, updateSavedHome: false }
+          );
+        }
+      } catch (err) {
+        console.warn("Failed to apply external location update in LocationContext:", err);
+      }
+    };
+
+    window.addEventListener("userLocationUpdated", applyExternalLocationUpdate);
+    return () => {
+      window.removeEventListener("userLocationUpdated", applyExternalLocationUpdate);
+    };
+  }, []);
+
   return (
     <LocationContext.Provider
       value={{
