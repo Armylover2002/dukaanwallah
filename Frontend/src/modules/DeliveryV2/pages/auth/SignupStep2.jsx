@@ -6,9 +6,9 @@ import { toast } from "sonner"
 import { initRazorpayPayment } from "@food/utils/razorpay"
 import { isFlutterBridgeAvailable, openCamera, openGallery } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 const DB_NAME = "DeliverySignupDB"
 const STORE_NAME = "documents"
@@ -19,12 +19,9 @@ const initDB = () => {
     if (cachedDB) {
       return resolve(cachedDB)
     }
-    // WebView mein indexedDB available nahi bhi ho sakta
     if (typeof indexedDB === 'undefined' || !indexedDB) {
       return resolve(null)
     }
-    // Safety timeout: WebView mein indexedDB.open() kabhi kabhi hang karta hai
-    // 2 seconds ke baad null return kar do taaki UI stuck na rahe
     const timeoutId = setTimeout(() => resolve(null), 2000)
     try {
       const request = indexedDB.open(DB_NAME, 1)
@@ -113,11 +110,9 @@ const createEmptyUploadedDocs = () => ({
 
 const sanitizeUploadedDocValue = (value) => {
   if (!value) return null
-
   if (typeof value === "string") {
     return value.startsWith("blob:") ? null : value
   }
-
   if (typeof value === "object") {
     const url = typeof value.url === "string" ? value.url : ""
     if (url.startsWith("blob:")) {
@@ -125,7 +120,6 @@ const sanitizeUploadedDocValue = (value) => {
     }
     return value
   }
-
   return null
 }
 
@@ -157,23 +151,157 @@ const getFriendlyRegistrationError = (error) => {
     if (/vehicleNumber_1/i.test(rawMessage) || /vehicleNumber/i.test(rawMessage)) {
       return "This vehicle number is already registered. Please use a different vehicle number."
     }
-
     if (/panNumber_1/i.test(rawMessage) || /panNumber/i.test(rawMessage)) {
       return "This PAN number is already registered."
     }
-
     if (/aadharNumber_1/i.test(rawMessage) || /aadharNumber/i.test(rawMessage)) {
       return "This Aadhar number is already registered."
     }
-
     if (/drivingLicense/i.test(rawMessage)) {
       return "This driving license number is already registered."
     }
-
     return "This account detail is already registered. Please check your information."
   }
 
   return rawMessage || "Failed to register. Please try again."
+}
+
+// ─── FIX: Flutter WebView detect karne ka helper ───────────────────────────
+const isFlutterWebView = () => {
+  return typeof window !== "undefined" && !!window.flutter_inappwebview
+}
+
+// ─── FIX: Flutter ke through Razorpay payment handle karna ─────────────────
+// Agar app mein ho to Flutter ko payment details bhejna padega
+// aur Flutter native Razorpay SDK se payment karega.
+// Flutter success ke baad result wapas bhejega via JS channel.
+const handleFlutterRazorpayPayment = (rzpOptions) => {
+  return new Promise((resolve, reject) => {
+    // Flutter ko payment initiate karne ka signal do
+    try {
+      window.flutter_inappwebview.callHandler("initRazorpayPayment", {
+        keyId: rzpOptions.key,
+        orderId: rzpOptions.order_id,
+        amount: rzpOptions.amount,
+        currency: rzpOptions.currency || "INR",
+        name: rzpOptions.name,
+        description: rzpOptions.description,
+        prefill: rzpOptions.prefill,
+      }).then((result) => {
+        // Flutter ne payment complete kiya
+        if (result && result.razorpay_payment_id) {
+          resolve(result)
+        } else {
+          reject(new Error(result?.error || "Payment cancelled or failed"))
+        }
+      }).catch((err) => {
+        reject(new Error(err?.message || "Payment failed"))
+      })
+    } catch (e) {
+      reject(new Error("Flutter payment bridge unavailable"))
+    }
+  })
+}
+
+// ─── FIX: FormData ko fresh rebuild karna ──────────────────────────────────
+// Razorpay callback mein purana formData reliable nahi hota (async gap mein
+// file references stale ho sakte hain). Isliye helper function se fresh
+// formData banate hain jab bhi chahiye.
+const buildFormData = async (details, documents) => {
+  const formData = new FormData()
+
+  const vehicleImageFile = await getFileFromDB("vehicleImage")
+  if (vehicleImageFile instanceof File || vehicleImageFile instanceof Blob) {
+    formData.append("vehicleImage", vehicleImageFile)
+  }
+
+  formData.append("name", details.name || "")
+  formData.append("phone", String(details.phone || "").replace(/\D/g, "").slice(0, 15))
+  if (details.email) formData.append("email", String(details.email).trim())
+  if (details.ref) formData.append("ref", String(details.ref).trim())
+  if (details.countryCode) formData.append("countryCode", details.countryCode)
+  if (details.address) formData.append("address", details.address)
+  if (details.city) formData.append("city", details.city)
+  if (details.state) formData.append("state", details.state)
+  if (details.vehicleType) formData.append("vehicleType", details.vehicleType)
+  if (details.vehicleName) formData.append("vehicleName", details.vehicleName)
+  if (details.vehicleNumber) formData.append("vehicleNumber", details.vehicleNumber)
+  if (details.drivingLicenseNumber) {
+    formData.append("drivingLicenseNumber", details.drivingLicenseNumber)
+    formData.append("documents[drivingLicense][number]", details.drivingLicenseNumber)
+  }
+  if (details.panNumber) formData.append("panNumber", details.panNumber)
+  if (details.aadharNumber) formData.append("aadharNumber", details.aadharNumber)
+
+  if (documents.profilePhoto instanceof File) formData.append("profilePhoto", documents.profilePhoto)
+  if (documents.aadharPhoto instanceof File) formData.append("aadharPhoto", documents.aadharPhoto)
+  if (documents.panPhoto instanceof File) formData.append("panPhoto", documents.panPhoto)
+  if (documents.drivingLicensePhoto instanceof File) formData.append("drivingLicensePhoto", documents.drivingLicensePhoto)
+
+  // FCM token
+  let fcmToken = null
+  let platform = "web"
+  try {
+    if (typeof window !== "undefined") {
+      if (window.flutter_inappwebview) {
+        platform = "mobile"
+        const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"]
+        for (const handlerName of handlerNames) {
+          try {
+            const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" })
+            if (t && typeof t === "string" && t.length > 20) {
+              fcmToken = t.trim()
+              break
+            }
+          } catch (e) { }
+        }
+      } else {
+        fcmToken = localStorage.getItem("fcm_web_registered_token_delivery") || null
+      }
+    }
+  } catch (e) {
+    debugWarn("Failed to get FCM token", e)
+  }
+
+  if (fcmToken) {
+    formData.append("fcmToken", fcmToken)
+    formData.append("platform", platform)
+  }
+
+  return formData
+}
+
+// ─── FIX: Registration complete karne ka shared helper ─────────────────────
+const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => {
+  const response = isCompleteProfile
+    ? await deliveryAPI.register(formData)
+    : await deliveryAPI.completeProfile(formData)
+
+  if (response?.data?.success) {
+    const raw = sessionStorage.getItem("deliverySignupDetails")
+    const details = raw ? JSON.parse(raw) : {}
+    sessionStorage.removeItem("deliverySignupDetails")
+    sessionStorage.removeItem("deliverySignupDocs")
+    sessionStorage.removeItem("deliveryIsRejected")
+    clearDB()
+
+    const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
+    sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+
+    if (isCompleteProfile) {
+      sessionStorage.removeItem("deliveryNeedsRegistration")
+      toast.success("Registration submitted. Verification is in progress.")
+    } else {
+      toast.success("Profile submitted. Waiting for admin approval.")
+    }
+
+    setTimeout(
+      () => navigate("/food/delivery/verification", { replace: true, state: { phone: pendingPhone } }),
+      1200
+    )
+    return true
+  }
+  return false
 }
 
 
@@ -186,7 +314,7 @@ export default function SignupStep2() {
     if (signupDetailsRaw) {
       signupDetails = JSON.parse(signupDetailsRaw)
     }
-  } catch (e) {}
+  } catch (e) { }
   const isDlOptional = signupDetails.vehicleType === "bicycle" || signupDetails.vehicleType === "electric_bike"
   const isMobileDevice =
     typeof navigator !== "undefined" &&
@@ -221,11 +349,18 @@ export default function SignupStep2() {
   const [feeConfig, setFeeConfig] = useState(null)
   const [fetchingFees, setFetchingFees] = useState(false)
 
+  // ─── documents ref: Razorpay callback mein latest state chahiye ────────────
+  // FIX: useState setter async hota hai, isliye callback ke andar
+  // documents.current se latest files milti hain bina stale closure ke.
+  const documentsRef = useRef(documents)
+  useEffect(() => {
+    documentsRef.current = documents
+  }, [documents])
+
   useEffect(() => {
     const fetchFees = async () => {
       try {
         setFetchingFees(true)
-        // Rejected partners re-applying don't need to pay again
         const isRejected = sessionStorage.getItem("deliveryIsRejected") === "true"
         if (isRejected) {
           setFeeConfig(null)
@@ -257,8 +392,6 @@ export default function SignupStep2() {
 
       setRestoring(Object.fromEntries(docTypes.map(t => [t, true])))
 
-      // Safety net: WebView mein IndexedDB hang ho sakta hai,
-      // max 4 seconds baad Restoring... clear kar do
       const safetyTimer = setTimeout(() => {
         setRestoring({})
       }, 4000)
@@ -288,7 +421,6 @@ export default function SignupStep2() {
     loadSavedFiles()
   }, [])
 
-  // Save uploaded docs to session storage whenever they change
   useEffect(() => {
     sessionStorage.setItem("deliverySignupDocs", JSON.stringify(uploadedDocs))
   }, [uploadedDocs])
@@ -410,136 +542,77 @@ export default function SignupStep2() {
       return
     }
 
-    const formData = new FormData()
-    
-    // Load vehicle image from IndexedDB if it exists and append to FormData
-    const vehicleImageFile = await getFileFromDB("vehicleImage")
-    if (vehicleImageFile instanceof File || vehicleImageFile instanceof Blob) {
-      formData.append("vehicleImage", vehicleImageFile)
-    }
-
-    formData.append("name", details.name || "")
-    formData.append("phone", String(details.phone || "").replace(/\D/g, "").slice(0, 15))
-    if (details.email) formData.append("email", String(details.email).trim())
-    if (details.ref) formData.append("ref", String(details.ref).trim())
-    if (details.countryCode) formData.append("countryCode", details.countryCode)
-    if (details.address) formData.append("address", details.address)
-    if (details.city) formData.append("city", details.city)
-    if (details.state) formData.append("state", details.state)
-    if (details.vehicleType) formData.append("vehicleType", details.vehicleType)
-    if (details.vehicleName) formData.append("vehicleName", details.vehicleName)
-    if (details.vehicleNumber) formData.append("vehicleNumber", details.vehicleNumber)
-    if (details.drivingLicenseNumber) {
-      formData.append("drivingLicenseNumber", details.drivingLicenseNumber)
-      formData.append("documents[drivingLicense][number]", details.drivingLicenseNumber)
-    }
-    if (details.panNumber) formData.append("panNumber", details.panNumber)
-    if (details.aadharNumber) formData.append("aadharNumber", details.aadharNumber)
-    if (documents.profilePhoto instanceof File) {
-      formData.append("profilePhoto", documents.profilePhoto)
-    }
-    if (documents.aadharPhoto instanceof File) {
-      formData.append("aadharPhoto", documents.aadharPhoto)
-    }
-    if (documents.panPhoto instanceof File) {
-      formData.append("panPhoto", documents.panPhoto)
-    }
-    if (documents.drivingLicensePhoto instanceof File) {
-      formData.append("drivingLicensePhoto", documents.drivingLicensePhoto)
-    }
-
-    // Try to get FCM token before registering
-    let fcmToken = null;
-    let platform = "web";
-    try {
-      if (typeof window !== "undefined") {
-        if (window.flutter_inappwebview) {
-          platform = "mobile";
-          const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"];
-          for (const handlerName of handlerNames) {
-            try {
-              const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" });
-              if (t && typeof t === "string" && t.length > 20) {
-                fcmToken = t.trim();
-                break;
-              }
-            } catch (e) {}
-          }
-        } else {
-          fcmToken = localStorage.getItem("fcm_web_registered_token_delivery") || null;
-        }
-      }
-    } catch (e) {
-      debugWarn("Failed to get FCM token during signup", e);
-    }
-
-    if (fcmToken) {
-      formData.append("fcmToken", fcmToken);
-      formData.append("platform", platform);
-    }
-
     const isCompleteProfile = sessionStorage.getItem("deliveryNeedsRegistration") === "true"
 
     setIsSubmitting(true)
 
     try {
       if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
+        // Payment required path
         const orderRes = await onboardingFeeAPI.createOrder({
           role: "DELIVERY_PARTNER",
           name: details.name || "Delivery Partner",
           phone: String(details.phone || "").replace(/\D/g, "").slice(0, 15),
           email: details.email || ""
-        });
-        const orderData = orderRes?.data?.data || orderRes?.data;
-        
+        })
+        const orderData = orderRes?.data?.data || orderRes?.data
+
         if (!orderData || !orderData.orderId) {
-          throw new Error("Failed to create onboarding payment order");
+          throw new Error("Failed to create onboarding payment order")
         }
 
         if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
-          toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.");
-          formData.append("razorpayOrderId", orderData.orderId);
-          formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`);
-          formData.append("razorpaySignature", `mock_sig_${Date.now()}`);
-          
-          const response = isCompleteProfile
-            ? await deliveryAPI.register(formData)
-            : await deliveryAPI.completeProfile(formData)
+          // Dev mode: payment bypass
+          toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.")
+          // ─── FIX: Fresh formData build karo ──────────────────────────────
+          const formData = await buildFormData(details, documentsRef.current)
+          formData.append("razorpayOrderId", orderData.orderId)
+          formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`)
+          formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
+          await submitRegistration({ isCompleteProfile, formData, navigate })
 
-          if (response?.data?.success) {
-            sessionStorage.removeItem("deliverySignupDetails")
-            sessionStorage.removeItem("deliverySignupDocs")
-            sessionStorage.removeItem("deliveryIsRejected")
-            clearDB()
-            if (isCompleteProfile) {
-              sessionStorage.removeItem("deliveryNeedsRegistration")
-              const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-              sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
-              toast.success("Registration submitted. Verification is in progress.")
-              setTimeout(
-                () =>
-                  navigate("/food/delivery/verification", {
-                    replace: true,
-                    state: { phone: pendingPhone },
-                  }),
-                1200
-              )
+        } else if (isFlutterWebView()) {
+          // ─── FIX: Flutter app mein native Razorpay SDK use karo ──────────
+          // Web Razorpay modal Flutter WebView mein kaam nahi karta.
+          // Flutter ko payment request bhejo, woh native SDK se karega.
+          setIsSubmitting(false)
+          try {
+            const paymentResult = await handleFlutterRazorpayPayment({
+              key: orderData.keyId,
+              order_id: orderData.orderId,
+              amount: Math.round(orderData.amount * 100),
+              currency: orderData.currency || "INR",
+              name: "Onboarding Fee Payment",
+              description: `Onboarding fee for ${details.name}`,
+              prefill: {
+                name: details.name || "",
+                email: details.email || "",
+                contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
+              }
+            })
+
+            // Payment success - ab registration karo
+            setIsSubmitting(true)
+            // ─── FIX: Fresh formData build karo payment ke baad ────────────
+            const formData = await buildFormData(details, documentsRef.current)
+            formData.append("razorpayOrderId", paymentResult.razorpay_order_id || orderData.orderId)
+            formData.append("razorpayPaymentId", paymentResult.razorpay_payment_id)
+            formData.append("razorpaySignature", paymentResult.razorpay_signature)
+            await submitRegistration({ isCompleteProfile, formData, navigate })
+
+          } catch (payErr) {
+            const msg = payErr?.message || "Payment failed or cancelled"
+            if (/cancel/i.test(msg)) {
+              toast.error("Payment cancelled. Payment is required to complete signup.")
             } else {
-              const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-              sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
-              toast.success("Profile submitted. Waiting for admin approval.")
-              setTimeout(
-                () =>
-                  navigate("/food/delivery/verification", {
-                    replace: true,
-                    state: { phone: pendingPhone },
-                  }),
-                1200
-              )
+              toast.error(msg)
             }
+          } finally {
+            setIsSubmitting(false)
           }
+
         } else {
-          // Open real Razorpay checkout modal
+          // ─── Web browser: purana Razorpay modal flow ─────────────────────
           setIsSubmitting(false)
           const rzpOptions = {
             key: orderData.keyId,
@@ -556,50 +629,15 @@ export default function SignupStep2() {
             handler: async (response) => {
               try {
                 setIsSubmitting(true)
+                // ─── FIX: Callback mein bhi fresh formData build karo ──────
+                const formData = await buildFormData(details, documentsRef.current)
                 formData.append("razorpayOrderId", response.razorpay_order_id)
                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
                 formData.append("razorpaySignature", response.razorpay_signature)
-
-                const apiResponse = isCompleteProfile
-                  ? await deliveryAPI.register(formData)
-                  : await deliveryAPI.completeProfile(formData)
-
-                if (apiResponse?.data?.success) {
-                  sessionStorage.removeItem("deliverySignupDetails")
-                  sessionStorage.removeItem("deliverySignupDocs")
-                  sessionStorage.removeItem("deliveryIsRejected")
-                  clearDB()
-                  if (isCompleteProfile) {
-                    sessionStorage.removeItem("deliveryNeedsRegistration")
-                    const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-                    sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
-                    toast.success("Registration submitted. Verification is in progress.")
-                    setTimeout(
-                      () =>
-                        navigate("/food/delivery/verification", {
-                          replace: true,
-                          state: { phone: pendingPhone },
-                        }),
-                      1200
-                    )
-                  } else {
-                    const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-                    sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
-                    toast.success("Profile submitted. Waiting for admin approval.")
-                    setTimeout(
-                      () =>
-                        navigate("/food/delivery/verification", {
-                          replace: true,
-                          state: { phone: pendingPhone },
-                        }),
-                      1200
-                    )
-                  }
-                }
+                await submitRegistration({ isCompleteProfile, formData, navigate })
               } catch (error) {
                 debugError("Error submitting registration:", error)
-                const message = getFriendlyRegistrationError(error)
-                toast.error(message)
+                toast.error(getFriendlyRegistrationError(error))
               } finally {
                 setIsSubmitting(false)
               }
@@ -615,48 +653,16 @@ export default function SignupStep2() {
           }
           await initRazorpayPayment(rzpOptions)
         }
-      } else {
-        const response = isCompleteProfile
-          ? await deliveryAPI.register(formData)
-          : await deliveryAPI.completeProfile(formData)
 
-        if (response?.data?.success) {
-          sessionStorage.removeItem("deliverySignupDetails")
-          sessionStorage.removeItem("deliverySignupDocs")
-          sessionStorage.removeItem("deliveryIsRejected")
-          clearDB()
-          if (isCompleteProfile) {
-            sessionStorage.removeItem("deliveryNeedsRegistration")
-            const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-            sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
-            toast.success("Registration submitted. Verification is in progress.")
-            setTimeout(
-              () =>
-                navigate("/food/delivery/verification", {
-                  replace: true,
-                  state: { phone: pendingPhone },
-                }),
-              1200
-            )
-          } else {
-            const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-            sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
-            toast.success("Profile submitted. Waiting for admin approval.")
-            setTimeout(
-              () =>
-                navigate("/food/delivery/verification", {
-                  replace: true,
-                  state: { phone: pendingPhone },
-                }),
-              1200
-            )
-          }
-        }
+      } else {
+        // ─── Fee nahi hai: seedha register karo ──────────────────────────
+        // ─── FIX: Fresh formData build karo ──────────────────────────────
+        const formData = await buildFormData(details, documentsRef.current)
+        await submitRegistration({ isCompleteProfile, formData, navigate })
       }
     } catch (error) {
       debugError("Error submitting registration:", error)
-      const message = getFriendlyRegistrationError(error)
-      toast.error(message)
+      toast.error(getFriendlyRegistrationError(error))
     } finally {
       setIsSubmitting(false)
     }
@@ -817,4 +823,3 @@ export default function SignupStep2() {
     </div>
   )
 }
-
