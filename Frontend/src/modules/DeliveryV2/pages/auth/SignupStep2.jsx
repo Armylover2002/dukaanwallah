@@ -742,7 +742,7 @@ import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
 import { deliveryAPI, onboardingFeeAPI } from "@food/api"
 import { toast } from "sonner"
-import { initRazorpayPayment } from "@food/utils/razorpay"
+import { initRazorpayPayment, isFlutterWebView, handleFlutterRazorpayPayment } from "@food/utils/razorpay"
 import { openCamera, openGallery } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 
@@ -1200,6 +1200,7 @@ export default function SignupStep2() {
     const isCompleteProfile = sessionStorage.getItem("deliveryNeedsRegistration") === "true"
 
     setIsSubmitting(true)
+    let modalOpened = false
     try {
       if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
         // Payment required path
@@ -1224,15 +1225,40 @@ export default function SignupStep2() {
           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
           await submitRegistration({ isCompleteProfile, formData, navigate })
 
-        } else {
-          // Open real Razorpay modal — same pattern as restaurant onboarding
-          setIsSubmitting(false) // Enable interactive UI while payment is in progress
+        } else if (isFlutterWebView()) {
+          // Inside Flutter WebView: use native Razorpay SDK
+          try {
+            const flutterResult = await handleFlutterRazorpayPayment({
+              key: orderData.keyId,
+              order_id: orderData.orderId,
+              amount: Math.round(feeConfig.price * 100),
+              currency: orderData.currency || "INR",
+              name: "Onboarding Fee Payment",
+              description: `Onboarding fee for ${details.name}`,
+              prefill: {
+                name: details.name || "",
+                email: details.email || "",
+                contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
+              }
+            })
 
+            // Native SDK payment succeeded! Now submit registration data.
+            const formData = await buildFormData(details, documentsRef.current)
+            formData.append("razorpayOrderId", flutterResult.razorpay_order_id)
+            formData.append("razorpayPaymentId", flutterResult.razorpay_payment_id)
+            formData.append("razorpaySignature", flutterResult.razorpay_signature)
+            await submitRegistration({ isCompleteProfile, formData, navigate })
+          } catch (err) {
+            debugError("Error in native payment or registration submission:", err)
+            toast.error(getFriendlyRegistrationError(err))
+            setIsSubmitting(false)
+          }
+
+        } else {
+          // Web browser: standard Razorpay modal
+          modalOpened = true
           const rzpOptions = {
             key: orderData.keyId,
-            // Delivery backend's orderData.amount is already in paise, so use
-            // feeConfig.price (rupees, same value shown in the UI banner below)
-            // and convert to paise for Razorpay.
             amount: Math.round(feeConfig.price * 100),
             currency: orderData.currency || "INR",
             order_id: orderData.orderId,
@@ -1254,7 +1280,6 @@ export default function SignupStep2() {
               } catch (err) {
                 debugError("Error submitting registration after payment:", err)
                 toast.error(getFriendlyRegistrationError(err))
-              } finally {
                 setIsSubmitting(false)
               }
             },
@@ -1268,7 +1293,7 @@ export default function SignupStep2() {
             }
           }
 
-          await initRazorpayPayment(rzpOptions)
+          initRazorpayPayment(rzpOptions)
         }
 
       } else {
@@ -1279,8 +1304,11 @@ export default function SignupStep2() {
     } catch (error) {
       debugError("Error submitting registration:", error)
       toast.error(getFriendlyRegistrationError(error))
-    } finally {
       setIsSubmitting(false)
+    } finally {
+      if (!modalOpened && !isFlutterWebView()) {
+        setIsSubmitting(false)
+      }
     }
   }
 
