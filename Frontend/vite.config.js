@@ -40,6 +40,126 @@ export default defineConfig({
       '@mui/x-date-pickers',
     ],
   },
+  build: {
+    // Warn threshold raised slightly — we're splitting manually below
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // ── React core ──────────────────────────────────────────────────
+          if (id.includes('node_modules/react/') ||
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/react-router-dom/') ||
+              id.includes('node_modules/react-router/') ||
+              id.includes('node_modules/scheduler/')) {
+            return 'vendor-react'
+          }
+
+          // ── Framer Motion (animation) ───────────────────────────────────
+          if (id.includes('node_modules/framer-motion/')) {
+            return 'vendor-motion'
+          }
+
+          // ── GSAP + Lottie (animation) ───────────────────────────────────
+          if (id.includes('node_modules/gsap/') ||
+              id.includes('node_modules/lottie-react/') ||
+              id.includes('node_modules/lenis/')) {
+            return 'vendor-animation'
+          }
+
+          // ── Lucide icons ────────────────────────────────────────────────
+          if (id.includes('node_modules/lucide-react/') ||
+              id.includes('node_modules/react-icons/')) {
+            return 'vendor-icons'
+          }
+
+          // ── Radix UI primitives ─────────────────────────────────────────
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'vendor-radix'
+          }
+
+          // ── Misc UI utilities ───────────────────────────────────────────
+          if (id.includes('node_modules/class-variance-authority/') ||
+              id.includes('node_modules/clsx/') ||
+              id.includes('node_modules/tailwind-merge/') ||
+              id.includes('node_modules/canvas-confetti/')) {
+            return 'vendor-ui-utils'
+          }
+
+          // ── MUI Date Pickers (very large — separate chunk) ──────────────
+          if (id.includes('node_modules/@mui/x-date-pickers/') ||
+              id.includes('node_modules/@mui/x-tree-view/') ||
+              id.includes('node_modules/@mui/lab/')) {
+            return 'vendor-mui-pickers'
+          }
+
+          // ── MUI Core + Emotion ──────────────────────────────────────────
+          if (id.includes('node_modules/@mui/') ||
+              id.includes('node_modules/@emotion/')) {
+            return 'vendor-mui'
+          }
+
+          // ── Firebase ────────────────────────────────────────────────────
+          if (id.includes('node_modules/firebase/') ||
+              id.includes('node_modules/@firebase/')) {
+            return 'vendor-firebase'
+          }
+
+          // ── Charts (Recharts + D3) ──────────────────────────────────────
+          if (id.includes('node_modules/recharts/') ||
+              id.includes('node_modules/d3') ||
+              id.includes('node_modules/victory-')) {
+            return 'vendor-charts'
+          }
+
+          // ── PDF generation ──────────────────────────────────────────────
+          if (id.includes('node_modules/jspdf/') ||
+              id.includes('node_modules/jspdf-autotable/') ||
+              id.includes('node_modules/pdfkit/')) {
+            return 'vendor-pdf'
+          }
+
+          // ── HTML to canvas (used by PDF + screenshot) ───────────────────
+          if (id.includes('node_modules/html2canvas/')) {
+            return 'vendor-html2canvas'
+          }
+
+          // ── Maps ────────────────────────────────────────────────────────
+          if (id.includes('node_modules/leaflet/') ||
+              id.includes('node_modules/react-leaflet/') ||
+              id.includes('node_modules/@googlemaps/') ||
+              id.includes('node_modules/@react-google-maps/')) {
+            return 'vendor-maps'
+          }
+
+          // ── Date / calendar ─────────────────────────────────────────────
+          if (id.includes('node_modules/date-fns/') ||
+              id.includes('node_modules/dayjs/') ||
+              id.includes('node_modules/react-day-picker/')) {
+            return 'vendor-dates'
+          }
+
+          // ── Utilities / networking ──────────────────────────────────────
+          if (id.includes('node_modules/axios/') ||
+              id.includes('node_modules/socket.io-client/') ||
+              id.includes('node_modules/@reduxjs/') ||
+              id.includes('node_modules/react-redux/') ||
+              id.includes('node_modules/zustand/') ||
+              id.includes('node_modules/redux/') ||
+              id.includes('node_modules/zod/') ||
+              id.includes('node_modules/joi/')) {
+            return 'vendor-utils'
+          }
+
+          // ── Excel / data export ─────────────────────────────────────────
+          if (id.includes('node_modules/xlsx/') ||
+              id.includes('node_modules/exceljs/')) {
+            return 'vendor-excel'
+          }
+        },
+      },
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -52,3 +172,4 @@ export default defineConfig({
     },
   },
 })
+
