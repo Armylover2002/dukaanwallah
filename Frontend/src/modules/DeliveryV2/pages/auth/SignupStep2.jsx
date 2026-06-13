@@ -231,7 +231,7 @@
 // }
 
 // const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => {
-//   console.log(`is complite 4: app ", ${isCompleteProfile}`)
+//   console.log(`is complete 4: app `, isCompleteProfile)
 //   const response = isCompleteProfile
 //     ? await deliveryAPI.register(formData)
 //     : await deliveryAPI.completeProfile(formData)
@@ -268,30 +268,34 @@
 //   throw new Error(serverMessage)
 // }
 
-
 // export default function SignupStep2() {
 //   const navigate = useNavigate()
 //   const goBack = useDeliveryBackNavigation()
 //   const signupDetailsRaw = sessionStorage.getItem("deliverySignupDetails")
+
 //   let signupDetails = {}
 //   try {
 //     if (signupDetailsRaw) {
 //       signupDetails = JSON.parse(signupDetailsRaw)
 //     }
 //   } catch (e) { }
+
 //   const isDlOptional = signupDetails.vehicleType === "bicycle" || signupDetails.vehicleType === "electric_bike"
+
 //   const fileInputRefs = useRef({
 //     profilePhoto: null,
 //     aadharPhoto: null,
 //     panPhoto: null,
 //     drivingLicensePhoto: null
 //   })
+
 //   const [documents, setDocuments] = useState({
 //     profilePhoto: null,
 //     aadharPhoto: null,
 //     panPhoto: null,
 //     drivingLicensePhoto: null
 //   })
+
 //   const [uploadedDocs, setUploadedDocs] = useState(() => {
 //     const saved = sessionStorage.getItem("deliverySignupDocs")
 //     if (saved) {
@@ -303,6 +307,7 @@
 //     }
 //     return createEmptyUploadedDocs()
 //   })
+
 //   const [isSubmitting, setIsSubmitting] = useState(false)
 //   const [uploading, setUploading] = useState({})
 //   const [feeConfig, setFeeConfig] = useState(null)
@@ -348,10 +353,10 @@
 
 //   useEffect(() => {
 //     return () => {
-//       Object.values(documents).forEach((file) => {
+//       Object.values(documentsRef.current).forEach((file) => {
 //         if (file instanceof File) {
-//           const previewUrl = file.previewUrl || file._previewUrl
-//           if (previewUrl) {
+//           const previewUrl = file._previewUrl || file.previewUrl
+//           if (previewUrl && previewUrl.startsWith('blob:')) {
 //             URL.revokeObjectURL(previewUrl)
 //           }
 //         }
@@ -464,7 +469,6 @@
 //     setIsSubmitting(true)
 //     try {
 //       if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
-//         // Payment required path
 //         const orderRes = await onboardingFeeAPI.createOrder({
 //           role: "DELIVERY_PARTNER",
 //           name: details.name || "Delivery Partner",
@@ -478,51 +482,19 @@
 //         }
 
 //         if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
-//           // Dev mode: payment bypass
 //           toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.")
 //           const formData = await buildFormData(details, documentsRef.current)
 //           formData.append("razorpayOrderId", orderData.orderId)
 //           formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`)
 //           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
-//           await submitRegistration({ isCompleteProfile, formData, navigate })
-//           console.log(`is complite 2: app , ${isCompleteProfile}`)
 
+//           await submitRegistration({ isCompleteProfile, formData, navigate })
+//           setIsSubmitting(false)
+//           return
 
 //         } else {
-//           // Web browser: standard Razorpay modal
-//           //
-//           // FIX (Issue 3 — Stuck on "Submitting..."):
-//           // ─────────────────────────────────────────
-//           // WRONG (old pattern):
-//           //   setIsSubmitting(false)          ← re-enables button before modal even opens
-//           //   await initRazorpayPayment(...)  ← awaiting a non-blocking modal causes the
-//           //                                      outer finally to fire the moment the modal
-//           //                                      is dismissed, BEFORE the handler finishes.
-//           //                                      Then handler sets isSubmitting(true) again
-//           //                                      and if anything goes wrong the component
-//           //                                      may be stuck or show inconsistent state.
-//           //
-//           // CORRECT (restaurant pattern):
-//           //   Do NOT call setIsSubmitting(false) before opening the modal — isSubmitting
-//           //   stays true so the button stays disabled while the modal is open.
-//           //   Do NOT await initRazorpayPayment — it is non-blocking; the outer finally
-//           //   would fire immediately after the modal opens, not after payment completes.
-//           //   Instead, return early so the outer finally does NOT run at all.
-//           //   The handler / onError / onClose callbacks are the SOLE owners of
-//           //   setIsSubmitting(false) for this code path.
 //           const rzpOptions = {
 //             key: orderData.keyId,
-//             // FIX (Issue 1 — Wrong payment amount ₹5000):
-//             // ────────────────────────────────────────────
-//             // WRONG: Math.round(orderData.amount * 100)
-//             //   orderData.amount from the delivery backend is already in paise (e.g. 5000),
-//             //   so multiplying by 100 again gives 500000 paise = ₹5000 — 100× the real fee.
-//             //   The restaurant backend returns amount in rupees so *100 works there, but the
-//             //   delivery backend behaves differently.
-//             //
-//             // CORRECT: use feeConfig.price which is the admin-configured fee in rupees
-//             //   (the same value displayed correctly as ₹{feeConfig.price} in the UI banner).
-//             //   Multiplying by 100 converts it to paise as Razorpay requires.
 //             amount: Math.round(feeConfig.price * 100),
 //             currency: orderData.currency || "INR",
 //             order_id: orderData.orderId,
@@ -534,26 +506,18 @@
 //               contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
 //             },
 //             handler: async (response) => {
-//               // isSubmitting is already true from handleSubmit — no need to set again.
-//               // FIX (Issue 2 — Payment status not updating + Issue 3 — stuck state):
-//               // The handler now runs to completion without interference from the outer
-//               // finally, so submitRegistration completes, the backend verifies the
-//               // Razorpay signature, updates payment status to Paid, and returns success.
 //               try {
+//                 setIsSubmitting(true)
 //                 const formData = await buildFormData(details, documentsRef.current)
 //                 formData.append("razorpayOrderId", response.razorpay_order_id)
 //                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
 //                 formData.append("razorpaySignature", response.razorpay_signature)
+
 //                 await submitRegistration({ isCompleteProfile, formData, navigate })
-//                 console.log(`is complite 2: app , ${isCompleteProfile}`)
-
-
 //               } catch (err) {
 //                 debugError("Error submitting registration after payment:", err)
 //                 toast.error(getFriendlyRegistrationError(err))
 //               } finally {
-//                 // Sole place isSubmitting is cleared for the Razorpay web path.
-//                 // Runs whether submitRegistration succeeds or fails.
 //                 setIsSubmitting(false)
 //               }
 //             },
@@ -566,26 +530,19 @@
 //               setIsSubmitting(false)
 //             }
 //           }
-//           // Intentionally NOT awaited — non-blocking modal.
-//           // Return early so the outer finally does NOT run and does NOT
-//           // clear isSubmitting prematurely while the handler is still running.
+
 //           initRazorpayPayment(rzpOptions)
-//           return // ← exits handleSubmit; outer finally still executes but
-//           //   isSubmitting management is now owned by handler/onError/onClose
+//           return
 //         }
 
 //       } else {
-//         // No fee: register directly
 //         const formData = await buildFormData(details, documentsRef.current)
 //         await submitRegistration({ isCompleteProfile, formData, navigate })
-//         console.log(`is complite 3: app , ${isCompleteProfile}`)
-
-
+//         setIsSubmitting(false)
 //       }
 //     } catch (error) {
 //       debugError("Error submitting registration:", error)
 //       toast.error(getFriendlyRegistrationError(error))
-//     } finally {
 //       setIsSubmitting(false)
 //     }
 //   }
@@ -707,7 +664,9 @@
 //           <DocumentUpload docType="profilePhoto" label="Profile Photo" required={true} />
 //           <DocumentUpload docType="aadharPhoto" label="Aadhar Card Photo" required={true} />
 //           <DocumentUpload docType="panPhoto" label="PAN Card Photo" required={true} />
-//           <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={!isDlOptional} />
+//           {!isDlOptional && (
+//             <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={true} />
+//           )}
 
 //           {feeConfig && feeConfig.isActive && feeConfig.price > 0 && (
 //             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-1">
@@ -745,6 +704,7 @@
 // }
 
 
+
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
@@ -764,12 +724,8 @@ const STORE_NAME = "documents"
 let cachedDB = null
 const initDB = () => {
   return new Promise((resolve) => {
-    if (cachedDB) {
-      return resolve(cachedDB)
-    }
-    if (typeof indexedDB === 'undefined' || !indexedDB) {
-      return resolve(null)
-    }
+    if (cachedDB) return resolve(cachedDB)
+    if (typeof indexedDB === 'undefined' || !indexedDB) return resolve(null)
     const timeoutId = setTimeout(() => resolve(null), 2000)
     try {
       const request = indexedDB.open(DB_NAME, 1)
@@ -863,9 +819,7 @@ const sanitizeUploadedDocValue = (value) => {
   }
   if (typeof value === "object") {
     const url = typeof value.url === "string" ? value.url : ""
-    if (url.startsWith("blob:")) {
-      return null
-    }
+    if (url.startsWith("blob:")) return null
     return value
   }
   return null
@@ -915,10 +869,12 @@ const getFriendlyRegistrationError = (error) => {
 }
 
 const buildFormData = async (details, documents) => {
+  console.log("🚀 [FLOW 4] [START] Building Form Data Instance...");
   const formData = new FormData()
 
   const vehicleImageFile = await getFileFromDB("vehicleImage")
   if (vehicleImageFile instanceof File || vehicleImageFile instanceof Blob) {
+    console.log("📎 [FLOW 4a] Found vehicleImage file from IndexedDB. Appending...");
     formData.append("vehicleImage", vehicleImageFile)
   }
 
@@ -974,45 +930,64 @@ const buildFormData = async (details, documents) => {
     formData.append("platform", platform)
   }
 
+  console.log("✅ [FLOW 5] [END] FormData compilation successfully completed.");
   return formData
 }
 
 const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => {
-  console.log(`is complete 4: app `, isCompleteProfile)
-  const response = isCompleteProfile
-    ? await deliveryAPI.register(formData)
-    : await deliveryAPI.completeProfile(formData)
+  console.log(`📌 [FLOW 6] [API REQUEST] submitRegistration triggered. Profile mode is registration? -> ${isCompleteProfile}`);
 
-  if (response?.data?.success) {
-    const raw = sessionStorage.getItem("deliverySignupDetails")
-    const details = raw ? JSON.parse(raw) : {}
-    sessionStorage.removeItem("deliverySignupDetails")
-    sessionStorage.removeItem("deliverySignupDocs")
-    sessionStorage.removeItem("deliveryIsRejected")
-    clearDB()
+  try {
+    console.log("📡 [FLOW 6a] Dispatching Multi-part HTTP Form Request to Microservices...");
+    const response = isCompleteProfile
+      ? await deliveryAPI.register(formData)
+      : await deliveryAPI.completeProfile(formData)
 
-    const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
-    sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+    console.log("📥 [FLOW 7] [HTTP RESPONSE] Received backend feedback interceptor:", response);
 
-    if (isCompleteProfile) {
-      sessionStorage.removeItem("deliveryNeedsRegistration")
-      toast.success("Registration submitted. Verification is in progress.")
-    } else {
-      toast.success("Profile submitted. Waiting for admin approval.")
+    if (response?.data?.success) {
+      console.log("🎉 [FLOW 8] API evaluation states [success === true]. Starting session processing...");
+      const raw = sessionStorage.getItem("deliverySignupDetails")
+      const details = raw ? JSON.parse(raw) : {}
+
+      console.log("🧹 [FLOW 8a] Clearing local staging databases and registration structures...");
+      sessionStorage.removeItem("deliverySignupDetails")
+      sessionStorage.removeItem("deliverySignupDocs")
+      sessionStorage.removeItem("deliveryIsRejected")
+      clearDB()
+
+      const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
+      sessionStorage.setItem("deliveryPendingPhone", pendingPhone)
+      console.log("💾 [FLOW 8b] Cached context registration phone verification sequence ->", pendingPhone);
+
+      if (isCompleteProfile) {
+        sessionStorage.removeItem("deliveryNeedsRegistration")
+        toast.success("Registration submitted. Verification is in progress.")
+      } else {
+        toast.success("Profile submitted. Waiting for admin approval.")
+      }
+
+      console.log("⏳ [FLOW 9] Setting up Thread Interrupter for Client Navigation Router (Delay: 1200ms)...");
+      setTimeout(() => {
+        console.log("🏁 [FLOW 10] [NAVIGATION] Executing window navigation state transitions to /food/delivery/verification...");
+        navigate("/food/delivery/verification", { replace: true, state: { phone: pendingPhone } })
+        console.log("🚀 [FLOW 10a] Navigation command process dispatched.");
+      }, 1200)
+
+      return true
     }
 
-    setTimeout(
-      () => navigate("/food/delivery/verification", { replace: true, state: { phone: pendingPhone } }),
-      1200
-    )
-    return true
-  }
+    console.error("❌ [FLOW 11] API explicitly sent [success !== true]. Parsing internal message data...");
+    const serverMessage =
+      response?.data?.message ||
+      response?.data?.error ||
+      "Registration failed. Please try again."
+    throw new Error(serverMessage)
 
-  const serverMessage =
-    response?.data?.message ||
-    response?.data?.error ||
-    "Registration failed. Please try again."
-  throw new Error(serverMessage)
+  } catch (apiError) {
+    console.error("💥 [FLOW INTERCEPT] Critical Error inside submitRegistration routine:", apiError)
+    throw apiError
+  }
 }
 
 export default function SignupStep2() {
@@ -1181,6 +1156,7 @@ export default function SignupStep2() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    console.log("🔘 [FLOW 1] [EVENT] Main Submit Handler button clicked.");
 
     const hasProfilePhoto = hasDocumentValue(documents.profilePhoto, uploadedDocs.profilePhoto)
     const hasAadharPhoto = hasDocumentValue(documents.aadharPhoto, uploadedDocs.aadharPhoto)
@@ -1192,6 +1168,7 @@ export default function SignupStep2() {
 
     if (!hasProfilePhoto || !hasAadharPhoto || !hasPanPhoto || (!isDlOptional && !hasDrivingLicensePhoto)) {
       toast.error("Please upload all required documents")
+      console.log("⚠️ [FLOW 1e] Documents validation failed. Incomplete asset files.");
       return
     }
 
@@ -1213,9 +1190,12 @@ export default function SignupStep2() {
 
     const isCompleteProfile = sessionStorage.getItem("deliveryNeedsRegistration") === "true"
 
+    console.log("🔄 [FLOW 1a] Setting local submission loading screen state -> true");
     setIsSubmitting(true)
+
     try {
       if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
+        console.log("💰 [FLOW 2] Onboarding fee validation engine detected active invoice fee requirement.");
         const orderRes = await onboardingFeeAPI.createOrder({
           role: "DELIVERY_PARTNER",
           name: details.name || "Delivery Partner",
@@ -1229,6 +1209,7 @@ export default function SignupStep2() {
         }
 
         if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
+          console.log("⚙️ [DEV MODE DETECTED] Processing simulated automated bypass registration pipeline...");
           toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.")
           const formData = await buildFormData(details, documentsRef.current)
           formData.append("razorpayOrderId", orderData.orderId)
@@ -1236,10 +1217,12 @@ export default function SignupStep2() {
           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
 
           await submitRegistration({ isCompleteProfile, formData, navigate })
+          console.log("🔄 [FLOW 2a-Mock] Closing execution pipeline loader state -> false");
           setIsSubmitting(false)
           return
 
         } else {
+          console.log("💳 [FLOW 3] Preparing deployment hooks for external Razorpay payment dynamic viewport...");
           const rzpOptions = {
             key: orderData.keyId,
             amount: Math.round(feeConfig.price * 100),
@@ -1253,42 +1236,54 @@ export default function SignupStep2() {
               contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
             },
             handler: async (response) => {
+              console.log("💥 [FLOW RAZORPAY HANDLER INTERCEPT] Gateway payment validation success response received!", response)
+
+              // CRITICAL FIX: Explicit context scope control sequence inside closure engine
+              setIsSubmitting(true)
+
               try {
-                setIsSubmitting(true)
+                console.log("📥 [FLOW RAZORPAY HANDLER] Compiling Multi-part file payloads inside Razorpay thread context...");
                 const formData = await buildFormData(details, documentsRef.current)
                 formData.append("razorpayOrderId", response.razorpay_order_id)
                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
                 formData.append("razorpaySignature", response.razorpay_signature)
 
+                console.log("🚀 [FLOW RAZORPAY HANDLER] Passing control layer directly to submitRegistration API handler...");
                 await submitRegistration({ isCompleteProfile, formData, navigate })
+                console.log("✅ [FLOW RAZORPAY HANDLER] submitRegistration promise process evaluation ended successfully.");
               } catch (err) {
-                debugError("Error submitting registration after payment:", err)
+                console.error("❌ [FLOW RAZORPAY HANDLER CRITICAL ERROR] Execution cycle crashed inside handler thread context:", err)
                 toast.error(getFriendlyRegistrationError(err))
-              } finally {
+                console.log("🔄 [FLOW RAZORPAY HANDLER CATCH] Terminating loader state machine execution -> false");
                 setIsSubmitting(false)
               }
             },
             onError: (err) => {
+              console.error("🚨 [FLOW RAZORPAY GATEWAY THREAD CRASH] Intercepted payment channel exception error:", err)
               toast.error(err?.description || "Payment failed. Please try again.")
               setIsSubmitting(false)
             },
             onClose: () => {
+              console.warn("⚠️ [FLOW RAZORPAY USER ABORT] User requested explicit system viewport close down pattern.")
               toast.error("Payment modal closed. Payment is required to complete signup.")
               setIsSubmitting(false)
             }
           }
 
+          console.log("🔌 [FLOW 3a] Launching core platform native initialization script for Razorpay SDK framework...");
           initRazorpayPayment(rzpOptions)
           return
         }
 
       } else {
+        console.log("🆓 [FLOW 2 - Direct Path] No invoice required sequence profile execution triggered.");
         const formData = await buildFormData(details, documentsRef.current)
         await submitRegistration({ isCompleteProfile, formData, navigate })
+        console.log("🔄 [FLOW 2 - Direct Path] Execution completed. Resetting submission loader layout -> false");
         setIsSubmitting(false)
       }
     } catch (error) {
-      debugError("Error submitting registration:", error)
+      console.error("🚨 [FLOW CONTROL ERROR] System failure monitored at primary top layer orchestrator thread:", error)
       toast.error(getFriendlyRegistrationError(error))
       setIsSubmitting(false)
     }
