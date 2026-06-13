@@ -1411,7 +1411,9 @@ export default function SignupStep2() {
           <DocumentUpload docType="profilePhoto" label="Profile Photo" required={true} />
           <DocumentUpload docType="aadharPhoto" label="Aadhar Card Photo" required={true} />
           <DocumentUpload docType="panPhoto" label="PAN Card Photo" required={true} />
-          <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={!isDlOptional} />
+          {!isDlOptional && (
+            <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={true} />
+          )}
 
           {feeConfig && feeConfig.isActive && feeConfig.price > 0 && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-1">
