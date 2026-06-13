@@ -16,26 +16,20 @@ const STORE_NAME = "documents"
 
 let cachedDB = null
 const initDB = () => {
-  console.log("🔍 [initDB] starting...");
   return new Promise((resolve) => {
     try {
       if (cachedDB) {
-        console.log("🔍 [initDB] using cachedDB");
         return resolve(cachedDB);
       }
       if (typeof window === 'undefined' || !window.indexedDB) {
-        console.log("🔍 [initDB] window.indexedDB not supported or window undefined");
         return resolve(null);
       }
       const timeoutId = setTimeout(() => {
-        console.log("🔍 [initDB] connection timed out (2000ms)");
         resolve(null);
       }, 2000);
 
-      console.log("🔍 [initDB] opening indexedDB...");
       const request = window.indexedDB.open(DB_NAME, 1);
       request.onupgradeneeded = (e) => {
-        console.log("🔍 [initDB] upgrading database...");
         try {
           const db = e.target.result;
           if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -46,7 +40,6 @@ const initDB = () => {
         }
       };
       request.onsuccess = (e) => {
-        console.log("🔍 [initDB] open success");
         clearTimeout(timeoutId);
         cachedDB = e.target.result;
         resolve(cachedDB);
@@ -84,14 +77,11 @@ const saveFileToDB = async (key, file) => {
 }
 
 const getFileFromDB = async (key, isRetry = false) => {
-  console.log(`🔍 [getFileFromDB] starting for key: ${key} (isRetry: ${isRetry})`);
   try {
     const db = await initDB();
     if (!db) {
-      console.log(`🔍 [getFileFromDB] no db instance, returning null for key: ${key}`);
       return null;
     }
-    console.log(`🔍 [getFileFromDB] db instance exists, creating transaction for key: ${key}`);
     return new Promise((resolve) => {
       let resolved = false;
       const timeoutId = setTimeout(() => {
@@ -99,7 +89,6 @@ const getFileFromDB = async (key, isRetry = false) => {
         resolved = true;
         console.warn(`🔍 [getFileFromDB] timed out (1500ms) for key: ${key}`);
         if (!isRetry) {
-          console.log(`🔍 [getFileFromDB] clearing cachedDB and retrying once...`);
           cachedDB = null;
           resolve(getFileFromDB(key, true));
         } else {
@@ -111,15 +100,14 @@ const getFileFromDB = async (key, isRetry = false) => {
         const transaction = db.transaction(STORE_NAME, "readonly")
         const store = transaction.objectStore(STORE_NAME)
         const request = store.get(key)
-        
+
         request.onsuccess = () => {
           if (resolved) return;
           resolved = true;
           clearTimeout(timeoutId);
-          console.log(`🔍 [getFileFromDB] get success for key: ${key}`);
           resolve(request.result);
         }
-        
+
         request.onerror = (err) => {
           if (resolved) return;
           resolved = true;
@@ -337,7 +325,6 @@ const buildFormData = async (details, documents) => {
 }
 
 const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => {
-  console.log(`is complete 4: app `, isCompleteProfile)
   const response = isCompleteProfile
     ? await deliveryAPI.register(formData)
     : await deliveryAPI.completeProfile(formData)
@@ -843,4 +830,3 @@ export default function SignupStep2() {
     </div>
   )
 }
-
