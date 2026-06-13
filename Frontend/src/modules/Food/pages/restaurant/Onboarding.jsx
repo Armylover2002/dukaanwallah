@@ -25,9 +25,9 @@ import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
 import { clearModuleAuth, clearAuthData } from "@food/utils/auth"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { convertBase64ToFile, isFlutterBridgeAvailable, openCamera } from "@food/utils/imageUploadUtils"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -861,7 +861,7 @@ export default function RestaurantOnboarding() {
           if (serverData.status === "rejected") {
             setIsReonboardBypass(true)
             setTimeout(() => {
-               toast.error(`Previous application rejected: ${serverData.rejectionReason || 'Please update your details'}`)
+              toast.error(`Previous application rejected: ${serverData.rejectionReason || 'Please update your details'}`)
             }, 500)
           } else {
             setIsReonboardBypass(true)
@@ -1114,10 +1114,10 @@ export default function RestaurantOnboarding() {
   useEffect(() => {
     let active = true
 
-    ;(async () => {
-      await saveOnboardingToLocalStorage(step1, step2, step3, step4, step)
-      if (!active) return
-    })()
+      ; (async () => {
+        await saveOnboardingToLocalStorage(step1, step2, step3, step4, step)
+        if (!active) return
+      })()
 
     return () => {
       active = false
@@ -1422,7 +1422,7 @@ export default function RestaurantOnboarding() {
                 const { lat, lng } = data.results[0].geometry.location
                 const latVal = Number(lat.toFixed(6))
                 const lngVal = Number(lng.toFixed(6))
-                
+
                 const comps = data.results[0].address_components || []
                 const getComp = (types) => comps.find((c) => types.some((t) => c.types?.includes(t)))?.long_name || ""
                 const pCode = getComp(["postal_code"])
@@ -1442,7 +1442,7 @@ export default function RestaurantOnboarding() {
                     pincode: prev.location.pincode || pCode,
                   }
                 }))
-                
+
                 step1.location = {
                   ...step1.location,
                   latitude: latVal,
@@ -1617,7 +1617,7 @@ export default function RestaurantOnboarding() {
             email: step1.ownerEmail || ""
           });
           const orderData = orderRes?.data?.data || orderRes?.data;
-          
+
           if (!orderData || !orderData.orderId) {
             throw new Error("Failed to create onboarding payment order");
           }
@@ -1627,15 +1627,15 @@ export default function RestaurantOnboarding() {
             formData.append("razorpayOrderId", orderData.orderId);
             formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`);
             formData.append("razorpaySignature", `mock_sig_${Date.now()}`);
-            
+
             await restaurantAPI.register(formData);
-            
+
             sessionStorage.removeItem("restaurantReonboard");
             clearOnboardingFromLocalStorage();
             clearOnboardingFileCache();
             try {
               localStorage.setItem("restaurant_pendingPhone", normalizePhoneDigits(step1.ownerPhone));
-            } catch {}
+            } catch { }
 
             toast.success("Registration submitted. Awaiting admin approval.", { duration: 4000 });
             navigate("/food/restaurant/pending-verification", {
@@ -1673,7 +1673,7 @@ export default function RestaurantOnboarding() {
                   clearOnboardingFileCache();
                   try {
                     localStorage.setItem("restaurant_pendingPhone", normalizePhoneDigits(step1.ownerPhone));
-                  } catch {}
+                  } catch { }
 
                   toast.success("Registration submitted. Awaiting admin approval.", { duration: 4000 });
                   navigate("/food/restaurant/pending-verification", {
@@ -1714,7 +1714,7 @@ export default function RestaurantOnboarding() {
           clearOnboardingFileCache();
           try {
             localStorage.setItem("restaurant_pendingPhone", normalizePhoneDigits(step1.ownerPhone));
-          } catch {}
+          } catch { }
 
           toast.success("Registration submitted. Awaiting admin approval.", { duration: 4000 });
           navigate("/food/restaurant/pending-verification", {
@@ -1773,22 +1773,20 @@ export default function RestaurantOnboarding() {
               <button
                 type="button"
                 onClick={() => isEditing && setStep1({ ...step1, pureVegRestaurant: true })}
-                className={`px-3 py-1.5 text-xs rounded-full border ${
-                  step1.pureVegRestaurant === true
+                className={`px-3 py-1.5 text-xs rounded-full border ${step1.pureVegRestaurant === true
                     ? "bg-green-600 text-white border-green-600"
                     : "bg-white text-gray-700 border-gray-200"
-                } ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
+                  } ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
               >
                 Yes, Pure Veg
               </button>
               <button
                 type="button"
                 onClick={() => isEditing && setStep1({ ...step1, pureVegRestaurant: false })}
-                className={`px-3 py-1.5 text-xs rounded-full border ${
-                  step1.pureVegRestaurant === false
+                className={`px-3 py-1.5 text-xs rounded-full border ${step1.pureVegRestaurant === false
                     ? "bg-gray-900 text-white border-gray-900"
                     : "bg-white text-gray-700 border-gray-200"
-                } ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
+                  } ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
               >
                 No, Mixed Menu
               </button>
@@ -1953,11 +1951,11 @@ export default function RestaurantOnboarding() {
             {step1.location?.formattedAddress &&
               !locationPickedFromSuggestion &&
               !step1.location?.latitude && (
-              <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
-                <span>⚠️</span>
-                <span>Please select a suggestion from the dropdown for accurate location. Manual entry may cause delivery issues.</span>
-              </p>
-            )}
+                <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span>Please select a suggestion from the dropdown for accurate location. Manual entry may cause delivery issues.</span>
+                </p>
+              )}
             {locationPickedFromSuggestion && (
               <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
                 <span>✅</span>
@@ -2890,7 +2888,7 @@ export default function RestaurantOnboarding() {
               {[
                 ...ESTIMATED_DELIVERY_TIME_OPTIONS,
                 ...(step4.estimatedDeliveryTime &&
-                !ESTIMATED_DELIVERY_TIME_OPTIONS.includes(step4.estimatedDeliveryTime)
+                  !ESTIMATED_DELIVERY_TIME_OPTIONS.includes(step4.estimatedDeliveryTime)
                   ? [step4.estimatedDeliveryTime]
                   : []),
               ].map((option) => (
