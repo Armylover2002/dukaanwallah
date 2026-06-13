@@ -83,8 +83,8 @@ const saveFileToDB = async (key, file) => {
   }
 }
 
-const getFileFromDB = async (key) => {
-  console.log(`🔍 [getFileFromDB] starting for key: ${key}`);
+const getFileFromDB = async (key, isRetry = false) => {
+  console.log(`🔍 [getFileFromDB] starting for key: ${key} (isRetry: ${isRetry})`);
   try {
     const db = await initDB();
     if (!db) {
@@ -93,25 +93,91 @@ const getFileFromDB = async (key) => {
     }
     console.log(`🔍 [getFileFromDB] db instance exists, creating transaction for key: ${key}`);
     return new Promise((resolve) => {
+      let resolved = false;
+      const timeoutId = setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        console.warn(`🔍 [getFileFromDB] timed out (1500ms) for key: ${key}`);
+        if (!isRetry) {
+          console.log(`🔍 [getFileFromDB] clearing cachedDB and retrying once...`);
+          cachedDB = null;
+          resolve(getFileFromDB(key, true));
+        } else {
+          resolve(null);
+        }
+      }, 1500);
+
       try {
         const transaction = db.transaction(STORE_NAME, "readonly")
         const store = transaction.objectStore(STORE_NAME)
         const request = store.get(key)
+        
         request.onsuccess = () => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeoutId);
           console.log(`🔍 [getFileFromDB] get success for key: ${key}`);
           resolve(request.result);
         }
+        
         request.onerror = (err) => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeoutId);
           console.error(`🔍 [getFileFromDB] get error for key: ${key}:`, err);
+          if (!isRetry) {
+            cachedDB = null;
+            resolve(getFileFromDB(key, true));
+          } else {
+            resolve(null);
+          }
+        }
+
+        transaction.onabort = (event) => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeoutId);
+          console.warn(`🔍 [getFileFromDB] transaction aborted for key: ${key}:`, event);
+          if (!isRetry) {
+            cachedDB = null;
+            resolve(getFileFromDB(key, true));
+          } else {
+            resolve(null);
+          }
+        }
+
+        transaction.onerror = (event) => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeoutId);
+          console.error(`🔍 [getFileFromDB] transaction error for key: ${key}:`, event);
+          if (!isRetry) {
+            cachedDB = null;
+            resolve(getFileFromDB(key, true));
+          } else {
+            resolve(null);
+          }
+        }
+
+      } catch (e) {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeoutId);
+        console.error(`🔍 [getFileFromDB] transaction/store exception for key: ${key}:`, e);
+        if (!isRetry) {
+          cachedDB = null;
+          resolve(getFileFromDB(key, true));
+        } else {
           resolve(null);
         }
-      } catch (e) {
-        console.error(`🔍 [getFileFromDB] transaction/store exception for key: ${key}:`, e);
-        resolve(null);
       }
     })
   } catch (err) {
     console.error(`🔍 [getFileFromDB] outer catch exception for key: ${key}:`, err);
+    if (!isRetry) {
+      cachedDB = null;
+      return getFileFromDB(key, true);
+    }
     return null;
   }
 }
