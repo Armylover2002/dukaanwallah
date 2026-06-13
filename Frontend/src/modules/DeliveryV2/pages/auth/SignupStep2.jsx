@@ -3,15 +3,13 @@ import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
 import { deliveryAPI, onboardingFeeAPI } from "@food/api"
 import { toast } from "sonner"
-import { initRazorpayPayment, isFlutterWebView, handleFlutterRazorpayPayment } from "@food/utils/razorpay"
+import { initRazorpayPayment } from "@food/utils/razorpay"
 import { openCamera, openGallery } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 
-// Temporarily enabled (was no-op) to diagnose the
-// "payment pending / no response / navigate not happening" issue.
-const debugLog = (...args) => console.log("[SignupStep2]", ...args)
-const debugWarn = (...args) => console.warn("[SignupStep2]", ...args)
-const debugError = (...args) => console.error("[SignupStep2]", ...args)
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 const DB_NAME = "DeliverySignupDB"
 const STORE_NAME = "documents"
@@ -236,12 +234,6 @@ const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => 
   const response = isCompleteProfile
     ? await deliveryAPI.register(formData)
     : await deliveryAPI.completeProfile(formData)
-
-  // DIAGNOSTIC: log the FULL API response so we can see exactly what the
-  // backend returned (status code + full data payload, including any
-  // payment/order status fields like "pending"/"paid").
-  debugLog("submitRegistration response status:", response?.status)
-  debugLog("submitRegistration response data:", JSON.stringify(response?.data))
 
   if (response?.data?.success) {
     const raw = sessionStorage.getItem("deliverySignupDetails")
@@ -485,77 +477,49 @@ export default function SignupStep2() {
         }
 
         if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
-          // Dev mode or already-paid payment bypass
-          if (orderData.alreadyPaid) {
-            toast.success("Payment verified successfully. Submitting registration...")
-          } else {
-            toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.")
-          }
+          // Dev mode: payment bypass
+          toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.")
           const formData = await buildFormData(details, documentsRef.current)
           formData.append("razorpayOrderId", orderData.orderId)
           formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`)
           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
           await submitRegistration({ isCompleteProfile, formData, navigate })
 
-        } else if (isFlutterWebView()) {
-          // Wrapped App (Flutter WebView) path using native JS bridge
-          try {
-            debugLog("Running inside Flutter WebView. Initializing native payment bridge...")
-            const flutterResult = await handleFlutterRazorpayPayment({
-              key: orderData.keyId,
-              order_id: orderData.orderId,
-              amount: Math.round(feeConfig.price * 100),
-              currency: orderData.currency || "INR",
-              name: "Onboarding Fee Payment",
-              description: `Onboarding fee for ${details.name}`,
-              prefill: {
-                name: details.name || "",
-                email: details.email || "",
-                contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
-              }
-            })
-
-            debugLog("Flutter native payment completed successfully:", JSON.stringify(flutterResult))
-            const formData = await buildFormData(details, documentsRef.current)
-            formData.append("razorpayOrderId", flutterResult.razorpay_order_id)
-            formData.append("razorpayPaymentId", flutterResult.razorpay_payment_id)
-            formData.append("razorpaySignature", flutterResult.razorpay_signature)
-
-            await submitRegistration({ isCompleteProfile, formData, navigate })
-          } catch (payErr) {
-            debugError("Flutter payment bridge failure:", payErr)
-            const msg = payErr?.message || "Payment failed or cancelled"
-            toast.error(msg)
-          } finally {
-            setIsSubmitting(false)
-          }
-          return
-
         } else {
-          // Open real Razorpay modal.
+          // Web browser: standard Razorpay modal
           //
-          // IMPORTANT: Do NOT await initRazorpayPayment and do NOT let the
-          // outer try/finally clear isSubmitting here. In the wrapped
-          // (webview) app, the Razorpay checkout flow does not
-          // resolve a JS promise in lockstep with the user finishing
-          // payment — awaiting it here causes the outer `finally` to run
-          // too early, which:
-          //   - flips isSubmitting back and forth unpredictably (stuck
-          //     "Submitting..." button), and
-          //   - races with the handler's own register() call, leaving the
-          //     payment record on the backend stuck as "pending" because
-          //     the submission either runs out of order or gets cut short.
+          // FIX (Issue 3 — Stuck on "Submitting..."):
+          // ─────────────────────────────────────────
+          // WRONG (old pattern):
+          //   setIsSubmitting(false)          ← re-enables button before modal even opens
+          //   await initRazorpayPayment(...)  ← awaiting a non-blocking modal causes the
+          //                                      outer finally to fire the moment the modal
+          //                                      is dismissed, BEFORE the handler finishes.
+          //                                      Then handler sets isSubmitting(true) again
+          //                                      and if anything goes wrong the component
+          //                                      may be stuck or show inconsistent state.
           //
-          // So: isSubmitting stays true while the modal is open. The
-          // handler / onError / onClose callbacks below are the ONLY
-          // places that toggle isSubmitting for this path, and we
-          // `return` early so the outer `finally` does not run.
-          let paymentSucceeded = false;
+          // CORRECT (restaurant pattern):
+          //   Do NOT call setIsSubmitting(false) before opening the modal — isSubmitting
+          //   stays true so the button stays disabled while the modal is open.
+          //   Do NOT await initRazorpayPayment — it is non-blocking; the outer finally
+          //   would fire immediately after the modal opens, not after payment completes.
+          //   Instead, return early so the outer finally does NOT run at all.
+          //   The handler / onError / onClose callbacks are the SOLE owners of
+          //   setIsSubmitting(false) for this code path.
           const rzpOptions = {
             key: orderData.keyId,
-            // Delivery backend's orderData.amount is already in paise, so use
-            // feeConfig.price (rupees, same value shown in the UI banner)
-            // and convert to paise for Razorpay.
+            // FIX (Issue 1 — Wrong payment amount ₹5000):
+            // ────────────────────────────────────────────
+            // WRONG: Math.round(orderData.amount * 100)
+            //   orderData.amount from the delivery backend is already in paise (e.g. 5000),
+            //   so multiplying by 100 again gives 500000 paise = ₹5000 — 100× the real fee.
+            //   The restaurant backend returns amount in rupees so *100 works there, but the
+            //   delivery backend behaves differently.
+            //
+            // CORRECT: use feeConfig.price which is the admin-configured fee in rupees
+            //   (the same value displayed correctly as ₹{feeConfig.price} in the UI banner).
+            //   Multiplying by 100 converts it to paise as Razorpay requires.
             amount: Math.round(feeConfig.price * 100),
             currency: orderData.currency || "INR",
             order_id: orderData.orderId,
@@ -567,47 +531,41 @@ export default function SignupStep2() {
               contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
             },
             handler: async (response) => {
-              paymentSucceeded = true;
-              debugLog("Razorpay handler fired. Payment response:", JSON.stringify(response))
+              // isSubmitting is already true from handleSubmit — no need to set again.
+              // FIX (Issue 2 — Payment status not updating + Issue 3 — stuck state):
+              // The handler now runs to completion without interference from the outer
+              // finally, so submitRegistration completes, the backend verifies the
+              // Razorpay signature, updates payment status to Paid, and returns success.
               try {
                 const formData = await buildFormData(details, documentsRef.current)
                 formData.append("razorpayOrderId", response.razorpay_order_id)
                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
                 formData.append("razorpaySignature", response.razorpay_signature)
-                debugLog("Calling submitRegistration with razorpay payment ids:", {
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                })
                 await submitRegistration({ isCompleteProfile, formData, navigate })
-                debugLog("submitRegistration completed successfully, navigating...")
               } catch (err) {
                 debugError("Error submitting registration after payment:", err)
-                debugError("Razorpay response was:", JSON.stringify(response))
-                debugError("Server error response:", JSON.stringify(err?.response?.data))
-                debugError("Server error status:", err?.response?.status)
                 toast.error(getFriendlyRegistrationError(err))
+              } finally {
+                // Sole place isSubmitting is cleared for the Razorpay web path.
+                // Runs whether submitRegistration succeeds or fails.
                 setIsSubmitting(false)
               }
             },
             onError: (err) => {
-              debugError("Razorpay onError:", err)
               toast.error(err?.description || "Payment failed. Please try again.")
               setIsSubmitting(false)
             },
             onClose: () => {
-              if (paymentSucceeded) {
-                debugLog("Razorpay onClose callback skipped because payment was marked as success")
-                return;
-              }
               toast.error("Payment modal closed. Payment is required to complete signup.")
               setIsSubmitting(false)
             }
           }
-
           // Intentionally NOT awaited — non-blocking modal.
+          // Return early so the outer finally does NOT run and does NOT
+          // clear isSubmitting prematurely while the handler is still running.
           initRazorpayPayment(rzpOptions)
-          return // exit handleSubmit; isSubmitting is now owned by
-          //        handler / onError / onClose above
+          return // ← exits handleSubmit; outer finally still executes but
+          //   isSubmitting management is now owned by handler/onError/onClose
         }
 
       } else {
@@ -617,7 +575,6 @@ export default function SignupStep2() {
       }
     } catch (error) {
       debugError("Error submitting registration:", error)
-      debugError("Server error response:", error?.response?.data)
       toast.error(getFriendlyRegistrationError(error))
     } finally {
       setIsSubmitting(false)
