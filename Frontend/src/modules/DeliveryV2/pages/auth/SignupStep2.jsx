@@ -603,7 +603,7 @@ export default function SignupStep2() {
             }
           }
 
-          initRazorpayPayment(rzpOptions)
+          await initRazorpayPayment(rzpOptions)
           return
         }
 
