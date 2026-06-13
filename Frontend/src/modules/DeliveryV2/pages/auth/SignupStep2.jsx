@@ -910,7 +910,10 @@ const buildFormData = async (details, documents) => {
         const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"]
         for (const handlerName of handlerNames) {
           try {
-            const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" })
+            const t = await Promise.race([
+              window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" }),
+              new Promise((resolve) => setTimeout(() => resolve(null), 800))
+            ])
             if (t && typeof t === "string" && t.length > 20) {
               fcmToken = t.trim()
               break
