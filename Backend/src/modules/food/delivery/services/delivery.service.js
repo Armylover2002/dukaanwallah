@@ -11,10 +11,10 @@ import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service
 import { ensureDailyPassEligibility, activateDailyPass } from '../../subscriptions/services/wallet.service.js';
 
 export const registerDeliveryPartner = async (payload, files) => {
-    const { 
-        name, phone, email, countryCode, address, city, state, 
+    const {
+        name, phone, email, countryCode, address, city, state,
         vehicleType, vehicleName, vehicleNumber, drivingLicenseNumber, panNumber, aadharNumber,
-        fcmToken, platform, razorpayOrderId, razorpayPaymentId, razorpaySignature 
+        fcmToken, platform, razorpayOrderId, razorpayPaymentId, razorpaySignature
     } = payload;
     const refRaw = typeof payload?.ref === 'string' ? String(payload.ref).trim() : '';
 
@@ -140,7 +140,7 @@ export const registerDeliveryPartner = async (payload, files) => {
         }
 
         if (!referrer) {
-            referrer = await FoodDeliveryPartner.findOne({ 
+            referrer = await FoodDeliveryPartner.findOne({
                 $or: [
                     { referralCode: refRaw },
                     { phone: refRaw }
@@ -391,7 +391,7 @@ export const updateDeliveryAvailability = async (userId, payload) => {
     let validStatus = 'offline';
     if (status === 'online' || status === true) validStatus = 'online';
     else if (status === 'offline' || status === false) validStatus = 'offline';
-    
+
     // PHASE 3C-1: SUBSCRIPTION TRIGGER (OFFLINE -> ONLINE ONLY) (Bypassed)
     /* Comment out the related restriction/check logic in the codebase instead of removing it completely.
     if (partner.availabilityStatus === 'offline' && validStatus === 'online') {
