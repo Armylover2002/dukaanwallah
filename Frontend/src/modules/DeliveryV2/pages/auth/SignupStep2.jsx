@@ -7,9 +7,11 @@ import { initRazorpayPayment } from "@food/utils/razorpay"
 import { openCamera, openGallery } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 
-const debugLog = (...args) => { }
-const debugWarn = (...args) => { }
-const debugError = (...args) => { }
+// Temporarily enabled (was no-op) to diagnose the
+// "payment pending / no response / navigate not happening" issue.
+const debugLog = (...args) => console.log("[SignupStep2]", ...args)
+const debugWarn = (...args) => console.warn("[SignupStep2]", ...args)
+const debugError = (...args) => console.error("[SignupStep2]", ...args)
 
 const DB_NAME = "DeliverySignupDB"
 const STORE_NAME = "documents"
@@ -234,6 +236,12 @@ const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => 
   const response = isCompleteProfile
     ? await deliveryAPI.register(formData)
     : await deliveryAPI.completeProfile(formData)
+
+  // DIAGNOSTIC: log the FULL API response so we can see exactly what the
+  // backend returned (status code + full data payload, including any
+  // payment/order status fields like "pending"/"paid").
+  debugLog("submitRegistration response status:", response?.status)
+  debugLog("submitRegistration response data:", JSON.stringify(response?.data))
 
   if (response?.data?.success) {
     const raw = sessionStorage.getItem("deliverySignupDetails")
@@ -520,20 +528,27 @@ export default function SignupStep2() {
               contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
             },
             handler: async (response) => {
+              debugLog("Razorpay handler fired. Payment response:", JSON.stringify(response))
               try {
                 const formData = await buildFormData(details, documentsRef.current)
                 formData.append("razorpayOrderId", response.razorpay_order_id)
                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
                 formData.append("razorpaySignature", response.razorpay_signature)
+                debugLog("Calling submitRegistration with razorpay payment ids:", {
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                })
                 await submitRegistration({ isCompleteProfile, formData, navigate })
+                debugLog("submitRegistration completed successfully, navigating...")
               } catch (err) {
                 debugError("Error submitting registration after payment:", err)
                 // Extra diagnostics: log the raw Razorpay response and the
                 // backend's error payload so we can see WHY register/
                 // completeProfile failed (e.g. signature mismatch, amount
-                // mismatch, validation error, etc.)
-                debugError("Razorpay response was:", response)
-                debugError("Server error response:", err?.response?.data)
+                // mismatch, validation error, payment still "pending" etc.)
+                debugError("Razorpay response was:", JSON.stringify(response))
+                debugError("Server error response:", JSON.stringify(err?.response?.data))
+                debugError("Server error status:", err?.response?.status)
                 toast.error(getFriendlyRegistrationError(err))
               } finally {
                 setIsSubmitting(false)
