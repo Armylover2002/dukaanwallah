@@ -72,10 +72,30 @@ export const registerDeliveryPartner = async (payload, files) => {
     };
 
     if (partner) {
+        // Verify onboarding fee payment if required for re-onboarding.
+        // verifyAndConsumeOnboardingPayment automatically bypasses the check
+        // if the user already paid successfully in a prior attempt.
+        const { verifyAndConsumeOnboardingPayment } = await import('../../../common/services/onboardingFee.service.js');
+        await verifyAndConsumeOnboardingPayment({
+            role: 'DELIVERY_PARTNER',
+            paymentDetails: { razorpayOrderId, razorpayPaymentId, razorpaySignature },
+            userDetails: { name, phone, email },
+            entityId: partner._id
+        });
+
         Object.assign(partner, partnerData);
         partner.rejectionReason = null;
         partner.isActive = false;
         partner.isVerified = false;
+
+        // Associate created partner ID with payment log if paid
+        if (razorpayOrderId) {
+            const { OnboardingPaymentLog } = await import('../../../common/models/onboardingPaymentLog.model.js');
+            await OnboardingPaymentLog.updateOne(
+                { razorpayOrderId },
+                { $set: { entityId: partner._id } }
+            );
+        }
     } else {
         // Verify onboarding fee payment if required
         const { verifyAndConsumeOnboardingPayment } = await import('../../../common/services/onboardingFee.service.js');

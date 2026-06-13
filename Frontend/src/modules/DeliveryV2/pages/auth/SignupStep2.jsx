@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
 import { deliveryAPI, onboardingFeeAPI } from "@food/api"
 import { toast } from "sonner"
-import { initRazorpayPayment } from "@food/utils/razorpay"
+import { initRazorpayPayment, isFlutterWebView, handleFlutterRazorpayPayment } from "@food/utils/razorpay"
 import { openCamera, openGallery } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 
@@ -484,6 +484,41 @@ export default function SignupStep2() {
           formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`)
           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
           await submitRegistration({ isCompleteProfile, formData, navigate })
+
+        } else if (isFlutterWebView()) {
+          // ─── Native Flutter Razorpay SDK via JS bridge ─────────────────────
+          try {
+            setIsSubmitting(true)
+            const flutterResult = await handleFlutterRazorpayPayment({
+              key: orderData.keyId,
+              amount: orderData.amount, // Pass amount in Rupees directly to native SDK
+              currency: orderData.currency || "INR",
+              order_id: orderData.orderId,
+              name: "Onboarding Fee Payment",
+              description: `Onboarding fee for ${details.name}`,
+              prefill: {
+                name: details.name || "",
+                email: details.email || "",
+                contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
+              }
+            })
+
+            // Build fresh formData and append payment details
+            const formData = await buildFormData(details, documentsRef.current)
+            formData.append("razorpayOrderId", flutterResult.razorpay_order_id)
+            formData.append("razorpayPaymentId", flutterResult.razorpay_payment_id)
+            formData.append("razorpaySignature", flutterResult.razorpay_signature)
+            await submitRegistration({ isCompleteProfile, formData, navigate })
+          } catch (payErr) {
+            const msg = payErr?.message || "Payment failed or cancelled"
+            if (!/cancel/i.test(msg)) {
+              toast.error(msg)
+            } else {
+              toast.error("Payment cancelled. Payment is required to complete signup.")
+            }
+          } finally {
+            setIsSubmitting(false)
+          }
 
         } else {
           // Web browser: standard Razorpay modal — matching restaurant pattern exactly
