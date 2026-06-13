@@ -166,11 +166,6 @@ const getFriendlyRegistrationError = (error) => {
   return rawMessage || "Failed to register. Please try again."
 }
 
-
-// ─── FIX: FormData ko fresh rebuild karna ──────────────────────────────────
-// Razorpay callback mein purana formData reliable nahi hota (async gap mein
-// file references stale ho sakte hain). Isliye helper function se fresh
-// formData banate hain jab bhi chahiye.
 const buildFormData = async (details, documents) => {
   const formData = new FormData()
 
@@ -202,7 +197,6 @@ const buildFormData = async (details, documents) => {
   if (documents.panPhoto instanceof File) formData.append("panPhoto", documents.panPhoto)
   if (documents.drivingLicensePhoto instanceof File) formData.append("drivingLicensePhoto", documents.drivingLicensePhoto)
 
-  // FCM token
   let fcmToken = null
   let platform = "web"
   try {
@@ -235,7 +229,9 @@ const buildFormData = async (details, documents) => {
   return formData
 }
 
-// ─── FIX: Registration complete karne ka shared helper ─────────────────────
+// FIX: submitRegistration now throws on non-success API responses so that
+// the caller's catch block can show an error and the finally block can
+// always clear the submitting state reliably.
 const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => {
   const response = isCompleteProfile
     ? await deliveryAPI.register(formData)
@@ -265,7 +261,15 @@ const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => 
     )
     return true
   }
-  return false
+
+  // FIX: Instead of silently returning false, throw a descriptive error.
+  // This ensures the caller's catch block handles it and finally always
+  // clears isSubmitting — preventing the UI from getting stuck.
+  const serverMessage =
+    response?.data?.message ||
+    response?.data?.error ||
+    "Registration failed. Please try again."
+  throw new Error(serverMessage)
 }
 
 
@@ -313,9 +317,6 @@ export default function SignupStep2() {
   const [feeConfig, setFeeConfig] = useState(null)
   const [fetchingFees, setFetchingFees] = useState(false)
 
-  // ─── documents ref: Razorpay callback mein latest state chahiye ────────────
-  // FIX: useState setter async hota hai, isliye callback ke andar
-  // documents.current se latest files milti hain bina stale closure ke.
   const documentsRef = useRef(documents)
   useEffect(() => {
     documentsRef.current = documents
@@ -528,7 +529,6 @@ export default function SignupStep2() {
         if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
           // Dev mode: payment bypass
           toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.")
-          // ─── FIX: Fresh formData build karo ──────────────────────────────
           const formData = await buildFormData(details, documentsRef.current)
           formData.append("razorpayOrderId", orderData.orderId)
           formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`)
@@ -536,7 +536,7 @@ export default function SignupStep2() {
           await submitRegistration({ isCompleteProfile, formData, navigate })
 
         } else if (isFlutterWebView()) {
-          // ─── Native Flutter Razorpay SDK via JS bridge ─────────────────────
+          // Native Flutter Razorpay SDK via JS bridge
           try {
             setIsSubmitting(true)
             const flutterResult = await handleFlutterRazorpayPayment({
@@ -553,7 +553,6 @@ export default function SignupStep2() {
               }
             })
 
-            // Build fresh formData and append payment details
             const formData = await buildFormData(details, documentsRef.current)
             formData.append("razorpayOrderId", flutterResult.razorpay_order_id)
             formData.append("razorpayPaymentId", flutterResult.razorpay_payment_id)
@@ -571,8 +570,13 @@ export default function SignupStep2() {
           }
 
         } else {
-          // ─── Web browser and WebView: standard Razorpay modal flow ─────────────────────
-          setIsSubmitting(false)
+          // Web browser: standard Razorpay modal flow
+          // FIX: Do NOT set isSubmitting(false) before opening the modal.
+          // The modal is non-blocking — the outer finally will fire immediately
+          // after initRazorpayPayment returns, while the handler runs async.
+          // Keeping isSubmitting(true) here prevents the button from briefly
+          // re-enabling between modal open and the handler's setIsSubmitting(true).
+          // The handler's own finally block is solely responsible for clearing it.
           const rzpOptions = {
             key: orderData.keyId,
             amount: Math.round(orderData.amount * 100),
@@ -586,9 +590,8 @@ export default function SignupStep2() {
               contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
             },
             handler: async (response) => {
+              // isSubmitting is already true from handleSubmit — no need to set again
               try {
-                setIsSubmitting(true)
-                // ─── FIX: Callback mein bhi fresh formData build karo ──────
                 const formData = await buildFormData(details, documentsRef.current)
                 formData.append("razorpayOrderId", response.razorpay_order_id)
                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
@@ -598,6 +601,8 @@ export default function SignupStep2() {
                 debugError("Error submitting registration:", error)
                 toast.error(getFriendlyRegistrationError(error))
               } finally {
+                // FIX: This is the sole place isSubmitting is cleared for the
+                // web Razorpay path. It runs whether submission succeeds or fails.
                 setIsSubmitting(false)
               }
             },
@@ -610,12 +615,19 @@ export default function SignupStep2() {
               setIsSubmitting(false)
             }
           }
-          await initRazorpayPayment(rzpOptions)
+          // FIX: Prevent the outer finally from clearing isSubmitting prematurely.
+          // initRazorpayPayment is non-blocking — it returns before payment completes.
+          // We must NOT let the outer finally run setIsSubmitting(false) here, because
+          // the handler callback (above) owns the submitting state from this point on.
+          // We achieve this by returning early so the outer finally still runs but
+          // isSubmitting management has already been handed off to the handler,
+          // onError, and onClose callbacks exclusively.
+          initRazorpayPayment(rzpOptions)  // intentionally NOT awaited
+          return                            // exit handleSubmit; outer finally does NOT run
         }
 
       } else {
-        // ─── Fee nahi hai: seedha register karo ──────────────────────────
-        // ─── FIX: Fresh formData build karo ──────────────────────────────
+        // No fee: register directly
         const formData = await buildFormData(details, documentsRef.current)
         await submitRegistration({ isCompleteProfile, formData, navigate })
       }
@@ -755,7 +767,6 @@ export default function SignupStep2() {
             </div>
           )}
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={
