@@ -75,13 +75,13 @@ export const initRazorpayPayment = async (options) => {
       theme: {
         color: '#F26522'
       },
-      handler: function(response) {
+      handler: function (response) {
         if (options.handler) {
           options.handler(response);
         }
       },
       modal: {
-        ondismiss: function() {
+        ondismiss: function () {
           if (options.onClose) {
             options.onClose();
           }
@@ -97,14 +97,14 @@ export const initRazorpayPayment = async (options) => {
 
     const razorpay = new window.Razorpay(razorpayOptions);
 
-    razorpay.on('payment.failed', function(response) {
+    razorpay.on('payment.failed', function (response) {
       console.error('Razorpay payment failed:', response);
       if (options.onError) {
         options.onError(response.error || { description: 'Payment failed. Please try again.' });
       }
     });
 
-    razorpay.on('payment.method_selection_failed', function(response) {
+    razorpay.on('payment.method_selection_failed', function (response) {
       console.error('Razorpay payment method selection failed:', response);
       if (options.onError) {
         options.onError(response.error || { description: 'Please select another payment method.' });
@@ -119,7 +119,7 @@ export const initRazorpayPayment = async (options) => {
       amount: razorpayOptions.amount,
       order_id: razorpayOptions.order_id
     });
-
+    console.log("razor payapp", razorpay)
     return razorpay;
   } catch (error) {
     console.error('Error initializing Razorpay:', error);
@@ -156,13 +156,13 @@ export const initRazorpaySubscription = async (options) => {
       theme: {
         color: '#F26522'
       },
-      handler: function(response) {
+      handler: function (response) {
         if (options.handler) {
           options.handler(response);
         }
       },
       modal: {
-        ondismiss: function() {
+        ondismiss: function () {
           if (options.onClose) {
             options.onClose();
           }
@@ -175,7 +175,7 @@ export const initRazorpaySubscription = async (options) => {
     };
 
     const rzp = new window.Razorpay(razorpayOptions);
-    rzp.on('payment.failed', function(response) {
+    rzp.on('payment.failed', function (response) {
       console.error('Razorpay subscription payment failed:', response);
       if (options.onError) {
         options.onError(response.error || { description: 'Payment failed. Please try again.' });

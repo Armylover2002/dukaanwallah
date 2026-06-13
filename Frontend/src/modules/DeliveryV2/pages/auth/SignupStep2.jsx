@@ -231,6 +231,7 @@ const buildFormData = async (details, documents) => {
 }
 
 const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => {
+  console.log("is complite: app ", isCompleteProfile)
   const response = isCompleteProfile
     ? await deliveryAPI.register(formData)
     : await deliveryAPI.completeProfile(formData)
