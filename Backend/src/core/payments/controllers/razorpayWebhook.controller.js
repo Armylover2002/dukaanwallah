@@ -8,6 +8,7 @@ import { config } from '../../../config/env.js';
 import { logger } from '../../../utils/logger.js';
 import { ProcessedWebhookEvent } from '../models/processedWebhookEvent.model.js';
 import dayjs from 'dayjs';
+import { OnboardingPaymentLog } from '../../../modules/common/models/onboardingPaymentLog.model.js';
 
 import * as walletService from '../../../modules/food/subscriptions/services/wallet.service.js';
 
@@ -146,6 +147,26 @@ export const handleRazorpayWebhook = async (req, res) => {
             } else {
                 // ✅ ADDED: Log warn if order not found but payment was captured
                 logger.warn(`Webhook [payment.captured]: Order not found or already paid for RZ-Order: ${rzOrderId}`);
+            }
+
+            // 📂 CASE C: Onboarding Payment
+            const onboardingLog = await OnboardingPaymentLog.findOneAndUpdate(
+                { 
+                    razorpayOrderId: rzOrderId,
+                    status: { $ne: 'success' }
+                },
+                { 
+                    $set: { 
+                        status: 'success', 
+                        razorpayPaymentId: rzPaymentId,
+                        razorpaySignature: 'webhook_verified'
+                    } 
+                },
+                { new: true }
+            );
+
+            if (onboardingLog) {
+                logger.info(`Webhook [payment.captured]: Synced Onboarding Payment Log for Order ${rzOrderId} (Status=success)`);
             }
         }
 

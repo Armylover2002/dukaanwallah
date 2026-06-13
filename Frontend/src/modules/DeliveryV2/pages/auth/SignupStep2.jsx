@@ -485,8 +485,12 @@ export default function SignupStep2() {
         }
 
         if (orderData.isMock || orderData.orderId.startsWith("mock_ord_")) {
-          // Dev mode: payment bypass
-          toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.")
+          // Dev mode or already-paid payment bypass
+          if (orderData.alreadyPaid) {
+            toast.success("Payment verified successfully. Submitting registration...")
+          } else {
+            toast.success("Developer Mode: Payment bypassed. Submitting mock payment details.")
+          }
           const formData = await buildFormData(details, documentsRef.current)
           formData.append("razorpayOrderId", orderData.orderId)
           formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`)
@@ -498,7 +502,7 @@ export default function SignupStep2() {
           //
           // IMPORTANT: Do NOT await initRazorpayPayment and do NOT let the
           // outer try/finally clear isSubmitting here. In the wrapped
-          // (Flutter webview) app, the Razorpay checkout flow does not
+          // (webview) app, the Razorpay checkout flow does not
           // resolve a JS promise in lockstep with the user finishing
           // payment — awaiting it here causes the outer `finally` to run
           // too early, which:
@@ -512,6 +516,7 @@ export default function SignupStep2() {
           // handler / onError / onClose callbacks below are the ONLY
           // places that toggle isSubmitting for this path, and we
           // `return` early so the outer `finally` does not run.
+          let paymentSucceeded = false;
           const rzpOptions = {
             key: orderData.keyId,
             // Delivery backend's orderData.amount is already in paise, so use
@@ -528,6 +533,7 @@ export default function SignupStep2() {
               contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
             },
             handler: async (response) => {
+              paymentSucceeded = true;
               debugLog("Razorpay handler fired. Payment response:", JSON.stringify(response))
               try {
                 const formData = await buildFormData(details, documentsRef.current)
@@ -542,15 +548,10 @@ export default function SignupStep2() {
                 debugLog("submitRegistration completed successfully, navigating...")
               } catch (err) {
                 debugError("Error submitting registration after payment:", err)
-                // Extra diagnostics: log the raw Razorpay response and the
-                // backend's error payload so we can see WHY register/
-                // completeProfile failed (e.g. signature mismatch, amount
-                // mismatch, validation error, payment still "pending" etc.)
                 debugError("Razorpay response was:", JSON.stringify(response))
                 debugError("Server error response:", JSON.stringify(err?.response?.data))
                 debugError("Server error status:", err?.response?.status)
                 toast.error(getFriendlyRegistrationError(err))
-              } finally {
                 setIsSubmitting(false)
               }
             },
@@ -560,6 +561,10 @@ export default function SignupStep2() {
               setIsSubmitting(false)
             },
             onClose: () => {
+              if (paymentSucceeded) {
+                debugLog("Razorpay onClose callback skipped because payment was marked as success")
+                return;
+              }
               toast.error("Payment modal closed. Payment is required to complete signup.")
               setIsSubmitting(false)
             }
