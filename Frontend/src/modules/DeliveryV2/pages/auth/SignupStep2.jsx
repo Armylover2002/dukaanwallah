@@ -535,6 +535,41 @@ export default function SignupStep2() {
           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
           await submitRegistration({ isCompleteProfile, formData, navigate })
 
+        } else if (isFlutterWebView()) {
+          // ─── Native Flutter Razorpay SDK via JS bridge ─────────────────────
+          try {
+            setIsSubmitting(true)
+            const flutterResult = await handleFlutterRazorpayPayment({
+              key: orderData.keyId,
+              amount: Math.round(orderData.amount * 100),
+              currency: orderData.currency || "INR",
+              order_id: orderData.orderId,
+              name: "Onboarding Fee Payment",
+              description: `Onboarding fee for ${details.name}`,
+              prefill: {
+                name: details.name || "",
+                email: details.email || "",
+                contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
+              }
+            })
+
+            // Build fresh formData and append payment details
+            const formData = await buildFormData(details, documentsRef.current)
+            formData.append("razorpayOrderId", flutterResult.razorpay_order_id)
+            formData.append("razorpayPaymentId", flutterResult.razorpay_payment_id)
+            formData.append("razorpaySignature", flutterResult.razorpay_signature)
+            await submitRegistration({ isCompleteProfile, formData, navigate })
+          } catch (payErr) {
+            const msg = payErr?.message || "Payment failed or cancelled"
+            if (!/cancel/i.test(msg)) {
+              toast.error(msg)
+            } else {
+              toast.error("Payment cancelled. Payment is required to complete signup.")
+            }
+          } finally {
+            setIsSubmitting(false)
+          }
+
         } else {
           // ─── Web browser and WebView: standard Razorpay modal flow ─────────────────────
           setIsSubmitting(false)

@@ -71,6 +71,7 @@ export async function verifyAndConsumeOnboardingPayment({ role, paymentDetails =
             { razorpayOrderId },
             {
                 $set: {
+                    role,
                     status: 'failed',
                     razorpayPaymentId,
                     razorpaySignature,
@@ -87,6 +88,7 @@ export async function verifyAndConsumeOnboardingPayment({ role, paymentDetails =
         { razorpayOrderId },
         {
             $set: {
+                role,
                 status: 'success',
                 razorpayPaymentId,
                 razorpaySignature,

@@ -464,6 +464,15 @@ export const registerRestaurant = async (payload, files, authUserId) => {
 
         if (existingRestaurant) {
             if (existingRestaurant.status === 'rejected') {
+                // Verify onboarding fee payment if required for re-onboarding
+                const { verifyAndConsumeOnboardingPayment } = await import('../../../common/services/onboardingFee.service.js');
+                await verifyAndConsumeOnboardingPayment({
+                    role: 'RESTAURANT',
+                    paymentDetails: { razorpayOrderId, razorpayPaymentId, razorpaySignature },
+                    userDetails: { name: ownerName, phone: ownerPhoneDigits, email: ownerEmail },
+                    entityId: existingRestaurant._id
+                });
+
                 Object.assign(existingRestaurant, restaurantData);
                 existingRestaurant.status = 'pending';
                 existingRestaurant.approvalStatus = 'pending';
@@ -568,10 +577,11 @@ export const registerRestaurant = async (payload, files, authUserId) => {
             };
         });
 
-        await FoodRestaurantOutletTimings.create({
-            restaurantId: restaurant._id,
-            timings: timingsArray
-        });
+        await FoodRestaurantOutletTimings.findOneAndUpdate(
+            { restaurantId: restaurant._id },
+            { $set: { timings: timingsArray } },
+            { upsert: true, new: true }
+        );
 
         try {
             const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
