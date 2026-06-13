@@ -231,7 +231,7 @@ const buildFormData = async (details, documents) => {
 }
 
 const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => {
-  console.log("is complite 4: app ", isCompleteProfile)
+  console.log(`is complite 4: app ", ${isCompleteProfile}`)
   const response = isCompleteProfile
     ? await deliveryAPI.register(formData)
     : await deliveryAPI.completeProfile(formData)
@@ -485,7 +485,8 @@ export default function SignupStep2() {
           formData.append("razorpayPaymentId", `mock_pay_${Date.now()}`)
           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
           await submitRegistration({ isCompleteProfile, formData, navigate })
-          console.log("iscomplete1:", isCompleteProfile)
+          console.log(`is complite 2: app , ${isCompleteProfile}`)
+
 
         } else {
           // Web browser: standard Razorpay modal
@@ -544,7 +545,8 @@ export default function SignupStep2() {
                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
                 formData.append("razorpaySignature", response.razorpay_signature)
                 await submitRegistration({ isCompleteProfile, formData, navigate })
-                console.log("iscomplete2:", isCompleteProfile)
+                console.log(`is complite 2: app , ${isCompleteProfile}`)
+
 
               } catch (err) {
                 debugError("Error submitting registration after payment:", err)
@@ -576,7 +578,8 @@ export default function SignupStep2() {
         // No fee: register directly
         const formData = await buildFormData(details, documentsRef.current)
         await submitRegistration({ isCompleteProfile, formData, navigate })
-        console.log("iscomplete3:", isCompleteProfile)
+        console.log(`is complite 3: app , ${isCompleteProfile}`)
+
 
       }
     } catch (error) {
