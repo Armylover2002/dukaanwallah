@@ -44,9 +44,7 @@ export const loadRazorpayScript = () => {
  * @param {String} options.order_id - Razorpay order ID
  * @param {String} options.name - Company/App name
  * @param {String} options.description - Payment description
- * @param {String} options.prefill.name - Customer name
- * @param {String} options.prefill.email - Customer email
- * @param {String} options.prefill.contact - Customer phone
+ * @param {Object} options.prefill - Customer prefill info
  * @param {Object} options.notes - Additional notes
  * @param {Function} options.handler - Success callback
  * @param {Function} options.onError - Error callback
@@ -54,7 +52,6 @@ export const loadRazorpayScript = () => {
  */
 export const initRazorpayPayment = async (options) => {
   try {
-    // Load Razorpay script if not already loaded
     await loadRazorpayScript();
 
     if (!window.Razorpay) {
@@ -89,11 +86,9 @@ export const initRazorpayPayment = async (options) => {
             options.onClose();
           }
         },
-        // Ensure modal is clickable
         escape: true,
         animation: true
       },
-      // Ensure proper z-index
       retry: {
         enabled: true,
         max_count: 3
@@ -101,8 +96,7 @@ export const initRazorpayPayment = async (options) => {
     };
 
     const razorpay = new window.Razorpay(razorpayOptions);
-    
-    // Handle payment failures
+
     razorpay.on('payment.failed', function(response) {
       console.error('Razorpay payment failed:', response);
       if (options.onError) {
@@ -110,7 +104,6 @@ export const initRazorpayPayment = async (options) => {
       }
     });
 
-    // Handle payment method selection failures
     razorpay.on('payment.method_selection_failed', function(response) {
       console.error('Razorpay payment method selection failed:', response);
       if (options.onError) {
@@ -118,9 +111,8 @@ export const initRazorpayPayment = async (options) => {
       }
     });
 
-    // Open Razorpay modal
     razorpay.open();
-    
+
     console.log('✅ Razorpay checkout opened successfully');
     console.log('Razorpay options:', {
       key: razorpayOptions.key ? 'Present' : 'Missing',
@@ -139,8 +131,8 @@ export const initRazorpayPayment = async (options) => {
 };
 
 /**
- * ✅ NEW: Initialize Razorpay Subscription checkout
- * @param {Object} options 
+ * Initialize Razorpay Subscription checkout
+ * @param {Object} options
  */
 export const initRazorpaySubscription = async (options) => {
   try {
@@ -232,12 +224,11 @@ export const isFlutterWebView = () => {
  * Strategy:
  *  1. Register global JS callbacks so Flutter can call back on success/failure.
  *  2. Listen to window.postMessage for apps that use that channel instead.
- *  3. Race each possible handler name against a 600 ms timeout.
- *     - If the race resolves (handler registered + returned immediately) → invoked.
- *     - If the race times out → handler not registered, try next name.
- *  4. Also attach a .then() on the raw callPromise so a handler that resolves
- *     AFTER payment completion (long-lived promise) is still captured.
- *  5. After invoking any handler, wait up to 5 minutes for the payment result.
+ *  3. Try each possible handler name, race against 1500ms timeout.
+ *     - If a handler responds quickly → it accepted the call → wait up to 10 min.
+ *     - If ALL handlers timeout → no native SDK registered → fall back to web checkout.
+ *  4. The web checkout fallback ensures payment always works even if Flutter app
+ *     doesn't implement the native Razorpay handler.
  *
  * @param {Object} rzpOptions - Same shape as initRazorpayPayment options
  * @returns {Promise<{razorpay_payment_id, razorpay_order_id, razorpay_signature}>}
@@ -245,7 +236,7 @@ export const isFlutterWebView = () => {
 export const handleFlutterRazorpayPayment = (rzpOptions) => {
   return new Promise((resolve, reject) => {
     try {
-      // Build payload with both snake_case and camelCase keys for compatibility
+      // Build payload with both snake_case and camelCase keys for Flutter app compatibility
       const payload = {
         key: rzpOptions.key,
         order_id: rzpOptions.order_id,
@@ -289,11 +280,13 @@ export const handleFlutterRazorpayPayment = (rzpOptions) => {
         if (settled) return;
         settled = true;
         cleanup();
-        const msg = (typeof err === 'string' ? err : err?.error?.description || err?.description || err?.message) || 'Payment failed or cancelled';
+        const msg = (typeof err === 'string'
+          ? err
+          : err?.error?.description || err?.description || err?.message) || 'Payment failed or cancelled';
         reject(new Error(msg));
       };
 
-      // Register global callbacks Flutter can call after native payment
+      // Register global callbacks Flutter can call after native payment completes
       const handleSuccess = (result) => finishSuccess(result);
       const handleFailure = (err) => finishFailure(err);
       ['onRazorpaySuccess', 'onRazorpayPaymentSuccess', 'onPaymentSuccess', 'razorpayPaymentSuccess']
@@ -319,7 +312,7 @@ export const handleFlutterRazorpayPayment = (rzpOptions) => {
       };
       window.addEventListener('message', handleMessage);
 
-      // Try each possible Flutter handler name
+      // List of possible Flutter handler names to try
       const handlerNames = [
         'initRazorpayPayment',
         'initRazorpay',
@@ -332,57 +325,94 @@ export const handleFlutterRazorpayPayment = (rzpOptions) => {
       ];
 
       const tryHandlers = async () => {
-        let invoked = false;
-
         for (const handlerName of handlerNames) {
           if (settled) return;
 
           try {
             const callPromise = window.flutter_inappwebview.callHandler(handlerName, payload);
 
-            // Attach listener for handlers that resolve AFTER payment (long-lived)
+            // Attach listener for handlers that resolve AFTER payment (long-lived promise pattern)
             callPromise.then((res) => {
               if (res && typeof res === 'object') {
                 const paymentId = res.razorpay_payment_id || res.paymentId || res.payment_id;
                 if (paymentId) finishSuccess(res);
                 else if (res.error || res.cancelled) finishFailure(res.error || 'Payment cancelled');
               }
-            }).catch(() => { /* handled below */ });
+            }).catch(() => { /* handled in loop below */ });
 
-            // Race against 600 ms — if it times out the handler is not registered
+            // Race against 1500ms — if it times out, this handler name is not registered
             const result = await Promise.race([
               callPromise,
-              new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 600)),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1500)),
             ]);
 
-            invoked = true;
+            if (settled) return;
 
+            // Handler responded quickly → it accepted the call
             if (result && typeof result === 'object') {
               const paymentId = result.razorpay_payment_id || result.paymentId || result.payment_id;
               if (paymentId) { finishSuccess(result); return; }
               if (result.error || result.cancelled) { finishFailure(result.error || 'Payment cancelled'); return; }
             }
 
-            // Handler responded quickly (void/null) — it accepted the call
-            break;
+            // Handler returned void/null → it accepted the payment, native UI is open
+            // Wait up to 10 minutes for the payment to complete via callback
+            timeoutId = setTimeout(() => {
+              finishFailure(new Error('Payment timed out. Please try again.'));
+            }, 10 * 60 * 1000);
+            return; // Stop trying more handlers
 
           } catch (err) {
-            if (err.message === 'timeout') continue; // not registered, try next
-            // Handler explicitly rejected
+            if (err.message === 'timeout') {
+              continue; // handler not registered, try next name
+            }
             console.warn(`[Razorpay Flutter] Handler "${handlerName}" rejected:`, err);
           }
         }
 
         if (settled) return;
 
-        if (!invoked) {
-          console.warn('[Razorpay Flutter] No handler found quickly — waiting for async callback.');
-        }
+        // ─── No Flutter native Razorpay handler found ─────────────────────
+        // Fallback: open standard web Razorpay checkout inside the WebView.
+        // This is the safe path for Flutter apps without native Razorpay SDK.
+        console.warn('[Razorpay Flutter] No native handler found. Falling back to web checkout.');
+        cleanup(); // remove global listeners before opening web checkout
 
-        // Safety timeout: 5 minutes for the user to complete payment
-        timeoutId = setTimeout(() => {
-          finishFailure(new Error('Payment timed out. Please try again.'));
-        }, 5 * 60 * 1000);
+        try {
+          await loadRazorpayScript();
+          if (!window.Razorpay) throw new Error('Razorpay web SDK unavailable');
+
+          const rzp = new window.Razorpay({
+            key: rzpOptions.key,
+            amount: rzpOptions.amount,
+            currency: rzpOptions.currency || 'INR',
+            order_id: rzpOptions.order_id,
+            name: rzpOptions.name || 'Payment',
+            description: rzpOptions.description || '',
+            prefill: rzpOptions.prefill || {},
+            notes: rzpOptions.notes || {},
+            theme: { color: '#F26522' },
+            retry: { enabled: true, max_count: 3 },
+            handler: (response) => {
+              resolve({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id || rzpOptions.order_id,
+                razorpay_signature: response.razorpay_signature || '',
+              });
+            },
+            modal: {
+              ondismiss: () => reject(new Error('Payment cancelled')),
+              escape: true,
+              animation: true,
+            },
+          });
+          rzp.on('payment.failed', (resp) => {
+            reject(new Error(resp?.error?.description || 'Payment failed'));
+          });
+          rzp.open();
+        } catch (webErr) {
+          reject(new Error('Payment unavailable. Please try again.'));
+        }
       };
 
       tryHandlers();

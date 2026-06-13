@@ -86,14 +86,7 @@ export default defineConfig({
             return 'vendor-ui-utils'
           }
 
-          // ── MUI Date Pickers (very large — separate chunk) ──────────────
-          if (id.includes('node_modules/@mui/x-date-pickers/') ||
-              id.includes('node_modules/@mui/x-tree-view/') ||
-              id.includes('node_modules/@mui/lab/')) {
-            return 'vendor-mui-pickers'
-          }
-
-          // ── MUI Core + Emotion ──────────────────────────────────────────
+          // ── MUI Core + Emotion + Date Pickers (must be one chunk — circular deps) ───
           if (id.includes('node_modules/@mui/') ||
               id.includes('node_modules/@emotion/')) {
             return 'vendor-mui'
