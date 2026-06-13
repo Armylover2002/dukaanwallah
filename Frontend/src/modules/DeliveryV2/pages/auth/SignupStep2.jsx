@@ -535,48 +535,8 @@ export default function SignupStep2() {
           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
           await submitRegistration({ isCompleteProfile, formData, navigate })
 
-        } else if (isFlutterWebView()) {
-          // ─── FIX: Flutter app mein native Razorpay SDK use karo ──────────
-          // Web Razorpay modal Flutter WebView mein kaam nahi karta.
-          // Flutter ko payment request bhejo, woh native SDK se karega.
-          setIsSubmitting(false)
-          try {
-            const paymentResult = await handleFlutterRazorpayPayment({
-              key: orderData.keyId,
-              order_id: orderData.orderId,
-              amount: Math.round(orderData.amount * 100),
-              currency: orderData.currency || "INR",
-              name: "Onboarding Fee Payment",
-              description: `Onboarding fee for ${details.name}`,
-              prefill: {
-                name: details.name || "",
-                email: details.email || "",
-                contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
-              }
-            })
-
-            // Payment success - ab registration karo
-            setIsSubmitting(true)
-            // ─── FIX: Fresh formData build karo payment ke baad ────────────
-            const formData = await buildFormData(details, documentsRef.current)
-            formData.append("razorpayOrderId", paymentResult.razorpay_order_id || orderData.orderId)
-            formData.append("razorpayPaymentId", paymentResult.razorpay_payment_id)
-            formData.append("razorpaySignature", paymentResult.razorpay_signature)
-            await submitRegistration({ isCompleteProfile, formData, navigate })
-
-          } catch (payErr) {
-            const msg = payErr?.message || "Payment failed or cancelled"
-            if (/cancel/i.test(msg)) {
-              toast.error("Payment cancelled. Payment is required to complete signup.")
-            } else {
-              toast.error(msg)
-            }
-          } finally {
-            setIsSubmitting(false)
-          }
-
         } else {
-          // ─── Web browser: purana Razorpay modal flow ─────────────────────
+          // ─── Web browser and WebView: standard Razorpay modal flow ─────────────────────
           setIsSubmitting(false)
           const rzpOptions = {
             key: orderData.keyId,
