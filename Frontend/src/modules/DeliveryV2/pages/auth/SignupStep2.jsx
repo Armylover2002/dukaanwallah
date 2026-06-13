@@ -16,68 +16,104 @@ const STORE_NAME = "documents"
 
 let cachedDB = null
 const initDB = () => {
+  console.log("🔍 [initDB] starting...");
   return new Promise((resolve) => {
-    if (cachedDB) {
-      return resolve(cachedDB)
-    }
-    if (typeof indexedDB === 'undefined' || !indexedDB) {
-      return resolve(null)
-    }
-    const timeoutId = setTimeout(() => resolve(null), 2000)
     try {
-      const request = indexedDB.open(DB_NAME, 1)
+      if (cachedDB) {
+        console.log("🔍 [initDB] using cachedDB");
+        return resolve(cachedDB);
+      }
+      if (typeof window === 'undefined' || !window.indexedDB) {
+        console.log("🔍 [initDB] window.indexedDB not supported or window undefined");
+        return resolve(null);
+      }
+      const timeoutId = setTimeout(() => {
+        console.log("🔍 [initDB] connection timed out (2000ms)");
+        resolve(null);
+      }, 2000);
+
+      console.log("🔍 [initDB] opening indexedDB...");
+      const request = window.indexedDB.open(DB_NAME, 1);
       request.onupgradeneeded = (e) => {
-        const db = e.target.result
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME)
+        console.log("🔍 [initDB] upgrading database...");
+        try {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        } catch (err) {
+          console.error("🔍 [initDB] error during upgrade:", err);
         }
-      }
+      };
       request.onsuccess = (e) => {
-        clearTimeout(timeoutId)
-        cachedDB = e.target.result
-        resolve(cachedDB)
-      }
-      request.onerror = () => {
-        clearTimeout(timeoutId)
-        resolve(null)
-      }
+        console.log("🔍 [initDB] open success");
+        clearTimeout(timeoutId);
+        cachedDB = e.target.result;
+        resolve(cachedDB);
+      };
+      request.onerror = (err) => {
+        console.error("🔍 [initDB] open error event:", err);
+        clearTimeout(timeoutId);
+        resolve(null);
+      };
     } catch (e) {
-      clearTimeout(timeoutId)
-      resolve(null)
+      console.error("🔍 [initDB] synchronous exception caught:", e);
+      resolve(null);
     }
-  })
+  });
 }
 
 const saveFileToDB = async (key, file) => {
-  const db = await initDB()
-  if (!db) return
-  return new Promise((resolve) => {
-    try {
-      const transaction = db.transaction(STORE_NAME, "readwrite")
-      const store = transaction.objectStore(STORE_NAME)
-      store.put(file, key)
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = () => resolve()
-    } catch (e) {
-      resolve()
-    }
-  })
+  try {
+    const db = await initDB()
+    if (!db) return
+    return new Promise((resolve) => {
+      try {
+        const transaction = db.transaction(STORE_NAME, "readwrite")
+        const store = transaction.objectStore(STORE_NAME)
+        store.put(file, key)
+        transaction.oncomplete = () => resolve()
+        transaction.onerror = () => resolve()
+      } catch (e) {
+        resolve()
+      }
+    })
+  } catch (err) {
+    return
+  }
 }
 
 const getFileFromDB = async (key) => {
-  const db = await initDB()
-  if (!db) return null
-  return new Promise((resolve) => {
-    try {
-      const transaction = db.transaction(STORE_NAME, "readonly")
-      const store = transaction.objectStore(STORE_NAME)
-      const request = store.get(key)
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => resolve(null)
-    } catch (e) {
-      resolve(null)
+  console.log(`🔍 [getFileFromDB] starting for key: ${key}`);
+  try {
+    const db = await initDB();
+    if (!db) {
+      console.log(`🔍 [getFileFromDB] no db instance, returning null for key: ${key}`);
+      return null;
     }
-  })
+    console.log(`🔍 [getFileFromDB] db instance exists, creating transaction for key: ${key}`);
+    return new Promise((resolve) => {
+      try {
+        const transaction = db.transaction(STORE_NAME, "readonly")
+        const store = transaction.objectStore(STORE_NAME)
+        const request = store.get(key)
+        request.onsuccess = () => {
+          console.log(`🔍 [getFileFromDB] get success for key: ${key}`);
+          resolve(request.result);
+        }
+        request.onerror = (err) => {
+          console.error(`🔍 [getFileFromDB] get error for key: ${key}:`, err);
+          resolve(null);
+        }
+      } catch (e) {
+        console.error(`🔍 [getFileFromDB] transaction/store exception for key: ${key}:`, e);
+        resolve(null);
+      }
+    })
+  } catch (err) {
+    console.error(`🔍 [getFileFromDB] outer catch exception for key: ${key}:`, err);
+    return null;
+  }
 }
 
 const removeFileFromDB = async (key) => {
@@ -207,7 +243,11 @@ const buildFormData = async (details, documents) => {
         const handlerNames = ["getFcmToken", "getFCMToken", "getPushToken", "getFirebaseToken"]
         for (const handlerName of handlerNames) {
           try {
-            const t = await window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" })
+            // Promise.race prevents execution from hanging if the handler is not registered
+            const t = await Promise.race([
+              window.flutter_inappwebview.callHandler(handlerName, { module: "delivery" }),
+              new Promise((resolve) => setTimeout(() => resolve(null), 800))
+            ])
             if (t && typeof t === "string" && t.length > 20) {
               fcmToken = t.trim()
               break
