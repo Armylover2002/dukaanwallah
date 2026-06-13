@@ -282,6 +282,7 @@ const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => 
     sessionStorage.removeItem("deliverySignupDetails")
     sessionStorage.removeItem("deliverySignupDocs")
     sessionStorage.removeItem("deliveryIsRejected")
+    sessionStorage.removeItem("deliveryPaymentSuccessData")
     clearDB()
 
     const pendingPhone = `${details.countryCode || "+91"} ${String(details.phone || "").replace(/\D/g, "").slice(0, 15)}`.trim()
@@ -352,6 +353,17 @@ export default function SignupStep2() {
   const [uploading, setUploading] = useState({})
   const [feeConfig, setFeeConfig] = useState(null)
   const [fetchingFees, setFetchingFees] = useState(false)
+  const [paymentSuccessData, setPaymentSuccessData] = useState(() => {
+    const saved = sessionStorage.getItem("deliveryPaymentSuccessData")
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  })
 
   const documentsRef = useRef(documents)
   useEffect(() => {
@@ -508,6 +520,18 @@ export default function SignupStep2() {
 
     setIsSubmitting(true)
     try {
+      if (paymentSuccessData) {
+        toast.info("Using previously completed payment details.")
+        const formData = await buildFormData(details, documentsRef.current)
+        formData.append("razorpayOrderId", paymentSuccessData.razorpayOrderId)
+        formData.append("razorpayPaymentId", paymentSuccessData.razorpayPaymentId)
+        formData.append("razorpaySignature", paymentSuccessData.razorpaySignature)
+
+        await submitRegistration({ isCompleteProfile, formData, navigate })
+        setIsSubmitting(false)
+        return
+      }
+
       if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
         const orderRes = await onboardingFeeAPI.createOrder({
           role: "DELIVERY_PARTNER",
@@ -548,6 +572,14 @@ export default function SignupStep2() {
             handler: async (response) => {
               try {
                 setIsSubmitting(true)
+                const payData = {
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature
+                }
+                setPaymentSuccessData(payData)
+                sessionStorage.setItem("deliveryPaymentSuccessData", JSON.stringify(payData))
+
                 const formData = await buildFormData(details, documentsRef.current)
                 formData.append("razorpayOrderId", response.razorpay_order_id)
                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
@@ -608,7 +640,8 @@ export default function SignupStep2() {
             <button
               type="button"
               onClick={() => handleRemove(docType)}
-              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+              disabled={isSubmitting}
+              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <X className="w-4 h-4" />
             </button>
@@ -639,7 +672,8 @@ export default function SignupStep2() {
                 <button
                   type="button"
                   onClick={() => handleTakeCameraPhoto(docType, label)}
-                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 text-white text-xs font-bold cursor-pointer hover:bg-black transition-all active:scale-95"
+                  disabled={isSubmitting}
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 text-white text-xs font-bold cursor-pointer hover:bg-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Camera className="w-4 h-4" />
                   <span>Take Photo</span>
@@ -647,7 +681,8 @@ export default function SignupStep2() {
                 <button
                   type="button"
                   onClick={() => handlePickFromGallery(docType)}
-                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#00B761] text-white text-xs font-bold cursor-pointer hover:bg-[#00A055] transition-all active:scale-95"
+                  disabled={isSubmitting}
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#00B761] text-white text-xs font-bold cursor-pointer hover:bg-[#00A055] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ImageIcon className="w-4 h-4" />
                   <span>Gallery</span>
@@ -672,7 +707,7 @@ export default function SignupStep2() {
                 }
                 e.target.value = ""
               }}
-              disabled={isUploading}
+              disabled={isUploading || isSubmitting}
             />
           </div>
         )}

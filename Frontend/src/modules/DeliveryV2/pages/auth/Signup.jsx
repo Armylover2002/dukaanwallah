@@ -161,6 +161,7 @@ export default function DeliverySignup() {
         ref: String(searchParams.get("ref") || "").trim() || undefined,
       }
       sessionStorage.setItem("deliverySignupDetails", JSON.stringify(signupDetails))
+      sessionStorage.removeItem("deliveryPaymentSuccessData")
       clearModuleAuth("delivery")
 
       navigate("/food/delivery/signup/details")
