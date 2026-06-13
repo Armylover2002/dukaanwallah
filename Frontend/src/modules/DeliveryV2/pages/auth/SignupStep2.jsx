@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
 import { deliveryAPI, onboardingFeeAPI } from "@food/api"
 import { toast } from "sonner"
-import { initRazorpayPayment, isFlutterWebView, handleFlutterRazorpayPayment } from "@food/utils/razorpay"
-import { isFlutterBridgeAvailable, openCamera, openGallery } from "@food/utils/imageUploadUtils"
+import { initRazorpayPayment } from "@food/utils/razorpay"
+import { openCamera, openGallery } from "@food/utils/imageUploadUtils"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
+
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }
@@ -229,9 +230,6 @@ const buildFormData = async (details, documents) => {
   return formData
 }
 
-// FIX: submitRegistration now throws on non-success API responses so that
-// the caller's catch block can show an error and the finally block can
-// always clear the submitting state reliably.
 const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => {
   const response = isCompleteProfile
     ? await deliveryAPI.register(formData)
@@ -262,9 +260,6 @@ const submitRegistration = async ({ isCompleteProfile, formData, navigate }) => 
     return true
   }
 
-  // FIX: Instead of silently returning false, throw a descriptive error.
-  // This ensures the caller's catch block handles it and finally always
-  // clears isSubmitting — preventing the UI from getting stuck.
   const serverMessage =
     response?.data?.message ||
     response?.data?.error ||
@@ -284,9 +279,6 @@ export default function SignupStep2() {
     }
   } catch (e) { }
   const isDlOptional = signupDetails.vehicleType === "bicycle" || signupDetails.vehicleType === "electric_bike"
-  const isMobileDevice =
-    typeof navigator !== "undefined" &&
-    /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || "")
   const fileInputRefs = useRef({
     profilePhoto: null,
     aadharPhoto: null,
@@ -310,10 +302,8 @@ export default function SignupStep2() {
     }
     return createEmptyUploadedDocs()
   })
-  const [activePicker, setActivePicker] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploading, setUploading] = useState({})
-  const [restoring, setRestoring] = useState({})
   const [feeConfig, setFeeConfig] = useState(null)
   const [fetchingFees, setFetchingFees] = useState(false)
 
@@ -349,41 +339,6 @@ export default function SignupStep2() {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
     document.documentElement.scrollTop = 0
     document.body.scrollTop = 0
-
-    const loadSavedFiles = async () => {
-      const docTypes = ["profilePhoto", "aadharPhoto", "panPhoto", "drivingLicensePhoto"]
-      const restored = {}
-      let hasRestored = false
-
-      setRestoring(Object.fromEntries(docTypes.map(t => [t, true])))
-
-      const safetyTimer = setTimeout(() => {
-        setRestoring({})
-      }, 4000)
-
-      try {
-        await Promise.all(
-          docTypes.map(async (type) => {
-            const file = await getFileFromDB(type)
-            if (file && (file instanceof File || file instanceof Blob)) {
-              const restoredFile = file instanceof File ? file : new File([file], `${type}.jpg`, { type: file.type || "image/jpeg" })
-              restored[type] = restoredFile
-              hasRestored = true
-            }
-          })
-        )
-      } catch (e) {
-        debugError("Error loading saved files from DB:", e)
-      } finally {
-        clearTimeout(safetyTimer)
-        setRestoring({})
-      }
-
-      if (hasRestored) {
-        setDocuments(prev => ({ ...prev, ...restored }))
-      }
-    }
-    loadSavedFiles()
   }, [])
 
   useEffect(() => {
@@ -416,10 +371,6 @@ export default function SignupStep2() {
       return localFile._previewUrl
     }
     return null
-  }
-
-  const handleOpenUploadOptions = (docType) => {
-    fileInputRefs.current[docType]?.click()
   }
 
   const handleFileSelect = async (docType, file) => {
@@ -510,7 +461,6 @@ export default function SignupStep2() {
     const isCompleteProfile = sessionStorage.getItem("deliveryNeedsRegistration") === "true"
 
     setIsSubmitting(true)
-
     try {
       if (feeConfig && feeConfig.isActive && feeConfig.price > 0) {
         // Payment required path
@@ -535,48 +485,10 @@ export default function SignupStep2() {
           formData.append("razorpaySignature", `mock_sig_${Date.now()}`)
           await submitRegistration({ isCompleteProfile, formData, navigate })
 
-        } else if (isFlutterWebView()) {
-          // Native Flutter Razorpay SDK via JS bridge
-          try {
-            setIsSubmitting(true)
-            const flutterResult = await handleFlutterRazorpayPayment({
-              key: orderData.keyId,
-              amount: Math.round(orderData.amount * 100),
-              currency: orderData.currency || "INR",
-              order_id: orderData.orderId,
-              name: "Onboarding Fee Payment",
-              description: `Onboarding fee for ${details.name}`,
-              prefill: {
-                name: details.name || "",
-                email: details.email || "",
-                contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
-              }
-            })
-
-            const formData = await buildFormData(details, documentsRef.current)
-            formData.append("razorpayOrderId", flutterResult.razorpay_order_id)
-            formData.append("razorpayPaymentId", flutterResult.razorpay_payment_id)
-            formData.append("razorpaySignature", flutterResult.razorpay_signature)
-            await submitRegistration({ isCompleteProfile, formData, navigate })
-          } catch (payErr) {
-            const msg = payErr?.message || "Payment failed or cancelled"
-            if (!/cancel/i.test(msg)) {
-              toast.error(msg)
-            } else {
-              toast.error("Payment cancelled. Payment is required to complete signup.")
-            }
-          } finally {
-            setIsSubmitting(false)
-          }
-
         } else {
-          // Web browser: standard Razorpay modal flow
-          // FIX: Do NOT set isSubmitting(false) before opening the modal.
-          // The modal is non-blocking — the outer finally will fire immediately
-          // after initRazorpayPayment returns, while the handler runs async.
-          // Keeping isSubmitting(true) here prevents the button from briefly
-          // re-enabling between modal open and the handler's setIsSubmitting(true).
-          // The handler's own finally block is solely responsible for clearing it.
+          // Web browser: standard Razorpay modal — matching restaurant pattern exactly
+          // setSaving(false) before opening modal so UI is interactive while modal is open
+          setIsSubmitting(false)
           const rzpOptions = {
             key: orderData.keyId,
             amount: Math.round(orderData.amount * 100),
@@ -590,19 +502,17 @@ export default function SignupStep2() {
               contact: String(details.phone || "").replace(/\D/g, "").slice(0, 15)
             },
             handler: async (response) => {
-              // isSubmitting is already true from handleSubmit — no need to set again
               try {
+                setIsSubmitting(true)
                 const formData = await buildFormData(details, documentsRef.current)
                 formData.append("razorpayOrderId", response.razorpay_order_id)
                 formData.append("razorpayPaymentId", response.razorpay_payment_id)
                 formData.append("razorpaySignature", response.razorpay_signature)
                 await submitRegistration({ isCompleteProfile, formData, navigate })
-              } catch (error) {
-                debugError("Error submitting registration:", error)
-                toast.error(getFriendlyRegistrationError(error))
+              } catch (err) {
+                debugError("Error submitting registration:", err)
+                toast.error(getFriendlyRegistrationError(err))
               } finally {
-                // FIX: This is the sole place isSubmitting is cleared for the
-                // web Razorpay path. It runs whether submission succeeds or fails.
                 setIsSubmitting(false)
               }
             },
@@ -615,15 +525,7 @@ export default function SignupStep2() {
               setIsSubmitting(false)
             }
           }
-          // FIX: Prevent the outer finally from clearing isSubmitting prematurely.
-          // initRazorpayPayment is non-blocking — it returns before payment completes.
-          // We must NOT let the outer finally run setIsSubmitting(false) here, because
-          // the handler callback (above) owns the submitting state from this point on.
-          // We achieve this by returning early so the outer finally still runs but
-          // isSubmitting management has already been handed off to the handler,
-          // onError, and onClose callbacks exclusively.
-          initRazorpayPayment(rzpOptions)  // intentionally NOT awaited
-          return                            // exit handleSubmit; outer finally does NOT run
+          await initRazorpayPayment(rzpOptions)
         }
 
       } else {
@@ -641,7 +543,7 @@ export default function SignupStep2() {
 
   const DocumentUpload = ({ docType, label, required = true }) => {
     const uploaded = uploadedDocs[docType]
-    const isUploading = uploading[docType] || restoring[docType]
+    const isUploading = uploading[docType]
     const hasUploadedDocument = hasDocumentValue(documents[docType], uploaded)
 
     return (
@@ -789,7 +691,6 @@ export default function SignupStep2() {
           </button>
         </form>
       </div>
-
     </div>
   )
 }
