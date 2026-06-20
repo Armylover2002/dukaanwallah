@@ -66,7 +66,8 @@ export const customerApi = {
       ...options,
       forceRefresh: options.forceRefresh ?? options.force ?? false,
     }),
-  cancelOrder: (orderId) => axiosInstance.post(`/quick-commerce/orders/${orderId}/cancel`, {}, withQuickSession()),
+  cancelOrder: (orderId, data = {}) => axiosInstance.post(`/quick-commerce/orders/${orderId}/cancel`, data, withQuickSession()),
+  verifyPayment: (data) => axiosInstance.post("/quick-commerce/orders/verify-payment", data, withQuickSession()),
   createSupportTicket: (data) => axiosInstance.post("/quick-commerce/support/ticket", data, withQuickSession()),
   getSupportTickets: (params = {}) => quickGetWithDedupe("/quick-commerce/support/my-tickets", params),
 

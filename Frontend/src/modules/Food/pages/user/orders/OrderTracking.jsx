@@ -701,10 +701,9 @@ export default function OrderTracking() {
   ), [order?.status]);
 
   const isOnlinePaidForRefundChoice = useMemo(() => {
-    if (isQuickOrder) return false;
     const method = String(order?.payment?.method || order?.paymentMethod || "").trim().toLowerCase();
     return ["razorpay", "razorpay_qr"].includes(method);
-  }, [isQuickOrder, order?.payment?.method, order?.paymentMethod]);
+  }, [order?.payment?.method, order?.paymentMethod]);
 
   const acceptedAtMs = useMemo(() => {
     const ts = order?.tracking?.confirmed?.timestamp || order?.tracking?.preparing?.timestamp || order?.updatedAt || order?.createdAt;
@@ -1135,7 +1134,7 @@ export default function OrderTracking() {
     try {
       const cancelId = lookupIdsRef.current[0] || normalizeLookupId(orderId);
       const response = isQuickOrder
-        ? await customerApi.cancelOrder(cancelId)
+        ? await customerApi.cancelOrder(cancelId, { reason: cancellationReason.trim(), ...(isOnlinePaidForRefundChoice ? { refundTo: refundDestination } : {}) })
         : await orderAPI.cancelOrder(cancelId, { reason: cancellationReason.trim(), ...(isOnlinePaidForRefundChoice ? { refundTo: refundDestination } : {}) });
       if (response.data?.success) {
         const paymentMethod = order?.payment?.method || order?.paymentMethod;

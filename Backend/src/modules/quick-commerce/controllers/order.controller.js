@@ -15,6 +15,9 @@ import * as foodTransactionService from '../../food/orders/services/foodTransact
 import { emitQuickCommerceStatusUpdate } from '../services/quickStatusRealtime.service.js';
 import { getSellerLocation, getOrderAddressPoint } from '../services/quickOrder.service.js';
 import { haversineKm } from '../../food/orders/services/order.helpers.js';
+import { createRazorpayOrder, isRazorpayConfigured, getRazorpayKeyId } from '../../food/orders/helpers/razorpay.helper.js';
+import { autoRefundForCancelledOrder } from '../../../core/payments/autoRefund.service.js';
+import { verifyPayment as verifyFoodPayment } from '../../food/orders/services/order.service.js';
 
 const approvedProductFilter = {
   $or: [
@@ -301,6 +304,34 @@ export const placeOrder = async (req, res) => {
     // Calculate rider earning using actual distance
     const riderEarning = await getQuickRiderEarning(distanceKm);
 
+    let razorpayPayload = null;
+    let razorpayData = {};
+    if (isOnlinePayment) {
+      if (isRazorpayConfigured()) {
+        const amountPaise = Math.round(total * 100);
+        if (amountPaise < 100) {
+          return res.status(400).json({ success: false, message: 'Amount too low for online payment' });
+        }
+        try {
+          const rzOrder = await createRazorpayOrder(amountPaise, 'INR', orderNumber);
+          razorpayData = {
+            orderId: rzOrder.id,
+            paymentId: "",
+            signature: "",
+          };
+          razorpayPayload = {
+            key: getRazorpayKeyId(),
+            orderId: rzOrder.id,
+            amount: rzOrder.amount,
+            currency: rzOrder.currency || "INR",
+          };
+        } catch (err) {
+          logger.error(`Quick order Razorpay init failed for ${orderNumber}: ${err?.message || err}`);
+          return res.status(400).json({ success: false, message: err?.message || 'Payment gateway error' });
+        }
+      }
+    }
+
     const order = await QuickOrder.create({
       orderType: 'quick',
       orderId: orderNumber,
@@ -327,6 +358,7 @@ export const placeOrder = async (req, res) => {
         method: paymentMode,
         status: paymentMode === 'razorpay' ? 'created' : 'cod_pending',
         amountDue: Math.max(0, total),  // total already includes platformFee
+        razorpay: razorpayData,
       },
       orderStatus: 'placed',
       riderEarning: riderEarning || 0,
@@ -490,6 +522,7 @@ export const placeOrder = async (req, res) => {
         pricing: order.pricing || {},
         createdAt: order.createdAt,
       },
+      razorpay: razorpayPayload,
     });
   } catch (error) {
     logger.error(`Quick placeOrder failed: ${error?.message || error}`);
@@ -693,6 +726,47 @@ export const cancelOrder = async (req, res) => {
       });
     }
 
+    const isOnlinePayment = String(order.payment?.method || '').toLowerCase() === 'razorpay' ||
+                            String(order.payment?.method || '').toLowerCase() === 'razorpay_qr';
+    const isWalletPayment = String(order.payment?.method || '').toLowerCase() === 'wallet';
+    const isPaid = String(order.payment?.status || '').toLowerCase() === 'paid';
+
+    const isOnlinePaid = isOnlinePayment && isPaid;
+    const isWalletPaid = isWalletPayment && isPaid;
+
+    const refundTo = req.body?.refundTo || 'gateway';
+    const requestedRefundMethod = refundTo === 'wallet' || refundTo === 'gateway' ? refundTo : 'gateway';
+
+    if (isOnlinePaid) {
+      order.payment.refund = {
+        ...(order.payment.refund || {}),
+        status: 'pending',
+        amount: Number(order.pricing?.total || 0),
+        refundId: '',
+        requestedMethod: requestedRefundMethod,
+        processedMethod: undefined,
+        requestedAt: new Date(),
+        requestedByUser: true,
+        reason: String(req.body?.reason || 'Quick commerce order cancelled by user').trim(),
+        processedAt: null,
+      };
+    } else if (isWalletPaid) {
+      order.payment.refund = {
+        ...(order.payment.refund || {}),
+        status: 'pending',
+        amount: Number(order.pricing?.total || 0),
+        refundId: '',
+        requestedMethod: 'wallet',
+        processedMethod: undefined,
+        requestedAt: new Date(),
+        requestedByUser: true,
+        reason: String(req.body?.reason || 'Quick commerce order cancelled by user').trim(),
+        processedAt: null,
+      };
+    } else if (!['paid', 'refunded'].includes(order.payment.status)) {
+      order.payment.status = 'cancelled';
+    }
+
     order.orderStatus = 'cancelled_by_user';
     order.workflowStatus = 'CANCELLED';
     order.statusHistory = Array.isArray(order.statusHistory) ? order.statusHistory : [];
@@ -702,6 +776,20 @@ export const cancelOrder = async (req, res) => {
       to: 'cancelled_by_user',
       note: String(req.body?.reason || 'Quick commerce order cancelled by user').trim(),
     });
+
+    if (isOnlinePaid) {
+      try {
+        await autoRefundForCancelledOrder(order, requestedRefundMethod);
+      } catch (err) {
+        logger.error(`[QuickcancelOrder] Auto-refund error for Order ${order.orderId}: ${err?.message || err}`);
+      }
+    } else if (isWalletPaid) {
+      try {
+        await autoRefundForCancelledOrder(order, 'wallet');
+      } catch (err) {
+        logger.error(`[QuickcancelOrder] Wallet auto-refund error for Order ${order.orderId}: ${err?.message || err}`);
+      }
+    }
 
     if (order.payment?.method === 'cash') {
       order.payment.status = 'failed';
@@ -749,6 +837,117 @@ export const cancelOrder = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error?.message || 'Failed to cancel quick order',
+    });
+  }
+};
+
+
+export const verifyPayment = async (req, res) => {
+  try {
+    const idQuery = resolveId(req);
+    if (!idQuery) {
+      return res.status(400).json({ success: false, message: 'sessionId or userId is required' });
+    }
+
+    const rawOrderId = String(req.body?.orderId || '').trim();
+    if (!rawOrderId) {
+      return res.status(400).json({ success: false, message: 'Order id required' });
+    }
+
+    const orderIdentityQuery = [{ orderId: rawOrderId }];
+    if (mongoose.isValidObjectId(rawOrderId)) {
+      orderIdentityQuery.unshift({ _id: rawOrderId });
+    }
+
+    const query = {
+      orderType: 'quick',
+      ...idQuery,
+      $or: orderIdentityQuery,
+    };
+
+    const order = await QuickOrder.findOne(query);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // If order has userId, delegate to the food verifyPayment service
+    if (order.userId) {
+      const result = await verifyFoodPayment(order.userId.toString(), req.body);
+      return res.status(200).json({
+        success: true,
+        message: 'Payment verified successfully',
+        result,
+      });
+    }
+
+    // If guest order (no userId), verify directly
+    if (order.payment.status === 'paid') {
+      return res.status(200).json({
+        success: true,
+        message: 'Payment already verified',
+        result: { order, payment: order.payment },
+      });
+    }
+
+    const { verifyPaymentSignature } = await import('../../food/orders/helpers/razorpay.helper.js');
+    const valid = verifyPaymentSignature(
+      req.body.razorpayOrderId,
+      req.body.razorpayPaymentId,
+      req.body.razorpaySignature
+    );
+
+    if (!valid) {
+      return res.status(400).json({ success: false, message: 'Payment verification failed' });
+    }
+
+    order.payment.status = 'paid';
+    if (!order.payment.razorpay) {
+      order.payment.razorpay = {};
+    }
+    order.payment.razorpay.paymentId = req.body.razorpayPaymentId;
+    order.payment.razorpay.signature = req.body.razorpaySignature;
+
+    order.statusHistory = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+    order.statusHistory.push({
+      byRole: 'USER',
+      from: order.orderStatus,
+      to: order.orderStatus === 'scheduled' ? 'scheduled' : 'created',
+      note: 'Payment verified',
+    });
+
+    await order.save();
+
+    try {
+      const { updateTransactionStatus } = await import('../../food/orders/services/foodTransaction.service.js');
+      await updateTransactionStatus(order._id, 'captured', {
+        status: 'captured',
+        razorpayPaymentId: req.body.razorpayPaymentId,
+        razorpaySignature: req.body.razorpaySignature,
+        recordedByRole: 'USER',
+      });
+    } catch (txErr) {
+      logger.error(`Quick verifyPayment transaction status update failed: ${txErr.message}`);
+    }
+
+    try {
+      await SellerOrder.updateMany(
+        { orderId: order.orderId },
+        { $set: { 'payment.status': 'paid' } }
+      );
+    } catch (fanoutErr) {
+      logger.error(`Quick verifyPayment fanout update failed: ${fanoutErr.message}`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payment verified successfully',
+      result: { order, payment: order.payment },
+    });
+  } catch (error) {
+    logger.error(`Quick verifyPayment failed: ${error?.message || error}`);
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Failed to verify payment',
     });
   }
 };

@@ -31,6 +31,7 @@ import { useAuth } from "@core/context/AuthContext";
 import { useProfile } from "@food/context/ProfileContext";
 import { useWishlist } from "../context/WishlistContext";
 import { customerApi } from "../services/customerApi";
+import { initRazorpayPayment, isFlutterWebView, handleFlutterRazorpayPayment } from "@food/utils/razorpay";
 import { useLocation as useAppLocation } from "../context/LocationContext";
 import {
   MapPin, Clock, CreditCard, Banknote, ChevronRight, ChevronLeft,
@@ -815,21 +816,128 @@ const CheckoutPage = () => {
       if (response.data.success) {
         const order = response.data.result;
         const placedOrderId = order?.orderId || order?.orderNumber || order?.id || order?._id || "";
-        clearCart();
-        try {
-          if (typeof window !== "undefined") {
-            window.localStorage.removeItem(CHECKOUT_STORAGE_KEY);
-            window.localStorage.removeItem(RECIPIENT_STORAGE_KEY);
+        const razorpay = response.data.razorpay;
+
+        if (selectedPayment === "online" && razorpay) {
+          const userInfo = userProfile || {};
+          const userPhone = displayPhone || userInfo.phone || "";
+          const userEmail = userInfo.email || "";
+          const userName = displayName || userInfo.name || "";
+          const formattedPhone = userPhone.replace(/\D/g, "").slice(-10);
+
+          const rzpOptions = {
+            key: razorpay.key,
+            amount: razorpay.amount,
+            currency: razorpay.currency || "INR",
+            order_id: razorpay.orderId,
+            name: appName,
+            description: `Order ${placedOrderId} - ₹${(razorpay.amount / 100).toFixed(2)}`,
+            prefill: {
+              name: userName,
+              email: userEmail,
+              contact: formattedPhone,
+            },
+            notes: {
+              orderId: order._id || order.id || placedOrderId,
+              userId: user?._id || user?.id || "",
+              orderType: "quick",
+            },
+          };
+
+          const handlePaymentSuccess = async (paymentResult) => {
+            setIsPlacingOrder(true);
+            try {
+              const verifyResponse = await customerApi.verifyPayment({
+                orderId: order._id || order.id || placedOrderId,
+                razorpayOrderId: paymentResult.razorpay_order_id,
+                razorpayPaymentId: paymentResult.razorpay_payment_id,
+                razorpaySignature: paymentResult.razorpay_signature,
+              });
+
+              if (verifyResponse.data.success) {
+                clearCart();
+                try {
+                  if (typeof window !== "undefined") {
+                    window.localStorage.removeItem(CHECKOUT_STORAGE_KEY);
+                    window.localStorage.removeItem(RECIPIENT_STORAGE_KEY);
+                  }
+                } catch { /* ignore */ }
+                showToast("Order placed — waiting for seller to accept.", "success");
+                setOrderId(placedOrderId);
+                setShowSuccess(true);
+                if (postOrderNavigateRef.current) clearTimeout(postOrderNavigateRef.current);
+                postOrderNavigateRef.current = setTimeout(() => {
+                  postOrderNavigateRef.current = null;
+                  navigate(getQuickOrderDetailPath(placedOrderId || order?._id || order?.id));
+                }, 1200);
+              } else {
+                throw new Error(verifyResponse.data.message || "Payment verification failed");
+              }
+            } catch (verifyErr) {
+              console.error("Payment verification failed:", verifyErr);
+              const errMsg = verifyErr?.response?.data?.message || verifyErr?.message || "Payment verification failed";
+              showToast(errMsg, "error");
+            } finally {
+              setIsPlacingOrder(false);
+            }
+          };
+
+          const handlePaymentFailure = async (errNote) => {
+            try {
+              const cancelId = order._id || order.id || placedOrderId;
+              await customerApi.cancelOrder(cancelId, {
+                reason: "Payment Failed",
+                note: errNote || "Online payment failed or cancelled",
+              });
+            } catch (cancelErr) {
+              console.error("Failed to auto-cancel order after payment failure:", cancelErr);
+            }
+            setIsPlacingOrder(false);
+          };
+
+          if (isFlutterWebView()) {
+            try {
+              const flutterResult = await handleFlutterRazorpayPayment(rzpOptions);
+              await handlePaymentSuccess(flutterResult);
+            } catch (flutterErr) {
+              console.error("Flutter Razorpay failed:", flutterErr);
+              const msg = flutterErr?.message || "Payment cancelled or failed";
+              await handlePaymentFailure(msg);
+              showToast(msg, "error");
+            }
+          } else {
+            await initRazorpayPayment({
+              ...rzpOptions,
+              handler: handlePaymentSuccess,
+              onError: async (error) => {
+                const msg = error?.description || error?.message || "Payment failed";
+                await handlePaymentFailure(msg);
+                if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
+                  showToast(msg, "error");
+                }
+              },
+              onClose: async () => {
+                await handlePaymentFailure("User closed payment modal");
+              },
+            });
           }
-        } catch { /* ignore */ }
-        showToast("Order placed — waiting for seller to accept.", "success");
-        setOrderId(placedOrderId);
-        setShowSuccess(true);
-        if (postOrderNavigateRef.current) clearTimeout(postOrderNavigateRef.current);
-        postOrderNavigateRef.current = setTimeout(() => {
-          postOrderNavigateRef.current = null;
-          navigate(getQuickOrderDetailPath(placedOrderId || order?._id || order?.id));
-        }, 1200);
+        } else {
+          clearCart();
+          try {
+            if (typeof window !== "undefined") {
+              window.localStorage.removeItem(CHECKOUT_STORAGE_KEY);
+              window.localStorage.removeItem(RECIPIENT_STORAGE_KEY);
+            }
+          } catch { /* ignore */ }
+          showToast("Order placed — waiting for seller to accept.", "success");
+          setOrderId(placedOrderId);
+          setShowSuccess(true);
+          if (postOrderNavigateRef.current) clearTimeout(postOrderNavigateRef.current);
+          postOrderNavigateRef.current = setTimeout(() => {
+            postOrderNavigateRef.current = null;
+            navigate(getQuickOrderDetailPath(placedOrderId || order?._id || order?.id));
+          }, 1200);
+        }
       }
     } catch (error) {
       console.error("Failed to place order:", error);
@@ -841,6 +949,7 @@ const CheckoutPage = () => {
     buildAddressForOrder, getCheckoutCartItemsForSync, selectedPayment,
     discountAmount, gstAmount, platformFee, selectedTimeSlot,
     syncVisibleCartToBackend, clearCart, showToast, navigate, getCheckoutErrorMessage,
+    userProfile, user, displayPhone, displayName, appName,
   ]);
 
   // ── Effects ──────────────────────────────────────────────────────────────
