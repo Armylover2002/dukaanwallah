@@ -58,6 +58,7 @@ export const initRazorpayPayment = async (options) => {
       throw new Error('Razorpay SDK not available');
     }
 
+
     const razorpayOptions = {
       key: options.key,
       amount: options.amount,
@@ -135,6 +136,10 @@ export const initRazorpayPayment = async (options) => {
  * @param {Object} options
  */
 export const initRazorpaySubscription = async (options) => {
+  if (isFlutterWebView()) {
+    console.log('[Razorpay] Flutter WebView detected → using native bridge');
+    return handleFlutterRazorpayPayment(options);
+  }
   try {
     await loadRazorpayScript();
 
