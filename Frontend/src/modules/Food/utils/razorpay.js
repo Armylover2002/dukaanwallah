@@ -329,44 +329,66 @@ export const handleFlutterRazorpayPayment = (rzpOptions) => {
           if (settled) return;
 
           try {
+            let handlerActive = false;
             const callPromise = window.flutter_inappwebview.callHandler(handlerName, payload);
+
+            // Set a timer to check if the promise is still pending after 150ms
+            const pendingTimer = setTimeout(() => {
+              if (!settled) {
+                handlerActive = true;
+              }
+            }, 150);
 
             // Attach listener for handlers that resolve AFTER payment (long-lived promise pattern)
             callPromise.then((res) => {
+              clearTimeout(pendingTimer);
               if (res && typeof res === 'object') {
                 const paymentId = res.razorpay_payment_id || res.paymentId || res.payment_id;
                 if (paymentId) finishSuccess(res);
                 else if (res.error || res.cancelled) finishFailure(res.error || 'Payment cancelled');
               }
-            }).catch(() => { /* handled in loop below */ });
+            }).catch((err) => {
+              clearTimeout(pendingTimer);
+              // If it failed/rejected after being recognized as active, propagate the failure
+              if (handlerActive) {
+                finishFailure(err);
+              }
+            });
 
-            // Race against 1500ms — if it times out, this handler name is not registered
+            // Race against 200ms to see if it rejects instantly (unregistered)
             const result = await Promise.race([
               callPromise,
-              new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1500)),
+              new Promise((resolve) => setTimeout(() => resolve('pending'), 200)),
             ]);
 
             if (settled) return;
 
-            // Handler responded quickly → it accepted the call
+            if (result === 'pending' || handlerActive) {
+              // The handler is registered and active! We should wait up to 10 minutes for it.
+              console.log(`[Razorpay Flutter] Found active native handler: "${handlerName}"`);
+              timeoutId = setTimeout(() => {
+                finishFailure(new Error('Payment timed out. Please try again.'));
+              }, 10 * 60 * 1000);
+              return; // Stop trying other handlers
+            }
+
+            // Handler responded quickly → it accepted the call and resolved under 200ms
             if (result && typeof result === 'object') {
               const paymentId = result.razorpay_payment_id || result.paymentId || result.payment_id;
               if (paymentId) { finishSuccess(result); return; }
               if (result.error || result.cancelled) { finishFailure(result.error || 'Payment cancelled'); return; }
             }
 
-            // Handler returned void/null → it accepted the payment, native UI is open
-            // Wait up to 10 minutes for the payment to complete via callback
+            // Handler returned void/null immediately under 200ms → it accepted the payment, native UI is open
+            console.log(`[Razorpay Flutter] Native handler "${handlerName}" returned immediately. Waiting for callback.`);
             timeoutId = setTimeout(() => {
               finishFailure(new Error('Payment timed out. Please try again.'));
             }, 10 * 60 * 1000);
             return; // Stop trying more handlers
 
           } catch (err) {
-            if (err.message === 'timeout') {
-              continue; // handler not registered, try next name
-            }
-            console.warn(`[Razorpay Flutter] Handler "${handlerName}" rejected:`, err);
+            // Unregistered handler throws/rejects instantly
+            console.warn(`[Razorpay Flutter] Handler "${handlerName}" not available or rejected immediately:`, err);
           }
         }
 
