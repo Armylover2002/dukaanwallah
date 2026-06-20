@@ -145,7 +145,11 @@ export const openCamera = async ({ onSelectFile, fileNamePrefix = "camera-photo"
     })
 
     const isSuccess = result?.success === true || Boolean(result?.base64 || result?.base64String || result?.data?.base64)
-    if (!result || !isSuccess) return
+    if (!result || !isSuccess) {
+      console.warn("Flutter openCamera returned unsuccessful or empty. Falling back to browser camera.")
+      openBrowserCameraFallback(onSelectFile)
+      return
+    }
 
     let selectedFile = null
     const base64Value = result?.base64 || result?.base64String || result?.data?.base64
