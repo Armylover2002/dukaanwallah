@@ -1,28 +1,3 @@
-// ============================================================
-// OPTIMIZED CheckoutPage.jsx — Performance + Bug Fixes
-// Functionality 100% preserved. Street validation fixed.
-// ============================================================
-//
-// BUG FIXES APPLIED (on top of previous perf optimizations):
-//
-// FIX 1. buildAddressForOrder → street fallback chain now includes
-//         currentLocation?.name and final "NA" guard so street is
-//         NEVER an empty string that fails MongoDB validation.
-//         Same fix applied to the savedRecipient branch.
-//
-// FIX 2. handlePlaceOrder → validates street BEFORE calling the API.
-//         If street is empty / "NA", shows a toast and opens the
-//         address modal instead of sending a doomed request.
-//         Also reuses the pre-built address object so
-//         buildAddressForOrder is not called twice.
-//
-// FIX 3. buildAddressForOrder deps array → added currentLocation?.name
-//         so the callback re-creates when live-location name changes.
-//
-// All previous perf optimizations (useMemo / useCallback / React.memo
-// / static constants) are preserved unchanged.
-// ============================================================
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link, useLocation as useRouterLocation, useNavigate } from "react-router-dom";
 import Lottie from "lottie-react";
@@ -895,32 +870,48 @@ const CheckoutPage = () => {
             setIsPlacingOrder(false);
           };
 
-          if (isFlutterWebView()) {
-            try {
-              const flutterResult = await handleFlutterRazorpayPayment(rzpOptions);
-              await handlePaymentSuccess(flutterResult);
-            } catch (flutterErr) {
-              console.error("Flutter Razorpay failed:", flutterErr);
-              const msg = flutterErr?.message || "Payment cancelled or failed";
+          // if (isFlutterWebView()) {
+          //   try {
+          //     const flutterResult = await handleFlutterRazorpayPayment(rzpOptions);
+          //     await handlePaymentSuccess(flutterResult);
+          //   } catch (flutterErr) {
+          //     console.error("Flutter Razorpay failed:", flutterErr);
+          //     const msg = flutterErr?.message || "Payment cancelled or failed";
+          //     await handlePaymentFailure(msg);
+          //     showToast(msg, "error");
+          //   }
+          // } else {
+          //   await initRazorpayPayment({
+          //     ...rzpOptions,
+          //     handler: handlePaymentSuccess,
+          //     onError: async (error) => {
+          //       const msg = error?.description || error?.message || "Payment failed";
+          //       await handlePaymentFailure(msg);
+          //       if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
+          //         showToast(msg, "error");
+          //       }
+          //     },
+          //     onClose: async () => {
+          //       await handlePaymentFailure("User closed payment modal");
+          //     },
+          //   });
+          // }
+
+          // 
+          await initRazorpayPayment({
+            ...rzpOptions,
+            handler: handlePaymentSuccess,
+            onError: async (error) => {
+              const msg = error?.description || error?.message || "Payment failed";
               await handlePaymentFailure(msg);
-              showToast(msg, "error");
-            }
-          } else {
-            await initRazorpayPayment({
-              ...rzpOptions,
-              handler: handlePaymentSuccess,
-              onError: async (error) => {
-                const msg = error?.description || error?.message || "Payment failed";
-                await handlePaymentFailure(msg);
-                if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
-                  showToast(msg, "error");
-                }
-              },
-              onClose: async () => {
-                await handlePaymentFailure("User closed payment modal");
-              },
-            });
-          }
+              if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
+                showToast(msg, "error");
+              }
+            },
+            onClose: async () => {
+              await handlePaymentFailure("User closed payment modal");
+            },
+          });
         } else {
           clearCart();
           try {
