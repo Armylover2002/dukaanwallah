@@ -1223,7 +1223,7 @@ function canExposeOrderToRestaurant(orderLike) {
   return ["paid", "authorized", "captured", "settled"].includes(status);
 }
 
-async function notifyRestaurantNewOrder(orderDoc) {
+export async function notifyRestaurantNewOrder(orderDoc) {
   try {
     if (!orderDoc || !canExposeOrderToRestaurant(orderDoc)) return;
     if (orderDoc.orderStatus === "scheduled") return;
@@ -1364,7 +1364,7 @@ function buildSellerOrdersFromParent(orderDoc, { customerName = "", customerPhon
   );
 }
 
-async function upsertSellerOrdersForParent(orderDoc, options = {}) {
+export async function upsertSellerOrdersForParent(orderDoc, options = {}) {
   const sellerOrders = await buildSellerOrdersFromParent(orderDoc, options);
   if (!sellerOrders.length) return [];
 
@@ -1386,7 +1386,7 @@ async function upsertSellerOrdersForParent(orderDoc, options = {}) {
   );
 }
 
-async function notifySellerNewOrders(orderDoc, sellerOrders = []) {
+export async function notifySellerNewOrders(orderDoc, sellerOrders = []) {
   try {
     if (!orderDoc || !canExposeOrderToRestaurant(orderDoc) || !sellerOrders.length) return;
     if (orderDoc.orderStatus === "scheduled") return;
@@ -2620,11 +2620,18 @@ export async function verifyPayment(userId, dto) {
   order.payment.status = "paid";
   order.payment.razorpay.paymentId = dto.razorpayPaymentId;
   order.payment.razorpay.signature = dto.razorpaySignature;
+
+  const fromStatus = order.orderStatus;
+  const isQuickOrMixed = order.orderType === "quick" || order.orderType === "mixed";
+  if (isQuickOrMixed && order.orderStatus === "created") {
+    order.orderStatus = "placed";
+  }
+
   pushStatusHistory(order, {
     byRole: "USER",
     byId: userId,
-    from: order.orderStatus,
-    to: order.orderStatus === "scheduled" ? "scheduled" : "created",
+    from: fromStatus,
+    to: order.orderStatus === "scheduled" ? "scheduled" : (isQuickOrMixed ? "placed" : "created"),
     note: "Payment verified",
   });
   await order.save();

@@ -249,6 +249,11 @@ const backfillSellerOrdersFromParentOrders = async (sellerId) => {
     QuickOrder.find({
       orderType: { $in: ["mixed", "quick"] },
       items: { $elemMatch: { type: "quick", sourceId: sellerKey } },
+      orderStatus: { $ne: "scheduled" },
+      $or: [
+        { "payment.method": { $nin: ["razorpay", "razorpay_qr", "RAZORPAY", "Razorpay"] } },
+        { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "PAID"] } }
+      ]
     })
       .select("_id orderId orderType items pricing deliveryAddress payment")
       .sort({ createdAt: -1 })
@@ -1684,9 +1689,13 @@ export const getSellerOrdersController = async (req, res) => {
     const limit = Math.max(1, Math.min(100, num(req.query?.limit, 50)));
     const skip = (page - 1) * limit;
 
-    // Use parent collection as the source of truth as requested
     const parentQuery = {
-      items: { $elemMatch: { sourceId: sellerKey, type: "quick" } }
+      items: { $elemMatch: { sourceId: sellerKey, type: "quick" } },
+      orderStatus: { $ne: "scheduled" },
+      $or: [
+        { "payment.method": { $nin: ["razorpay", "razorpay_qr", "RAZORPAY", "Razorpay"] } },
+        { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "PAID"] } }
+      ]
     };
 
     if (req.query?.startDate || req.query?.endDate) {

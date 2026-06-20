@@ -135,6 +135,29 @@ export const handleRazorpayWebhook = async (req, res) => {
             );
 
             if (order) {
+                const isQuickOrMixed = order.orderType === 'quick' || order.orderType === 'mixed';
+                if (isQuickOrMixed && order.orderStatus === 'created') {
+                    order.orderStatus = 'placed';
+                    await order.save();
+                }
+
+                if (isQuickOrMixed) {
+                    try {
+                        const { upsertSellerOrdersForParent, notifySellerNewOrders } = await import('../../../modules/food/orders/services/order.service.js');
+                        const sellerOrders = await upsertSellerOrdersForParent(order);
+                        await notifySellerNewOrders(order, sellerOrders);
+                    } catch (fanoutErr) {
+                        logger.error(`Webhook Quick/Mixed order fanout failed: ${fanoutErr.message}`);
+                    }
+                } else if (order.orderType === 'food') {
+                    try {
+                        const { notifyRestaurantNewOrder } = await import('../../../modules/food/orders/services/order.service.js');
+                        await notifyRestaurantNewOrder(order);
+                    } catch (notifyErr) {
+                        logger.error(`Webhook Food order notification failed: ${notifyErr.message}`);
+                    }
+                }
+
                 // ✅ UPDATED: Wrapped in try-catch to prevent secondary failures from breaking the webhook response
                 try {
                     await foodTransactionService.updateTransactionStatus(order._id, 'captured', {

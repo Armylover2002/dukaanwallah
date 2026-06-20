@@ -297,9 +297,9 @@ export const placeOrder = async (req, res) => {
     const isOnlinePayment = String(req.body?.paymentMode || 'COD').toUpperCase() === 'ONLINE';
     const paymentMode = isOnlinePayment ? 'razorpay' : 'cash';
     const sellerPaymentMode = isOnlinePayment ? 'online' : 'cash';
-    // Seller must receive/track every order regardless of payment mode (COD/online).
-    // Earnings are based on delivered SellerOrders, so we always create these legs.
-    const shouldFanOutSellerOrders = true;
+    // For online payment, do not fan out seller orders until payment succeeds
+    const shouldFanOutSellerOrders = !isOnlinePayment;
+    const initialOrderStatus = isOnlinePayment ? 'created' : 'placed';
 
     // Calculate rider earning using actual distance
     const riderEarning = await getQuickRiderEarning(distanceKm);
@@ -361,7 +361,7 @@ export const placeOrder = async (req, res) => {
         amountDue: Math.max(0, total),  // total already includes platformFee
         razorpay: razorpayData,
       },
-      orderStatus: 'placed',
+      orderStatus: initialOrderStatus,
       riderEarning: riderEarning || 0,
       platformProfit: Math.max(
         0,
@@ -371,8 +371,8 @@ export const placeOrder = async (req, res) => {
         {
           byRole: 'SYSTEM',
           from: '',
-          to: 'placed',
-          note: 'Quick commerce order placed',
+          to: initialOrderStatus,
+          note: isOnlinePayment ? 'Quick commerce order created' : 'Quick commerce order placed',
         },
       ],
     });
@@ -901,6 +901,11 @@ export const verifyPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Payment verification failed' });
     }
 
+    const fromStatus = order.orderStatus;
+    if (order.orderStatus === 'created') {
+      order.orderStatus = 'placed';
+    }
+
     order.payment.status = 'paid';
     if (!order.payment.razorpay) {
       order.payment.razorpay = {};
@@ -911,8 +916,8 @@ export const verifyPayment = async (req, res) => {
     order.statusHistory = Array.isArray(order.statusHistory) ? order.statusHistory : [];
     order.statusHistory.push({
       byRole: 'USER',
-      from: order.orderStatus,
-      to: order.orderStatus === 'scheduled' ? 'scheduled' : 'created',
+      from: fromStatus,
+      to: order.orderStatus === 'scheduled' ? 'scheduled' : 'placed',
       note: 'Payment verified',
     });
 
@@ -931,12 +936,11 @@ export const verifyPayment = async (req, res) => {
     }
 
     try {
-      await SellerOrder.updateMany(
-        { orderId: order.orderId },
-        { $set: { 'payment.status': 'paid' } }
-      );
+      const { upsertSellerOrdersForParent, notifySellerNewOrders } = await import('../../food/orders/services/order.service.js');
+      const sellerOrders = await upsertSellerOrdersForParent(order);
+      await notifySellerNewOrders(order, sellerOrders);
     } catch (fanoutErr) {
-      logger.error(`Quick verifyPayment fanout update failed: ${fanoutErr.message}`);
+      logger.error(`Quick guest verifyPayment fanout/notification failed: ${fanoutErr.message}`);
     }
 
     return res.status(200).json({
