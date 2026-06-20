@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { ImageSourcePicker } from "@food/components/ImageSourcePicker";
 import { useAuth } from "@core/context/AuthContext";
 import { motion } from "framer-motion";
 import {
@@ -94,6 +95,26 @@ const normalizeTimeValue = (value) => {
   return `${match[1].padStart(2, "0")}:${match[2]}`;
 };
 
+const formatTimeTo12Hour = (time24) => {
+  if (!time24 || !time24.includes(":")) return time24;
+  const [hourStr, minuteStr] = time24.split(":");
+  let hour = parseInt(hourStr, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  const formattedHour = String(hour).padStart(2, "0");
+  return `${formattedHour}:${minuteStr} ${ampm}`;
+};
+
+const formatOpeningHoursPreview = (preview) => {
+  if (!preview || preview === "Not set") return preview;
+  const parts = preview.split(" - ");
+  if (parts.length === 2) {
+    return `${formatTimeTo12Hour(parts[0])} - ${formatTimeTo12Hour(parts[1])}`;
+  }
+  return preview;
+};
+
 const getSellerPhone = (seller = {}) => seller.phone || "";
 
 
@@ -114,6 +135,30 @@ export default function SellerOnboarding() {
   const [fetchingFees, setFetchingFees] = useState(false);
   const [rejectionReason, setRejectionReason] = useState(null);
   const [isReonboardBypass, setIsReonboardBypass] = useState(false);
+
+  const qrImageInputRef = useRef(null);
+  const licenseImageInputRef = useRef(null);
+  const [sourcePicker, setSourcePicker] = useState({
+    isOpen: false,
+    title: "",
+    onSelectFile: null,
+    fileNamePrefix: "camera-image",
+    fallbackInputRef: null,
+  });
+
+  const openImageSourcePicker = ({ title, onSelectFile, fileNamePrefix, fallbackInputRef }) => {
+    setSourcePicker({
+      isOpen: true,
+      title: title || "Select image source",
+      onSelectFile,
+      fileNamePrefix: fileNamePrefix || "camera-image",
+      fallbackInputRef: fallbackInputRef || null,
+    });
+  };
+
+  const closeImageSourcePicker = () => {
+    setSourcePicker((prev) => ({ ...prev, isOpen: false }));
+  };
 
   useEffect(() => {
     const fetchFees = async () => {
@@ -152,7 +197,7 @@ export default function SellerOnboarding() {
       try {
         const response = await sellerApi.getProfile();
         const data = response?.data?.result || {};
-        
+
         if (sessionStorage.getItem("sellerReonboard") === "true") {
           setForm((prev) => ({ ...initialState, phone: getSellerPhone(data) || prev.phone }));
           setHoursDraft({ openingTime: "", closingTime: "" });
@@ -265,7 +310,14 @@ export default function SellerOnboarding() {
       toast.error("Select both opening and closing time first");
       return;
     }
-
+    if (hoursDraft.closingTime === hoursDraft.openingTime) {
+      toast.error("Closing time cannot be the same as opening time");
+      return;
+    }
+    if (hoursDraft.closingTime < hoursDraft.openingTime) {
+      toast.error("Closing time must be later than opening time");
+      return;
+    }
     const openingHoursLabel = buildOpeningHoursLabel(
       hoursDraft.openingTime,
       hoursDraft.closingTime,
@@ -288,9 +340,11 @@ export default function SellerOnboarding() {
   };
 
   const openingHoursPreview =
-    buildOpeningHoursLabel(hoursDraft.openingTime, hoursDraft.closingTime) ||
-    form.openingHours ||
-    "Not set";
+    formatOpeningHoursPreview(
+      buildOpeningHoursLabel(hoursDraft.openingTime, hoursDraft.closingTime) ||
+      form.openingHours ||
+      "Not set"
+    );
 
   const handleLocationSelect = (location) => {
     setForm((prev) => ({
@@ -345,8 +399,8 @@ export default function SellerOnboarding() {
       return;
     }
 
-    if (form.accountNumber && !/^\d{6,20}$/.test(form.accountNumber)) {
-      toast.error("Account number must be 6–20 digits (numbers only)");
+    if (form.accountNumber && !/^\d{9,18}$/.test(form.accountNumber)) {
+      toast.error("Account number must be 9–18 digits (numbers only)");
       return;
     }
 
@@ -390,7 +444,7 @@ export default function SellerOnboarding() {
           email: form.email || ""
         });
         const orderData = orderRes?.data?.data || orderRes?.data;
-        
+
         if (!orderData || !orderData.orderId) {
           throw new Error("Failed to create onboarding payment order");
         }
@@ -400,7 +454,7 @@ export default function SellerOnboarding() {
           payload.append("razorpayOrderId", orderData.orderId);
           payload.append("razorpayPaymentId", `mock_pay_${Date.now()}`);
           payload.append("razorpaySignature", `mock_sig_${Date.now()}`);
-          
+
           await sellerApi.updateProfile(payload);
           await refreshUser();
           sessionStorage.removeItem("sellerReonboard");
@@ -615,13 +669,13 @@ export default function SellerOnboarding() {
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-900">Business type <span className="text-red-500">*</span></label>
                   <select required className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900" value={form.businessType} onChange={(e) => updateField("businessType", e.target.value)}>
-                  <option value="">Select business type</option>
-                  {businessTypes.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
+                    <option value="">Select business type</option>
+                    {businessTypes.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-900">Alternate phone <span className="text-red-500">*</span></label>
@@ -638,33 +692,33 @@ export default function SellerOnboarding() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-900">Service zone <span className="text-red-500">*</span></label>
-                <select
-                  required
-                  className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900"
-                  value={`${form.zoneSource}:${form.zoneId}`}
-                  onChange={(e) => {
-                    const [zoneSource, zoneId] = e.target.value.split(":");
-                    setForm((prev) => ({
-                      ...prev,
-                      zoneSource: zoneSource || "",
-                      zoneId: zoneId || "",
-                    }));
-                  }}
-                  disabled={zonesLoading}
-                >
-                  <option value=":">
-                    {zonesLoading ? "Loading zones..." : "Select a service zone"}
-                  </option>
-                  {zones.map((zone) => {
-                    const zoneId = String(zone?._id || zone?.id || "");
-                    const zoneSource = String(zone?.source || "");
-                    return (
-                      <option key={`${zoneSource}-${zoneId}`} value={`${zoneSource}:${zoneId}`}>
-                        {zone.label}
-                      </option>
-                    );
-                  })}
-                </select>
+                  <select
+                    required
+                    className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900"
+                    value={`${form.zoneSource}:${form.zoneId}`}
+                    onChange={(e) => {
+                      const [zoneSource, zoneId] = e.target.value.split(":");
+                      setForm((prev) => ({
+                        ...prev,
+                        zoneSource: zoneSource || "",
+                        zoneId: zoneId || "",
+                      }));
+                    }}
+                    disabled={zonesLoading}
+                  >
+                    <option value=":">
+                      {zonesLoading ? "Loading zones..." : "Select a service zone"}
+                    </option>
+                    {zones.map((zone) => {
+                      const zoneId = String(zone?._id || zone?.id || "");
+                      const zoneSource = String(zone?.source || "");
+                      return (
+                        <option key={`${zoneSource}-${zoneId}`} value={`${zoneSource}:${zoneId}`}>
+                          {zone.label}
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <label className="text-xs font-bold text-slate-900">Support email <span className="text-red-500">*</span></label>
@@ -709,7 +763,7 @@ export default function SellerOnboarding() {
                         <option value="">Select opening time</option>
                         {timeOptions.map((time) => (
                           <option key={time} value={time}>
-                            {time}
+                            {formatTimeTo12Hour(time)}
                           </option>
                         ))}
                       </select>
@@ -724,7 +778,7 @@ export default function SellerOnboarding() {
                         <option value="">Select closing time</option>
                         {timeOptions.map((time) => (
                           <option key={time} value={time}>
-                            {time}
+                            {formatTimeTo12Hour(time)}
                           </option>
                         ))}
                       </select>
@@ -801,14 +855,14 @@ export default function SellerOnboarding() {
                   <label className="text-xs font-bold text-slate-900">Account number <span className="text-red-500">*</span></label>
                   <input
                     required
-                    className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.accountNumber && !/^\d{6,20}$/.test(form.accountNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
-                    placeholder="Account number (6–20 digits)"
+                    className={`rounded-2xl border px-4 py-3 font-semibold outline-none focus:border-slate-900 ${form.accountNumber && !/^\d{9,18}$/.test(form.accountNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
+                    placeholder="Account number (9–18 digits)"
                     value={form.accountNumber}
-                    maxLength={20}
-                    onChange={(e) => updateField("accountNumber", e.target.value.replace(/\D/g, "").slice(0, 20))}
+                    maxLength={18}
+                    onChange={(e) => updateField("accountNumber", e.target.value.replace(/\D/g, "").slice(0, 18))}
                   />
-                  {form.accountNumber && !/^\d{6,20}$/.test(form.accountNumber) && (
-                    <p className="text-xs font-semibold text-red-500 px-1">Account number must be 6–20 digits (numbers only)</p>
+                  {form.accountNumber && !/^\d{9,18}$/.test(form.accountNumber) && (
+                    <p className="text-xs font-semibold text-red-500 px-1">Account number must be 9–18 digits (numbers only)</p>
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
@@ -827,22 +881,22 @@ export default function SellerOnboarding() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-900">Account type <span className="text-red-500">*</span></label>
-                <select
-                  required
-                  className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900"
-                  value={form.accountType}
-                  onChange={(e) => updateField("accountType", e.target.value)}
-                >
-                  <option value="">Select account type</option>
-                  <option value="Savings">Savings Account</option>
-                  <option value="Current">Current Account</option>
-                  <option value="Salary">Salary Account</option>
-                  <option value="Fixed Deposit">Fixed Deposit Account</option>
-                  <option value="Recurring Deposit">Recurring Deposit Account</option>
-                  <option value="NRI">NRI Account (NRE/NRO)</option>
-                  <option value="Jan Dhan">Jan Dhan Account</option>
-                  <option value="BSBDA">Basic Savings Bank Deposit (BSBDA)</option>
-                </select>
+                  <select
+                    required
+                    className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900"
+                    value={form.accountType}
+                    onChange={(e) => updateField("accountType", e.target.value)}
+                  >
+                    <option value="">Select account type</option>
+                    <option value="Savings">Savings Account</option>
+                    <option value="Current">Current Account</option>
+                    <option value="Salary">Salary Account</option>
+                    <option value="Fixed Deposit">Fixed Deposit Account</option>
+                    <option value="Recurring Deposit">Recurring Deposit Account</option>
+                    <option value="NRI">NRI Account (NRE/NRO)</option>
+                    <option value="Jan Dhan">Jan Dhan Account</option>
+                    <option value="BSBDA">Basic Savings Bank Deposit (BSBDA)</option>
+                  </select>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-900">UPI ID <span className="text-red-500">*</span></label>
@@ -859,14 +913,34 @@ export default function SellerOnboarding() {
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <label className="text-xs font-bold text-slate-900">UPI QR image <span className="text-red-500">*</span></label>
-                  <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                  <div
+                    onClick={() =>
+                      openImageSourcePicker({
+                        title: "Upload UPI QR image",
+                        fallbackInputRef: qrImageInputRef,
+                        fileNamePrefix: "upi-qr",
+                        onSelectFile: (file) => setQrFile(file),
+                      })
+                    }
+                    className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
+                  >
                     <span className="truncate max-w-[200px]">{qrFile?.name || "Upload UPI QR image"}</span>
                     <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
                       <Upload className="h-3.5 w-3.5" />
                       Choose
                     </span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => setQrFile(e.target.files?.[0] || null)} />
-                  </label>
+
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={qrImageInputRef}
+                    onChange={(e) => {
+                      setQrFile(e.target.files?.[0] || null);
+                      e.target.value = '';
+                    }}
+                  />
                 </div>
               </div>
             </section>
@@ -970,14 +1044,34 @@ export default function SellerOnboarding() {
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <label className="text-xs font-bold text-slate-900">Shop license image <span className="text-red-500">*</span></label>
-                  <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                  <div
+                    onClick={() =>
+                      openImageSourcePicker({
+                        title: "Upload shop license image",
+                        fallbackInputRef: licenseImageInputRef,
+                        fileNamePrefix: "shop-license",
+                        onSelectFile: (file) => setLicenseFile(file),
+                      })
+                    }
+                    className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
+                  >
                     <span className="truncate max-w-[200px]">{licenseFile?.name || "Upload shop license image"}</span>
                     <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
                       <Upload className="h-3.5 w-3.5" />
                       Choose
                     </span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => setLicenseFile(e.target.files?.[0] || null)} />
-                  </label>
+
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={licenseImageInputRef}
+                    onChange={(e) => {
+                      setLicenseFile(e.target.files?.[0] || null);
+                      e.target.value = '';
+                    }}
+                  />
                 </div>
               </div>
             </section>
@@ -1025,6 +1119,14 @@ export default function SellerOnboarding() {
           zoneLabel={selectedZone?.label || ""}
         />
       )}
+      <ImageSourcePicker
+        isOpen={sourcePicker.isOpen}
+        onClose={closeImageSourcePicker}
+        onFileSelect={sourcePicker.onSelectFile}
+        title={sourcePicker.title}
+        fileNamePrefix={sourcePicker.fileNamePrefix}
+        galleryInputRef={sourcePicker.fallbackInputRef}
+      />
     </div>
   );
 }
