@@ -23,6 +23,7 @@ const countryCodes = [
 ]
 
 export default function RestaurantSignup() {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('restaurant'))
   const [bannerUrl, setBannerUrl] = useState(() => {
@@ -368,7 +369,7 @@ export default function RestaurantSignup() {
           </div>
 
           {/* Demo credentials / info bar */}
-          <div className="mt-8 w-full max-w-lg rounded-lg border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800 flex items-start gap-3">
+          {/* <div className="mt-8 w-full max-w-lg rounded-lg border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800 flex items-start gap-3">
             <div className="mt-0.5 text-[#FE5502]">
               <AlertCircle className="h-4 w-4" />
             </div>
@@ -381,7 +382,7 @@ export default function RestaurantSignup() {
                 <span className="font-semibold">OTP :</span> 1234
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Simple keyframe animations */}

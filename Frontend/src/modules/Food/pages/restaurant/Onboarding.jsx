@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import { Input } from "@food/components/ui/input"
 import { Button } from "@food/components/ui/button"
 import { Label } from "@food/components/ui/label"
-import { Image as ImageIcon, Upload, Clock, Calendar as CalendarIcon, Sparkles, X, LogOut, ChevronLeft } from "lucide-react"
+import { Image as ImageIcon, Upload, Clock, Calendar as CalendarIcon, Sparkles, X, LogOut, ChevronLeft, MapPin } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@food/components/ui/popover"
 import { Calendar } from "@food/components/ui/calendar"
 import {
@@ -543,6 +543,27 @@ export default function RestaurantOnboarding() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [step, setStep] = useState(1)
+  const [showLocationModal, setShowLocationModal] = useState(false)
+
+  const checkLocationService = () => {
+    if (!navigator.geolocation) {
+      setShowLocationModal(true)
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setShowLocationModal(false)
+      },
+      (error) => {
+        setShowLocationModal(true)
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    )
+  }
+
+  useEffect(() => {
+    checkLocationService()
+  }, [])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -626,7 +647,7 @@ export default function RestaurantOnboarding() {
     profileImage: null,
     cuisines: [],
     openingTime: "",
-    closingTime: "21:00",
+    closingTime: "",
     openDays: [],
   })
 
@@ -824,7 +845,7 @@ export default function RestaurantOnboarding() {
           profileImage: null,
           cuisines: [],
           openingTime: "",
-          closingTime: "21:00",
+          closingTime: "",
           openDays: [],
         }
 
@@ -1259,6 +1280,24 @@ export default function RestaurantOnboarding() {
     }
     if (!step2.closingTime?.trim()) {
       errors.push("Closing time is required")
+    }
+    // if (step2.openingTime && step2.closingTime) {
+    //   const openDate = stringToTime(step2.openingTime)
+    //   const closeDate = stringToTime(step2.closingTime)
+    //   if (openDate && closeDate && closeDate.getTime() <= openDate.getTime()) {
+    //     errors.push("Closing time cannot be less than opening time.")
+    //   }
+    // }
+    if (step2.openingTime && step2.closingTime) {
+      const openDate = stringToTime(step2.openingTime)
+      const closeDate = stringToTime(step2.closingTime)
+      if (openDate && closeDate) {
+        if (closeDate.getTime() === openDate.getTime()) {
+          errors.push("Closing time cannot be the same as opening time.")
+        } else if (closeDate.getTime() < openDate.getTime()) {
+          errors.push("Closing time must be later than opening time.")
+        }
+      }
     }
     if (!step2.openDays || step2.openDays.length === 0) {
       errors.push("Please select at least one open day")
@@ -1774,8 +1813,8 @@ export default function RestaurantOnboarding() {
                 type="button"
                 onClick={() => isEditing && setStep1({ ...step1, pureVegRestaurant: true })}
                 className={`px-3 py-1.5 text-xs rounded-full border ${step1.pureVegRestaurant === true
-                    ? "bg-green-600 text-white border-green-600"
-                    : "bg-white text-gray-700 border-gray-200"
+                  ? "bg-green-600 text-white border-green-600"
+                  : "bg-white text-gray-700 border-gray-200"
                   } ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
               >
                 Yes, Pure Veg
@@ -1784,8 +1823,8 @@ export default function RestaurantOnboarding() {
                 type="button"
                 onClick={() => isEditing && setStep1({ ...step1, pureVegRestaurant: false })}
                 className={`px-3 py-1.5 text-xs rounded-full border ${step1.pureVegRestaurant === false
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-700 border-gray-200"
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-700 border-gray-200"
                   } ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
               >
                 No, Mixed Menu
@@ -1926,7 +1965,7 @@ export default function RestaurantOnboarding() {
           </div>
           <div>
             <Label className="text-xs text-gray-700">Search location</Label>
-            <Input
+            {/* <Input
               ref={locationSearchInputRef}
               className="mt-1 bg-white text-sm text-black! dark:text-white! placeholder:text-gray-500 dark:placeholder:text-gray-400 caret-black dark:caret-white"
               style={{ color: "#000", WebkitTextFillColor: "#000" }}
@@ -1946,7 +1985,22 @@ export default function RestaurantOnboarding() {
                   }))
                 }
               }}
+            /> */}
+            {/* // BAAD (uncontrolled - sirf ref use karo, value/onChange mat do) */}
+            <Input
+              ref={locationSearchInputRef}
+              className="mt-1 bg-white text-sm text-black! dark:text-white! placeholder:text-gray-500 dark:placeholder:text-gray-400 caret-black dark:caret-white"
+              style={{ color: "#000", WebkitTextFillColor: "#000" }}
+              placeholder="Start typing your restaurant address..."
+              defaultValue={step1.location?.formattedAddress || ""}
+              onChange={(e) => {
+                // Sirf suggestion flag reset karo, state mat touch karo
+                if (locationPickedFromSuggestion) {
+                  setLocationPickedFromSuggestion(false)
+                }
+              }}
             />
+
             {/* Warning: manual entry ke baad suggestion nahi chuna */}
             {step1.location?.formattedAddress &&
               !locationPickedFromSuggestion &&
@@ -2172,7 +2226,9 @@ export default function RestaurantOnboarding() {
 
           // Mark as picked from suggestion (has coordinates)
           setLocationPickedFromSuggestion(true)
-
+          if (locationSearchInputRef.current) {
+            locationSearchInputRef.current.value = parsed.formattedAddress || ""
+          }
           return {
             ...prev,
             location: {
@@ -2950,6 +3006,27 @@ export default function RestaurantOnboarding() {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <div className="min-h-screen bg-gray-100 flex flex-col">
+        {showLocationModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 text-center flex flex-col items-center animate-in zoom-in duration-200">
+              <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                <MapPin className="w-6 h-6 text-red-600 animate-bounce" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Location Access Required
+              </h3>
+              <p className="text-xs text-gray-600 mb-6 leading-relaxed">
+                To proceed with the onboarding process, please enable location services on your device and grant location access.
+              </p>
+              <Button
+                onClick={checkLocationService}
+                className="w-full bg-black hover:bg-zinc-800 text-white font-medium py-2 rounded-xl transition-all duration-200"
+              >
+                Enable Location & Retry
+              </Button>
+            </div>
+          </div>
+        )}
         <header className="px-4 py-4 sm:px-6 sm:py-5 bg-white flex items-center justify-between border-b">
           <div className="flex items-center gap-3">
             <button

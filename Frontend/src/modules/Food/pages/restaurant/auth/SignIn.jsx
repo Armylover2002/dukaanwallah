@@ -65,14 +65,14 @@ export default function RestaurantSignIn() {
       // Login with restaurant auth endpoint
       const response = await restaurantAPI.login(email, password)
       const data = response?.data?.data || response?.data
-      
+
       if (data.accessToken && data.restaurant) {
         // Replace old token with new one (handles cross-module login)
         setAuthData("restaurant", data.accessToken, data.restaurant)
-        
+
         // Dispatch custom event for same-tab updates
         window.dispatchEvent(new Event('restaurantAuthChanged'))
-        
+
         navigate("/restaurant", { replace: true })
       } else {
         throw new Error("Login failed. Please try again.")
@@ -85,7 +85,7 @@ export default function RestaurantSignIn() {
         "Login failed. Please check your credentials."
       setError(message)
     } finally {
-    setIsLoading(false)
+      setIsLoading(false)
     }
   }
 
@@ -261,7 +261,7 @@ export default function RestaurantSignIn() {
           </div>
 
           {/* Demo credentials / info bar */}
-          <div className="mt-8 w-full max-w-lg rounded-lg border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800 flex items-start gap-3">
+          {/* <div className="mt-8 w-full max-w-lg rounded-lg border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800 flex items-start gap-3">
             <div className="mt-0.5 text-primary-orange">
               <CheckSquare className="h-4 w-4" />
             </div>
@@ -274,7 +274,7 @@ export default function RestaurantSignIn() {
                 <span className="font-semibold">Password :</span> 12345678
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Simple keyframe animations */}
