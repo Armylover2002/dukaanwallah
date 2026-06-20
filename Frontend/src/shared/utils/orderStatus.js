@@ -53,6 +53,17 @@ function legacyFromWorkflow(workflowStatus) {
 export function getLegacyStatusFromOrder(order) {
   if (!order) return "pending";
 
+  // Explicitly check for cancelled status first using multiple indicators
+  const lowerStatus = String(order.orderStatus || order.status || "").toLowerCase();
+  const lowerWorkflow = String(order.workflowStatus || "").toLowerCase();
+  if (
+    lowerStatus.startsWith("cancel") ||
+    lowerWorkflow === "cancelled" ||
+    lowerStatus === "cancelled"
+  ) {
+    return "cancelled";
+  }
+
   // Explicitly check for delivered status first using multiple indicators
   if (
     order.deliveredAt ||
