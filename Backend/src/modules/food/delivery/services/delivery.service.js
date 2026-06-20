@@ -5,6 +5,8 @@ import { DeliverySupportTicket } from '../models/supportTicket.model.js';
 import { DeliveryBonusTransaction } from '../../admin/models/deliveryBonusTransaction.model.js';
 import { FoodEarningAddon } from '../../admin/models/earningAddon.model.js';
 import { FoodOrder } from '../../orders/models/order.model.js';
+import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { Seller } from '../../../quick-commerce/seller/models/seller.model.js';
 import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service.js';
@@ -785,10 +787,25 @@ export const getDeliveryPartnerTripHistory = async (deliveryPartnerId, query = {
     }
 
     const orders = await FoodOrder.find(match)
-        .populate({ path: 'restaurantId', select: 'restaurantName' })
         .sort({ 'deliveryState.deliveredAt': -1, createdAt: -1 })
         .limit(limit)
         .lean();
+
+    for (const order of orders) {
+        const qcSellerId = (order.orderType === 'quick' || order.orderType === 'mixed')
+            ? (order.restaurantId ||
+               order.items?.find((item) => item?.type === 'quick' && item?.sourceId)?.sourceId ||
+               order.pickupPoints?.find((point) => point?.pickupType === 'quick' && point?.sourceId)?.sourceId)
+            : null;
+
+        if (qcSellerId) {
+            const seller = await Seller.findById(qcSellerId).select('shopName').lean();
+            order.restaurantId = { restaurantName: seller?.shopName || 'Quick Commerce Store' };
+        } else if (order.restaurantId) {
+            const restaurant = await FoodRestaurant.findById(order.restaurantId).select('restaurantName').lean();
+            order.restaurantId = restaurant;
+        }
+    }
 
     return {
         period,
@@ -819,10 +836,25 @@ export const getDeliveryPocketDetails = async (deliveryPartnerId, query = {}) =>
             { createdAt: { $gte: start, $lte: end } }
         ]
     })
-        .populate({ path: 'restaurantId', select: 'restaurantName' })
         .sort({ 'deliveryState.deliveredAt': -1, deliveredAt: -1, completedAt: -1, updatedAt: -1, createdAt: -1 })
         .limit(limit)
         .lean();
+
+    for (const order of orders) {
+        const qcSellerId = (order.orderType === 'quick' || order.orderType === 'mixed')
+            ? (order.restaurantId ||
+               order.items?.find((item) => item?.type === 'quick' && item?.sourceId)?.sourceId ||
+               order.pickupPoints?.find((point) => point?.pickupType === 'quick' && point?.sourceId)?.sourceId)
+            : null;
+
+        if (qcSellerId) {
+            const seller = await Seller.findById(qcSellerId).select('shopName').lean();
+            order.restaurantId = { restaurantName: seller?.shopName || 'Quick Commerce Store' };
+        } else if (order.restaurantId) {
+            const restaurant = await FoodRestaurant.findById(order.restaurantId).select('restaurantName').lean();
+            order.restaurantId = restaurant;
+        }
+    }
 
     const bonusTxList = await DeliveryBonusTransaction.find({
         deliveryPartnerId: partnerId,

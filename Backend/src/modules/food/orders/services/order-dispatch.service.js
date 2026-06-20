@@ -291,13 +291,27 @@ export async function tryAutoAssign(orderId, options = {}) {
       $set: { "dispatch.dispatchingAt": new Date() },
     },
     { new: true },
-  ).populate(["restaurantId", "userId"]);
+  ).populate(["userId"]);
 
   if (!order) {
     logger.info(
       `tryAutoAssign: Skip for ${orderId} (already dispatching, accepted, or multi-attempt lock active).`,
     );
     return null;
+  }
+
+  const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
+    ? (order.restaurantId ||
+       order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+       order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
+    : null;
+
+  if (qcSellerId) {
+    const seller = await Seller.findById(qcSellerId).lean();
+    order.restaurantId = seller;
+  } else if (order.restaurantId) {
+    const restaurant = await FoodRestaurant.findById(order.restaurantId).lean();
+    order.restaurantId = restaurant;
   }
 
   try {

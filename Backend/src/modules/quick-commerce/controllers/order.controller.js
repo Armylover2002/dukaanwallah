@@ -335,6 +335,7 @@ export const placeOrder = async (req, res) => {
     const order = await QuickOrder.create({
       orderType: 'quick',
       orderId: orderNumber,
+      restaurantId: sellerId,
       sessionId: idQuery.sessionId || '',
       userId: idQuery.userId || null,
       items: items.map((item) => ({

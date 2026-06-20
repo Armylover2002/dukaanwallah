@@ -2737,16 +2737,30 @@ export async function getOrderById(
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError("Order id required");
   const order = await FoodOrder.findOne(identity)
-    .populate(
-      "restaurantId",
-      "restaurantName profileImage area city location rating totalRatings",
-    )
     .populate("dispatch.deliveryPartnerId", "name phone rating totalRatings")
     .populate("dispatchPlan.legs.deliveryPartnerId", "name phone rating totalRatings")
     .populate("userId", "name phone email")
     .select("+deliveryOtp")
     .lean();
   if (!order) throw new NotFoundError("Order not found");
+
+  const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
+    ? (order.restaurantId ||
+       order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+       order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
+    : null;
+
+  if (qcSellerId) {
+    const seller = await Seller.findById(qcSellerId)
+      .select("shopName name phone location rating totalRatings profileImage")
+      .lean();
+    order.restaurantId = seller;
+  } else if (order.restaurantId) {
+    const restaurant = await FoodRestaurant.findById(order.restaurantId)
+      .select("restaurantName name profileImage area city location rating totalRatings phone")
+      .lean();
+    order.restaurantId = restaurant;
+  }
 
   if (admin) return normalizeOrderForClient(order);
 
@@ -3400,19 +3414,37 @@ export async function getCurrentTripDelivery(deliveryPartnerId) {
   // Find the active order assigned to or accepted by this rider.
   const order = await FoodOrder.findOne({
     $or: [
-      { "dispatch.deliveryPartnerId": partnerId },
+      { "dispatch.deliveryPartnerId": partnerId, "dispatch.status": "accepted" },
       { "dispatchPlan.legs": { $elemMatch: { deliveryPartnerId: partnerId } } },
     ],
     orderStatus: {
       $in: ["confirmed", "preparing", "ready_for_pickup", "picked_up", "reached_pickup", "reached_drop"]
     }
   })
-    .populate({ path: "restaurantId", select: "restaurantName name phone location addressLine1 area city state profileImage" })
     .populate({ path: "userId", select: "name phone" })
     .sort({ updatedAt: -1 })
     .lean();
 
   if (!order) return null;
+
+  const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
+    ? (order.restaurantId ||
+       order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+       order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
+    : null;
+
+  if (qcSellerId) {
+    const seller = await Seller.findById(qcSellerId)
+      .select("shopName name phone location addressLine1 area city state profileImage")
+      .lean();
+    order.restaurantId = seller;
+  } else if (order.restaurantId) {
+    const restaurant = await FoodRestaurant.findById(order.restaurantId)
+      .select("restaurantName name phone location addressLine1 area city state profileImage")
+      .lean();
+    order.restaurantId = restaurant;
+  }
+
   return buildDeliveryOrderView(order, deliveryPartnerId, {
     assignedDispatchLeg: getAssignedDispatchLeg(order, deliveryPartnerId),
   });
@@ -3480,8 +3512,27 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
   const orders = await FoodOrder.find(filter)
     .sort({ createdAt: -1 })
     .populate("userId", "name phone email")
-    .populate("restaurantId", "restaurantName name address phone ownerPhone location profileImage")
     .lean();
+
+  for (const order of orders) {
+    const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
+      ? (order.restaurantId ||
+         order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+         order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
+      : null;
+
+    if (qcSellerId) {
+      const seller = await Seller.findById(qcSellerId)
+        .select("shopName name phone location addressLine1 area city state profileImage")
+        .lean();
+      order.restaurantId = seller;
+    } else if (order.restaurantId) {
+      const restaurant = await FoodRestaurant.findById(order.restaurantId)
+        .select("restaurantName name address phone ownerPhone location profileImage")
+        .lean();
+      order.restaurantId = restaurant;
+    }
+  }
 
   const docs = [];
   for (const order of orders) {
@@ -3665,7 +3716,18 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId, body = {})
   });
 
   await order.save();
-  await order.populate('restaurantId');
+  if (order.orderType === "quick" || order.orderType === "mixed") {
+    const qcSellerId = order.restaurantId ||
+      order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+      order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId;
+
+    if (qcSellerId) {
+      const seller = await Seller.findById(qcSellerId).lean();
+      order.restaurantId = seller;
+    }
+  } else {
+    await order.populate('restaurantId');
+  }
 
   try {
       const rest = order.restaurantId;
@@ -4517,7 +4579,6 @@ export async function listOrdersAdmin(query) {
   const [docs, total] = await Promise.all([
     FoodOrder.find(filter)
       .populate("userId", "name phone email")
-      .populate("restaurantId", "restaurantName area city ownerPhone")
       .populate("dispatch.deliveryPartnerId", "name phone")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -4525,6 +4586,26 @@ export async function listOrdersAdmin(query) {
       .lean(),
     FoodOrder.countDocuments(filter),
   ]);
+
+  for (const order of docs) {
+    const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
+      ? (order.restaurantId ||
+         order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+         order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
+      : null;
+
+    if (qcSellerId) {
+      const seller = await Seller.findById(qcSellerId)
+        .select("shopName area city ownerPhone name phone")
+        .lean();
+      order.restaurantId = seller;
+    } else if (order.restaurantId) {
+      const restaurant = await FoodRestaurant.findById(order.restaurantId)
+        .select("restaurantName area city ownerPhone name phone")
+        .lean();
+      order.restaurantId = restaurant;
+    }
+  }
 
   const paginated = buildPaginatedResult({ docs, total, page, limit });
   return { ...paginated, orders: paginated.data };
@@ -4717,11 +4798,27 @@ export async function resyncState(userId, role) {
           $in: ["placed", "created", "confirmed", "preparing", "ready_for_pickup", "picked_up", "reached_pickup", "reached_drop"]
         }
       })
-      .populate({ path: "restaurantId", select: "restaurantName name phone location addressLine1 area city state profileImage" })
       .sort({ createdAt: -1 })
       .lean();
 
       if (order) {
+        const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
+          ? (order.restaurantId ||
+             order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+             order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
+          : null;
+
+        if (qcSellerId) {
+          const seller = await Seller.findById(qcSellerId)
+            .select("shopName name phone location addressLine1 area city state profileImage")
+            .lean();
+          order.restaurantId = seller;
+        } else if (order.restaurantId) {
+          const restaurant = await FoodRestaurant.findById(order.restaurantId)
+            .select("restaurantName name phone location addressLine1 area city state profileImage")
+            .lean();
+          order.restaurantId = restaurant;
+        }
         activeOrder = normalizeOrderForClient(order);
         if (order.deliveryVerification?.dropOtp?.required && !order.deliveryVerification?.dropOtp?.verified) {
           activeOrder.handoverOtp = order.deliveryOtp;
