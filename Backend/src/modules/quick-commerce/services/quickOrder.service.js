@@ -16,7 +16,7 @@ import {
   haversineKm,
 } from '../../food/orders/services/order.helpers.js';
 import { tryAutoAssign } from '../../food/orders/services/order-dispatch.service.js';
-import { initiateRazorpayRefund } from '../../food/orders/helpers/razorpay.helper.js';
+import { autoRefundForCancelledOrder } from '../../../core/payments/autoRefund.service.js';
 import * as foodTransactionService from '../../food/orders/services/foodTransaction.service.js';
 import { ValidationError, NotFoundError } from '../../../core/auth/errors.js';
 import { emitQuickCommerceStatusUpdate } from './quickStatusRealtime.service.js';
@@ -201,34 +201,12 @@ export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatu
 };
 
 const handleSellerOrderCancellation = async (parentOrder, reason = '') => {
-  // Refund logic
-  if (
-    parentOrder.payment?.status === "paid" &&
-    parentOrder.payment?.method === "razorpay" &&
-    parentOrder.payment?.razorpay?.paymentId &&
-    (!parentOrder.payment?.refund || parentOrder.payment?.refund?.status !== "processed")
-  ) {
-    try {
-      const refundResult = await initiateRazorpayRefund(
-        parentOrder.payment.razorpay.paymentId,
-        parentOrder.pricing?.total || 0
-      );
-
-      if (refundResult.success) {
-        parentOrder.payment.status = "refunded";
-        parentOrder.payment.refund = {
-          status: "processed",
-          amount: parentOrder.pricing?.total || 0,
-          refundId: refundResult.refundId,
-          processedAt: new Date()
-        };
-      } else {
-        parentOrder.payment.refund = { status: "failed", amount: parentOrder.pricing?.total || 0 };
-      }
-    } catch (err) {
-      logger.error(`Automated refund failed for Quick Order ${parentOrder.orderId}:`, err);
-      parentOrder.payment.refund = { status: "failed", amount: parentOrder.pricing?.total || 0 };
-    }
+  // ✅ AUTOMATED REFUND: Full refund on seller cancellation (wallet or gateway)
+  try {
+    await autoRefundForCancelledOrder(parentOrder);
+    // parentOrder.payment fields are updated in-memory; caller will .save()
+  } catch (err) {
+    logger.error(`[handleSellerOrderCancellation] Auto-refund failed for Quick Order ${parentOrder.orderId}: ${err?.message || err}`);
   }
 
   // Update transaction
@@ -239,7 +217,7 @@ const handleSellerOrderCancellation = async (parentOrder, reason = '') => {
       { note: reason ? `Cancelled by seller: ${reason}` : 'Cancelled by seller' }
     );
   } catch (err) {
-    logger.error(`Transaction update failed for Quick Order ${parentOrder.orderId}:`, err);
+    logger.error(`Transaction update failed for Quick Order ${parentOrder.orderId}: ${err}`);
   }
 };
 

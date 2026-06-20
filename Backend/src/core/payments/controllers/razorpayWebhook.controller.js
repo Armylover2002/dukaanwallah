@@ -9,6 +9,8 @@ import { logger } from '../../../utils/logger.js';
 import { ProcessedWebhookEvent } from '../models/processedWebhookEvent.model.js';
 import dayjs from 'dayjs';
 import { OnboardingPaymentLog } from '../../../modules/common/models/onboardingPaymentLog.model.js';
+import { sendNotificationToOwner } from '../../notifications/firebase.service.js';
+import { getIO, rooms } from '../../../config/socket.js';
 
 import * as walletService from '../../../modules/food/subscriptions/services/wallet.service.js';
 
@@ -186,12 +188,11 @@ export const handleRazorpayWebhook = async (req, res) => {
                 { 
                     $set: { 
                         "payment.status": 'refunded',
-                        "payment.refund": {
-                            status: 'processed',
-                            amount: refundAmount,
-                            refundId: rzRefundId,
-                            processedAt: new Date()
-                        }
+                        "payment.refund.status": 'processed',
+                        "payment.refund.amount": refundAmount,
+                        "payment.refund.refundId": rzRefundId,
+                        "payment.refund.processedAt": new Date(),
+                        "payment.refund.processedMethod": 'gateway'
                     } 
                 },
                 { new: true }
@@ -199,6 +200,44 @@ export const handleRazorpayWebhook = async (req, res) => {
 
             if (order) {
                 logger.info(`Webhook [refund.processed]: Synced Order ${order.orderId} (Refunded)`);
+
+                // Notify the user that the refund has been confirmed by the payment gateway
+                try {
+                    const amountStr = `₹${Number(refundAmount).toFixed(2)}`;
+                    await sendNotificationToOwner(
+                        { ownerType: 'USER', ownerId: order.userId },
+                        {
+                            title: 'Refund Confirmed ✅',
+                            body: `Your refund of ${amountStr} for Order #${order.orderId} has been confirmed and will reflect in your bank account within 5–7 business days.`,
+                            image: 'https://i.ibb.co/3m2Yh7r/Appzeto-Brand-Image.png',
+                            data: {
+                                type: 'refund_confirmed',
+                                orderId: String(order.orderId),
+                                orderMongoId: String(order._id),
+                                amount: String(refundAmount)
+                            }
+                        }
+                    );
+                } catch (notifyErr) {
+                    logger.warn(`Webhook [refund.processed]: Notification failed for Order ${order.orderId}: ${notifyErr.message}`);
+                }
+
+                // Emit real-time socket event so the user's tracking page updates instantly
+                try {
+                    const io = getIO();
+                    if (io && order.userId) {
+                        io.to(rooms.user(order.userId)).emit('refund_confirmed', {
+                            orderMongoId: String(order._id),
+                            orderId: order.orderId,
+                            amount: refundAmount,
+                            refundId: rzRefundId,
+                            method: 'gateway',
+                            message: `Your refund of ₹${Number(refundAmount).toFixed(2)} has been confirmed.`
+                        });
+                    }
+                } catch (socketErr) {
+                    logger.warn(`Webhook [refund.processed]: Socket emit failed: ${socketErr.message}`);
+                }
             } else {
                 // ✅ ADDED: Log warn if order not found for refund
                 logger.warn(`Webhook [refund.processed]: Order not found or already refunded for RZ-Payment: ${rzPaymentId}`);

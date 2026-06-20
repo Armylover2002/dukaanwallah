@@ -1662,12 +1662,12 @@ export default function OrderTracking() {
               <div className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Refund destination</p>
-                  <p className="text-xs text-gray-500">Choose where your refund should go if admin approves the cancellation.</p>
+                  <p className="text-xs text-gray-500">Choose where your refund will be automatically sent upon cancellation.</p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {[
-                    { value: "gateway", label: "Original payment method", desc: "Refund back through Razorpay." },
-                    { value: "wallet", label: "Wallet", desc: "Refund as wallet balance for faster reuse." },
+                    { value: "gateway", label: "Original payment method", desc: "Auto-refunded via Razorpay within 5–7 business days." },
+                    { value: "wallet", label: "Wallet (Instant)", desc: "Refund credited instantly to your AppZeto wallet." },
                   ].map(({ value, label, desc }) => (
                     <button key={value} type="button" onClick={() => setRefundDestination(value)} disabled={isCancelling}
                       className={`rounded-xl border px-4 py-3 text-left transition ${refundDestination === value ? "border-orange-500 bg-red-50 text-orange-900" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"} ${isCancelling ? "cursor-not-allowed opacity-60" : ""}`}>

@@ -38,6 +38,7 @@ import { addOrderJob } from '../../../../queues/producers/order.producer.js';
 import { fetchPolyline } from '../utils/googleMaps.js';
 import { getFirebaseDB } from '../../../../config/firebase.js';
 import * as foodTransactionService from './foodTransaction.service.js';
+import { autoRefundForCancelledOrder } from '../../../../core/payments/autoRefund.service.js';
 import { ensureDailyPassEligibility } from "../../subscriptions/services/wallet.service.js";
 import {
   tryAutoAssign,
@@ -2854,6 +2855,7 @@ export async function cancelOrder(orderId, userId, reason, refundTo) {
     refundTo === "wallet" || refundTo === "gateway" ? refundTo : "gateway";
 
   if (isOnlinePaid) {
+    // Pre-populate refund metadata so autoRefundForCancelledOrder can read requestedMethod
     order.payment.refund = {
       ...(order.payment.refund || {}),
       status: "pending",
@@ -2871,38 +2873,15 @@ export async function cancelOrder(orderId, userId, reason, refundTo) {
     order.payment.status = "cancelled";
   }
 
-  // User-cancelled online refunds are handled from admin so the 30-second policy can be enforced.
-  if (
-    false &&
-    order.payment.status === "paid" &&
-    order.payment.method === "razorpay" &&
-    order.payment.razorpay?.paymentId &&
-    (!order.payment.refund || order.payment.refund.status !== "processed")
-  ) {
+  // ✅ AUTOMATED REFUND: Trigger immediately on cancellation.
+  // autoRefundForCancelledOrder is idempotent — safe to call on every cancel.
+  if (isOnlinePaid) {
     try {
-      const refundResult = await initiateRazorpayRefund(
-        order.payment.razorpay.paymentId,
-        order.pricing.total
-      );
-
-      if (refundResult.success) {
-        order.payment.status = "refunded";
-        order.payment.refund = {
-          status: "processed",
-          amount: order.pricing.total,
-          refundId: refundResult.refundId,
-          processedAt: new Date()
-        };
-      } else {
-        // Log failure but let order cancellation proceed
-        order.payment.refund = {
-          status: "failed",
-          amount: order.pricing.total
-        };
-      }
+      await autoRefundForCancelledOrder(order, requestedRefundMethod);
+      // order.payment fields are updated in-memory by autoRefundForCancelledOrder
     } catch (err) {
-      console.error(`Refund processing error for Order ${orderId}:`, err);
-      order.payment.refund = { status: "failed", amount: order.pricing.total };
+      // Log but do not block the cancellation from completing
+      logger.error(`[cancelOrder] Auto-refund error for Order ${order.orderId}: ${err?.message || err}`);
     }
   }
 
@@ -2939,9 +2918,10 @@ export async function cancelOrder(orderId, userId, reason, refundTo) {
   }
 
   // Notify User and Restaurant about the cancellation
+  const refundMethodLabel = requestedRefundMethod === "wallet" ? "wallet balance" : "original payment method (5–7 business days)";
   const refundPolicyDetail =
     isOnlinePaid
-      ? ` Refund review will follow the cancellation policy: full refund within ${USER_CANCEL_FULL_REFUND_WINDOW_MS / 1000} seconds, otherwise admin may process a partial refund. Requested destination: ${requestedRefundMethod === "wallet" ? "wallet" : "original payment method"}.`
+      ? ` Refund of ₹${Number(order.pricing?.total || 0).toFixed(2)} has been ${order.payment?.refund?.status === 'processed' ? 'processed' : 'initiated'} to your ${refundMethodLabel}.`
       : "";
 
   await notifyOwnersSafely(
@@ -3353,48 +3333,15 @@ export async function updateOrderStatusRestaurant(
         to: orderStatus
     });
 
-    // ✅ NEW: Automated Razorpay Refund on Restaurant Cancel
-    // Triggers if the restaurant sets status to a cancelled state (e.g., cancelled_by_restaurant)
-    if (
-      String(orderStatus).includes("cancel") &&
-      order.payment?.status === "paid" &&
-      order.payment?.method === "razorpay" &&
-      order.payment?.razorpay?.paymentId &&
-      (!order.payment?.refund || order.payment?.refund?.status !== "processed")
-    ) {
+    // ✅ AUTOMATED REFUND: Full refund on restaurant cancellation (wallet or gateway)
+    if (String(orderStatus).includes("cancel")) {
       try {
-        const refundResult = await initiateRazorpayRefund(
-          order.payment.razorpay.paymentId,
-          order.pricing?.total || 0
-        );
-
-        if (refundResult.success) {
-          order.payment = order.payment || {};
-          order.payment.status = "refunded";
-          order.payment.refund = {
-            status: "processed",
-            amount: order.pricing?.total || 0,
-            refundId: refundResult.refundId,
-            processedAt: new Date()
-          };
-        } else {
-          // Record failure so admin knows a manual refund might be needed
-          order.payment = order.payment || {};
-          order.payment.refund = {
-            status: "failed",
-            amount: order.pricing?.total || 0
-          };
-        }
+        await autoRefundForCancelledOrder(order);
+        // Re-save order with updated payment status after refund attempt
+        await order.save();
       } catch (err) {
-        console.error(`Automated refund failed for Order ${orderId} (Restaurant Cancel):`, err);
-        order.payment = order.payment || {};
-        order.payment.refund = {
-          status: "failed",
-          amount: order.pricing?.total || 0,
-        };
+        logger.error(`[updateOrderStatusRestaurant] Auto-refund error for Order ${order.orderId}: ${err?.message || err}`);
       }
-      // Re-save order with updated payment status
-      await order.save();
     }
 
     return order.toObject();
