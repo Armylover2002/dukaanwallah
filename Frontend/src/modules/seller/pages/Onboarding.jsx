@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker";
+import { openGallery } from "@food/utils/imageUploadUtils";
 import { useAuth } from "@core/context/AuthContext";
 import { motion } from "framer-motion";
 import {
@@ -914,7 +915,12 @@ export default function SellerOnboarding() {
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <label className="text-xs font-bold text-slate-900">UPI QR image <span className="text-red-500">*</span></label>
                   <div
-                    onClick={() => qrImageInputRef.current?.click()}
+                    onClick={() =>
+                      openGallery({
+                        onSelectFile: (file) => setQrFile(file),
+                        fileNamePrefix: "upi-qr",
+                      })
+                    }
                     className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
                   >
                     <span className="truncate max-w-[200px]">{qrFile?.name || "Upload UPI QR image"}</span>
@@ -1038,7 +1044,12 @@ export default function SellerOnboarding() {
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <label className="text-xs font-bold text-slate-900">Shop license image <span className="text-red-500">*</span></label>
                   <div
-                    onClick={() => licenseImageInputRef.current?.click()}
+                    onClick={() =>
+                      openGallery({
+                        onSelectFile: (file) => setLicenseFile(file),
+                        fileNamePrefix: "shop-license",
+                      })
+                    }
                     className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
                   >
                     <span className="truncate max-w-[200px]">{licenseFile?.name || "Upload shop license image"}</span>
