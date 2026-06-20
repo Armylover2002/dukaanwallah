@@ -1812,165 +1812,248 @@ export default function Cart() {
       const companyName = await getCompanyNameAsync()
 
       // ─── Payment: Flutter WebView → native Razorpay, Web → JS checkout ───
-      if (isFlutterWebView()) {
-        // Native Flutter Razorpay SDK via JS bridge
-        setIsPlacingOrder(true)
-        try {
-          const flutterResult = await handleFlutterRazorpayPayment({
-            key: razorpay.key,
-            order_id: razorpay.orderId,
-            amount: razorpay.amount, // already in paise
-            currency: razorpay.currency || 'INR',
-            name: companyName,
-            description: `Order ${order._id || order.orderId} - ${RUPEE_SYMBOL}${(razorpay.amount / 100).toFixed(2)}`,
-            prefill: { name: userName, email: userEmail, contact: formattedPhone },
-            notes: {
-              orderId: order._id || order.orderId,
-              userId: userInfo.id || '',
-              restaurantId: restaurantId || 'unknown',
-            },
-          })
+      // if (isFlutterWebView()) {
+      //   // Native Flutter Razorpay SDK via JS bridge
+      //   setIsPlacingOrder(true)
+      //   try {
+      //     const flutterResult = await handleFlutterRazorpayPayment({
+      //       key: razorpay.key,
+      //       order_id: razorpay.orderId,
+      //       amount: razorpay.amount, // already in paise
+      //       currency: razorpay.currency || 'INR',
+      //       name: companyName,
+      //       description: `Order ${order._id || order.orderId} - ${RUPEE_SYMBOL}${(razorpay.amount / 100).toFixed(2)}`,
+      //       prefill: { name: userName, email: userEmail, contact: formattedPhone },
+      //       notes: {
+      //         orderId: order._id || order.orderId,
+      //         userId: userInfo.id || '',
+      //         restaurantId: restaurantId || 'unknown',
+      //       },
+      //     })
 
-          // Verify payment with backend (same as web flow)
-          const verifyOrderId = order?._id || order?.id || order?.orderMongoId
-          if (!verifyOrderId) throw new Error('Unable to verify payment: missing order id')
-          const verifyResponse = await orderAPI.verifyPayment({
-            orderId: verifyOrderId,
-            razorpayOrderId: flutterResult.razorpay_order_id,
-            razorpayPaymentId: flutterResult.razorpay_payment_id,
-            razorpaySignature: flutterResult.razorpay_signature,
-          })
+      //     // Verify payment with backend (same as web flow)
+      //     const verifyOrderId = order?._id || order?.id || order?.orderMongoId
+      //     if (!verifyOrderId) throw new Error('Unable to verify payment: missing order id')
+      //     const verifyResponse = await orderAPI.verifyPayment({
+      //       orderId: verifyOrderId,
+      //       razorpayOrderId: flutterResult.razorpay_order_id,
+      //       razorpayPaymentId: flutterResult.razorpay_payment_id,
+      //       razorpaySignature: flutterResult.razorpay_signature,
+      //     })
 
-          if (verifyResponse.data.success) {
-            setPlacedOrderId(order._id || order.orderId)
-            setPlacedOrderData(order || null)
-            setShowOrderSuccess(true)
-            window.dispatchEvent(new CustomEvent('order-placed', { detail: { order } }))
-            clearCart()
-          } else {
-            throw new Error(verifyResponse.data.message || 'Payment verification failed')
+      //     if (verifyResponse.data.success) {
+      //       setPlacedOrderId(order._id || order.orderId)
+      //       setPlacedOrderData(order || null)
+      //       setShowOrderSuccess(true)
+      //       window.dispatchEvent(new CustomEvent('order-placed', { detail: { order } }))
+      //       clearCart()
+      //     } else {
+      //       throw new Error(verifyResponse.data.message || 'Payment verification failed')
+      //     }
+      //   } catch (payErr) {
+      //     const msg = payErr?.message || 'Payment failed or cancelled'
+      //     if (!/cancel/i.test(msg)) {
+      //       // Cancel order in backend if payment failed (not just cancelled)
+      //       try {
+      //         const cancelId = order?._id || order?.id || order?.orderMongoId
+      //         if (cancelId) {
+      //           await orderAPI.cancelOrder(cancelId, { reason: 'Payment Failed', note: msg })
+      //         }
+      //       } catch { /* ignore cancel error */ }
+      //       alert(msg)
+      //     }
+      //   } finally {
+      //     setIsPlacingOrder(false)
+      //   }
+      // } else {
+      //   // Standard web Razorpay checkout modal (unchanged)
+      //   await initRazorpayPayment({
+      //     key: razorpay.key,
+      //     amount: razorpay.amount, // Already in paise from backend
+      //     currency: razorpay.currency || 'INR',
+      //     order_id: razorpay.orderId,
+      //     name: companyName,
+      //     description: `Order ${order._id || order.orderId} - ${RUPEE_SYMBOL}${(razorpay.amount / 100).toFixed(2)}`,
+      //     prefill: {
+      //       name: userName,
+      //       email: userEmail,
+      //       contact: formattedPhone
+      //     },
+      //     notes: {
+      //       orderId: order._id || order.orderId,
+      //       userId: userInfo.id || "",
+      //       restaurantId: restaurantId || "unknown"
+      //     },
+      //     handler: async (response) => {
+      //       try {
+      //         debugLog("? Payment successful, verifying...", {
+      //           razorpay_order_id: response.razorpay_order_id,
+      //           razorpay_payment_id: response.razorpay_payment_id
+      //         })
+
+      //         // Verify payment with backend
+      //         const verifyOrderId = order?._id || order?.id || order?.orderMongoId
+      //         if (!verifyOrderId) {
+      //           throw new Error("Unable to verify payment: missing order id from create-order response")
+      //         }
+      //         const verifyResponse = await orderAPI.verifyPayment({
+      //           orderId: verifyOrderId,
+      //           razorpayOrderId: response.razorpay_order_id,
+      //           razorpayPaymentId: response.razorpay_payment_id,
+      //           razorpaySignature: response.razorpay_signature
+      //         })
+
+      //         debugLog("? Payment verification response:", verifyResponse.data)
+
+      //         if (verifyResponse.data.success) {
+      //           debugLog("?? Order placed successfully:", {
+      //             orderId: order._id || order.orderId,
+      //             paymentId: verifyResponse.data.data?.payment?.paymentId
+      //           })
+      //           setPlacedOrderId(order._id || order.orderId)
+      //           setPlacedOrderData(order || null)
+      //           setShowOrderSuccess(true)
+      //           window.dispatchEvent(new CustomEvent('order-placed', { detail: { order } }))
+      //           clearCart()
+      //           setIsPlacingOrder(false)
+      //         } else {
+      //           throw new Error(verifyResponse.data.message || "Payment verification failed")
+      //         }
+      //       } catch (error) {
+      //         debugError("? Payment verification error:", error)
+      //         const errorMessage =
+      //           error?.response?.data?.message ||
+      //           error?.response?.data?.error?.message ||
+      //           error?.response?.data?.errors?.[0]?.message ||
+      //           error?.message ||
+      //           "Payment verification failed. Please contact support."
+      //         alert(errorMessage)
+      //         setIsPlacingOrder(false)
+      //       }
+      //     },
+      //     onError: async (error) => {
+      //       debugError("? Razorpay payment error:", error)
+      //       // Clean up the pending order in backend if payment failed
+      //       try {
+      //         const cancelId = order?._id || order?.id || order?.orderMongoId
+      //         if (cancelId) {
+      //           await orderAPI.cancelOrder(cancelId, {
+      //             reason: "Payment Failed",
+      //             note: error?.description || error?.message || "Online payment failed"
+      //           })
+      //         }
+      //       } catch (cancelErr) {
+      //         debugError("? Failed to auto-cancel order after payment error:", cancelErr)
+      //       }
+
+      //       // Don't show alert for user cancellation
+      //       if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
+      //         const errorMessage = error?.description || error?.message || "Payment failed. Please try again."
+      //         alert(errorMessage)
+      //       }
+      //       setIsPlacingOrder(false)
+      //     },
+      //     onClose: async () => {
+      //       debugLog("?? Payment modal closed by user")
+      //       // Clean up the pending order in backend if user closed the modal without paying
+      //       try {
+      //         const cancelId = order?._id || order?.id || order?.orderMongoId
+      //         if (cancelId) {
+      //           await orderAPI.cancelOrder(cancelId, {
+      //             reason: "Payment Cancelled",
+      //             note: "User closed payment modal"
+      //           })
+      //         }
+      //       } catch (cancelErr) {
+      //         debugError("? Failed to auto-cancel order after modal close:", cancelErr)
+      //       }
+      //       setIsPlacingOrder(false)
+      //     }
+      //   })
+      // }
+
+      // ─── Payment: initRazorpayPayment handles Flutter + Web both ───
+      await initRazorpayPayment({
+        key: razorpay.key,
+        amount: razorpay.amount,
+        currency: razorpay.currency || 'INR',
+        order_id: razorpay.orderId,
+        name: companyName,
+        description: `Order ${order._id || order.orderId} - ${RUPEE_SYMBOL}${(razorpay.amount / 100).toFixed(2)}`,
+        prefill: {
+          name: userName,
+          email: userEmail,
+          contact: formattedPhone
+        },
+        notes: {
+          orderId: order._id || order.orderId,
+          userId: userInfo.id || "",
+          restaurantId: restaurantId || "unknown"
+        },
+        handler: async (response) => {
+          try {
+            const verifyOrderId = order?._id || order?.id || order?.orderMongoId
+            if (!verifyOrderId) {
+              throw new Error("Unable to verify payment: missing order id from create-order response")
+            }
+            const verifyResponse = await orderAPI.verifyPayment({
+              orderId: verifyOrderId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature
+            })
+            if (verifyResponse.data.success) {
+              setPlacedOrderId(order._id || order.orderId)
+              setPlacedOrderData(order || null)
+              setShowOrderSuccess(true)
+              window.dispatchEvent(new CustomEvent('order-placed', { detail: { order } }))
+              clearCart()
+              setIsPlacingOrder(false)
+            } else {
+              throw new Error(verifyResponse.data.message || "Payment verification failed")
+            }
+          } catch (error) {
+            const errorMessage =
+              error?.response?.data?.message ||
+              error?.message ||
+              "Payment verification failed. Please contact support."
+            alert(errorMessage)
+            setIsPlacingOrder(false)
           }
-        } catch (payErr) {
-          const msg = payErr?.message || 'Payment failed or cancelled'
-          if (!/cancel/i.test(msg)) {
-            // Cancel order in backend if payment failed (not just cancelled)
-            try {
-              const cancelId = order?._id || order?.id || order?.orderMongoId
-              if (cancelId) {
-                await orderAPI.cancelOrder(cancelId, { reason: 'Payment Failed', note: msg })
-              }
-            } catch { /* ignore cancel error */ }
-            alert(msg)
+        },
+        onError: async (error) => {
+          try {
+            const cancelId = order?._id || order?.id || order?.orderMongoId
+            if (cancelId) {
+              await orderAPI.cancelOrder(cancelId, {
+                reason: "Payment Failed",
+                note: error?.description || error?.message || "Online payment failed"
+              })
+            }
+          } catch (cancelErr) {
+            debugError("? Failed to auto-cancel order after payment error:", cancelErr)
           }
-        } finally {
+          if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
+            const errorMessage = error?.description || error?.message || "Payment failed. Please try again."
+            alert(errorMessage)
+          }
+          setIsPlacingOrder(false)
+        },
+        onClose: async () => {
+          try {
+            const cancelId = order?._id || order?.id || order?.orderMongoId
+            if (cancelId) {
+              await orderAPI.cancelOrder(cancelId, {
+                reason: "Payment Cancelled",
+                note: "User closed payment modal"
+              })
+            }
+          } catch (cancelErr) {
+            debugError("? Failed to auto-cancel order after modal close:", cancelErr)
+          }
           setIsPlacingOrder(false)
         }
-      } else {
-        // Standard web Razorpay checkout modal (unchanged)
-        await initRazorpayPayment({
-          key: razorpay.key,
-          amount: razorpay.amount, // Already in paise from backend
-          currency: razorpay.currency || 'INR',
-          order_id: razorpay.orderId,
-          name: companyName,
-          description: `Order ${order._id || order.orderId} - ${RUPEE_SYMBOL}${(razorpay.amount / 100).toFixed(2)}`,
-          prefill: {
-            name: userName,
-            email: userEmail,
-            contact: formattedPhone
-          },
-          notes: {
-            orderId: order._id || order.orderId,
-            userId: userInfo.id || "",
-            restaurantId: restaurantId || "unknown"
-          },
-          handler: async (response) => {
-            try {
-              debugLog("? Payment successful, verifying...", {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id
-              })
-
-              // Verify payment with backend
-              const verifyOrderId = order?._id || order?.id || order?.orderMongoId
-              if (!verifyOrderId) {
-                throw new Error("Unable to verify payment: missing order id from create-order response")
-              }
-              const verifyResponse = await orderAPI.verifyPayment({
-                orderId: verifyOrderId,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature
-              })
-
-              debugLog("? Payment verification response:", verifyResponse.data)
-
-              if (verifyResponse.data.success) {
-                debugLog("?? Order placed successfully:", {
-                  orderId: order._id || order.orderId,
-                  paymentId: verifyResponse.data.data?.payment?.paymentId
-                })
-                setPlacedOrderId(order._id || order.orderId)
-                setPlacedOrderData(order || null)
-                setShowOrderSuccess(true)
-                window.dispatchEvent(new CustomEvent('order-placed', { detail: { order } }))
-                clearCart()
-                setIsPlacingOrder(false)
-              } else {
-                throw new Error(verifyResponse.data.message || "Payment verification failed")
-              }
-            } catch (error) {
-              debugError("? Payment verification error:", error)
-              const errorMessage =
-                error?.response?.data?.message ||
-                error?.response?.data?.error?.message ||
-                error?.response?.data?.errors?.[0]?.message ||
-                error?.message ||
-                "Payment verification failed. Please contact support."
-              alert(errorMessage)
-              setIsPlacingOrder(false)
-            }
-          },
-          onError: async (error) => {
-            debugError("? Razorpay payment error:", error)
-            // Clean up the pending order in backend if payment failed
-            try {
-              const cancelId = order?._id || order?.id || order?.orderMongoId
-              if (cancelId) {
-                await orderAPI.cancelOrder(cancelId, {
-                  reason: "Payment Failed",
-                  note: error?.description || error?.message || "Online payment failed"
-                })
-              }
-            } catch (cancelErr) {
-              debugError("? Failed to auto-cancel order after payment error:", cancelErr)
-            }
-
-            // Don't show alert for user cancellation
-            if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
-              const errorMessage = error?.description || error?.message || "Payment failed. Please try again."
-              alert(errorMessage)
-            }
-            setIsPlacingOrder(false)
-          },
-          onClose: async () => {
-            debugLog("?? Payment modal closed by user")
-            // Clean up the pending order in backend if user closed the modal without paying
-            try {
-              const cancelId = order?._id || order?.id || order?.orderMongoId
-              if (cancelId) {
-                await orderAPI.cancelOrder(cancelId, {
-                  reason: "Payment Cancelled",
-                  note: "User closed payment modal"
-                })
-              }
-            } catch (cancelErr) {
-              debugError("? Failed to auto-cancel order after modal close:", cancelErr)
-            }
-            setIsPlacingOrder(false)
-          }
-        })
-      }
+      })
     } catch (error) {
       debugError("? Order creation error:", error)
 
