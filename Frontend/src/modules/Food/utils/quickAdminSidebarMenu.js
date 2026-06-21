@@ -38,7 +38,7 @@ export const quickAdminSidebarMenu = [
           { label: "Seller Coupon Request", path: "/admin/quick-commerce/seller-coupon-request", permissionKey: "seller_coupon_request" },
           { label: "Coupons & Promos", path: "/admin/quick-commerce/coupons", permissionKey: "coupons" },
           { label: "Offer Sections", path: "/admin/quick-commerce/offer-sections", permissionKey: "offer_sections" },
-          { label: "Shop by Store", path: "/admin/quick-commerce/shop-by-store", permissionKey: "shop_by_store" },
+          // { label: "Shop by Store", path: "/admin/quick-commerce/shop-by-store", permissionKey: "shop_by_store" },
         ],
       },
       {
