@@ -212,6 +212,7 @@ let globalQuickHomeCache = {
   data: null,
   headerSections: new Map(),    // headerId -> sections
   categoryProducts: new Map(),  // headerId -> products
+  heroConfigs: new Map(),       // headerId -> hero config
   lastFetched: 0,
 };
 
@@ -500,8 +501,49 @@ export const useQuickHomeData = ({ currentLocation }) => {
       }
     };
 
+    const fetchHeroConfig = async () => {
+      const homeConfig = globalQuickHomeCache.data?.heroConfig || { banners: { items: [] }, categoryIds: [] };
+      if (isAll) {
+        setHeroConfig(homeConfig);
+        return;
+      }
+      if (!globalQuickHomeCache.heroConfigs) {
+        globalQuickHomeCache.heroConfigs = new Map();
+      }
+      const cacheMap = globalQuickHomeCache.heroConfigs;
+      if (cacheMap.has(headerId)) {
+        setHeroConfig(cacheMap.get(headerId));
+        return;
+      }
+      try {
+        const res = await customerApi.getHeroConfig({ pageType: "header", headerId });
+        if (res?.data?.success) {
+          const config = res.data.result;
+          const hasBanners = (config?.banners?.items || []).length > 0;
+          const hasCategories = (config?.categoryIds || []).length > 0;
+
+          // If a category has its own config (banners or categories), use it.
+          // Otherwise, fall back to home page hero/category settings.
+          const finalConfig = (hasBanners || hasCategories)
+            ? {
+                banners: config.banners || { items: [] },
+                categoryIds: config.categoryIds || []
+              }
+            : homeConfig;
+
+          cacheMap.set(headerId, finalConfig);
+          setHeroConfig(finalConfig);
+        } else {
+          setHeroConfig(homeConfig);
+        }
+      } catch {
+        setHeroConfig(homeConfig);
+      }
+    };
+
     fetchHeaderSections();
     fetchCategoryProducts();
+    fetchHeroConfig();
   }, [activeCategory]);
 
   return {
@@ -523,6 +565,9 @@ export const useQuickHomeData = ({ currentLocation }) => {
     actions: {
       refresh: () => {
         globalQuickHomeCache.data = null;
+        if (globalQuickHomeCache.headerSections) globalQuickHomeCache.headerSections.clear();
+        if (globalQuickHomeCache.categoryProducts) globalQuickHomeCache.categoryProducts.clear();
+        if (globalQuickHomeCache.heroConfigs) globalQuickHomeCache.heroConfigs.clear();
         fetchData();
       },
     },
