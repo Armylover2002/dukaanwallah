@@ -7,11 +7,12 @@ const TARGET_OPTIONS = [
   { value: "USER", label: "Users" },
   { value: "RESTAURANT", label: "Restaurants" },
   { value: "DELIVERY", label: "Delivery Partners" },
+  { value: "SELLER", label: "Sellers" },
   { value: "CUSTOM", label: "Particular Persons" },
 ];
 
 const getRows = (response) => {
-  const payload = response?.data?.data;
+  const payload = response?.data?.data || response?.data?.result;
   return (
     payload?.items ||
     payload?.restaurants ||
@@ -21,6 +22,7 @@ const getRows = (response) => {
     payload?.data ||
     payload?.rows ||
     response?.data?.items ||
+    response?.data?.result?.items ||
     []
   );
 };
@@ -72,10 +74,11 @@ export default function NotificationBroadcast() {
   const loadRecipients = async () => {
     try {
       setRecipientLoading(true);
-      const [customersRes, restaurantsRes, deliveryRes] = await Promise.all([
+      const [customersRes, restaurantsRes, deliveryRes, sellersRes] = await Promise.all([
         adminAPI.getCustomers({ page: 1, limit: 500 }),
         adminAPI.getRestaurants({ page: 1, limit: 500 }),
         adminAPI.getDeliveryPartners({ page: 1, limit: 500 }),
+        adminAPI.getSellers({ page: 1, limit: 500 }),
       ]);
 
       const customers = normalizeRecipients(customersRes, "USER", (item, ownerType) => ({
@@ -99,7 +102,14 @@ export default function NotificationBroadcast() {
         subLabel: [item?.phone, item?.email].filter(Boolean).join(" • "),
       }));
 
-      setAllRecipients([...customers, ...restaurants, ...deliveryPartners]);
+      const sellers = normalizeRecipients(sellersRes, "SELLER", (item, ownerType) => ({
+        ownerType,
+        ownerId: String(item?._id || item?.id || ""),
+        label: String(item?.shopName || item?.name || "Seller").trim(),
+        subLabel: [item?.phone, item?.email].filter(Boolean).join(" • "),
+      }));
+
+      setAllRecipients([...customers, ...restaurants, ...deliveryPartners, ...sellers]);
     } catch {
       setAllRecipients([]);
     } finally {

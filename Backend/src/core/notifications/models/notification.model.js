@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema(
     {
         ownerType: {
             type: String,
-            enum: ['USER', 'RESTAURANT', 'DELIVERY_PARTNER'],
+            enum: ['USER', 'RESTAURANT', 'DELIVERY_PARTNER', 'SELLER'],
             required: true,
             index: true
         },
