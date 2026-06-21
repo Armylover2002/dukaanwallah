@@ -369,7 +369,12 @@ export const useQuickHomeData = ({ currentLocation }) => {
         (h) => h.slug?.toLowerCase() === "all" || h.name?.toLowerCase() === "all"
       );
       const mergedAll = allFromAdmin
-        ? { ...ALL_CATEGORY, icon: allFromAdmin.icon || ALL_CATEGORY.icon }
+        ? { 
+            ...ALL_CATEGORY, 
+            _id: allFromAdmin._id,
+            id: allFromAdmin._id,
+            icon: allFromAdmin.icon || ALL_CATEGORY.icon 
+          }
         : ALL_CATEGORY;
 
       const headersWithoutAll = formattedHeaders.filter(
@@ -446,11 +451,11 @@ export const useQuickHomeData = ({ currentLocation }) => {
 
   // --- Fetch header-specific sections & products when active category changes ---
   useEffect(() => {
-    if (!activeCategory || activeCategory._id === "all") {
-      setHeaderSections([]);
-      setCategoryProducts(null);
-      return;
-    }
+    if (!activeCategory) return;
+
+    const isAll = activeCategory._id === "all" || 
+                  activeCategory.slug === "all" || 
+                  activeCategory.name?.toLowerCase() === "all";
 
     const headerId = activeCategory._id;
 
@@ -475,6 +480,10 @@ export const useQuickHomeData = ({ currentLocation }) => {
     };
 
     const fetchCategoryProducts = async () => {
+      if (isAll) {
+        setCategoryProducts(null);
+        return;
+      }
       if (globalQuickHomeCache.categoryProducts.has(headerId)) {
         setCategoryProducts(globalQuickHomeCache.categoryProducts.get(headerId));
         return;

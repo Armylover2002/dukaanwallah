@@ -35,16 +35,18 @@ const toIdString = (value) => {
   return String(value);
 };
 
+const toId = (value) => {
+  if (!value) return null;
+  if (mongoose.Types.ObjectId.isValid(value)) {
+    return new mongoose.Types.ObjectId(value);
+  }
+  return value;
+};
+
 const normalizeStatusQuery = () => ({
   $and: [
-    {
-      $or: [
-        { status: 'active' },
-        { status: { $exists: false } },
-        { isActive: true },
-        { isActive: { $exists: false } },
-      ],
-    },
+    { status: { $ne: 'inactive' } },
+    { isActive: { $ne: false } },
   ],
 });
 
@@ -109,9 +111,9 @@ export const setQuickHeroConfig = async (data) => {
   return result;
 };
 
-export const getQuickExperienceSections = async ({ pageType = 'home', headerId = null } = {}) => {
+export const getQuickExperienceSections = async ({ pageType = 'home', headerId = null, isAdmin = false } = {}) => {
   const cacheKey = `${pageType}:${headerId}`;
-  if (cache.experience.data.has(cacheKey) && !isExpired(cache.experience.expiry)) {
+  if (!isAdmin && cache.experience.data.has(cacheKey) && !isExpired(cache.experience.expiry)) {
     return cache.experience.data.get(cacheKey);
   }
 
@@ -120,11 +122,30 @@ export const getQuickExperienceSections = async ({ pageType = 'home', headerId =
 
   const query = {
     pageType,
-    ...normalizeStatusQuery(),
   };
 
+  if (!isAdmin) {
+    Object.assign(query, normalizeStatusQuery());
+  }
+
   if (pageType === 'header') {
-    query.headerId = headerId ? String(headerId) : null;
+    let isAllCategory = false;
+    if (headerId) {
+      if (String(headerId).toLowerCase() === 'all') {
+        isAllCategory = true;
+      } else if (mongoose.Types.ObjectId.isValid(headerId)) {
+        const category = await QuickCategory.findById(headerId).lean();
+        if (category && (category.slug === 'all' || category.name?.toLowerCase() === 'all')) {
+          isAllCategory = true;
+        }
+      }
+    }
+
+    if (isAllCategory && isAdmin) {
+      // Admin: show sections across all header categories
+    } else {
+      query.headerId = headerId ? String(headerId) : null;
+    }
   }
 
   const sections = await QuickExperienceSection.find(query).sort({ order: 1, createdAt: 1 }).lean();
@@ -303,8 +324,10 @@ export const getQuickExperienceSections = async ({ pageType = 'home', headerId =
     };
   });
 
-  cache.experience.data.set(cacheKey, finalSections);
-  cache.experience.expiry = Date.now() + CACHE_TTL;
+  if (!isAdmin) {
+    cache.experience.data.set(cacheKey, finalSections);
+    cache.experience.expiry = Date.now() + CACHE_TTL;
+  }
   return finalSections;
 };
 
@@ -316,15 +339,21 @@ export const createQuickExperienceSection = async (data) => {
   }).sort({ order: -1 });
   
   const order = (maxSection?.order ?? -1) + 1;
-  return QuickExperienceSection.create({ ...data, order });
+  const result = await QuickExperienceSection.create({ ...data, order });
+  clearContentCache();
+  return result;
 };
 
 export const updateQuickExperienceSection = async (id, data) => {
-  return QuickExperienceSection.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
+  const result = await QuickExperienceSection.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
+  clearContentCache();
+  return result;
 };
 
 export const deleteQuickExperienceSection = async (id) => {
-  return QuickExperienceSection.findByIdAndDelete(id);
+  const result = await QuickExperienceSection.findByIdAndDelete(id);
+  clearContentCache();
+  return result;
 };
 
 export const reorderQuickExperienceSections = async (items = []) => {
@@ -335,7 +364,9 @@ export const reorderQuickExperienceSections = async (items = []) => {
     },
   }));
   if (!ops.length) return;
-  return QuickExperienceSection.bulkWrite(ops);
+  const result = await QuickExperienceSection.bulkWrite(ops);
+  clearContentCache();
+  return result;
 };
 
 export const getQuickCoupons = async () => {
@@ -453,7 +484,8 @@ export const getQuickOffers = async () => {
 };
 
 export const getQuickOfferSections = async (query = {}) => {
-  if (cache.offerSections.data && !isExpired(cache.offerSections.expiry)) {
+  const hasQuery = Object.keys(query).length > 0;
+  if (!hasQuery && cache.offerSections.data && !isExpired(cache.offerSections.expiry)) {
     return cache.offerSections.data;
   }
 
@@ -526,8 +558,10 @@ export const getQuickOfferSections = async (query = {}) => {
     };
   });
 
-  cache.offerSections.data = finalOfferSections;
-  cache.offerSections.expiry = Date.now() + CACHE_TTL;
+  if (!hasQuery) {
+    cache.offerSections.data = finalOfferSections;
+    cache.offerSections.expiry = Date.now() + CACHE_TTL;
+  }
   return finalOfferSections;
 };
 
@@ -544,6 +578,7 @@ export const createQuickOfferSection = async (data) => {
   };
 
   const result = await collection.insertOne(section);
+  clearContentCache();
   return { ...section, _id: result.insertedId };
 };
 
@@ -562,7 +597,7 @@ export const updateQuickOfferSection = async (id, data) => {
     { $set: update },
     { returnDocument: 'after' }
   );
-
+  clearContentCache();
   return result;
 };
 
@@ -571,6 +606,7 @@ export const deleteQuickOfferSection = async (id) => {
   if (!collection) throw new Error('Collection not found');
 
   await collection.deleteOne({ _id: toId(id) });
+  clearContentCache();
   return true;
 };
 
@@ -588,6 +624,7 @@ export const reorderQuickOfferSections = async (items = []) => {
   if (ops.length > 0) {
     await collection.bulkWrite(ops);
   }
+  clearContentCache();
   return true;
 };
 

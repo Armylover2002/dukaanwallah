@@ -90,33 +90,14 @@ const CategoryProductsPage = () => {
                 Number.isFinite(currentLocation?.latitude) &&
                 Number.isFinite(currentLocation?.longitude);
 
-            const [prodRes, catRes, expRes, heroRes] = await Promise.all([
-                hasValidLocation
-                    ? customerApi.getProducts({ categoryId: catId, lat: currentLocation.latitude, lng: currentLocation.longitude })
-                    : Promise.resolve({ data: { success: true, result: { items: [] } } }),
-                customerApi.getCategories({ tree: true }),
-                customerApi.getExperienceSections({ pageType: 'header', headerId: catId }).catch(() => null),
-                customerApi.getHeroConfig({ pageType: 'header', headerId: catId }).catch(() => null),
-            ]);
+            const catRes = await customerApi.getCategories({ tree: true });
 
-            if (prodRes.data.success) {
-                const rawResult = prodRes.data.result;
-                const dbProds = Array.isArray(prodRes.data.results)
-                    ? prodRes.data.results
-                    : Array.isArray(rawResult?.items) ? rawResult.items
-                        : Array.isArray(rawResult) ? rawResult : [];
-                setProducts(dbProds.map((p) => ({
-                    ...p, id: p._id,
-                    image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2",
-                    price: p.salePrice || p.price, originalPrice: p.price,
-                    weight: p.weight || "1 unit", deliveryTime: "8-15 mins",
-                })));
-            }
+            let parentHeaderId = catId;
+            let cMap = {}, sMap = {}, fullMap = {};
 
             if (catRes.data.success) {
                 const results = catRes.data.results || catRes.data.result || [];
                 const allCats = Array.isArray(results) ? results : [];
-                const cMap = {}, sMap = {}, fullMap = {};
                 const flatten = (items) => {
                     items.forEach((item) => {
                         fullMap[item._id] = item;
@@ -128,6 +109,18 @@ const CategoryProductsPage = () => {
                 flatten(allCats);
                 setCategoryMap(cMap);
                 setSubcategoryMap(sMap);
+
+                // Find top-level parent header category
+                let current = fullMap[catId];
+                while (current) {
+                    if (current.type === 'header') {
+                        parentHeaderId = current._id;
+                        break;
+                    }
+                    const pId = current.parentId?._id || current.parentId;
+                    if (!pId) break;
+                    current = fullMap[pId];
+                }
 
                 const currentCat = fullMap[catId];
                 if (currentCat) {
@@ -149,6 +142,28 @@ const CategoryProductsPage = () => {
                         setSelectedSubCategory(currentCat._id);
                     }
                 }
+            }
+
+            const [prodRes, expRes, heroRes] = await Promise.all([
+                hasValidLocation
+                    ? customerApi.getProducts({ categoryId: catId, lat: currentLocation.latitude, lng: currentLocation.longitude })
+                    : Promise.resolve({ data: { success: true, result: { items: [] } } }),
+                customerApi.getExperienceSections({ pageType: 'header', headerId: parentHeaderId }).catch(() => null),
+                customerApi.getHeroConfig({ pageType: 'header', headerId: parentHeaderId }).catch(() => null),
+            ]);
+
+            if (prodRes.data.success) {
+                const rawResult = prodRes.data.result;
+                const dbProds = Array.isArray(prodRes.data.results)
+                    ? prodRes.data.results
+                    : Array.isArray(rawResult?.items) ? rawResult.items
+                        : Array.isArray(rawResult) ? rawResult : [];
+                setProducts(dbProds.map((p) => ({
+                    ...p, id: p._id,
+                    image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2",
+                    price: p.salePrice || p.price, originalPrice: p.price,
+                    weight: p.weight || "1 unit", deliveryTime: "8-15 mins",
+                })));
             }
 
             if (expRes?.data?.success) setExperienceSections(expRes.data.result || expRes.data.results || []);

@@ -1324,7 +1324,7 @@ export const deleteAdminZone = async (req, res) => {
 
 export const getAdminExperienceSections = async (req, res) => {
   const { pageType = 'home', headerId = null } = req.query || {};
-  const sections = await getQuickExperienceSections({ pageType, headerId });
+  const sections = await getQuickExperienceSections({ pageType, headerId, isAdmin: true });
   return res.json({ success: true, results: sections });
 };
 

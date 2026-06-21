@@ -435,7 +435,7 @@
 .admin-theme-scope .text-sm, .seller-theme-scope .text-sm { font-size: 0.9375rem; line-height: 1.375rem; }
 .admin-theme-scope .text-base, .seller-theme-scope .text-base { font-size: 1.0625rem; line-height: 1.5rem; }
 
-/* Force Orange Theme on all Black/Slate Buttons & Icons in Seller Scope */
+/* Force Orange Theme on all Black/Slate Buttons & Icons in Seller & Admin Scope */
 .seller-theme-scope button.bg-slate-900,
 .seller-theme-scope button.bg-black,
 .seller-theme-scope button.bg-slate-800,
@@ -443,7 +443,15 @@
 .seller-theme-scope a.bg-black,
 .seller-theme-scope span.bg-slate-900,
 .seller-theme-scope div.bg-slate-900:not([class*="fixed"]):not([class*="backdrop"]),
-.seller-theme-scope .bg-slate-900[role="button"] {
+.seller-theme-scope .bg-slate-900[role="button"],
+.admin-theme-scope button.bg-slate-900,
+.admin-theme-scope button.bg-black,
+.admin-theme-scope button.bg-slate-800,
+.admin-theme-scope a.bg-slate-900,
+.admin-theme-scope a.bg-black,
+.admin-theme-scope span.bg-slate-900,
+.admin-theme-scope div.bg-slate-900:not([class*="fixed"]):not([class*="backdrop"]),
+.admin-theme-scope .bg-slate-900[role="button"] {
   background-color: #F26522 !important;
   color: #FFFFFF !important;
 }
@@ -455,7 +463,15 @@
 .seller-theme-scope a.bg-black:hover,
 .seller-theme-scope span.bg-slate-900:hover,
 .seller-theme-scope div.bg-slate-900:not([class*="fixed"]):not([class*="backdrop"]):hover,
-.seller-theme-scope .bg-slate-900[role="button"]:hover {
+.seller-theme-scope .bg-slate-900[role="button"]:hover,
+.admin-theme-scope button.bg-slate-900:hover,
+.admin-theme-scope button.bg-black:hover,
+.admin-theme-scope button.bg-slate-800:hover,
+.admin-theme-scope a.bg-slate-900:hover,
+.admin-theme-scope a.bg-black:hover,
+.admin-theme-scope span.bg-slate-900:hover,
+.admin-theme-scope div.bg-slate-900:not([class*="fixed"]):not([class*="backdrop"]):hover,
+.admin-theme-scope .bg-slate-900[role="button"]:hover {
   background-color: #D94F18 !important;
   color: #FFFFFF !important;
 }
@@ -464,18 +480,26 @@
 .seller-theme-scope div[class*="bg-slate-900/40"],
 .seller-theme-scope div[class*="bg-slate-900/60"],
 .seller-theme-scope div.fixed[class*="bg-slate-900"],
-.seller-theme-scope div.absolute[class*="bg-slate-900"] {
+.seller-theme-scope div.absolute[class*="bg-slate-900"],
+.admin-theme-scope div[class*="bg-slate-900/40"],
+.admin-theme-scope div[class*="bg-slate-900/60"],
+.admin-theme-scope div.fixed[class*="bg-slate-900"],
+.admin-theme-scope div.absolute[class*="bg-slate-900"] {
   background-color: rgba(15, 23, 42, 0.4) !important;
   color: inherit !important;
 }
-.seller-theme-scope div[class*="bg-slate-900/60"] {
+.seller-theme-scope div[class*="bg-slate-900/60"],
+.admin-theme-scope div[class*="bg-slate-900/60"] {
   background-color: rgba(15, 23, 42, 0.6) !important;
 }
 
-/* Sidebar and BottomNav Unification strictly for Seller Workspace */
+/* Sidebar and BottomNav Unification for Seller & Admin Workspaces */
 .seller-theme-scope aside .bg-primary,
 .seller-theme-scope aside a.active .bg-primary,
-.seller-theme-scope aside a.active .bg-white\/20 {
+.seller-theme-scope aside a.active .bg-white\/20,
+.admin-theme-scope aside .bg-primary,
+.admin-theme-scope aside a.active .bg-primary,
+.admin-theme-scope aside a.active .bg-white\/20 {
   background-color: #F26522 !important;
   color: #FFFFFF !important;
 }
@@ -483,39 +507,52 @@
 .seller-theme-scope .text-primary,
 .seller-theme-scope a.active,
 .seller-theme-scope a.active span,
-.seller-theme-scope a.active svg {
+.seller-theme-scope a.active svg,
+.admin-theme-scope .text-primary,
+.admin-theme-scope a.active,
+.admin-theme-scope a.active span,
+.admin-theme-scope a.active svg {
   color: #F26522 !important;
 }
 
-.seller-theme-scope a.active {
+.seller-theme-scope a.active,
+.admin-theme-scope a.active {
   color: #F26522 !important;
 }
 
 .seller-theme-scope aside .bg-primary,
-.seller-theme-scope aside .text-primary {
+.seller-theme-scope aside .text-primary,
+.admin-theme-scope aside .bg-primary,
+.admin-theme-scope aside .text-primary {
   background-color: #F26522 !important;
   color: #FFFFFF !important;
 }
 
-.seller-theme-scope aside a.active {
+.seller-theme-scope aside a.active,
+.admin-theme-scope aside a.active {
   color: #F26522 !important;
 }
 
-.seller-theme-scope aside a.active div {
+.seller-theme-scope aside a.active div,
+.admin-theme-scope aside a.active div {
   color: #F26522 !important;
 }
 
 /* Bottom Nav transparent background on active items */
-.seller-theme-scope .fixed.bottom-0 a.active {
+.seller-theme-scope .fixed.bottom-0 a.active,
+.admin-theme-scope .fixed.bottom-0 a.active {
   background-color: transparent !important;
   color: #F26522 !important;
 }
 
 .seller-theme-scope .fixed.bottom-0 a.active svg,
-.seller-theme-scope .fixed.bottom-0 a.active span {
+.seller-theme-scope .fixed.bottom-0 a.active span,
+.admin-theme-scope .fixed.bottom-0 a.active svg,
+.admin-theme-scope .fixed.bottom-0 a.active span {
   color: #F26522 !important;
   background-color: transparent !important;
 }
+
 
 
 

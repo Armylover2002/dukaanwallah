@@ -313,7 +313,12 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
 
   const filteredProducts = useMemo(() => {
     const activeCatId = activeCategory?._id || activeCategory?.id;
-    if (!activeCatId || activeCatId === 'all') return products;
+    const isAll = !activeCatId || 
+                  activeCatId === 'all' || 
+                  activeCategory?.slug === 'all' || 
+                  activeCategory?.name?.toLowerCase() === 'all';
+
+    if (isAll) return products;
     if (categoryProducts !== null) return categoryProducts;
     return products.filter((p) => {
       const productCatId = p.categoryId?._id || p.categoryId || p.category?._id || p.category;
@@ -349,10 +354,15 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
   // ── Offer sections filter (memoized — this was running on every render) ───
   const visibleOfferSections = useMemo(() => {
     const activeCatId = activeCategory?._id || activeCategory?.id;
+    const isAll = !activeCatId || 
+                  activeCatId === 'all' || 
+                  activeCategory?.slug === 'all' || 
+                  activeCategory?.name?.toLowerCase() === 'all';
+
     return [...offerSections]
       .filter((section) => {
         if ((section.title || '').trim().toLowerCase() === 'best sellers') return false;
-        if (!activeCatId || activeCatId === 'all') return true;
+        if (isAll) return true;
         const sectionCatIds = (section.categoryIds || []).map((c) =>
           typeof c === 'object' ? String(c._id || c.id || '') : String(c),
         );

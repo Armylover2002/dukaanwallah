@@ -72,6 +72,12 @@ const ContentManager = () => {
         [headerCategories, selectedHeaderId]
     );
 
+    const isSelectedHeaderAll = useMemo(() => {
+        if (!selectedHeaderId) return false;
+        const header = headerCategories.find(h => h._id === selectedHeaderId);
+        return header ? (header.slug === 'all' || header.name.toLowerCase() === 'all') : false;
+    }, [headerCategories, selectedHeaderId]);
+
     const loadHeaderCategories = async () => {
         try {
             // Fetch the full tree (all headers and their children)
@@ -79,14 +85,27 @@ const ContentManager = () => {
             if (res.data.success) {
                 const tree = res.data.results || res.data.result || [];
                 const headers = Array.isArray(tree) ? tree : [];
-                setHeaderCategories(headers);
                 
+                // Sort headers: place "All" category at the top of the list
+                const allHeaderIndex = headers.findIndex(h => h.slug === 'all' || h.name.toLowerCase() === 'all');
+                let sortedHeaders = [...headers];
+                if (allHeaderIndex > -1) {
+                    const [allHeader] = sortedHeaders.splice(allHeaderIndex, 1);
+                    sortedHeaders.unshift(allHeader);
+                }
+                
+                setHeaderCategories(sortedHeaders);
+                
+                // Find "All" header in database categories
+                const allHeader = sortedHeaders.find(h => h.slug === 'all' || h.name.toLowerCase() === 'all');
+                const defaultHeaderId = allHeader ? allHeader._id : (sortedHeaders[0]?._id || '');
+
                 // If on a header page, ensure we have the correct header selected
                 const headerIdFromUrl = searchParams.get('headerId');
                 if (pageType === 'header' && headerIdFromUrl) {
                     setSelectedHeaderId(headerIdFromUrl);
-                } else if (!selectedHeaderId && headers.length) {
-                    setSelectedHeaderId(headers[0]._id);
+                } else if (!selectedHeaderId && sortedHeaders.length) {
+                    setSelectedHeaderId(defaultHeaderId);
                 }
             }
         } catch (e) {
@@ -126,11 +145,16 @@ const ContentManager = () => {
         const headerIdFromUrl = searchParams.get('headerId');
         if (fromUrl === 'home') {
             setPageType('home');
-        } else if (fromUrl === 'header' && headerIdFromUrl) {
+        } else if (fromUrl === 'header') {
             setPageType('header');
-            setSelectedHeaderId(headerIdFromUrl);
+            if (headerIdFromUrl) {
+                setSelectedHeaderId(headerIdFromUrl);
+            } else if (headerCategories.length) {
+                const allHeader = headerCategories.find(h => h.slug === 'all' || h.name.toLowerCase() === 'all');
+                setSelectedHeaderId(allHeader ? allHeader._id : headerCategories[0]?._id);
+            }
         }
-    }, [searchParams]);
+    }, [searchParams, headerCategories]);
 
     useEffect(() => {
         loadSections();
@@ -377,13 +401,13 @@ const ContentManager = () => {
                     <p className="ds-description">Visual orchestrator for your customer-facing mobile application.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button className="flex items-center gap-2 px-5 py-3 bg-white text-slate-700 rounded-2xl text-[10px] font-black border border-slate-200 hover:bg-slate-50 transition-all">
+                    <button className="flex items-center gap-2 px-5 py-3 bg-white text-primary rounded-2xl text-[10px] font-black border border-primary/20 hover:bg-primary/5 shadow-sm transition-all duration-300">
                         <HiOutlineEye className="h-4 w-4" />
                         PREVIEW APP
                     </button>
                     <button
                         onClick={openCreateModal}
-                        className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all"
+                        className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/10 hover:shadow-primary/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 transition-all duration-300"
                     >
                         <HiOutlinePlus className="h-5 w-5" />
                         ADD COMPONENT
@@ -396,8 +420,8 @@ const ContentManager = () => {
             </p>
 
             {/* Scope selectors */}
-            <div className="flex flex-wrap gap-4 items-center mt-6">
-                <div className="flex p-1.5 bg-slate-100 rounded-xl">
+            <div className="flex flex-wrap gap-4 items-center mt-6 bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
+                <div className="flex p-1 bg-slate-200/50 rounded-2xl">
                     {[
                         { id: 'home', label: 'Home Page' },
                         { id: 'header', label: 'Header Category Pages' },
@@ -406,8 +430,10 @@ const ContentManager = () => {
                             key={opt.id}
                             onClick={() => setPageType(opt.id)}
                             className={cn(
-                                "px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                pageType === opt.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                                "px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300",
+                                pageType === opt.id 
+                                    ? "bg-white text-primary shadow-sm shadow-slate-300/40" 
+                                    : "text-slate-500 hover:text-slate-850"
                             )}
                         >
                             {opt.label}
@@ -415,12 +441,12 @@ const ContentManager = () => {
                     ))}
                 </div>
                 {pageType === 'header' && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Header Category</span>
+                    <div className="flex items-center gap-3 ml-auto lg:ml-0">
+                        <span className="text-[10px] font-black text-slate-405 uppercase tracking-wider">Header Category:</span>
                         <select
                             value={selectedHeaderId}
                             onChange={(e) => setSelectedHeaderId(e.target.value)}
-                            className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                            className="px-4 py-2.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-2xl shadow-sm hover:border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 outline-none transition-all duration-300 cursor-pointer"
                         >
                             {headerCategories.map((h) => (
                                 <option key={h._id} value={h._id}>{h.name}</option>
@@ -431,13 +457,13 @@ const ContentManager = () => {
             </div>
 
             {/* Canvas Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
                 {/* Visual Editor */}
                 <div className="lg:col-span-8 space-y-6">
                     {/* Section list */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between px-2">
-                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">
                                 Configured Sections ({sections.length})
                             </h3>
                             {isLoading && (
@@ -446,13 +472,15 @@ const ContentManager = () => {
                         </div>
 
                         {sections.length === 0 && !isLoading && (
-                            <div className="text-center py-16 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
-                                <HiOutlineSparkles className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-                                    No sections configured yet
+                            <div className="text-center py-20 bg-slate-50/30 rounded-3xl border-2 border-dashed border-slate-200/60 shadow-inner">
+                                <div className="h-14 w-14 rounded-2xl bg-white shadow-md shadow-slate-100 flex items-center justify-center mx-auto mb-4 text-primary">
+                                    <HiOutlineSparkles className="h-7 w-7" />
+                                </div>
+                                <p className="text-xs font-black text-slate-600 uppercase tracking-widest">
+                                    No configured sections
                                 </p>
-                                <p className="text-xs text-slate-400 mt-1">
-                                    Click &quot;Add Component&quot; to start designing this page.
+                                <p className="text-xs text-slate-400 mt-1.5 max-w-sm mx-auto">
+                                    Orchestrate your customer experience by adding banners, category carousels, or product layouts.
                                 </p>
                             </div>
                         )}
@@ -461,9 +489,9 @@ const ContentManager = () => {
                             {sections.map((section, idx) => {
                                 const displayMeta = DISPLAY_TYPES.find(d => d.id === section.displayType);
                                 return (
-                                    <Card key={section._id} className="p-4 border-none shadow-lg ring-1 ring-slate-100 bg-white rounded-xl group">
+                                    <Card key={section._id} className="p-5 border-none shadow-md shadow-slate-100/50 hover:shadow-xl hover:shadow-slate-200/50 ring-1 ring-slate-100/50 bg-white rounded-2xl group transition-all duration-300">
                                         <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
+                                            <div className="h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
                                                 {section.displayType === 'banners' && <HiOutlinePhoto className="h-6 w-6" />}
                                                 {section.displayType === 'categories' && <HiOutlineSparkles className="h-6 w-6" />}
                                                 {section.displayType === 'subcategories' && <HiOutlineSparkles className="h-6 w-6" />}
@@ -492,13 +520,13 @@ const ContentManager = () => {
                                                 </p>
                                             </div>
                                             <div className="flex flex-col gap-2 items-end">
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-1.5">
                                                     <button
                                                         disabled={idx === 0}
                                                         onClick={() => handleReorder('up', section)}
                                                         className={cn(
-                                                            "p-1.5 rounded-xl border text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all",
-                                                            idx === 0 && "opacity-30 cursor-not-allowed"
+                                                            "p-2 rounded-xl border border-slate-100 text-slate-400 hover:text-primary hover:border-primary/25 hover:bg-primary/5 transition-all duration-200",
+                                                            idx === 0 && "opacity-30 cursor-not-allowed hover:text-slate-400 hover:border-slate-100 hover:bg-transparent"
                                                         )}
                                                     >
                                                         <HiOutlineArrowUpCircle className="h-4 w-4" />
@@ -507,8 +535,8 @@ const ContentManager = () => {
                                                         disabled={idx === sections.length - 1}
                                                         onClick={() => handleReorder('down', section)}
                                                         className={cn(
-                                                            "p-1.5 rounded-xl border text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all",
-                                                            idx === sections.length - 1 && "opacity-30 cursor-not-allowed"
+                                                            "p-2 rounded-xl border border-slate-100 text-slate-400 hover:text-primary hover:border-primary/25 hover:bg-primary/5 transition-all duration-200",
+                                                            idx === sections.length - 1 && "opacity-30 cursor-not-allowed hover:text-slate-400 hover:border-slate-100 hover:bg-transparent"
                                                         )}
                                                     >
                                                         <HiOutlineArrowDownCircle className="h-4 w-4" />
@@ -517,13 +545,13 @@ const ContentManager = () => {
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => openEditModal(section)}
-                                                        className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                                                        className="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all duration-200"
                                                     >
                                                         <HiOutlinePencilSquare className="h-5 w-5" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteSection(section._id)}
-                                                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                                        className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all duration-200"
                                                     >
                                                         <HiOutlineTrash className="h-5 w-5" />
                                                     </button>
@@ -637,9 +665,12 @@ const ContentManager = () => {
                                 }}
                                 className="w-full p-3 bg-slate-50 rounded-2xl text-xs font-black outline-none"
                             >
-                                {DISPLAY_TYPES.map(dt => (
-                                    <option key={dt.id} value={dt.id}>{dt.label}</option>
-                                ))}
+                                {DISPLAY_TYPES
+                                    .filter(dt => pageType !== 'header' || !['subcategories', 'products'].includes(dt.id))
+                                    .map(dt => (
+                                        <option key={dt.id} value={dt.id}>{dt.label}</option>
+                                    ))
+                                }
                             </select>
                         </div>
                         <div className="space-y-2">
@@ -718,7 +749,7 @@ const ContentManager = () => {
                                                             onClick={() =>
                                                                 bannerFileInputsRef.current[idx]?.click()
                                                             }
-                                                            className="inline-flex items-center px-3 py-1.5 rounded-lg text-[11px] font-bold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                                                            className="inline-flex items-center px-4 py-2 rounded-xl text-[11px] font-black bg-primary text-white hover:bg-orange-600 transition-all duration-300 shadow-sm"
                                                         >
                                                             {item.imageUrl ? 'Change image' : 'Choose image file'}
                                                         </button>
@@ -810,7 +841,7 @@ const ContentManager = () => {
                             </div>
                                 <div className="flex items-center justify-between mb-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                        Categories {pageType === 'home' ? '(Across all headers)' : `(Under ${selectedHeader?.name})`}
+                                        Categories {(pageType === 'home' || isSelectedHeaderAll) ? '(Across all headers)' : `(Under ${selectedHeader?.name})`}
                                     </label>
                                     <div className="relative">
                                         <input
@@ -824,17 +855,17 @@ const ContentManager = () => {
                                 </div>
                                 <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                     {headerCategories
-                                        .filter(h => pageType === 'home' || h._id === selectedHeaderId)
+                                        .filter(h => pageType === 'home' || isSelectedHeaderAll || h._id === selectedHeaderId)
                                         .map(header => {
                                             const relevantChildren = (header.children || []).filter(c => 
                                                 !catSearchTerm || c.name.toLowerCase().includes(catSearchTerm.toLowerCase())
                                             );
                                             
-                                            if (!relevantChildren.length && catSearchTerm) return null;
+                                            if (!relevantChildren.length) return null;
 
                                             return (
                                                 <div key={header._id} className="space-y-2">
-                                                    {pageType === 'home' && (
+                                                    {(pageType === 'home' || isSelectedHeaderAll) && (
                                                         <div className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">
                                                             {header.name}
                                                         </div>
@@ -894,18 +925,18 @@ const ContentManager = () => {
                                 </div>
                                 <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                     {headerCategories
-                                        .filter(h => pageType === 'home' || h._id === selectedHeaderId)
+                                        .filter(h => pageType === 'home' || isSelectedHeaderAll || h._id === selectedHeaderId)
                                         .map(header => {
                                             const relevantChildren = (header.children || []).filter(c => 
                                                 !catSearchTerm || c.name.toLowerCase().includes(catSearchTerm.toLowerCase()) || 
                                                 (c.children || []).some(sc => sc.name.toLowerCase().includes(catSearchTerm.toLowerCase()))
                                             );
 
-                                            if (!relevantChildren.length && catSearchTerm) return null;
+                                            if (!relevantChildren.length) return null;
 
                                             return (
                                                 <div key={header._id} className="space-y-3">
-                                                    {pageType === 'home' && (
+                                                    {(pageType === 'home' || isSelectedHeaderAll) && (
                                                         <div className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">
                                                             {header.name}
                                                         </div>
@@ -1063,18 +1094,18 @@ const ContentManager = () => {
                                 </div>
                                 <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar border border-slate-100 rounded-2xl p-4 bg-slate-50/30">
                                     {headerCategories
-                                        .filter(h => pageType === 'home' || h._id === selectedHeaderId)
+                                        .filter(h => pageType === 'home' || isSelectedHeaderAll || h._id === selectedHeaderId)
                                         .map(header => {
                                             const relevantChildren = (header.children || []).filter(c => 
                                                 !catSearchTerm || c.name.toLowerCase().includes(catSearchTerm.toLowerCase()) || 
                                                 (c.children || []).some(sc => sc.name.toLowerCase().includes(catSearchTerm.toLowerCase()))
                                             );
 
-                                            if (!relevantChildren.length && catSearchTerm) return null;
+                                            if (!relevantChildren.length) return null;
 
                                             return (
                                                 <div key={header._id} className="space-y-3">
-                                                    {pageType === 'home' && (
+                                                    {(pageType === 'home' || isSelectedHeaderAll) && (
                                                         <div className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">
                                                             {header.name}
                                                         </div>
@@ -1166,7 +1197,7 @@ const ContentManager = () => {
                     )}
                     <button
                         onClick={handleSaveSection}
-                        className="w-full py-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                        className="w-full py-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.01] active:scale-95 transition-all duration-300"
                     >
                         {editingItem ? 'SAVE CHANGES' : 'PUBLISH SECTION'}
                     </button>
