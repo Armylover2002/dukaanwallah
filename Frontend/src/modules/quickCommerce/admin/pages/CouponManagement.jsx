@@ -179,14 +179,55 @@ const CouponManagement = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // 1. Validate numbers are not negative
+        const discountValue = Number(formData.discountValue);
+        const minOrderValue = formData.minOrderValue ? Number(formData.minOrderValue) : 0;
+        const maxDiscount = formData.maxDiscount ? Number(formData.maxDiscount) : undefined;
+        const usageLimit = formData.usageLimit ? Number(formData.usageLimit) : undefined;
+        const perUserLimit = formData.perUserLimit ? Number(formData.perUserLimit) : 1;
+
+        if (Number.isNaN(discountValue) || discountValue <= 0) {
+            showToast('Discount value must be greater than 0', 'error');
+            return;
+        }
+        if (minOrderValue < 0) {
+            showToast('Min Order Requirement cannot be negative', 'error');
+            return;
+        }
+        if (maxDiscount !== undefined && maxDiscount < 0) {
+            showToast('Max Discount cannot be negative', 'error');
+            return;
+        }
+        if (usageLimit !== undefined && usageLimit <= 0) {
+            showToast('Total Uses must be greater than 0', 'error');
+            return;
+        }
+        if (perUserLimit <= 0) {
+            showToast('Per User Limit must be greater than 0', 'error');
+            return;
+        }
+
+        // 2. Validate dates: End Date > Start Date
+        if (!formData.validFrom || !formData.validTill) {
+            showToast('Start Date and End Date are required', 'error');
+            return;
+        }
+        const startDate = new Date(formData.validFrom);
+        const endDate = new Date(formData.validTill);
+        if (endDate <= startDate) {
+            showToast('End Date must be after the Start Date', 'error');
+            return;
+        }
+
         try {
             const payload = {
                 ...formData,
-                discountValue: Number(formData.discountValue),
-                minOrderValue: formData.minOrderValue ? Number(formData.minOrderValue) : 0,
-                maxDiscount: formData.maxDiscount ? Number(formData.maxDiscount) : undefined,
-                usageLimit: formData.usageLimit ? Number(formData.usageLimit) : undefined,
-                perUserLimit: formData.perUserLimit ? Number(formData.perUserLimit) : 1,
+                discountValue,
+                minOrderValue,
+                maxDiscount,
+                usageLimit,
+                perUserLimit,
                 validFrom: formData.validFrom,
                 validTill: formData.validTill,
             };
@@ -532,6 +573,7 @@ const CouponManagement = () => {
                             <input
                                 required
                                 type="number"
+                                min="1"
                                 value={formData.discountValue}
                                 onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
                                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-black outline-none"
@@ -542,6 +584,7 @@ const CouponManagement = () => {
                             <input
                                 required
                                 type="number"
+                                min="0"
                                 value={formData.minOrderValue}
                                 onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
                                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-black outline-none"
@@ -554,6 +597,7 @@ const CouponManagement = () => {
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Max Discount (optional)</label>
                             <input
                                 type="number"
+                                min="0"
                                 value={formData.maxDiscount}
                                 onChange={(e) => setFormData({ ...formData, maxDiscount: e.target.value })}
                                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-black outline-none"
@@ -563,6 +607,7 @@ const CouponManagement = () => {
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Uses (optional)</label>
                             <input
                                 type="number"
+                                min="1"
                                 value={formData.usageLimit}
                                 onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
                                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-black outline-none"

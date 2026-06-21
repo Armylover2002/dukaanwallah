@@ -11,13 +11,7 @@ export const quickAdminSidebarMenu = [
     label: "CORE MANAGEMENT",
     permissionKey: "core_management",
     items: [
-      // {
-      //   type: "link",
-      //   label: "Seller Requests",
-      //   permissionKey: "seller_requests",
-      //   path: "/admin/quick-commerce/seller-requests",
-      //   icon: "ClipboardCheck",
-      // },
+
       {
         type: "expandable",
         label: "Categories",
@@ -41,7 +35,6 @@ export const quickAdminSidebarMenu = [
         subItems: [
           { label: "Content Manager", path: "/admin/quick-commerce/experience-studio", permissionKey: "experience_studio" },
           { label: "Hero & Categories Per Page", path: "/admin/quick-commerce/hero-categories", permissionKey: "hero_categories" },
-          // { label: "Send Notifications", path: "/admin/quick-commerce/notifications", permissionKey: "notifications" },
           { label: "Seller Coupon Request", path: "/admin/quick-commerce/seller-coupon-request", permissionKey: "seller_coupon_request" },
           { label: "Coupons & Promos", path: "/admin/quick-commerce/coupons", permissionKey: "coupons" },
           { label: "Offer Sections", path: "/admin/quick-commerce/offer-sections", permissionKey: "offer_sections" },
@@ -71,22 +64,10 @@ export const quickAdminSidebarMenu = [
           { label: "COD Deposit Verification", path: "/admin/quick-commerce/sellers/cod-deposit-verification", permissionKey: "commission" },
         ],
       },
-      {
-        type: "expandable",
-        label: "Delivery Drivers",
-        permissionKey: "drivers",
-        icon: "Truck",
-        subItems: [
-          { label: "Active Drivers", path: "/admin/quick-commerce/delivery-boys/active", permissionKey: "active" },
-          { label: "Waiting for Review", path: "/admin/quick-commerce/delivery-boys/pending", permissionKey: "pending" },
-          { label: "Track Drivers", path: "/admin/quick-commerce/tracking", permissionKey: "tracking" },
-          { label: "Send Money", path: "/admin/quick-commerce/delivery-funds", permissionKey: "funds" },
-        ],
-      },
+
       { type: "link", label: "Wallet", permissionKey: "wallet", path: "/admin/quick-commerce/wallet", icon: "Wallet" },
       { type: "link", label: "Money Requests", permissionKey: "withdrawals", path: "/admin/quick-commerce/withdrawals", icon: "CreditCard" },
       { type: "link", label: "Seller Payments", permissionKey: "seller_payments", path: "/admin/quick-commerce/seller-transactions", icon: "Receipt" },
-      { type: "link", label: "Collect Cash", permissionKey: "cash_collection", path: "/admin/quick-commerce/cash-collection", icon: "IndianRupee" },
       { type: "link", label: "Customers", permissionKey: "customers", path: "/admin/quick-commerce/customers", icon: "Users" },
       { type: "link", label: "FAQs", permissionKey: "faqs", path: "/admin/quick-commerce/faqs", icon: "MessageSquare" },
       {

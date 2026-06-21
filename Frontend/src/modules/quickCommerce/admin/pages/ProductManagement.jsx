@@ -533,14 +533,14 @@ const ProductManagement = () => {
                                     {/* Actions Column */}
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end space-x-1.5">
-                                            {canEdit && (
+                                            {/* {canEdit && (
                                                 <button
                                                     onClick={() => openModal(p)}
                                                     className="p-1.5 hover:bg-white hover:text-primary rounded-lg transition-all text-gray-400 shadow-sm ring-1 ring-gray-100"
                                                 >
                                                     <HiOutlinePencilSquare className="h-3.5 w-3.5" />
                                                 </button>
-                                            )}
+                                            )} */}
                                             {canDelete && (
                                                 <button
                                                     onClick={() => (setItemToDelete(p), setIsDeleteModalOpen(true))}
