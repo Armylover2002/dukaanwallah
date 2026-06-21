@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { sellerApi } from "../services/sellerApi";
 import { onboardingFeeAPI } from "../../../services/api";
 import { initRazorpayPayment } from "@food/utils/razorpay";
+import MapPicker from "@shared/components/MapPicker";
 
 const businessTypes = [
   "Grocery",
@@ -124,6 +125,7 @@ export default function SellerOnboarding() {
   const [form, setForm] = useState(initialState);
   const [qrFile, setQrFile] = useState(null);
   const [licenseFile, setLicenseFile] = useState(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [zones, setZones] = useState([]);
   const [zonesLoading, setZonesLoading] = useState(true);
@@ -177,8 +179,8 @@ export default function SellerOnboarding() {
       toast.error("Enter a valid support email address (e.g. support@example.com)");
       return false;
     }
-    if (!form.address || !form.address.trim()) {
-      toast.error("Store address is required");
+    if (!form.address || !form.lat || !form.lng) {
+      toast.error("Please pick your store location on the map first");
       return false;
     }
     return true;
@@ -397,6 +399,11 @@ export default function SellerOnboarding() {
     return `${done}/9 core fields filled`;
   }, [form]);
 
+  const initialLocation = useMemo(
+    () => (form.lat && form.lng ? { lat: Number(form.lat), lng: Number(form.lng) } : null),
+    [form.lat, form.lng],
+  );
+
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -467,6 +474,16 @@ export default function SellerOnboarding() {
     );
 
 
+
+  const handleLocationSelect = (location) => {
+    setForm((prev) => ({
+      ...prev,
+      lat: Number.isFinite(location?.lat) ? Number(location.lat.toFixed(6)) : prev.lat,
+      lng: Number.isFinite(location?.lng) ? Number(location.lng.toFixed(6)) : prev.lng,
+      radius: location?.radius !== undefined ? location.radius : prev.radius,
+      address: location?.address || prev.address,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -972,16 +989,37 @@ export default function SellerOnboarding() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-900">Store Address <span className="text-red-500">*</span></label>
-                    <textarea
-                      required
-                      rows={3}
-                      className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-slate-900 resize-none"
-                      placeholder="Enter full store address"
-                      value={form.address}
-                      onChange={(e) => updateField("address", e.target.value)}
-                    />
+                  <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-4 md:col-span-2">
+                    <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-black text-slate-900">Store location</p>
+                        <p className="text-xs font-medium text-slate-500">Pin your storefront on the map so deliveries route correctly.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsMapOpen(true)}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-orange-600 active:scale-95 shadow-md shadow-orange-100"
+                      >
+                        <MapPin className="h-4 w-4" />
+                        {form.lat && form.lng ? "Change Pin" : "Pick On Map"}
+                      </button>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4 md:col-span-2">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Selected address</p>
+                        <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+                          {form.address || "Choose your store location on the map to auto-fill the address."}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Latitude</p>
+                        <p className="mt-1 font-semibold text-slate-700">{(form.lat !== null && form.lat !== "") ? form.lat : "Not selected"}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Longitude</p>
+                        <p className="mt-1 font-semibold text-slate-700">{(form.lng !== null && form.lng !== "") ? form.lng : "Not selected"}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -1321,6 +1359,19 @@ export default function SellerOnboarding() {
         </div>
       </div>
 
+
+      {isMapOpen && (
+        <MapPicker
+          isOpen={isMapOpen}
+          onClose={() => setIsMapOpen(false)}
+          onConfirm={handleLocationSelect}
+          initialLocation={initialLocation}
+          initialRadius={Number(form.radius) || 5}
+          maxRadius={100}
+          zoneCoordinates={selectedZone?.coordinates || []}
+          zoneLabel={selectedZone?.label || ""}
+        />
+      )}
 
       <ImageSourcePicker
         isOpen={sourcePicker.isOpen}

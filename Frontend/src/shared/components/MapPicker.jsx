@@ -320,64 +320,24 @@ const MapPicker = ({
                 />
               )}
               {marker && (
-                <>
-                  <Marker
-                    position={marker}
-                    draggable={true}
-                    onDragEnd={onMarkerDragEnd}
-                    animation={window.google.maps.Animation.DROP}
-                  />
-                  <Circle
-                    center={marker}
-                    radius={radius * 1000} // KM to Meters
-                    options={{
-                      fillColor: "#0ea5e9",
-                      fillOpacity: 0.1,
-                      strokeColor: "#0ea5e9",
-                      strokeOpacity: 0.5,
-                      strokeWeight: 2,
-                      clickable: false,
-                      editable: false,
-                      zIndex: 1,
-                    }}
-                  />
-                </>
+                <Marker
+                  position={marker}
+                  draggable={true}
+                  onDragEnd={onMarkerDragEnd}
+                  animation={window.google.maps.Animation.DROP}
+                />
               )}
             </GoogleMap>
           )}
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-          {zoneLabel ? (
+        {zoneLabel ? (
+          <div className="bg-gray-50 p-4 rounded-lg">
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
               Showing selected zone: {zoneLabel}
             </div>
-          ) : null}
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-gray-700">
-              Service Radius (km)
-            </label>
-            <span className="text-sm font-bold text-primary">{radius} km</span>
           </div>
-          <input
-            type="range"
-            min="1"
-            max={maxRadius}
-            step="1"
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
-          />
-          <div className="flex justify-between text-[10px] text-gray-400">
-            <span>1 km</span>
-            <span>{maxRadius} km</span>
-          </div>
-          <p className="text-xs text-gray-500 flex items-start gap-1">
-            <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-            Customers within this radius from your shop will be able to see and
-            order from you.
-          </p>
-        </div>
+        ) : null}
       </div>
     </Modal>
   );
