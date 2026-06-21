@@ -41,7 +41,7 @@ export const quickAdminSidebarMenu = [
         subItems: [
           { label: "Content Manager", path: "/admin/quick-commerce/experience-studio", permissionKey: "experience_studio" },
           { label: "Hero & Categories Per Page", path: "/admin/quick-commerce/hero-categories", permissionKey: "hero_categories" },
-          { label: "Send Notifications", path: "/admin/quick-commerce/notifications", permissionKey: "notifications" },
+          // { label: "Send Notifications", path: "/admin/quick-commerce/notifications", permissionKey: "notifications" },
           { label: "Seller Coupon Request", path: "/admin/quick-commerce/seller-coupon-request", permissionKey: "seller_coupon_request" },
           { label: "Coupons & Promos", path: "/admin/quick-commerce/coupons", permissionKey: "coupons" },
           { label: "Offer Sections", path: "/admin/quick-commerce/offer-sections", permissionKey: "offer_sections" },

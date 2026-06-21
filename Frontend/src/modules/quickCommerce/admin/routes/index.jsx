@@ -34,7 +34,7 @@ const FleetTracking = React.lazy(() => import("../pages/FleetTracking"))
 const CouponManagement = React.lazy(() => import("../pages/CouponManagement"))
 const ContentManager = React.lazy(() => import("../pages/ContentManager"))
 const HeroCategoriesPerPage = React.lazy(() => import("../pages/HeroCategoriesPerPage"))
-const NotificationComposer = React.lazy(() => import("../pages/NotificationComposer"))
+// const NotificationComposer = React.lazy(() => import("../pages/NotificationComposer"))
 const OfferSectionsManagement = React.lazy(() => import("../pages/OfferSectionsManagement"))
 const ShopByStoreManagement = React.lazy(() => import("../pages/ShopByStoreManagement"))
 const AdminProfile = React.lazy(() => import("../pages/AdminProfile"))
@@ -75,7 +75,7 @@ function QuickCommerceAdminRoutesInner() {
       <Route path="/moderation" element={<ReviewModeration />} />
       <Route path="/experience-studio" element={<ContentManager />} />
       <Route path="/hero-categories" element={<HeroCategoriesPerPage />} />
-      <Route path="/notifications" element={<NotificationComposer />} />
+      {/* <Route path="/notifications" element={<NotificationComposer />} /> */}
       <Route path="/offer-sections" element={<OfferSectionsManagement />} />
       <Route path="/shop-by-store" element={<ShopByStoreManagement />} />
       <Route path="/coupons" element={<CouponManagement />} />
