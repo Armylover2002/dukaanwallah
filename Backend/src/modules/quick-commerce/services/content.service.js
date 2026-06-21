@@ -379,17 +379,76 @@ export const getAdminQuickCoupons = async (params = {}) => {
   const collection = getCollection('quick_coupons');
   if (!collection) return [];
   const filter = {};
+  const andConditions = [];
+  const now = new Date();
+
   if (params.status && params.status !== 'all') {
-    filter.isActive = params.status === 'active';
+    if (params.status === 'active') {
+      andConditions.push({
+        isActive: true,
+        $or: [
+          { validTill: null },
+          { validTill: { $gt: now } }
+        ]
+      });
+    } else if (params.status === 'expired') {
+      andConditions.push({
+        $or: [
+          { isActive: false },
+          { validTill: { $ne: null, $lte: now } }
+        ]
+      });
+    }
   }
+
   if (params.search) {
-    filter.$or = [
-      { code: { $regex: params.search, $options: 'i' } },
-      { title: { $regex: params.search, $options: 'i' } },
-      { description: { $regex: params.search, $options: 'i' } },
-    ];
+    andConditions.push({
+      $or: [
+        { code: { $regex: params.search, $options: 'i' } },
+        { title: { $regex: params.search, $options: 'i' } },
+        { description: { $regex: params.search, $options: 'i' } },
+      ]
+    });
   }
+
+  if (andConditions.length > 0) {
+    filter.$and = andConditions;
+  }
+
   return collection.find(filter).sort({ updatedAt: -1, createdAt: -1 }).toArray();
+};
+
+export const expireQuickCoupons = async () => {
+  const now = new Date();
+  const { SellerCoupon } = await import('../models/sellerCoupon.model.js');
+  
+  // 1. Auto-expire approved seller coupons
+  const expiredSellers = await SellerCoupon.updateMany(
+    { status: 'Approved', expiryDate: { $lte: now } },
+    { $set: { status: 'Expired' } }
+  );
+
+  // 2. Auto-deactivate active admin quick coupons
+  const collection = getCollection('quick_coupons');
+  let expiredAdminsCount = 0;
+  if (collection) {
+    const expiredAdmins = await collection.updateMany(
+      { isActive: true, validTill: { $ne: null, $lte: now } },
+      { $set: { isActive: false, status: 'expired' } }
+    );
+    expiredAdminsCount = expiredAdmins.modifiedCount;
+  }
+
+  // 3. Clear cache if modifications occurred
+  if (expiredSellers.modifiedCount > 0 || expiredAdminsCount > 0) {
+    try {
+      const { invalidateCache } = await import('../../../../middleware/cache.js');
+      await invalidateCache('quick_coupons*');
+      await invalidateCache('quick_offers*');
+    } catch (err) {
+      console.error('Failed to invalidate cache in expireQuickCoupons:', err);
+    }
+  }
 };
 
 export const createAdminQuickCoupon = async (data) => {

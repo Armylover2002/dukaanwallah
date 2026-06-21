@@ -380,11 +380,16 @@ const CouponManagement = () => {
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-6 text-center">
-                                        <Badge variant={c.isActive ? 'success' : 'secondary'} className="text-[9px] font-black uppercase">
-                                            {c.isActive ? 'active' : 'inactive'}
-                                        </Badge>
-                                    </td>
+                                     <td className="px-4 py-6 text-center">
+                                         {(() => {
+                                             const isExpired = c.validTill && new Date(c.validTill) < new Date();
+                                             return (
+                                                 <Badge variant={isExpired ? 'error' : c.isActive ? 'success' : 'gray'} className="text-[9px] font-black uppercase">
+                                                     {isExpired ? 'expired' : c.isActive ? 'active' : 'inactive'}
+                                                 </Badge>
+                                             );
+                                         })()}
+                                     </td>
                                     <td className="px-4 py-6">
                                         <div className="flex items-center justify-end gap-2">
                                             {canEdit && (

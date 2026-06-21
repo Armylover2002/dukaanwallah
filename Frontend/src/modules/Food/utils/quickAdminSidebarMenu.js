@@ -11,13 +11,13 @@ export const quickAdminSidebarMenu = [
     label: "CORE MANAGEMENT",
     permissionKey: "core_management",
     items: [
-      {
-        type: "link",
-        label: "Seller Requests",
-        permissionKey: "seller_requests",
-        path: "/admin/quick-commerce/seller-requests",
-        icon: "ClipboardCheck",
-      },
+      // {
+      //   type: "link",
+      //   label: "Seller Requests",
+      //   permissionKey: "seller_requests",
+      //   path: "/admin/quick-commerce/seller-requests",
+      //   icon: "ClipboardCheck",
+      // },
       {
         type: "expandable",
         label: "Categories",
@@ -65,7 +65,7 @@ export const quickAdminSidebarMenu = [
         icon: "Building2",
         subItems: [
           { label: "Active Sellers", path: "/admin/quick-commerce/sellers/active", permissionKey: "active" },
-          { label: "Waiting for Review", path: "/admin/quick-commerce/sellers/pending", permissionKey: "pending" },
+          { label: "Seller Requests", path: "/admin/quick-commerce/sellers/pending", permissionKey: "pending" },
           { label: "Seller Locations", path: "/admin/quick-commerce/seller-locations", permissionKey: "locations" },
           { label: "Seller Commission", path: "/admin/quick-commerce/sellers/commission", permissionKey: "commission" },
           { label: "COD Deposit Verification", path: "/admin/quick-commerce/sellers/cod-deposit-verification", permissionKey: "commission" },

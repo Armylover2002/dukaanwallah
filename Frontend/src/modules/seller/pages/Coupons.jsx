@@ -29,6 +29,7 @@ const statusBadgeClass = (status) => {
   const value = String(status || "Pending").toLowerCase()
   if (value === "approved") return "bg-emerald-50 text-emerald-700 border-emerald-200"
   if (value === "rejected") return "bg-rose-50 text-rose-700 border-rose-200"
+  if (value === "expired") return "bg-slate-50 text-slate-500 border-slate-200"
   return "bg-amber-50 text-amber-700 border-amber-200"
 }
 
@@ -188,7 +189,8 @@ export default function Coupons() {
         ) : (
           <div className="space-y-3">
             {coupons.map((coupon) => {
-              const status = coupon?.status || "Pending"
+              const isExpired = coupon?.expiryDate && new Date(coupon.expiryDate) < new Date()
+              const status = isExpired ? "Expired" : (coupon?.status || "Pending")
               const expiryFormatted = coupon?.expiryDate ? new Date(coupon.expiryDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'
 
               return (

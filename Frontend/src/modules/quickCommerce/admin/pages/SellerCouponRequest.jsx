@@ -14,6 +14,7 @@ const statusBadgeClass = (status) => {
   const value = String(status || "Pending").toLowerCase()
   if (value === "approved") return "bg-emerald-50 text-emerald-700 border-emerald-200"
   if (value === "rejected") return "bg-rose-50 text-rose-700 border-rose-200"
+  if (value === "expired") return "bg-slate-50 text-slate-500 border-slate-200"
   return "bg-amber-50 text-amber-700 border-amber-200"
 }
 
@@ -439,7 +440,8 @@ export default function SellerCouponRequest() {
                 ) : (
                   processedRequests.map((request, index) => {
                     const reqId = request._id || request.id;
-                    const status = request.status || "Pending";
+                    const isExpired = request.expiryDate && new Date(request.expiryDate) < new Date();
+                    const status = isExpired ? "Expired" : (request.status || "Pending");
 
                     return (
                       <tr key={reqId} className="hover:bg-slate-50/50 transition-colors">

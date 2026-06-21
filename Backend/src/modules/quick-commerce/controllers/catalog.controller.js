@@ -331,7 +331,10 @@ export const getCoupons = async (req, res) => {
   setNoCache(res);
   try {
     const adminCoupons = await getQuickCoupons();
-    let results = Array.isArray(adminCoupons) ? [...adminCoupons] : [];
+    const now = new Date();
+    let results = Array.isArray(adminCoupons)
+      ? adminCoupons.filter(c => (!c.validTill || new Date(c.validTill) > now) && (!c.validFrom || new Date(c.validFrom) <= now))
+      : [];
 
     const { sellerId } = req.query;
     if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
@@ -411,11 +414,14 @@ export const applyCoupon = async (req, res) => {
   }
 
   const now = new Date();
-  if (coupon.expiryDate && new Date(coupon.expiryDate) < now) {
+  const expiryDate = coupon.expiryDate || coupon.validTill;
+  const startDate = coupon.startDate || coupon.validFrom;
+
+  if (expiryDate && new Date(expiryDate) < now) {
     return res.status(400).json({ success: false, message: 'This coupon has expired' });
   }
 
-  if (coupon.startDate && new Date(coupon.startDate) > now) {
+  if (startDate && new Date(startDate) > now) {
     return res.status(400).json({ success: false, message: 'This coupon is not active yet' });
   }
 

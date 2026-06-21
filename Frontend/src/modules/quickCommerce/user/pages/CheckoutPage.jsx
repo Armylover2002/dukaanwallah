@@ -269,7 +269,7 @@ const CartItem = React.memo(function CartItem({ item, onMoveToWishlist, onUpdate
   );
 });
 
-const CouponRow = React.memo(function CouponRow({ coupon, isApplied, onApply }) {
+const CouponRow = React.memo(function CouponRow({ coupon, isApplied, onApply, onRemove }) {
   return (
     <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-slate-800 dark:to-slate-900 rounded-xl border border-orange-100 dark:border-white/5">
       <div className="flex-1">
@@ -277,11 +277,11 @@ const CouponRow = React.memo(function CouponRow({ coupon, isApplied, onApply }) 
         <p className="text-xs text-slate-600">{coupon.description}</p>
       </div>
       <button
-        onClick={() => onApply(coupon)}
-        className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${isApplied ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#0c831f] text-white hover:bg-[#0b721b]"
+        onClick={() => isApplied ? onRemove() : onApply(coupon)}
+        className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${isApplied ? "bg-rose-500 text-white hover:bg-rose-600" : "bg-[#0c831f] text-white hover:bg-[#0b721b]"
           }`}
-        disabled={isApplied}>
-        {isApplied ? "Applied" : "Apply"}
+      >
+        {isApplied ? "Remove" : "Apply"}
       </button>
     </div>
   );
@@ -745,6 +745,12 @@ const CheckoutPage = () => {
       showToast(error.response?.data?.message || "Unable to apply coupon", "error");
     }
   }, [cartTotal, cart, user?._id, showToast]);
+
+  const handleRemoveCoupon = useCallback(() => {
+    setSelectedCoupon(null);
+    setManualCode("");
+    showToast("Coupon removed", "info");
+  }, [showToast]);
 
   // ── FIX 2: handlePlaceOrder — validate street before sending to API ──────
   // Previously: buildAddressForOrder was called inside and its empty-street
@@ -1288,6 +1294,7 @@ const CheckoutPage = () => {
                     coupon={coupon}
                     isApplied={selectedCoupon?.code === coupon.code}
                     onApply={handleApplyCoupon}
+                    onRemove={handleRemoveCoupon}
                   />
                 ))}
               </div>
@@ -1363,8 +1370,18 @@ const CheckoutPage = () => {
                 </div>
                 {selectedCoupon && (
                   <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center px-3 py-2 bg-green-50 rounded-xl border border-green-100">
-                    <span className="text-[#0c831f] font-black text-xs flex items-center gap-2 uppercase tracking-wider"><Tag size={14} />Coupon Reserved</span>
-                    <span className="font-black text-[#0c831f]">-₹{discountAmount}</span>
+                    <span className="text-[#0c831f] font-black text-xs flex items-center gap-2 uppercase tracking-wider">
+                      <Tag size={14} />Coupon Reserved ({selectedCoupon.code})
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-[#0c831f]">-₹{discountAmount}</span>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="text-xs text-rose-600 font-bold hover:text-rose-800 transition-colors uppercase tracking-wider"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </motion.div>
                 )}
                 {selectedTip > 0 && (
