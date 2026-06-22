@@ -2133,8 +2133,14 @@ export const getSellerEarningsController = async (req, res) => {
       .filter((item) => item.type === "Order Payment")
       .reduce((sum, item) => sum + num(item.amount), 0);
 
-    const totalNetEarnings =
+    const baseNetEarnings =
       orderNetEarnings > 0 ? orderNetEarnings : txnNetEarnings;
+
+    const totalAdjustments = transactions
+      .filter((item) => item.type === "Adjustment")
+      .reduce((sum, item) => sum + num(item.amount), 0);
+
+    const totalNetEarnings = baseNetEarnings + totalAdjustments;
 
     const grossSales = orders.reduce(
       (sum, o) => sum + num(o.pricing?.total),
@@ -2161,13 +2167,9 @@ export const getSellerEarningsController = async (req, res) => {
       )
       .reduce((sum, item) => sum + Math.abs(num(item.amount)), 0);
 
-    const totalAdjustments = transactions
-      .filter((item) => item.type === "Adjustment")
-      .reduce((sum, item) => sum + num(item.amount), 0);
-
     const settledBalance = Math.max(
       0,
-      totalNetEarnings + totalAdjustments - totalWithdrawn - pendingPayouts,
+      totalNetEarnings - totalWithdrawn - pendingPayouts,
     );
 
     // Ledger: merge "Order Payment" entries from transactions with synthetic ones from delivered orders.
@@ -2283,8 +2285,14 @@ export const requestSellerWithdrawalController = async (req, res) => {
       .filter((item) => item.type === "Order Payment")
       .reduce((sum, item) => sum + num(item.amount), 0);
 
-    const netEarnings =
+    const baseNetEarnings =
       orderNetEarnings > 0 ? orderNetEarnings : txnNetEarnings;
+
+    const totalAdjustments = transactions
+      .filter((item) => item.type === "Adjustment")
+      .reduce((sum, item) => sum + num(item.amount), 0);
+
+    const netEarnings = baseNetEarnings + totalAdjustments;
 
     const totalWithdrawn = transactions
       .filter((item) => item.type === "Withdrawal" && item.status === "Settled")
@@ -2298,13 +2306,9 @@ export const requestSellerWithdrawalController = async (req, res) => {
       )
       .reduce((sum, item) => sum + Math.abs(num(item.amount)), 0);
 
-    const totalAdjustments = transactions
-      .filter((item) => item.type === "Adjustment")
-      .reduce((sum, item) => sum + num(item.amount), 0);
-
     const available = Math.max(
       0,
-      netEarnings + totalAdjustments - totalWithdrawn - pendingPayouts,
+      netEarnings - totalWithdrawn - pendingPayouts,
     );
     if (amount > available) {
       return sendError(
