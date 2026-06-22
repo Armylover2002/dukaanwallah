@@ -283,10 +283,16 @@ const buildFormData = async (details, documents) => {
   if (details.panNumber) formData.append("panNumber", details.panNumber)
   if (details.aadharNumber) formData.append("aadharNumber", details.aadharNumber)
 
-  if (documents.profilePhoto instanceof File) formData.append("profilePhoto", documents.profilePhoto)
-  if (documents.aadharPhoto instanceof File) formData.append("aadharPhoto", documents.aadharPhoto)
-  if (documents.panPhoto instanceof File) formData.append("panPhoto", documents.panPhoto)
-  if (documents.drivingLicensePhoto instanceof File) formData.append("drivingLicensePhoto", documents.drivingLicensePhoto)
+  const docsToAppend = ["profilePhoto", "aadharPhoto", "panPhoto", "drivingLicensePhoto"]
+  for (const doc of docsToAppend) {
+    let file = documents[doc]
+    if (!(file instanceof File) && !(file instanceof Blob)) {
+      file = await getFileFromDB(doc)
+    }
+    if (file instanceof File || file instanceof Blob) {
+      formData.append(doc, file)
+    }
+  }
 
   let fcmToken = null
   let platform = "web"
@@ -453,13 +459,42 @@ export default function SignupStep2() {
   }, [])
 
   useEffect(() => {
+    const restoreFiles = async () => {
+      const docs = ["profilePhoto", "aadharPhoto", "panPhoto", "drivingLicensePhoto"]
+      const restored = {}
+      let needsUpdate = false
+
+      for (const doc of docs) {
+        if (uploadedDocs[doc] && !documentsRef.current[doc]) {
+          try {
+            setUploading((prev) => ({ ...prev, [doc]: true }))
+            const file = await getFileFromDB(doc)
+            if (file instanceof File || file instanceof Blob) {
+              restored[doc] = file
+              needsUpdate = true
+            }
+          } catch (e) {
+            debugError("Failed to restore", doc, e)
+          } finally {
+            setUploading((prev) => ({ ...prev, [doc]: false }))
+          }
+        }
+      }
+      if (needsUpdate) {
+        setDocuments((prev) => ({ ...prev, ...restored }))
+      }
+    }
+    restoreFiles()
+  }, [])
+
+  useEffect(() => {
     sessionStorage.setItem("deliverySignupDocs", JSON.stringify(uploadedDocs))
   }, [uploadedDocs])
 
   useEffect(() => {
     return () => {
       Object.values(documentsRef.current).forEach((file) => {
-        if (file instanceof File) {
+        if (file instanceof File || file instanceof Blob) {
           const previewUrl = file._previewUrl || file.previewUrl
           if (previewUrl && previewUrl.startsWith('blob:')) {
             URL.revokeObjectURL(previewUrl)
@@ -475,12 +510,29 @@ export default function SignupStep2() {
     if (uploaded?.url) return uploaded.url
 
     const localFile = documents[docType]
-    if (localFile instanceof File) {
+    if (localFile instanceof File || localFile instanceof Blob) {
       if (!localFile._previewUrl) {
-        localFile._previewUrl = URL.createObjectURL(localFile)
+        try {
+          localFile._previewUrl = URL.createObjectURL(localFile)
+        } catch (e) {
+          return null
+        }
       }
       return localFile._previewUrl
     }
+    
+    if (localFile && typeof localFile === 'object' && localFile.size) {
+      try {
+        const blob = new Blob([localFile], { type: localFile.type || 'image/jpeg' })
+        if (!localFile._previewUrl) {
+          localFile._previewUrl = URL.createObjectURL(blob)
+        }
+        return localFile._previewUrl
+      } catch (e) {
+        return null
+      }
+    }
+    
     return null
   }
 
@@ -684,23 +736,37 @@ export default function SignupStep2() {
         </label>
 
         {hasUploadedDocument ? (
-          <div className="relative">
+          <div className="relative border rounded-xl overflow-hidden bg-white shadow-sm group">
             <img
-              src={getPreviewSrc(docType)}
+              src={getPreviewSrc(docType) || "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' fill='%23f3f4f6'%3E%3Crect width='400' height='300'/%3E%3C/svg%3E"}
               alt={label}
-              className="w-full h-48 object-cover rounded-lg"
+              className="w-full h-48 object-cover bg-gray-50"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+            
             <button
               type="button"
               onClick={() => handleRemove(docType)}
               disabled={isSubmitting}
-              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute top-3 right-3 bg-red-500/90 text-white p-2 rounded-full hover:bg-red-600 transition-all opacity-90 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed shadow-md backdrop-blur-sm z-10"
+              title="Remove document"
             >
               <X className="w-4 h-4" />
             </button>
-            <div className="absolute bottom-2 left-2 bg-green-500 text-white px-3 py-1 rounded-full flex items-center gap-1 text-sm">
-              <Check className="w-4 h-4" />
-              <span>Uploaded</span>
+            
+            <div className="absolute bottom-0 left-0 right-0 p-3.5 flex items-end justify-between z-10">
+              <div className="flex flex-col text-white max-w-[70%]">
+                <span className="font-semibold text-sm drop-shadow-md truncate" title={documents[docType]?.name || `${label} Uploaded`}>
+                  {documents[docType]?.name || `${label} Uploaded`}
+                </span>
+                <span className="text-xs text-gray-200 drop-shadow-md mt-0.5">
+                   {documents[docType]?.size ? `${(documents[docType].size / (1024 * 1024)).toFixed(2)} MB • Image` : 'Document Image'}
+                </span>
+              </div>
+              <div className="bg-green-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold shadow-md">
+                <Check className="w-3.5 h-3.5" />
+                <span>Uploaded</span>
+              </div>
             </div>
           </div>
         ) : (
