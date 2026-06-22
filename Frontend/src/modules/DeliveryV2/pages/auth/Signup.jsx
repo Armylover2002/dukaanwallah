@@ -352,7 +352,7 @@ export default function DeliverySignup() {
             <p className="text-xs text-gray-500">
               By continuing, you agree to our{" "}
               <Link to="/food/delivery/terms" className="text-primary-orange hover:underline">
-                Terms and Conditions
+                Terms & Conditions
               </Link>
             </p>
           </div>

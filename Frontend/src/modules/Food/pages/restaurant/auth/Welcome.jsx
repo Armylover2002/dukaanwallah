@@ -272,8 +272,8 @@ export default function RestaurantWelcome() {
                 setCurrentIndex(index)
               }}
               className={`transition-all duration-300 rounded-full ${index === currentIndex
-                  ? "w-2.5 h-2.5 bg-white"
-                  : "w-1.5 h-1.5 bg-white/50"
+                ? "w-2.5 h-2.5 bg-white"
+                : "w-1.5 h-1.5 bg-white/50"
                 }`}
               aria-label={`Go to slide ${index + 1}`}
             />
@@ -309,7 +309,7 @@ export default function RestaurantWelcome() {
             By continuing, you agree to our
           </p>
           <p className="text-white/70 text-xs md:text-sm underline mt-1">
-            Terms of Service | Privacy Policy | Code of Conduct
+            Terms & Service | Privacy Policy | Code of Conduct
           </p>
         </div>
       </div>

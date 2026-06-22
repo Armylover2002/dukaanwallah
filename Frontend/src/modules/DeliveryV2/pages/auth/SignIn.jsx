@@ -293,7 +293,7 @@ export default function DeliverySignIn() {
           <p className="text-xs text-center text-gray-500 px-4 font-medium uppercase tracking-widest leading-relaxed mt-4">
             By continuing, you agree to our{" "}
             <Link to="/food/delivery/terms" className="text-primary-orange hover:underline font-bold">
-              Terms and Conditions
+              Terms & Conditions
             </Link>
           </p>
         </div>

@@ -8,7 +8,17 @@ const schema = z.object({
         .refine((val) => {
             const isEmail = val.includes('@');
             if (isEmail) {
-                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                if (!emailRegex.test(val)) return false;
+                
+                const tldMatch = val.match(/\.([^.]+)$/);
+                if (tldMatch) {
+                    const tld = tldMatch[1].toLowerCase();
+                    const invalidTlds = ['comm', 'coom', 'con', 'cmo', 'xom', 'cpm'];
+                    if (invalidTlds.includes(tld)) return false;
+                    if (/([a-z])\1{2,}/.test(tld)) return false;
+                }
+                return true;
             } else {
                 return /^\d+$/.test(val) && val.length >= 8 && val.length <= 15;
             }
