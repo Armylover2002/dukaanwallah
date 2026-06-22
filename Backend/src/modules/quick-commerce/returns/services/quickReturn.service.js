@@ -14,6 +14,9 @@ import { FoodDeliveryPartner } from '../../../food/delivery/models/deliveryPartn
 import { FoodUser } from '../../../../core/users/user.model.js';
 import { creditWallet } from '../../../../core/payments/wallet.service.js';
 import { logger } from '../../../../utils/logger.js';
+import { SellerTransaction } from '../../seller/models/sellerTransaction.model.js';
+import { getRiderEarning } from '../../admin/services/billing.service.js';
+import { haversineKm } from '../../../food/orders/services/order.helpers.js';
 
 const generateOtp = () =>
   String(Math.floor(1000 + Math.random() * 9000));
@@ -543,6 +546,67 @@ const processReturnRefund = async (returnId) => {
     // Bank transfer: just record — manual processing by admin
     ret.refundTransactionId = 'bank_transfer_pending';
     logger.info(`[Return] Bank refund recorded for returnId=${returnId}, amount=${ret.refundAmount}`);
+  }
+
+  // 2. Calculate Delivery Partner Return Earnings & Credit Wallet
+  let distanceKm = 0;
+  let riderEarning = 0;
+  if (ret.deliveryPartnerId) {
+    const lat1 = ret.customerAddress?.location?.lat;
+    const lon1 = ret.customerAddress?.location?.lng;
+    const lat2 = ret.sellerAddress?.location?.lat;
+    const lon2 = ret.sellerAddress?.location?.lng;
+
+    if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
+      distanceKm = haversineKm(lat1, lon1, lat2, lon2);
+      riderEarning = await getRiderEarning(distanceKm);
+    }
+    ret.riderEarning = riderEarning;
+
+    if (riderEarning > 0) {
+      try {
+        await creditWallet({
+          entityType: 'deliveryBoy',
+          entityId: String(ret.deliveryPartnerId),
+          amount: riderEarning,
+          description: `Return Order QC-RET-${String(ret._id).slice(-6).toUpperCase()} - delivery earning`,
+          category: 'delivery_earning',
+          orderId: String(ret.parentOrderMongoId || ret._id),
+          metadata: { returnOrderId: String(ret._id), orderId: ret.orderId, distanceKm },
+        });
+
+        // Update rider's total deliveries count
+        const { FoodDeliveryWallet } = await import('../../../../modules/food/delivery/models/deliveryWallet.model.js');
+        await FoodDeliveryWallet.updateOne(
+          { deliveryPartnerId: ret.deliveryPartnerId },
+          { $inc: { totalDeliveries: 1 } }
+        );
+
+        logger.info(`[Return] Payout of ₹${riderEarning} credited to rider=${ret.deliveryPartnerId} for returnId=${returnId}`);
+      } catch (err) {
+        logger.error(`[Return] Failed to credit rider payout for returnId=${returnId}: ${err.message}`);
+      }
+    }
+  }
+
+  // 3. Deduct Refunded Product Amount from Seller's Settlement Balance
+  if (ret.sellerId && ret.refundAmount > 0) {
+    try {
+      await SellerTransaction.create({
+        sellerId: ret.sellerId,
+        type: 'Adjustment',
+        amount: -ret.refundAmount,
+        status: 'Settled',
+        orderId: ret.orderId,
+        reference: `RET-ADJ-${String(ret._id).slice(-6).toUpperCase()}`,
+        customer: ret.customerAddress?.phone || 'Customer',
+        reason: 'Return Refund Adjustment',
+        processedAt: new Date()
+      });
+      logger.info(`[Return] Deducted ₹${ret.refundAmount} from seller=${ret.sellerId} for returnId=${returnId}`);
+    } catch (err) {
+      logger.error(`[Return] Failed to deduct seller refund for returnId=${returnId}: ${err.message}`);
+    }
   }
 
   ret.status = 'refund_processed';

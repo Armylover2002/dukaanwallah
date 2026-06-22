@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   MapPin, Phone, ShieldCheck, CheckCircle2, Loader2, 
   ArrowRight, Lock, AlertCircle, UploadCloud, RotateCcw, 
-  Package, Clock, X, ChevronRight 
+  Package, Clock, X, ChevronRight, Navigation2, Compass, Map
 } from 'lucide-react';
 import { deliveryAPI } from '@food/api';
 import axiosInstance from '@core/api/axios';
 import { toast } from 'sonner';
+import { useDeliveryStore } from '../store/useDeliveryStore';
+import { GoogleMap, useJsApiLoader, DirectionsService, DirectionsRenderer, Marker } from '@react-google-maps/api';
 
 export default function ReturnPickups() {
   const [pickups, setPickups] = useState([]);
@@ -18,6 +20,8 @@ export default function ReturnPickups() {
   const [confirmingPickup, setConfirmingPickup] = useState({});
   const [completingTask, setCompletingTask] = useState({});
   const [sellerOtpInputs, setSellerOtpInputs] = useState({});
+  const riderLocation = useDeliveryStore((state) => state.riderLocation);
+  const [navPickup, setNavPickup] = useState(null);
 
   const fetchPickups = async () => {
     try {
@@ -159,6 +163,10 @@ export default function ReturnPickups() {
     }
   };
 
+  const handleStartNavigation = (pickup) => {
+    setNavPickup(pickup);
+  };
+
   const getStatusBadge = (status, otpVerified) => {
     switch (status) {
       case 'pickup_assigned':
@@ -255,7 +263,17 @@ export default function ReturnPickups() {
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Return ID</span>
                     <span className="text-xs font-black text-gray-950">QC-RET-{String(id).slice(-6).toUpperCase()}</span>
                   </div>
-                  {getStatusBadge(status, otpVerified)}
+                  <div className="flex items-center gap-2">
+                    {['pickup_assigned', 'picked_up'].includes(status) && (
+                      <button
+                        onClick={() => handleStartNavigation(pickup)}
+                        className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-blue-600 hover:text-blue-800 bg-blue-50/80 px-2.5 py-1.5 rounded-full border border-blue-100 transition-all hover:bg-blue-100 active:scale-95 shrink-0"
+                      >
+                        <Navigation2 className="w-3.5 h-3.5" /> Navigate
+                      </button>
+                    )}
+                    {getStatusBadge(status, otpVerified)}
+                  </div>
                 </div>
 
                 {/* Body Details */}
@@ -455,6 +473,236 @@ export default function ReturnPickups() {
             );
           })
         )}
+      </div>
+
+      {/* Navigation Modal */}
+      {navPickup && (
+        <ReturnNavigationModal
+          pickup={navPickup}
+          riderLocation={riderLocation}
+          onClose={() => setNavPickup(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%',
+};
+
+const mapOptions = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  mapTypeControl: false,
+  scaleControl: true,
+  streetViewControl: false,
+  fullscreenControl: false,
+};
+
+function ReturnNavigationModal({ pickup, riderLocation, onClose }) {
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: ['places', 'geometry'],
+  });
+
+  const [directions, setDirections] = useState(null);
+  const [distanceText, setDistanceText] = useState('');
+  const [durationText, setDurationText] = useState('');
+
+  const status = pickup.status;
+
+  const origin = useMemo(() => {
+    if (riderLocation?.lat && riderLocation?.lng) {
+      return { lat: Number(riderLocation.lat), lng: Number(riderLocation.lng) };
+    }
+    return null;
+  }, [riderLocation]);
+
+  const destination = useMemo(() => {
+    if (status === 'pickup_assigned') {
+      const lat = Number(pickup.customerAddress?.location?.lat);
+      const lng = Number(pickup.customerAddress?.location?.lng);
+      return { lat, lng };
+    } else {
+      const lat = Number(pickup.sellerAddress?.location?.lat);
+      const lng = Number(pickup.sellerAddress?.location?.lng);
+      return { lat, lng };
+    }
+  }, [pickup, status]);
+
+  const phaseTitle = status === 'pickup_assigned' ? 'Phase 1: Customer Pickup' : 'Phase 2: Handover to Seller';
+  const targetName = status === 'pickup_assigned' ? (pickup.userId?.name || 'Customer') : (pickup.sellerAddress?.shopName || 'Seller Store');
+  const targetAddress = status === 'pickup_assigned' 
+    ? `${pickup.customerAddress?.street || ''}, ${pickup.customerAddress?.city || ''}` 
+    : (pickup.sellerAddress?.address || '');
+
+  const directionsCallback = (result, status) => {
+    if (status === 'OK' && result) {
+      setDirections(result);
+      const leg = result.routes[0]?.legs[0];
+      if (leg) {
+        setDistanceText(leg.distance?.text || '');
+        setDurationText(leg.duration?.text || '');
+      }
+    }
+  };
+
+  const [fallbackPos, setFallbackPos] = useState(null);
+  useEffect(() => {
+    if (!origin) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setFallbackPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        (err) => console.log('Geolocation fallback failed', err),
+        { enableHighAccuracy: true }
+      );
+    }
+  }, [origin]);
+
+  const activeOrigin = origin || fallbackPos;
+
+  if (loadError) {
+    return (
+      <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
+        <h3 className="font-bold text-gray-900">Map Load Error</h3>
+        <p className="text-xs text-gray-500 mt-1">Failed to load Google Maps interface.</p>
+        <button onClick={onClose} className="mt-4 px-6 py-2.5 bg-gray-900 text-white font-bold rounded-2xl text-xs uppercase tracking-wider">Close</button>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#ff8100]" />
+        <span className="text-xs text-gray-500 mt-2 font-semibold">Loading Navigation...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[1000] bg-gray-100 flex flex-col font-poppins text-gray-900 safe-top safe-bottom">
+      {/* Header bar */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shadow-sm shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+            <Compass className="w-4 h-4 animate-spin animate-duration-1000" />
+          </div>
+          <div>
+            <span className="text-[10px] text-blue-600 font-bold uppercase tracking-widest block leading-none">{phaseTitle}</span>
+            <span className="text-xs font-black text-gray-950 mt-1 block">QC-RET-{String(pickup._id).slice(-6).toUpperCase()}</span>
+          </div>
+        </div>
+        <button 
+          onClick={onClose}
+          className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 border border-gray-100 hover:bg-gray-100 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Google Map area */}
+      <div className="flex-1 relative bg-gray-200">
+        {activeOrigin && destination ? (
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={activeOrigin}
+            zoom={15}
+            options={mapOptions}
+          >
+            <DirectionsService
+              options={{
+                origin: activeOrigin,
+                destination: destination,
+                travelMode: 'DRIVING'
+              }}
+              callback={directionsCallback}
+            />
+
+            {directions && (
+              <DirectionsRenderer
+                directions={directions}
+                options={{
+                  suppressMarkers: true,
+                  polylineOptions: {
+                    strokeColor: '#3b82f6',
+                    strokeWeight: 6,
+                    strokeOpacity: 0.8
+                  }
+                }}
+              />
+            )}
+
+            {/* Custom Markers */}
+            <Marker 
+              position={activeOrigin} 
+              label={{ text: "Rider", color: "#ffffff", fontSize: "10px", fontWeight: "bold" }}
+              icon={{
+                path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
+                fillColor: "#3b82f6",
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2,
+                scale: 10,
+              }}
+            />
+            <Marker 
+              position={destination} 
+              label={{ text: status === 'pickup_assigned' ? "Customer" : "Seller", color: "#ffffff", fontSize: "10px", fontWeight: "bold" }}
+              icon={{
+                path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
+                fillColor: status === 'pickup_assigned' ? "#ff8100" : "#22c55e",
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2,
+                scale: 10,
+              }}
+            />
+          </GoogleMap>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+            <Loader2 className="w-7 h-7 animate-spin text-gray-400" />
+            <span className="text-xs text-gray-500 font-semibold mt-2">Waiting for rider GPS signal...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Info & details panel */}
+      <div className="bg-white border-t border-gray-100 p-5 shadow-2xl shrink-0 rounded-t-3xl relative z-10 space-y-4">
+        <div className="flex justify-between items-center gap-3">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black text-gray-950">{durationText || '-- min'}</span>
+            <span className="text-xs text-gray-400 font-bold uppercase">ETA</span>
+          </div>
+          <div className="flex items-baseline gap-1 text-right">
+            <span className="text-xl font-bold text-gray-800">{distanceText || '-- km'}</span>
+            <span className="text-xs text-gray-400 font-bold uppercase">Distance</span>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-50 pt-4 flex gap-3.5 items-start">
+          <div className="w-10 h-10 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+            <MapPin className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest block leading-none mb-1">
+              {status === 'pickup_assigned' ? 'Customer Pickup Point' : 'Seller Drop-off Point'}
+            </span>
+            <h4 className="text-sm font-bold text-gray-950 truncate">{targetName}</h4>
+            <p className="text-xs text-gray-500 leading-relaxed mt-1">{targetAddress}</p>
+          </div>
+        </div>
+
+        <button 
+          onClick={onClose}
+          className="w-full py-4 bg-gray-950 hover:bg-gray-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        >
+          <Map className="w-4 h-4" /> View List Screen
+        </button>
       </div>
     </div>
   );

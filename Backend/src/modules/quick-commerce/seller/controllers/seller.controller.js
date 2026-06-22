@@ -743,6 +743,9 @@ const availableWithdrawalBalance = (transactions) => {
   const totalRevenue = transactions
     .filter((item) => item.type === "Order Payment")
     .reduce((sum, item) => sum + num(item.amount), 0);
+  const totalAdjustments = transactions
+    .filter((item) => item.type === "Adjustment")
+    .reduce((sum, item) => sum + num(item.amount), 0);
   const totalWithdrawn = transactions
     .filter((item) => item.type === "Withdrawal" && item.status === "Settled")
     .reduce((sum, item) => sum + Math.abs(num(item.amount)), 0);
@@ -754,7 +757,7 @@ const availableWithdrawalBalance = (transactions) => {
     )
     .reduce((sum, item) => sum + Math.abs(num(item.amount)), 0);
 
-  return Math.max(0, totalRevenue - totalWithdrawn - pendingPayouts);
+  return Math.max(0, totalRevenue + totalAdjustments - totalWithdrawn - pendingPayouts);
 };
 
 const monthlyRevenueChart = (transactions) => {
@@ -2158,9 +2161,13 @@ export const getSellerEarningsController = async (req, res) => {
       )
       .reduce((sum, item) => sum + Math.abs(num(item.amount)), 0);
 
+    const totalAdjustments = transactions
+      .filter((item) => item.type === "Adjustment")
+      .reduce((sum, item) => sum + num(item.amount), 0);
+
     const settledBalance = Math.max(
       0,
-      totalNetEarnings - totalWithdrawn - pendingPayouts,
+      totalNetEarnings + totalAdjustments - totalWithdrawn - pendingPayouts,
     );
 
     // Ledger: merge "Order Payment" entries from transactions with synthetic ones from delivered orders.
@@ -2290,9 +2297,13 @@ export const requestSellerWithdrawalController = async (req, res) => {
       )
       .reduce((sum, item) => sum + Math.abs(num(item.amount)), 0);
 
+    const totalAdjustments = transactions
+      .filter((item) => item.type === "Adjustment")
+      .reduce((sum, item) => sum + num(item.amount), 0);
+
     const available = Math.max(
       0,
-      netEarnings - totalWithdrawn - pendingPayouts,
+      netEarnings + totalAdjustments - totalWithdrawn - pendingPayouts,
     );
     if (amount > available) {
       return sendError(

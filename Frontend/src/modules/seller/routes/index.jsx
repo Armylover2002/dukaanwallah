@@ -41,7 +41,7 @@ const navItems = [
   { label: "Products", path: "/seller/products", icon: HiOutlineCube },
   { label: "Stock", path: "/seller/inventory", icon: HiOutlineArchiveBox },
   { label: "Orders", path: "/seller/orders", icon: HiOutlineTruck },
-  { label: "Returns", path: "/seller/returns", icon: HiOutlineArchiveBox },
+  // { label: "Returns", path: "/seller/returns", icon: HiOutlineArchiveBox },
   { label: "QC Returns", path: "/seller/return-orders", icon: HiOutlineArchiveBox },
   { label: "Track Orders", path: "/seller/tracking", icon: HiOutlineMapPin },
   {

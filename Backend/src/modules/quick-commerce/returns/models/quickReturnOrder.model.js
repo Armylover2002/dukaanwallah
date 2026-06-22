@@ -73,6 +73,7 @@ const quickReturnOrderSchema = new mongoose.Schema(
     // ── Pickup assignment ─────────────────────────────────────────────────────
     deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodDeliveryPartner', default: null, index: true },
     assignedAt: { type: Date, default: null },
+    riderEarning: { type: Number, default: 0 },
 
     // ── Pickup confirmation ───────────────────────────────────────────────────
     pickupOtp: { type: String, default: '', select: false }, // 4-digit OTP sent to customer
