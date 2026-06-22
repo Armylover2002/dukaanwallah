@@ -38,6 +38,7 @@ router.get('/admin/returns/:id', ...adminOrEmployee, returnController.adminGetRe
 router.post('/admin/returns/:id/approve', ...adminOrEmployee, returnController.adminApproveReturn);
 router.post('/admin/returns/:id/reject', ...adminOrEmployee, returnController.adminRejectReturn);
 router.patch('/admin/returns/:id/assign-partner', ...adminOrEmployee, returnController.adminAssignPartner);
+router.post('/admin/returns/:id/retrigger-refund', ...adminOrEmployee, returnController.adminRetriggerRefund);
 
 // ─── Return User Routes ───────────────────────────────────────────────────────
 router.get('/returns', optionalAuth, returnController.userGetReturns);

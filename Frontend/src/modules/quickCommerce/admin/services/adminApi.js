@@ -452,6 +452,7 @@ export const adminApi = {
   approveReturnOrder: (id, data) => axiosInstance.post(`/quick-commerce/admin/returns/${id}/approve`, data),
   rejectReturnOrder: (id, data) => axiosInstance.post(`/quick-commerce/admin/returns/${id}/reject`, data),
   assignReturnPartner: (id, data) => axiosInstance.patch(`/quick-commerce/admin/returns/${id}/assign-partner`, data),
+  retriggerReturnRefund: (id) => axiosInstance.post(`/quick-commerce/admin/returns/${id}/retrigger-refund`),
   getAvailableReturnPartners: () => axiosInstance.get('/quick-commerce/admin/returns/available-partners'),
   getReturnSettings: () => axiosInstance.get('/quick-commerce/admin/return-settings'),
   updateReturnSettings: (data) => axiosInstance.put('/quick-commerce/admin/return-settings', data),

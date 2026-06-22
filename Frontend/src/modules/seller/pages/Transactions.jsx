@@ -17,6 +17,7 @@ import {
   HiOutlineArrowUpRight,
   HiOutlineArrowDownLeft,
   HiOutlineCalendarDays,
+  HiOutlineExclamationCircle,
 } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,13 @@ const Transactions = () => {
       icon: HiOutlineCreditCard,
       color: "text-orange-600",
       bg: "bg-orange-50",
+    },
+    {
+      label: "Adjustments / Deductions",
+      value: `₹${Math.abs(data?.balances?.totalAdjustments || 0).toLocaleString()}`,
+      icon: HiOutlineExclamationCircle,
+      color: "text-rose-600",
+      bg: "bg-rose-50",
     },
   ];
 
@@ -204,7 +212,7 @@ const Transactions = () => {
       </BlurFade>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((stat, i) => (
           <BlurFade key={i} delay={0.1 + i * 0.05}>
             <MagicCard

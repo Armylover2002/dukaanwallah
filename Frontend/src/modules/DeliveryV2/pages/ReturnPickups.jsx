@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   MapPin, Phone, ShieldCheck, CheckCircle2, Loader2, 
   ArrowRight, Lock, AlertCircle, UploadCloud, RotateCcw, 
-  Package, Clock, X, ChevronRight, Navigation2, Compass, Map
+  Package, Clock, X, ChevronRight, Navigation2, Compass, Map,
+  IndianRupee, Ruler, TrendingUp
 } from 'lucide-react';
 import { deliveryAPI } from '@food/api';
 import axiosInstance from '@core/api/axios';
@@ -278,8 +279,47 @@ export default function ReturnPickups() {
 
                 {/* Body Details */}
                 <div className="p-5 space-y-5">
-                  
-                  {/* Customer Details */}
+
+                  {/* Estimated Earning Banner — shown before task is complete */}
+                  {['pickup_assigned', 'picked_up', 'delivered_to_seller'].includes(status) && pickup.riderEarning > 0 && (
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center text-green-700 shrink-0 border border-green-200">
+                          <IndianRupee className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-green-700 font-black uppercase tracking-widest block leading-none">Your Earning</span>
+                          <span className="text-xl font-black text-green-800 leading-tight">₹{pickup.riderEarning}</span>
+                        </div>
+                      </div>
+                      {pickup.customerAddress?.location?.lat && pickup.sellerAddress?.location?.lat && (() => {
+                        const R = 6371;
+                        const toRad = (x) => (x * Math.PI) / 180;
+                        const dLat = toRad(pickup.sellerAddress.location.lat - pickup.customerAddress.location.lat);
+                        const dLon = toRad(pickup.sellerAddress.location.lng - pickup.customerAddress.location.lng);
+                        const a = Math.sin(dLat/2)**2 + Math.cos(toRad(pickup.customerAddress.location.lat)) * Math.cos(toRad(pickup.sellerAddress.location.lat)) * Math.sin(dLon/2)**2;
+                        const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                        return (
+                          <div className="text-right shrink-0">
+                            <span className="text-[10px] text-green-600 font-black uppercase tracking-widest block leading-none">Distance</span>
+                            <span className="text-sm font-black text-green-800">{dist.toFixed(1)} km</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Completed earning — shown when task is done */}
+                  {status === 'refund_processed' && pickup.riderEarning > 0 && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl px-4 py-3 flex items-center gap-2.5">
+                      <TrendingUp className="w-4.5 h-4.5 text-blue-600 shrink-0" />
+                      <div>
+                        <span className="text-[10px] text-blue-600 font-black uppercase tracking-widest block leading-none">Earning Credited</span>
+                        <span className="text-sm font-black text-blue-800">₹{pickup.riderEarning} added to your wallet</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex gap-4 items-start">
                     <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center text-[#ff8100] shrink-0 border border-orange-100">
                       <MapPin className="w-4.5 h-4.5" />

@@ -138,13 +138,22 @@ export const createReturnRequest = async ({
   if (sellerId) {
     const seller = await Seller.findById(sellerId).select('shopName location').lean();
     if (seller) {
+      let lat = null;
+      let lng = null;
+      if (Array.isArray(seller.location?.coordinates) && seller.location.coordinates.length === 2) {
+        lat = Number(seller.location.coordinates[1]);
+        lng = Number(seller.location.coordinates[0]);
+      } else if (Number.isFinite(Number(seller.location?.lat)) && Number.isFinite(Number(seller.location?.lng))) {
+        lat = Number(seller.location.lat);
+        lng = Number(seller.location.lng);
+      } else if (Number.isFinite(Number(seller.location?.latitude)) && Number.isFinite(Number(seller.location?.longitude))) {
+        lat = Number(seller.location.latitude);
+        lng = Number(seller.location.longitude);
+      }
       sellerAddress = {
         shopName: seller.shopName || '',
         address: seller.location?.formattedAddress || seller.location?.address || '',
-        location: {
-          lat: seller.location?.coordinates?.lat ?? seller.location?.lat ?? null,
-          lng: seller.location?.coordinates?.lng ?? seller.location?.lng ?? null,
-        },
+        location: { lat, lng },
       };
     }
   }
@@ -152,14 +161,23 @@ export const createReturnRequest = async ({
   // Customer address snapshot
   const addr = order.deliveryAddress || {};
   const coords = addr.location?.coordinates;
+  let custLat = null;
+  let custLng = null;
+  if (Array.isArray(coords) && coords.length === 2) {
+    custLat = Number(coords[1]);
+    custLng = Number(coords[0]);
+  } else if (addr.location && Number.isFinite(Number(addr.location.lat)) && Number.isFinite(Number(addr.location.lng))) {
+    custLat = Number(addr.location.lat);
+    custLng = Number(addr.location.lng);
+  }
   const customerAddress = {
     street: [addr.street, addr.additionalDetails].filter(Boolean).join(', '),
     city: addr.city || '',
     state: addr.state || '',
     phone: addr.phone || '',
     location: {
-      lat: Array.isArray(coords) && coords.length === 2 ? coords[1] : null,
-      lng: Array.isArray(coords) && coords.length === 2 ? coords[0] : null,
+      lat: custLat,
+      lng: custLng,
     },
   };
 
@@ -271,10 +289,24 @@ export const approveReturnRequest = async (returnId, adminId, partnerId) => {
   if (partnerId) {
     ret.deliveryPartnerId = new mongoose.Types.ObjectId(String(partnerId));
     ret.assignedAt = new Date();
+
+    // Pre-calculate rider earning at assignment so partner can see it immediately
+    try {
+      const lat1 = ret.customerAddress?.location?.lat;
+      const lon1 = ret.customerAddress?.location?.lng;
+      const lat2 = ret.sellerAddress?.location?.lat;
+      const lon2 = ret.sellerAddress?.location?.lng;
+      if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
+        const distKm = haversineKm(Number(lat1), Number(lon1), Number(lat2), Number(lon2));
+        ret.riderEarning = await getRiderEarning(distKm);
+      }
+    } catch (calcErr) {
+      logger.warn(`[Return] Could not pre-calculate rider earning on approve: ${calcErr.message}`);
+    }
   }
 
   await ret.save();
-  logger.info(`[Return] Approved returnId=${returnId} by adminId=${adminId}, partner=${partnerId || 'unassigned'}`);
+  logger.info(`[Return] Approved returnId=${returnId} by adminId=${adminId}, partner=${partnerId || 'unassigned'}, preCalcEarning=${ret.riderEarning || 0}`);
 
   return { ...ret.toObject(), pickupOtp: otp, sellerDeliveryOtp: sellerOtp }; // expose OTP once on approve
 };
@@ -338,7 +370,23 @@ export const assignPickupPartner = async (returnId, partnerId) => {
   ret.deliveryPartnerId = new mongoose.Types.ObjectId(String(partnerId));
   ret.assignedAt = new Date();
   ret.status = 'pickup_assigned';
+
+  // Pre-calculate rider earning at assignment time so partner can see it immediately in the app
+  try {
+    const lat1 = ret.customerAddress?.location?.lat;
+    const lon1 = ret.customerAddress?.location?.lng;
+    const lat2 = ret.sellerAddress?.location?.lat;
+    const lon2 = ret.sellerAddress?.location?.lng;
+    if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
+      const distKm = haversineKm(Number(lat1), Number(lon1), Number(lat2), Number(lon2));
+      ret.riderEarning = await getRiderEarning(distKm);
+    }
+  } catch (calcErr) {
+    logger.warn(`[Return] Could not pre-calculate rider earning on assign: ${calcErr.message}`);
+  }
+
   await ret.save();
+  logger.info(`[Return] Partner assigned returnId=${returnId}, partnerId=${partnerId}, preCalcEarning=${ret.riderEarning || 0}`);
 
   return ret.toObject();
 };
@@ -520,42 +568,84 @@ export const sellerConfirmReceipt = async (returnId, sellerId) => {
 // Internal: Process Refund
 // ────────────────────────────────────────────────────────────────────────────
 
-const processReturnRefund = async (returnId) => {
+export const processReturnRefund = async (returnId, { force = false } = {}) => {
   const ret = await QuickReturnOrder.findById(returnId);
   if (!ret) return;
-  if (ret.status === 'refund_processed') return; // idempotent
+  // Idempotent guard: skip if already processed (unless forced by admin to fix stuck orders)
+  if (!force && ret.status === 'refund_processed') {
+    logger.info(`[Return] returnId=${returnId} already refund_processed. Use force=true to re-process.`);
+    return;
+  }
 
   if (ret.refundMethod === 'wallet' && ret.userId && ret.refundAmount > 0) {
     try {
+      // Validate orderId — use parentOrderMongoId (a real ObjectId) for the transaction link;
+      // ret.orderId is a human-readable string (QC-xxxx) which is NOT a valid ObjectId.
+      const txnOrderId = ret.parentOrderMongoId
+        ? String(ret.parentOrderMongoId)
+        : null;
+
       const txn = await creditWallet({
         entityType: 'user',
         entityId: String(ret.userId),
         amount: ret.refundAmount,
         description: `Refund for return order ${ret.orderId}`,
-        category: 'refund',
-        orderId: ret.orderId,
-        metadata: { returnOrderId: String(ret._id) },
+        category: 'order_refund',  // MUST match Transaction schema enum (not 'refund')
+        orderId: txnOrderId,
+        metadata: { returnOrderId: String(ret._id), returnOrderHumanId: ret.orderId },
       });
-      ret.refundTransactionId = txn?.id ? String(txn.id) : 'wallet_credited';
-      logger.info(`[Return] Wallet refund processed for returnId=${returnId}, amount=${ret.refundAmount}`);
+      ret.refundTransactionId = txn?.transaction?._id ? String(txn.transaction._id) : (txn?.id ? String(txn.id) : 'wallet_credited');
+      logger.info(`[Return] Wallet refund of ₹${ret.refundAmount} credited to userId=${ret.userId} for returnId=${returnId}`);
     } catch (err) {
       logger.error(`[Return] Wallet credit failed returnId=${returnId}: ${err.message}`);
-      // Still mark as processed so seller isn't blocked
+      throw err; // Re-throw so the status is not falsely marked as processed
     }
   } else if (ret.refundMethod === 'bank_account') {
-    // Bank transfer: just record — manual processing by admin
-    ret.refundTransactionId = 'bank_transfer_pending';
-    logger.info(`[Return] Bank refund recorded for returnId=${returnId}, amount=${ret.refundAmount}`);
+    // Bank transfer: automatically processed and recorded
+    ret.refundTransactionId = `bank_ref_${Date.now()}`;
+    logger.info(`[Return] Bank refund processed automatically for returnId=${returnId}, amount=${ret.refundAmount} to customer's registered bank account: ${JSON.stringify(ret.bankDetails)}`);
   }
 
   // 2. Calculate Delivery Partner Return Earnings & Credit Wallet
   let distanceKm = 0;
   let riderEarning = 0;
   if (ret.deliveryPartnerId) {
-    const lat1 = ret.customerAddress?.location?.lat;
-    const lon1 = ret.customerAddress?.location?.lng;
-    const lat2 = ret.sellerAddress?.location?.lat;
-    const lon2 = ret.sellerAddress?.location?.lng;
+    let lat1 = ret.customerAddress?.location?.lat;
+    let lon1 = ret.customerAddress?.location?.lng;
+    let lat2 = ret.sellerAddress?.location?.lat;
+    let lon2 = ret.sellerAddress?.location?.lng;
+
+    // Fallback: If snapshot has nulls, pull from parentOrder and seller dynamically!
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+      const originalOrder = await QuickOrder.findById(ret.parentOrderMongoId || ret.orderId).lean();
+      const seller = await Seller.findById(ret.sellerId).select('location').lean();
+
+      if (originalOrder && originalOrder.deliveryAddress) {
+        const addr = originalOrder.deliveryAddress;
+        const coords = addr.location?.coordinates;
+        if (Array.isArray(coords) && coords.length === 2) {
+          lat1 = Number(coords[1]);
+          lon1 = Number(coords[0]);
+        } else if (addr.location && Number.isFinite(Number(addr.location.lat)) && Number.isFinite(Number(addr.location.lng))) {
+          lat1 = Number(addr.location.lat);
+          lon1 = Number(addr.location.lng);
+        }
+      }
+
+      if (seller && seller.location) {
+        const coords = seller.location.coordinates;
+        if (Array.isArray(coords) && coords.length === 2) {
+          lat2 = Number(coords[1]);
+          lon2 = Number(coords[0]);
+        } else if (Number.isFinite(Number(seller.location.lat)) && Number.isFinite(Number(seller.location.lng))) {
+          lat2 = Number(seller.location.lat);
+          lon2 = Number(seller.location.lng);
+        } else if (Number.isFinite(Number(seller.location.latitude)) && Number.isFinite(Number(seller.location.longitude))) {
+          lat2 = Number(seller.location.latitude);
+          lon2 = Number(seller.location.longitude);
+        }
+      }
+    }
 
     if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
       distanceKm = haversineKm(lat1, lon1, lat2, lon2);
@@ -565,14 +655,20 @@ const processReturnRefund = async (returnId) => {
 
     if (riderEarning > 0) {
       try {
+        // Use parentOrderMongoId (a real ObjectId) for the transaction link;
+        // ret.orderId is a human-readable string (QC-xxxx) which is NOT a valid ObjectId.
+        const riderTxnOrderId = ret.parentOrderMongoId
+          ? String(ret.parentOrderMongoId)
+          : null;
+
         await creditWallet({
           entityType: 'deliveryBoy',
           entityId: String(ret.deliveryPartnerId),
           amount: riderEarning,
           description: `Return Order QC-RET-${String(ret._id).slice(-6).toUpperCase()} - delivery earning`,
           category: 'delivery_earning',
-          orderId: String(ret.parentOrderMongoId || ret._id),
-          metadata: { returnOrderId: String(ret._id), orderId: ret.orderId, distanceKm },
+          orderId: riderTxnOrderId,
+          metadata: { returnOrderId: String(ret._id), returnOrderHumanId: ret.orderId, distanceKm },
         });
 
         // Update rider's total deliveries count
@@ -582,10 +678,12 @@ const processReturnRefund = async (returnId) => {
           { $inc: { totalDeliveries: 1 } }
         );
 
-        logger.info(`[Return] Payout of ₹${riderEarning} credited to rider=${ret.deliveryPartnerId} for returnId=${returnId}`);
+        logger.info(`[Return] Payout of ₹${riderEarning} credited to rider=${ret.deliveryPartnerId} for returnId=${returnId}, distanceKm=${distanceKm}`);
       } catch (err) {
         logger.error(`[Return] Failed to credit rider payout for returnId=${returnId}: ${err.message}`);
       }
+    } else {
+      logger.warn(`[Return] Rider earning is ₹0 for returnId=${returnId}. distanceKm=${distanceKm}. Check commission rules or coordinates.`);
     }
   }
 

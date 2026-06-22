@@ -11,6 +11,7 @@ import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service.js';
 import { ensureDailyPassEligibility, activateDailyPass } from '../../subscriptions/services/wallet.service.js';
+import { QuickReturnOrder } from '../../../quick-commerce/returns/models/quickReturnOrder.model.js';
 
 export const registerDeliveryPartner = async (payload, files) => {
     const {
@@ -457,12 +458,28 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
     const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
 
     // Earnings paid to rider through completed deliveries
-    const [earningsAgg, cashAgg] = await Promise.all([
+    const [earningsAgg, returnEarningsAgg, cashAgg] = await Promise.all([
         FoodOrder.aggregate([
             {
                 $match: {
                     'dispatch.deliveryPartnerId': partnerId,
                     orderStatus: 'delivered',
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarned: { $sum: { $ifNull: ['$riderEarning', 0] } }
+                }
+            }
+        ]),
+        QuickReturnOrder.aggregate([
+            {
+                $match: {
+                    deliveryPartnerId: partnerId,
+                    // A completed return: rider has done their job when status is either
+                    // 'delivered_to_seller' or 'refund_processed'
+                    status: { $in: ['delivered_to_seller', 'refund_processed'] },
                 }
             },
             {
@@ -490,7 +507,9 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
         ])
     ]);
 
-    const totalEarned = Number(earningsAgg?.[0]?.totalEarned) || 0;
+    const orderTotalEarned = Number(earningsAgg?.[0]?.totalEarned) || 0;
+    const returnTotalEarned = Number(returnEarningsAgg?.[0]?.totalEarned) || 0;
+    const totalEarned = orderTotalEarned + returnTotalEarned;
     const rawCashInHand = Number(cashAgg?.[0]?.cashInHand) || 0;
 
     // Subtract deposits already made by this partner (admin records deposit → reduces cashInHand)
@@ -519,7 +538,7 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
     const totalBonus = bonusAgg?.[0] ? Number(bonusAgg[0].total) : 0;
 
     // Keep transactions list reasonably small (UI only needs recent data for charts)
-    const [paymentTxList, bonusTxList] = await Promise.all([
+    const [paymentTxList, returnTxList, bonusTxList] = await Promise.all([
         FoodOrder.find({
             'dispatch.deliveryPartnerId': partnerId,
             orderStatus: 'delivered',
@@ -528,13 +547,22 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
             .select('orderId riderEarning payment orderStatus deliveryState createdAt')
             .limit(2000)
             .lean(),
+        QuickReturnOrder.find({
+            deliveryPartnerId: partnerId,
+            // Include both 'delivered_to_seller' and 'refund_processed' as completed states
+            status: { $in: ['delivered_to_seller', 'refund_processed'] },
+        })
+            .sort({ sellerConfirmedAt: -1, refundProcessedAt: -1, createdAt: -1 })
+            .select('riderEarning status sellerConfirmedAt refundProcessedAt createdAt _id orderId parentOrderMongoId')
+            .limit(1000)
+            .lean(),
         DeliveryBonusTransaction.find({ deliveryPartnerId: partnerId })
             .sort({ createdAt: -1 })
             .limit(1000)
             .lean(),
     ]);
 
-    const paymentTransactions = (paymentTxList || []).map((o) => {
+    const orderPaymentTransactions = (paymentTxList || []).map((o) => {
         const deliveredAt = o?.deliveryState?.deliveredAt || o?.deliveredAt || null;
         const date = deliveredAt || o?.createdAt || new Date();
         return {
@@ -550,6 +578,24 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
             description: o?.payment?.method === 'cash' ? 'COD delivery earning' : 'Online delivery earning'
         };
     });
+
+    const returnPaymentTransactions = (returnTxList || []).map((o) => {
+        const date = o?.refundProcessedAt || o?.sellerConfirmedAt || o?.createdAt || new Date();
+        return {
+            _id: o._id,
+            type: 'payment',
+            amount: Number(o.riderEarning) || 0,
+            status: 'Completed',
+            date,
+            createdAt: date,
+            orderId: `RET-${String(o._id).slice(-6).toUpperCase()}`,
+            paymentMethod: '',
+            metadata: { orderId: String(o.parentOrderMongoId || o.orderId) },
+            description: 'Return delivery earning'
+        };
+    });
+
+    const paymentTransactions = [...orderPaymentTransactions, ...returnPaymentTransactions];
 
     // Frontend weekly earnings expects bonus transactions as `earning_addon`.
     const bonusTransactions = (bonusTxList || []).map((t) => ({
@@ -620,7 +666,20 @@ export const getDeliveryPartnerEarnings = async (deliveryPartnerId, query = {}) 
         match['deliveryState.deliveredAt'] = { $gte: range.start, $lte: range.end };
     }
 
-    const [totalOrders, agg] = await Promise.all([
+    // A return order is "completed" (rider earned) when it's either delivered_to_seller OR refund_processed.
+    const returnMatch = {
+        deliveryPartnerId: partnerId,
+        status: { $in: ['delivered_to_seller', 'refund_processed'] },
+    };
+    if (range) {
+        returnMatch.$or = [
+            { sellerConfirmedAt: { $gte: range.start, $lte: range.end } },
+            { refundProcessedAt: { $gte: range.start, $lte: range.end } },
+            { createdAt: { $gte: range.start, $lte: range.end } },
+        ];
+    }
+
+    const [totalOrders, agg, totalReturnOrders, returnAgg] = await Promise.all([
         FoodOrder.countDocuments(match),
         FoodOrder.aggregate([
             { $match: match },
@@ -630,15 +689,28 @@ export const getDeliveryPartnerEarnings = async (deliveryPartnerId, query = {}) 
                     totalEarnings: { $sum: { $ifNull: ['$riderEarning', 0] } }
                 }
             }
+        ]),
+        QuickReturnOrder.countDocuments(returnMatch),
+        QuickReturnOrder.aggregate([
+            { $match: returnMatch },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: { $ifNull: ['$riderEarning', 0] } }
+                }
+            }
         ])
     ]);
 
-    const totalEarnings = Number(agg?.[0]?.totalEarnings) || 0;
+    const orderEarnings = Number(agg?.[0]?.totalEarnings) || 0;
+    const returnEarnings = Number(returnAgg?.[0]?.totalEarnings) || 0;
+    const totalEarnings = orderEarnings + returnEarnings;
+    const combinedTotalOrders = totalOrders + totalReturnOrders;
 
     // Frontend only strongly relies on totalEarnings + totalOrders.
     const summary = {
         totalEarnings,
-        totalOrders,
+        totalOrders: combinedTotalOrders,
         totalHours: 0,
         totalMinutes: 0,
         orderEarning: totalEarnings,
@@ -650,7 +722,7 @@ export const getDeliveryPartnerEarnings = async (deliveryPartnerId, query = {}) 
         summary,
         period,
         date: date.toISOString(),
-        pagination: { page, limit, total: totalOrders }
+        pagination: { page, limit, total: combinedTotalOrders }
     };
 };
 
@@ -807,11 +879,79 @@ export const getDeliveryPartnerTripHistory = async (deliveryPartnerId, query = {
         }
     }
 
+    // A completed return means the rider delivered the product back to the seller.
+    // This covers both 'delivered_to_seller' (before refund) and 'refund_processed' (after refund).
+    const RETURN_COMPLETED_STATUSES = ['delivered_to_seller', 'refund_processed'];
+
+    const returnMatch = { deliveryPartnerId: partnerId };
+    if (sf === 'completed') {
+        returnMatch.status = { $in: RETURN_COMPLETED_STATUSES };
+        returnMatch.$or = [
+            { sellerConfirmedAt: { $gte: start, $lte: end } },
+            { refundProcessedAt: { $gte: start, $lte: end } },
+        ];
+    } else if (sf === 'cancelled') {
+        returnMatch.status = { $regex: '^cancel', $options: 'i' };
+        returnMatch.createdAt = { $gte: start, $lte: end };
+    } else if (sf === 'pending') {
+        returnMatch.createdAt = { $gte: start, $lte: end };
+        returnMatch.$and = [
+            { status: { $nin: RETURN_COMPLETED_STATUSES } },
+            { status: { $not: { $regex: '^cancel', $options: 'i' } } },
+        ];
+    } else {
+        returnMatch.createdAt = { $gte: start, $lte: end };
+    }
+
+    const returnOrders = await QuickReturnOrder.find(returnMatch)
+        .sort({ sellerConfirmedAt: -1, refundProcessedAt: -1, createdAt: -1 })
+        .limit(limit)
+        .lean();
+
+    const returnTrips = returnOrders.map(ret => {
+        // Both 'delivered_to_seller' and 'refund_processed' are completed states
+        const isCompleted = ret.status === 'delivered_to_seller' || ret.status === 'refund_processed';
+        const isCancelled = ret.status.startsWith('cancel');
+        const statusStr = isCompleted ? 'Completed' : isCancelled ? 'Cancelled' : 'Pending';
+        const dateForUi = ret.refundProcessedAt || ret.sellerConfirmedAt || ret.createdAt;
+        const time = dateForUi ? new Date(dateForUi).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+
+        return {
+            id: ret._id,
+            _id: ret._id,
+            orderId: `RET-${String(ret._id).slice(-6).toUpperCase()}`,
+            status: statusStr,
+            restaurantName: 'Return Order',
+            restaurant: 'Return Order',
+            items: [],
+            orderItems: [],
+            paymentMethod: '',
+            totalAmount: 0,
+            orderTotal: 0,
+            codAmount: 0,
+            codCollectedAmount: 0,
+            deliveryEarning: Number(ret.riderEarning) || 0,
+            earningAmount: Number(ret.riderEarning) || 0,
+            amount: Number(ret.riderEarning) || 0,
+            createdAt: ret.createdAt,
+            deliveredAt: ret.refundProcessedAt || ret.sellerConfirmedAt,
+            completedAt: ret.refundProcessedAt || ret.sellerConfirmedAt,
+            date: dateForUi,
+            time
+        };
+    });
+
+    const allTrips = [...orders.map(toTripDto), ...returnTrips].sort((a, b) => {
+        const ad = a.date ? new Date(a.date).getTime() : 0;
+        const bd = b.date ? new Date(b.date).getTime() : 0;
+        return bd - ad;
+    }).slice(0, limit);
+
     return {
         period,
         date: (date || new Date()).toISOString(),
         range: { start: start.toISOString(), end: end.toISOString() },
-        trips: (orders || []).map(toTripDto)
+        trips: allTrips
     };
 };
 
@@ -864,9 +1004,57 @@ export const getDeliveryPocketDetails = async (deliveryPartnerId, query = {}) =>
         .limit(limit)
         .lean();
 
-    const trips = (orders || []).map(toTripDto);
+    const returnOrders = await QuickReturnOrder.find({
+        deliveryPartnerId: partnerId,
+        // A completed return = delivered to seller OR refund already processed
+        status: { $in: ['delivered_to_seller', 'refund_processed'] },
+        $or: [
+            { sellerConfirmedAt: { $gte: start, $lte: end } },
+            { refundProcessedAt: { $gte: start, $lte: end } },
+            { createdAt: { $gte: start, $lte: end } }
+        ]
+    })
+        .sort({ sellerConfirmedAt: -1, refundProcessedAt: -1, createdAt: -1 })
+        .limit(limit)
+        .lean();
 
-    const paymentTransactions = (orders || []).map((o) => ({
+    const orderTrips = (orders || []).map(toTripDto);
+    
+    const returnTrips = (returnOrders || []).map(ret => {
+        const dateForUi = ret.refundProcessedAt || ret.sellerConfirmedAt || ret.createdAt;
+        const time = dateForUi ? new Date(dateForUi).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+        return {
+            id: ret._id,
+            _id: ret._id,
+            orderId: `RET-${String(ret._id).slice(-6).toUpperCase()}`,
+            status: 'Completed',
+            restaurantName: 'Return Order',
+            restaurant: 'Return Order',
+            items: [],
+            orderItems: [],
+            paymentMethod: '',
+            totalAmount: 0,
+            orderTotal: 0,
+            codAmount: 0,
+            codCollectedAmount: 0,
+            deliveryEarning: Number(ret.riderEarning) || 0,
+            earningAmount: Number(ret.riderEarning) || 0,
+            amount: Number(ret.riderEarning) || 0,
+            createdAt: ret.createdAt,
+            deliveredAt: ret.refundProcessedAt || ret.sellerConfirmedAt,
+            completedAt: ret.refundProcessedAt || ret.sellerConfirmedAt,
+            date: dateForUi,
+            time
+        };
+    });
+
+    const trips = [...orderTrips, ...returnTrips].sort((a, b) => {
+        const ad = a.date ? new Date(a.date).getTime() : 0;
+        const bd = b.date ? new Date(b.date).getTime() : 0;
+        return bd - ad;
+    }).slice(0, limit);
+
+    const orderPaymentTransactions = (orders || []).map((o) => ({
         _id: o._id,
         type: 'payment',
         amount: Number(o.riderEarning) || 0,
@@ -877,6 +1065,20 @@ export const getDeliveryPocketDetails = async (deliveryPartnerId, query = {}) =>
         metadata: { orderId: o.orderId || String(o._id) },
         description: o?.restaurantId?.restaurantName ? `Order earning - ${o.restaurantId.restaurantName}` : 'Order earning'
     }));
+
+    const returnPaymentTransactions = (returnOrders || []).map((o) => ({
+        _id: o._id,
+        type: 'payment',
+        amount: Number(o.riderEarning) || 0,
+        status: 'Completed',
+        date: o.sellerConfirmedAt || o.createdAt,
+        createdAt: o.sellerConfirmedAt || o.createdAt,
+        orderId: `RET-${String(o._id).slice(-6).toUpperCase()}`,
+        metadata: { orderId: String(o.parentOrderMongoId || o.orderId) },
+        description: 'Return delivery earning'
+    }));
+
+    const paymentTransactions = [...orderPaymentTransactions, ...returnPaymentTransactions];
 
     const bonusTransactions = (bonusTxList || []).map((t) => ({
         _id: t._id,

@@ -286,3 +286,22 @@ export const sellerConfirmReceipt = async (req, res) => {
     return handleError(res, err, 'sellerConfirmReceipt');
   }
 };
+
+// ─── Admin: Re-trigger stuck refund ──────────────────────────────────────────
+
+export const adminRetriggerRefund = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid return order ID.' });
+    }
+
+    // Use force=true to bypass idempotency guard — fixes orders stuck as 'refund_processed'
+    // but without the actual wallet credit (caused by old enum bug).
+    await returnService.processReturnRefund(id, { force: true });
+    return res.json({ success: true, message: `Refund and payout re-triggered for return order ${id}.` });
+  } catch (err) {
+    return handleError(res, err, 'adminRetriggerRefund');
+  }
+};
+

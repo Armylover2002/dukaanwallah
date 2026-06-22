@@ -24,7 +24,8 @@ import {
   Building2,
   ExternalLink,
   ChevronRight,
-  Truck
+  Truck,
+  RefreshCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -87,6 +88,7 @@ const ReturnOrders = () => {
   const [partners, setPartners] = useState([]);
   const [partnersLoading, setPartnersLoading] = useState(false);
   const [submittingAction, setSubmittingAction] = useState(false);
+  const [retriggeringRefund, setRetriggeringRefund] = useState(false);
 
   // Fetch returns list
   const fetchReturns = async (targetPage = 1) => {
@@ -267,6 +269,29 @@ const ReturnOrders = () => {
       showToast('Error assigning delivery partner', 'error');
     } finally {
       setSubmittingAction(false);
+    }
+  };
+
+  // Handle Re-trigger Refund (fixes stuck orders marked as processed without actual wallet credit)
+  const handleRetriggerRefund = async () => {
+    if (!selectedReturn) return;
+    setRetriggeringRefund(true);
+    try {
+      const response = await adminApi.retriggerReturnRefund(selectedReturn._id);
+      if (response?.data?.success) {
+        showToast('Refund and payout re-triggered successfully. Check wallet transactions.', 'success');
+        // Refresh details
+        const detailRes = await adminApi.getReturnOrderById(selectedReturn._id);
+        if (detailRes?.data?.success) setSelectedReturn(detailRes.data.result);
+        fetchReturns(page);
+      } else {
+        showToast(response?.data?.message || 'Failed to re-trigger refund', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(err?.response?.data?.message || 'Error re-triggering refund', 'error');
+    } finally {
+      setRetriggeringRefund(false);
     }
   };
 
@@ -867,6 +892,28 @@ const ReturnOrders = () => {
                   className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
                 >
                   <Truck className="h-4 w-4" /> ASSIGN / CHANGE DELIVERY RIDER
+                </button>
+              </div>
+            )}
+
+            {/* Re-trigger Refund Button — for stuck orders */}
+            {['delivered_to_seller', 'refund_processed'].includes(selectedReturn.status) && (
+              <div className="p-6 border-t border-slate-100 bg-amber-50">
+                <div className="mb-3 text-xs text-amber-700 font-semibold">
+                  {selectedReturn.status === 'refund_processed' && !selectedReturn.refundTransactionId
+                    ? '⚠️ This order is marked as refunded but may not have been credited due to a previous system error.'
+                    : 'Re-trigger refund and payout if the customer or rider did not receive their credit.'}
+                </div>
+                <button
+                  onClick={handleRetriggerRefund}
+                  disabled={retriggeringRefund}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
+                >
+                  {retriggeringRefund ? (
+                    <><RefreshCcw className="h-4 w-4 animate-spin" /> Processing...</>
+                  ) : (
+                    <><RefreshCcw className="h-4 w-4" /> RE-TRIGGER REFUND &amp; PAYOUT</>
+                  )}
                 </button>
               </div>
             )}

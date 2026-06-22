@@ -2210,6 +2210,7 @@ export const getSellerEarningsController = async (req, res) => {
       totalWithdrawn,
       settledBalance,
       pendingPayouts,
+      totalAdjustments,
     };
 
     return res.json({
