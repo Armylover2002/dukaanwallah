@@ -123,6 +123,7 @@ import {
 } from "../controllers/location.controller.js";
 
 import { authMiddleware, checkPermission } from "../../../core/auth/auth.middleware.js";
+import returnRoutes from '../returns/routes/quickReturn.routes.js';
 import { requireRoles } from "../../../core/roles/role.middleware.js";
 import { verifyAccessToken } from "../../../core/auth/token.util.js";
 
@@ -468,5 +469,7 @@ router.post('/admin/coupons', ...adminOrEmployee, checkPermission('quick::core_m
 router.put('/admin/coupons/:couponId', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'edit'), updateCoupon);
 router.delete('/admin/coupons/:couponId', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'delete'), deleteCoupon);
 router.patch('/admin/coupons/:couponId/toggle-status', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'edit'), toggleCouponStatus);
+
+router.use('/', returnRoutes);
 
 export default router;

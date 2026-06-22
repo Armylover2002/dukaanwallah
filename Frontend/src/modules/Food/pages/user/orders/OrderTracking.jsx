@@ -19,7 +19,8 @@ import {
   Receipt,
   CircleSlash,
   Loader2,
-  Star
+  Star,
+  RotateCcw
 } from "lucide-react"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -42,6 +43,7 @@ import { useCompanyName } from "@food/hooks/useCompanyName"
 import { useUserNotifications } from "@food/hooks/useUserNotifications"
 import { customerApi } from "../../../../quickCommerce/user/services/customerApi"
 import DeliveryOtpDisplay from "../../../../quickCommerce/user/components/DeliveryOtpDisplay"
+import ReturnOrderModal from "../../../../quickCommerce/user/pages/ReturnOrderModal"
 import circleIcon from "@food/assets/circleicon.png"
 import { RESTAURANT_PIN_SVG, CUSTOMER_PIN_SVG, RIDER_BIKE_SVG } from "@food/constants/mapIcons"
 
@@ -586,6 +588,11 @@ export default function OrderTracking() {
   const [isUpdatingInstructions, setIsUpdatingInstructions] = useState(false);
   const [resolvedLookupId, setResolvedLookupId] = useState("");
   const [timerNow, setTimerNow] = useState(Date.now);
+  const [returnEligibility, setReturnEligibility] = useState(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnOrderDetails, setReturnOrderDetails] = useState(null);
+  const [loadingReturnDetails, setLoadingReturnDetails] = useState(false);
 
   // ── Rating state (grouped) ──────────────────────────────────────────────────
   const [ratingModal, setRatingModal] = useState({ open: false, order: null });
@@ -754,6 +761,58 @@ export default function OrderTracking() {
   const isDeliveredOrder = useMemo(() => (
     orderStatus === "delivered" || order?.status === "delivered" || Boolean(order?.deliveredAt)
   ), [orderStatus, order?.status, order?.deliveredAt]);
+
+  const fetchReturnDetails = useCallback(async () => {
+    if (!orderId) return;
+    setLoadingReturnDetails(true);
+    try {
+      const res = await customerApi.getMyReturns();
+      const items = res?.data?.result || res?.data || [];
+      const matched = items.find((r) => String(r.orderId) === String(orderId));
+      if (matched) {
+        setReturnOrderDetails(matched);
+      }
+    } catch (err) {
+      console.error("Error fetching return details:", err);
+    } finally {
+      setLoadingReturnDetails(false);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    if (isQuickOrder && isDeliveredOrder && orderId) {
+      const checkEligibility = async () => {
+        setEligibilityLoading(true);
+        try {
+          const res = await customerApi.getReturnEligibility(orderId);
+          if (res?.data) {
+            setReturnEligibility(res.data);
+            if (!res.data.eligible && res.data.returnId) {
+              fetchReturnDetails();
+            }
+          }
+        } catch (err) {
+          console.error("Error checking return eligibility:", err);
+        } finally {
+          setEligibilityLoading(false);
+        }
+      };
+      checkEligibility();
+    }
+  }, [isQuickOrder, isDeliveredOrder, orderId, fetchReturnDetails]);
+
+  useEffect(() => {
+    let interval = null;
+    const isActive = returnOrderDetails && ['pending_review', 'approved', 'pickup_assigned', 'picked_up', 'delivered_to_seller'].includes(returnOrderDetails.status);
+    if (isActive) {
+      interval = setInterval(() => {
+        fetchReturnDetails();
+      }, 15000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [returnOrderDetails, fetchReturnDetails]);
 
   const visibleDeliveryPartners = useMemo(() => (
     Array.isArray(order?.deliveryPartners) ? order.deliveryPartners.filter(Boolean) : []
@@ -1649,6 +1708,119 @@ export default function OrderTracking() {
         <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden" {...MOTION_SLIDE_UP(0.82)}>
           <SectionItem icon={Download} title="Download invoice" subtitle="Get a dynamic PDF invoice for this order" onClick={handleDownloadInvoice} />
         </motion.div>
+
+        {isQuickOrder && isDeliveredOrder && returnEligibility?.eligible && (
+          <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden mt-3" {...MOTION_SLIDE_UP(0.83)}>
+            <SectionItem
+              icon={RotateCcw}
+              title="Return Order"
+              subtitle="Request a refund for items in this order"
+              onClick={() => setShowReturnModal(true)}
+            />
+          </motion.div>
+        )}
+
+        {isQuickOrder && isDeliveredOrder && returnEligibility && !returnEligibility.eligible && returnEligibility.returnId && (
+          <motion.div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mt-3 p-5 text-left" {...MOTION_SLIDE_UP(0.83)}>
+            <div className="flex items-center gap-3 border-b border-slate-50 pb-3 mb-4">
+              <RotateCcw className="w-5 h-5 text-orange-500 shrink-0" />
+              <div>
+                <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Return Request</h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">QC-RET-{returnOrderDetails ? String(returnOrderDetails._id).slice(-6).toUpperCase() : '...'}</p>
+              </div>
+            </div>
+
+            {loadingReturnDetails && !returnOrderDetails ? (
+              <div className="flex items-center justify-center py-6 gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
+                <span className="text-xs text-gray-500 font-semibold">Loading return details...</span>
+              </div>
+            ) : returnOrderDetails ? (
+              <div className="space-y-4">
+                {/* Status indicator */}
+                <div className="flex items-start gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${
+                    returnOrderDetails.status === 'rejected' ? 'bg-red-500' :
+                    returnOrderDetails.status === 'refund_processed' ? 'bg-green-500' :
+                    'bg-orange-500 animate-pulse'
+                  }`} />
+                  <div>
+                    <p className="font-bold text-gray-900 text-xs">
+                      Status: {
+                        returnOrderDetails.status === 'pending_review' ? 'Awaiting Admin Approval' :
+                        returnOrderDetails.status === 'approved' ? 'Approved - Finding Delivery Partner' :
+                        returnOrderDetails.status === 'pickup_assigned' ? 'Rider Assigned for Pickup' :
+                        returnOrderDetails.status === 'picked_up' ? 'Package Picked Up' :
+                        returnOrderDetails.status === 'delivered_to_seller' ? 'Delivered to Store (Awaiting Refund)' :
+                        returnOrderDetails.status === 'refund_processed' ? 'Refund Completed' :
+                        returnOrderDetails.status === 'rejected' ? 'Return Rejected' :
+                        returnOrderDetails.status
+                      }
+                    </p>
+                    <p className="text-[11px] text-gray-500 font-medium mt-0.5 leading-relaxed">
+                      {
+                        returnOrderDetails.status === 'pending_review' ? 'Your return request has been submitted to Appzeto support and is being reviewed.' :
+                        returnOrderDetails.status === 'approved' ? 'Your return request is approved. We are assigning a delivery partner to collect the package.' :
+                        returnOrderDetails.status === 'pickup_assigned' ? 'A rider is on the way to collect your return items. Please keep the package ready.' :
+                        returnOrderDetails.status === 'picked_up' ? 'Rider has collected the package from you and is delivering it back to the store.' :
+                        returnOrderDetails.status === 'delivered_to_seller' ? 'Return items successfully delivered to the store. Refund will be processed shortly.' :
+                        returnOrderDetails.status === 'refund_processed' ? 'Refund has been successfully processed and credited.' :
+                        returnOrderDetails.status === 'rejected' ? `Rejected: ${returnOrderDetails.rejectionReason || 'No details provided'}` :
+                        ''
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* OTP Display Box */}
+                {(returnOrderDetails.status === 'approved' || returnOrderDetails.status === 'pickup_assigned') && returnOrderDetails.pickupOtp && !returnOrderDetails.otpVerified && (
+                  <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-4 flex flex-col items-center text-center animate-in fade-in duration-300">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2 leading-none">Share this Code with pickup agent</p>
+                    <div className="flex gap-2">
+                      {String(returnOrderDetails.pickupOtp).split('').map((char, idx) => (
+                        <span key={idx} className="w-10 h-12 bg-white rounded-xl border border-orange-100 shadow-sm flex items-center justify-center font-mono text-lg font-black text-slate-800">
+                          {char}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-orange-600 font-bold mt-2.5">
+                      Verify this OTP only when you handover the return items to the rider.
+                    </p>
+                  </div>
+                )}
+
+                {returnOrderDetails.status === 'pickup_assigned' && returnOrderDetails.otpVerified && (
+                  <div className="bg-green-50/50 border border-green-100 rounded-2xl p-3 flex gap-2.5 items-center text-xs text-green-800 animate-in fade-in duration-300">
+                    <Check className="w-4.5 h-4.5 text-green-600 shrink-0" />
+                    <span className="font-bold">OTP Verified. Items collected by Rider.</span>
+                  </div>
+                )}
+
+                {/* Items Summary */}
+                <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100/50">
+                  <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block mb-2 leading-none">Returned items</span>
+                  <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                    {returnOrderDetails.returnItems?.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs font-semibold text-gray-700">
+                        <span className="truncate pr-4">{item.name}</span>
+                        <span className="text-gray-400 shrink-0">x{item.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-slate-200/50 pt-2 flex justify-between items-center text-xs font-bold text-gray-900 mt-2.5">
+                    <span>Refund Amount:</span>
+                    <span>₹{Number(returnOrderDetails.refundAmount || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Return Requested</p>
+                <p className="text-xs text-gray-500 mt-0.5">Your return request has been submitted to admin.</p>
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Cancel Dialog */}
@@ -1833,6 +2005,18 @@ export default function OrderTracking() {
           </div>
         )}
       </AnimatePresence>
+      {showReturnModal && (
+        <ReturnOrderModal
+          orderId={orderId}
+          onClose={() => setShowReturnModal(false)}
+          onSuccess={() => {
+            setShowReturnModal(false);
+            setReturnEligibility({ eligible: false, returnId: 'submitted', message: 'Return requested' });
+            fetchReturnDetails();
+            toast.success("Return request submitted successfully!");
+          }}
+        />
+      )}
     </div>
   );
 }

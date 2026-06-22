@@ -2124,6 +2124,29 @@ export const deliveryAPI = {
         contextModule: "delivery",
       },
     ),
+  /** Return Pickups */
+  getReturnPickups: () =>
+    apiClient.get("/quick-commerce/delivery/return-pickups", {
+      contextModule: "delivery",
+    }),
+  verifyReturnOtp: (id, otp) =>
+    apiClient.post(
+      `/quick-commerce/delivery/return-pickups/${String(id)}/verify-otp`,
+      { otp },
+      { contextModule: "delivery" },
+    ),
+  confirmReturnPickup: (id, pickupProofImageUrl) =>
+    apiClient.post(
+      `/quick-commerce/delivery/return-pickups/${String(id)}/confirm-pickup`,
+      { pickupProofImageUrl },
+      { contextModule: "delivery" },
+    ),
+  deliverReturnToSeller: (id, sellerOtp) =>
+    apiClient.post(
+      `/quick-commerce/delivery/return-pickups/${String(id)}/deliver-to-seller`,
+      { sellerOtp },
+      { contextModule: "delivery" },
+    ),
   /** Registration Re-verification */
   reverify: () =>
     apiClient.post(

@@ -133,6 +133,14 @@ export const sellerApi = {
   // Lookup a product by its SKU/Product ID for auto-fill
   lookupProductBySku: (sku) =>
     call(axiosInstance.get("/seller/catalog/lookup", { params: { sku } })),
+
+  // Quick Commerce Return Orders
+  getQuickCommerceReturns: (params = {}) =>
+    call(axiosInstance.get("/quick-commerce/seller/return-orders", { params })),
+
+  confirmQuickCommerceReturnReceipt: (id) =>
+    call(axiosInstance.post(`/quick-commerce/seller/return-orders/${String(id)}/confirm-receipt`)),
 };
+
 
 export default sellerApi;

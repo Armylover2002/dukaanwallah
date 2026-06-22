@@ -64,6 +64,7 @@ import {
   Smartphone,
   Monitor,
   Briefcase,
+  RotateCcw,
 
   ChevronDown as ChevronDownIcon,
   LayoutGrid,
@@ -138,6 +139,7 @@ const iconMap = {
   Smartphone,
   Monitor,
   Briefcase,
+  RotateCcw,
 
   X,
   LayoutGrid,

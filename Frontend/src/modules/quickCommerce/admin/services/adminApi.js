@@ -445,4 +445,15 @@ export const adminApi = {
   assignQuickZoneHubs: (body) => axiosInstance.post('/quick-commerce/admin/quick-zone-hubs', body),
   getSellerCODVerifications: () => axiosInstance.get('/quick-commerce/admin/sellers/cod-verification'),
   settleSellerCODVerification: (id, body) => axiosInstance.post(`/quick-commerce/admin/sellers/cod-verification/${id}/action`, body),
+
+  // Return Orders Management
+  getReturnOrders: (params) => axiosInstance.get('/quick-commerce/admin/returns', { params }),
+  getReturnOrderById: (id) => axiosInstance.get(`/quick-commerce/admin/returns/${id}`),
+  approveReturnOrder: (id, data) => axiosInstance.post(`/quick-commerce/admin/returns/${id}/approve`, data),
+  rejectReturnOrder: (id, data) => axiosInstance.post(`/quick-commerce/admin/returns/${id}/reject`, data),
+  assignReturnPartner: (id, data) => axiosInstance.patch(`/quick-commerce/admin/returns/${id}/assign-partner`, data),
+  getAvailableReturnPartners: () => axiosInstance.get('/quick-commerce/admin/returns/available-partners'),
+  getReturnSettings: () => axiosInstance.get('/quick-commerce/admin/return-settings'),
+  updateReturnSettings: (data) => axiosInstance.put('/quick-commerce/admin/return-settings', data),
 };
+

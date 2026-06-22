@@ -133,7 +133,13 @@ export const customerApi = {
     invalidateCache("/quick-commerce/wishlist");
     return axiosInstance.post("/quick-commerce/wishlist/toggle", data, withQuickSession());
   },
+
+  // Return Orders API
+  getMyReturns: () => quickGetWithDedupe("/quick-commerce/returns", {}),
+  getReturnEligibility: (orderId) => quickGetWithDedupe(`/quick-commerce/returns/eligibility/${orderId}`, {}),
+  submitReturnRequest: (data) => axiosInstance.post("/quick-commerce/returns", data, withQuickSession()),
 };
+
 
 export const prefetchQuickHomeBootstrap = async (location = null) => {
   const hasValidLocation =

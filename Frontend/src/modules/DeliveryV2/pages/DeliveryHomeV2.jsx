@@ -19,11 +19,12 @@ import ActionSlider from '@/modules/DeliveryV2/components/ui/ActionSlider';
 const PocketV2 = React.lazy(() => import('@/modules/DeliveryV2/pages/PocketV2'));
 const HistoryV2 = React.lazy(() => import('@/modules/DeliveryV2/pages/HistoryV2'));
 const ProfileV2 = React.lazy(() => import('@/modules/DeliveryV2/pages/ProfileV2'));
+const ReturnPickups = React.lazy(() => import('@/modules/DeliveryV2/pages/ReturnPickups'));
 
 // Icons
 import { 
   Bell, HelpCircle, AlertTriangle, 
-  Wallet, History, User as UserIcon, LayoutGrid,
+  Wallet, History, User as UserIcon, LayoutGrid, RotateCcw,
   Plus, Minus, Navigation2, Target, Play, CheckCircle2, Clock, ChevronDown,
   Contact, Package, ShieldCheck, Loader2, Zap
 } from 'lucide-react';
@@ -1073,18 +1074,22 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
              </div>
            </div>
          ) : currentTab === 'pocket' ? (
-           <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center font-poppins"><div className="w-10 h-10 border-4 border-[#ff8100] border-t-transparent rounded-full animate-spin mb-4" /><p className="text-xs font-semibold text-gray-500">Loading Pocket...</p></div>}>
-             <PocketV2 />
-           </React.Suspense>
-         ) : currentTab === 'history' ? (
-           <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20 gap-3"><Loader2 className="w-8 h-8 animate-spin text-[#10B981]" /><p className="text-gray-400 text-xs font-medium">Loading History...</p></div>}>
-             <HistoryV2 />
-           </React.Suspense>
-         ) : (
-           <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /><p className="text-xs font-semibold text-gray-500">Loading Profile...</p></div>}>
-             <ProfileV2 />
-           </React.Suspense>
-         )}
+            <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center font-poppins"><div className="w-10 h-10 border-4 border-[#ff8100] border-t-transparent rounded-full animate-spin mb-4" /><p className="text-xs font-semibold text-gray-500">Loading Pocket...</p></div>}>
+              <PocketV2 />
+            </React.Suspense>
+          ) : currentTab === 'history' ? (
+            <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20 gap-3"><Loader2 className="w-8 h-8 animate-spin text-[#10B981]" /><p className="text-gray-400 text-xs font-medium">Loading History...</p></div>}>
+              <HistoryV2 />
+            </React.Suspense>
+          ) : currentTab === 'returns' ? (
+            <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20 gap-3"><Loader2 className="w-8 h-8 animate-spin text-[#ff8100]" /><p className="text-gray-400 text-xs font-medium">Loading Return Pickups...</p></div>}>
+              <ReturnPickups />
+            </React.Suspense>
+          ) : (
+            <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /><p className="text-xs font-semibold text-gray-500">Loading Profile...</p></div>}>
+              <ProfileV2 />
+            </React.Suspense>
+          )}
 
          {/* OVERLAYS (Persistent if active) */}
       </div>
@@ -1238,9 +1243,12 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       )}
 
       {/* ─── 3. BOTTOM NAV (Fixed - Compact Pro) ─── */}
-      <div className="bg-white border-t border-gray-100 px-8 py-3 pb-6 flex justify-between items-center z-[200] shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+      <div className="bg-white border-t border-gray-100 px-4 py-3 pb-6 flex justify-between items-center z-[200] shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
          <button onClick={() => navigate('/food/delivery/feed')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'feed' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
             <LayoutGrid className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Feed</span>
+         </button>
+         <button onClick={() => navigate('/food/delivery/return-pickups')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'returns' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
+            <RotateCcw className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Returns</span>
          </button>
          <button onClick={() => navigate('/food/delivery/pocket')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'pocket' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
             <Wallet className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Pocket</span>
