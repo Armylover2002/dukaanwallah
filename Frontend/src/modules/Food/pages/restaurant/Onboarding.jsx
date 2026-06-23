@@ -24,6 +24,7 @@ import { useCompanyName } from "@food/hooks/useCompanyName"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
 import { clearModuleAuth, clearAuthData } from "@food/utils/auth"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
+import MapPicker from "../../../../shared/components/MapPicker"
 import { convertBase64ToFile, isFlutterBridgeAvailable, openCamera } from "@food/utils/imageUploadUtils"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -543,27 +544,66 @@ export default function RestaurantOnboarding() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [step, setStep] = useState(1)
-  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false)
 
-  const checkLocationService = () => {
-    if (!navigator.geolocation) {
-      setShowLocationModal(true)
-      return
+  const handleMapConfirm = (locationDetails) => {
+    if (step1.zoneId && locationDetails.lat && locationDetails.lng) {
+      const selectedZone = zones.find((z) => String(z._id || z.id) === step1.zoneId)
+      if (
+        selectedZone &&
+        Array.isArray(selectedZone.coordinates) &&
+        selectedZone.coordinates.length >= 3
+      ) {
+        const isInside = isPointInPolygon(
+          Number(locationDetails.lat),
+          Number(locationDetails.lng),
+          selectedZone.coordinates,
+        )
+        if (!isInside) {
+          toast.error("Selected location is outside the selected service zone")
+          return
+        }
+      }
     }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setShowLocationModal(false)
+
+    let city = ""
+    let state = ""
+    let pincode = ""
+    let area = ""
+
+    if (locationDetails.placeDetails && locationDetails.placeDetails.address_components) {
+      const comps = locationDetails.placeDetails.address_components
+      const get = (types) => comps.find((c) => types.some((t) => c.types?.includes(t)))?.long_name || ""
+      area =
+        get(["sublocality_level_1", "sublocality", "neighborhood"]) ||
+        get(["locality"])
+      city =
+        get(["locality"]) ||
+        get(["administrative_area_level_2"])
+      state = get(["administrative_area_level_1"])
+      pincode = get(["postal_code"])
+    }
+
+    setStep1((prev) => ({
+      ...prev,
+      location: {
+        ...prev.location,
+        formattedAddress: locationDetails.address || prev.location.formattedAddress,
+        addressLine1: prev.location.addressLine1 || locationDetails.address || "",
+        area: area || prev.location.area,
+        city: city || prev.location.city,
+        state: state || prev.location.state,
+        pincode: pincode || prev.location.pincode,
+        latitude: locationDetails.lat,
+        longitude: locationDetails.lng,
       },
-      (error) => {
-        setShowLocationModal(true)
-      },
-      { enableHighAccuracy: true, timeout: 5000 }
-    )
+    }))
+    
+    if (typeof setLocationPickedFromSuggestion === 'function') {
+      setLocationPickedFromSuggestion(true);
+    }
   }
 
-  useEffect(() => {
-    checkLocationService()
-  }, [])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -956,6 +996,8 @@ export default function RestaurantOnboarding() {
             initialStep1 = {
               ...initialStep1,
               ...localData.step1,
+              ownerPhone: verifiedPhone || localData.step1.ownerPhone || initialStep1.ownerPhone,
+              primaryContactNumber: verifiedPhone || localData.step1.primaryContactNumber || initialStep1.primaryContactNumber,
               zoneId: normalizeZoneIdValue(localData.step1.zoneId) || initialStep1.zoneId,
               location: {
                 ...initialStep1.location,
@@ -1964,60 +2006,53 @@ export default function RestaurantOnboarding() {
             </p>
           </div>
           <div>
-            <Label className="text-xs text-gray-700">Search location</Label>
-            {/* <Input
-              ref={locationSearchInputRef}
-              className="mt-1 bg-white text-sm text-black! dark:text-white! placeholder:text-gray-500 dark:placeholder:text-gray-400 caret-black dark:caret-white"
-              style={{ color: "#000", WebkitTextFillColor: "#000" }}
-              placeholder="Start typing your restaurant address..."
-              onChange={(e) => {
-                // Jab user manually type kare (suggestion nahi aaya) toh
-                // typed text ko formattedAddress mein save karo fallback ke liye
-                const typed = e.target.value
-                setLocationPickedFromSuggestion(false)
-                if (typed) {
-                  setStep1((prev) => ({
-                    ...prev,
-                    location: {
-                      ...prev.location,
-                      formattedAddress: typed,
-                    }
-                  }))
-                }
-              }}
-            /> */}
-            {/* // BAAD (uncontrolled - sirf ref use karo, value/onChange mat do) */}
-            <Input
-              ref={locationSearchInputRef}
-              className="mt-1 bg-white text-sm text-black! dark:text-white! placeholder:text-gray-500 dark:placeholder:text-gray-400 caret-black dark:caret-white"
-              style={{ color: "#000", WebkitTextFillColor: "#000" }}
-              placeholder="Start typing your restaurant address..."
-              defaultValue={step1.location?.formattedAddress || ""}
-              onChange={(e) => {
-                // Sirf suggestion flag reset karo, state mat touch karo
-                if (locationPickedFromSuggestion) {
-                  setLocationPickedFromSuggestion(false)
-                }
-              }}
-            />
-
-            {/* Warning: manual entry ke baad suggestion nahi chuna */}
-            {step1.location?.formattedAddress &&
-              !locationPickedFromSuggestion &&
-              !step1.location?.latitude && (
-                <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
-                  <span>⚠️</span>
-                  <span>Please select a suggestion from the dropdown for accurate location. Manual entry may cause delivery issues.</span>
-                </p>
+            <Label className="text-xs text-gray-700">Location*</Label>
+            <div className="mt-1">
+              {step1.location?.latitude ? (
+                <div className="flex flex-col gap-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                    <span className="text-sm text-gray-800 flex-1 leading-tight">
+                      {step1.location.formattedAddress || `${step1.location.latitude}, ${step1.location.longitude}`}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full text-xs h-8 bg-white"
+                    onClick={() => setIsMapPickerOpen(true)}
+                    disabled={!isEditing}
+                  >
+                    Change Location on Map
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start text-gray-500 font-normal bg-white"
+                  onClick={() => setIsMapPickerOpen(true)}
+                  disabled={!isEditing}
+                >
+                  <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                  Select Location on Map
+                </Button>
               )}
-            {locationPickedFromSuggestion && (
+            </div>
+            {!step1.location?.latitude && (
+              <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                <span>⚠️</span>
+                <span>Map location is required to receive orders.</span>
+              </p>
+            )}
+            {step1.location?.latitude && (
               <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
                 <span>✅</span>
-                <span>Location confirmed from suggestion.</span>
+                <span>Location confirmed.</span>
               </p>
             )}
             <p className="text-[11px] text-gray-500 mt-1">
-              Select a suggestion to auto-fill area/city/state/pincode and coordinates.
+              Pin your location to auto-fill area, city, state, pincode and exact coordinates.
             </p>
           </div>
           <Input
@@ -2107,155 +2142,7 @@ export default function RestaurantOnboarding() {
     </div>
   )
 
-  // Initialize Google Places Autocomplete for Step 1 location search.
-  useEffect(() => {
-    if (step !== 1) return
 
-    let cancelled = false
-
-    const init = async () => {
-      // Wait for the ref to be attached (up to 3s for slower mobile devices)
-      for (let i = 0; i < 60; i++) {
-        if (locationSearchInputRef.current) break
-        await new Promise((r) => setTimeout(r, 50))
-      }
-      if (!locationSearchInputRef.current || cancelled) return
-
-      const loadMaps = async () => {
-        if (mapsScriptLoadedRef.current && window.google?.maps?.places?.Autocomplete) return true
-        if (window.google?.maps?.places?.Autocomplete) {
-          mapsScriptLoadedRef.current = true
-          return true
-        }
-        const apiKey = await getGoogleMapsApiKey()
-        if (!apiKey) return false
-
-        const existing = document.getElementById("restaurant-onboarding-maps-script")
-        if (existing) {
-          for (let i = 0; i < 30; i += 1) {
-            if (window.google?.maps?.places?.Autocomplete) {
-              mapsScriptLoadedRef.current = true
-              return true
-            }
-            await new Promise((r) => setTimeout(r, 100))
-          }
-          return false
-        }
-
-        await new Promise((resolve, reject) => {
-          const script = document.createElement("script")
-          script.id = "restaurant-onboarding-maps-script"
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly`
-          script.async = true
-          script.defer = true
-          script.onload = resolve
-          script.onerror = reject
-          document.head.appendChild(script)
-        })
-        mapsScriptLoadedRef.current = true
-        return !!window.google?.maps?.places?.Autocomplete
-      }
-
-      const parsePlace = (place) => {
-        const formattedAddress = place?.formatted_address || ""
-        const comps = Array.isArray(place?.address_components) ? place.address_components : []
-        const get = (types) => comps.find((c) => types.some((t) => c.types?.includes(t)))?.long_name || ""
-        const area =
-          get(["sublocality_level_1", "sublocality", "neighborhood"]) ||
-          get(["locality"])
-        const city =
-          get(["locality"]) ||
-          get(["administrative_area_level_2"])
-        const state = get(["administrative_area_level_1"])
-        const pincode = get(["postal_code"])
-        const lat = place?.geometry?.location?.lat?.()
-        const lng = place?.geometry?.location?.lng?.()
-        return {
-          formattedAddress,
-          area,
-          city,
-          state,
-          pincode,
-          latitude: Number.isFinite(lat) ? Number(lat.toFixed(6)) : "",
-          longitude: Number.isFinite(lng) ? Number(lng.toFixed(6)) : "",
-        }
-      }
-
-      const ok = await loadMaps()
-      if (!ok || cancelled || !locationSearchInputRef.current) return
-      if (placesAutocompleteRef.current) return
-
-      placesAutocompleteRef.current = new window.google.maps.places.Autocomplete(
-        locationSearchInputRef.current,
-        {
-          fields: ["formatted_address", "address_components", "geometry"],
-          componentRestrictions: { country: "in" },
-        }
-      )
-
-      placesAutocompleteRef.current.addListener("place_changed", () => {
-        const place = placesAutocompleteRef.current.getPlace()
-        const parsed = parsePlace(place)
-
-        // Immediate Geofencing Check
-        setStep1((prev) => {
-          if (prev.zoneId && parsed.latitude && parsed.longitude) {
-            // Access latest zones from state
-            const selectedZone = zones.find((z) => String(z._id || z.id) === prev.zoneId)
-            if (
-              selectedZone &&
-              Array.isArray(selectedZone.coordinates) &&
-              selectedZone.coordinates.length >= 3
-            ) {
-              const isInside = isPointInPolygon(
-                Number(parsed.latitude),
-                Number(parsed.longitude),
-                selectedZone.coordinates,
-              )
-              if (!isInside) {
-                toast.error("Selected address is outside the selected zone")
-                // Clear search input if outside
-                if (locationSearchInputRef.current) {
-                  locationSearchInputRef.current.value = ""
-                }
-                setLocationPickedFromSuggestion(false)
-                return prev
-              }
-            }
-          }
-
-          // Mark as picked from suggestion (has coordinates)
-          setLocationPickedFromSuggestion(true)
-          if (locationSearchInputRef.current) {
-            locationSearchInputRef.current.value = parsed.formattedAddress || ""
-          }
-          return {
-            ...prev,
-            location: {
-              ...prev.location,
-              formattedAddress: parsed.formattedAddress || prev.location.formattedAddress,
-              addressLine1: prev.location.addressLine1 || parsed.formattedAddress || "",
-              area: parsed.area || prev.location.area,
-              city: parsed.city || prev.location.city,
-              state: parsed.state || prev.location.state,
-              pincode: parsed.pincode || prev.location.pincode,
-              latitude: parsed.latitude !== "" ? parsed.latitude : prev.location.latitude,
-              longitude: parsed.longitude !== "" ? parsed.longitude : prev.location.longitude,
-            },
-          }
-        })
-      })
-    }
-
-    init().catch((err) => {
-      debugWarn("Failed to load Google Places for onboarding:", err)
-    })
-
-    return () => {
-      cancelled = true
-      placesAutocompleteRef.current = null
-    }
-  }, [step])
 
   // Load zones for onboarding dropdown (public endpoint).
   useEffect(() => {
@@ -3006,27 +2893,6 @@ export default function RestaurantOnboarding() {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <div className="min-h-screen bg-gray-100 flex flex-col">
-        {showLocationModal && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 text-center flex flex-col items-center animate-in zoom-in duration-200">
-              <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
-                <MapPin className="w-6 h-6 text-red-600 animate-bounce" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                Location Access Required
-              </h3>
-              <p className="text-xs text-gray-600 mb-6 leading-relaxed">
-                To proceed with the onboarding process, please enable location services on your device and grant location access.
-              </p>
-              <Button
-                onClick={checkLocationService}
-                className="w-full bg-black hover:bg-zinc-800 text-white font-medium py-2 rounded-xl transition-all duration-200"
-              >
-                Enable Location & Retry
-              </Button>
-            </div>
-          </div>
-        )}
         <header className="px-4 py-4 sm:px-6 sm:py-5 bg-white flex items-center justify-between border-b">
           <div className="flex items-center gap-3">
             <button
@@ -3109,6 +2975,28 @@ export default function RestaurantOnboarding() {
           title={sourcePicker.title}
           fileNamePrefix={sourcePicker.fileNamePrefix}
           galleryInputRef={sourcePicker.fallbackInputRef}
+        />
+
+        
+        <MapPicker
+          isOpen={isMapPickerOpen}
+          onClose={() => setIsMapPickerOpen(false)}
+          onConfirm={handleMapConfirm}
+          initialLocation={
+            step1.location?.latitude
+              ? { lat: Number(step1.location.latitude), lng: Number(step1.location.longitude) }
+              : null
+          }
+          zoneCoordinates={
+            step1.zoneId
+              ? zones.find((z) => String(z._id || z.id) === step1.zoneId)?.coordinates
+              : []
+          }
+          zoneLabel={
+            step1.zoneId
+              ? zones.find((z) => String(z._id || z.id) === step1.zoneId)?.name || "Selected Zone"
+              : ""
+          }
         />
 
         {error && (

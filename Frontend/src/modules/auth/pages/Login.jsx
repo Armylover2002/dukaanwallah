@@ -45,6 +45,8 @@ export default function UnifiedOTPFastLogin() {
   const [showNameInput, setShowNameInput] = useState(false)
   const [name, setName] = useState("")
   const [nameError, setNameError] = useState("")
+  const [mobile, setMobile] = useState("")
+  const [mobileError, setMobileError] = useState("")
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('user'))
   const [companyName, setCompanyName] = useState(() => getCompanyName())
   const location = useLocation()
@@ -80,6 +82,8 @@ export default function UnifiedOTPFastLogin() {
     setShowNameInput(false)
     setName("")
     setNameError("")
+    setMobile("")
+    setMobileError("")
   }
 
   const normalizedPhone = () => {
@@ -233,6 +237,9 @@ export default function UnifiedOTPFastLogin() {
       const needsName = data.isNewUser === true || !hasName
 
       if (needsName) {
+        if (loginType === "email" && user.phone) {
+          setMobile(String(user.phone).replace(/\D/g, "").slice(-10))
+        }
         setAuthData("user", accessToken, user, refreshToken)
         window.dispatchEvent(new Event("userAuthChanged"))
         setShowNameInput(true)
@@ -279,13 +286,28 @@ export default function UnifiedOTPFastLogin() {
       return
     }
 
+    let phonePayload = null
+    if (loginType === "email") {
+      const mobileDigits = mobile.replace(/\D/g, "")
+      if (mobileDigits.length < 10) {
+        setMobileError("Please enter a valid 10-digit mobile number")
+        return
+      }
+      phonePayload = `+91 ${mobileDigits}`
+    }
+
     if (submitting.current) return
     submitting.current = true
     setLoading(true)
     setNameError("")
+    setMobileError("")
 
     try {
-      const response = await userAPI.updateProfile({ name: trimmedName })
+      const updatePayload = { name: trimmedName }
+      if (phonePayload) {
+        updatePayload.phone = phonePayload
+      }
+      const response = await userAPI.updateProfile(updatePayload)
       const updatedUser =
         response?.data?.data?.user ||
         response?.data?.user ||
@@ -511,6 +533,38 @@ export default function UnifiedOTPFastLogin() {
                     </p>
                   )}
                 </div>
+
+                {loginType === "email" && (
+                  <div className="space-y-4">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-1 flex items-center pointer-events-none">
+                        <Phone className="w-5 h-5 text-gray-400 group-focus-within:text-primary-orange transition-colors" />
+                      </div>
+                      <div className="absolute left-8 inset-y-0 flex items-center pointer-events-none">
+                        <span className="text-sm font-bold text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-800 pr-3">+91</span>
+                      </div>
+                      <input
+                        type="tel"
+                        required
+                        value={mobile}
+                        onChange={(e) => {
+                          setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
+                          if (mobileError) setMobileError("")
+                        }}
+                        className={`block w-full pl-20 pr-4 py-3 bg-transparent text-gray-900 dark:text-white border-b-2 border-gray-100 dark:border-gray-800 focus:border-primary-orange outline-none transition-all placeholder:text-gray-300 font-bold text-lg ${mobileError ? "border-red-500" : ""}`}
+                        placeholder="Your mobile number"
+                        maxLength={10}
+                      />
+                    </div>
+                    {mobileError ? (
+                      <p className="text-xs font-semibold text-red-500 text-center">{mobileError}</p>
+                    ) : (
+                      <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+                        Please enter your mobile number.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-6">

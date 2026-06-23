@@ -191,6 +191,7 @@ const MapPicker = ({
         ...marker,
         radius,
         address: result.formatted_address,
+        placeDetails: result,
       });
       onClose();
     } catch (error) {
@@ -200,6 +201,7 @@ const MapPicker = ({
         ...marker,
         radius,
         address: address || "Custom Location",
+        placeDetails: null,
       });
       onClose();
     } finally {

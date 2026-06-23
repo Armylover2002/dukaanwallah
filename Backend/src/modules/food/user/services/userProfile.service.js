@@ -32,7 +32,11 @@ export const updateCurrentUserProfile = async (userId, body) => {
         const currentPhone = String(user.phone || '').trim();
         // OTP login is phone-based in this project; don't allow changing it from profile edit.
         if (nextPhone && nextPhone !== currentPhone) {
-            throw new ValidationError('Phone number cannot be changed');
+            if (!currentPhone) {
+                user.phone = nextPhone;
+            } else {
+                throw new ValidationError('Phone number cannot be changed');
+            }
         }
     }
 
