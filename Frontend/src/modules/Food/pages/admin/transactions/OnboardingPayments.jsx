@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { onboardingFeeAPI } from "@/services/api"
-import { Search, Receipt, ArrowUpDown, Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Receipt, ArrowUpDown, Filter, ChevronLeft, ChevronRight, Wallet, CheckCircle } from "lucide-react"
 import toast from "react-hot-toast"
 
 export default function OnboardingPayments() {
@@ -15,10 +15,26 @@ export default function OnboardingPayments() {
     total: 0,
     totalPages: 1
   })
+  const [earningsSummary, setEarningsSummary] = useState({ totalCount: 0, totalAmount: 0 })
 
   useEffect(() => {
     fetchPayments()
   }, [pagination.page, filterRole, filterStatus])
+
+  useEffect(() => {
+    fetchEarningsSummary()
+  }, [])
+
+  const fetchEarningsSummary = async () => {
+    try {
+      const res = await onboardingFeeAPI.getEarningsSummary()
+      if (res?.data?.success) {
+        setEarningsSummary(res.data.data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch earnings summary", err)
+    }
+  }
 
   const fetchPayments = async () => {
     setLoading(true)
@@ -130,6 +146,29 @@ export default function OnboardingPayments() {
                   <option value="pending">Pending</option>
                 </select>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Earnings Summary Card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 flex items-center gap-3 border-l-4 border-l-emerald-500">
+            <div className="p-3 bg-emerald-50 rounded-full text-emerald-600">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Successful Payments</p>
+              <p className="text-2xl font-black text-slate-900 mt-0.5">{earningsSummary.totalCount}</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 flex items-center gap-3 border-l-4 border-l-blue-500">
+            <div className="p-3 bg-blue-50 rounded-full text-blue-600">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Earnings</p>
+              <p className="text-2xl font-black text-slate-900 mt-0.5">₹{earningsSummary.totalAmount?.toLocaleString('en-IN')}</p>
             </div>
           </div>
         </div>

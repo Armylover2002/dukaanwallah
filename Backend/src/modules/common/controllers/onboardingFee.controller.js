@@ -182,6 +182,18 @@ export async function updateOnboardingFeeConfig(req, res, next) {
 // Admin API: Retrieve payment logs with pagination, status filters, search
 export async function getOnboardingPayments(req, res, next) {
     try {
+        // Automatically mark pending payments older than 1 hour as failed
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        await OnboardingPaymentLog.updateMany({
+            status: 'pending',
+            createdAt: { $lt: oneHourAgo }
+        }, {
+            $set: { 
+                status: 'failed', 
+                errorDetails: 'Payment timeout (User did not complete payment)' 
+            }
+        });
+
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20));
         const skip = (page - 1) * limit;
@@ -225,6 +237,29 @@ export async function getOnboardingPayments(req, res, next) {
             total,
             totalPages: Math.ceil(total / limit)
         });
+    } catch (error) {
+        next(error);
+    }
+}
+
+// Admin API: Get total successful earnings summary
+export async function getOnboardingPaymentsEarningsSummary(req, res, next) {
+    try {
+        const result = await OnboardingPaymentLog.aggregate([
+            { $match: { status: { $regex: /^success$/i } } },
+            {
+                $group: {
+                    _id: null,
+                    totalCount: { $sum: 1 },
+                    totalAmount: { $sum: '$amount' }
+                }
+            }
+        ]);
+
+        const summary = result.length > 0 ? result[0] : { totalCount: 0, totalAmount: 0 };
+        delete summary._id;
+
+        return sendResponse(res, 200, 'Onboarding earnings summary retrieved successfully', summary);
     } catch (error) {
         next(error);
     }

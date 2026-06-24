@@ -2963,5 +2963,6 @@ export const onboardingFeeAPI = {
   createOrder: (body) => apiClient.post("/common/onboarding-fees/public/create-order", body ?? {}),
   getConfig: () => apiClient.get("/common/onboarding-fees/config", { contextModule: "admin" }),
   updateConfig: (role, body) => apiClient.put(`/common/onboarding-fees/config/${role}`, body ?? {}, { contextModule: "admin" }),
-  getPayments: (params = {}) => apiClient.get("/common/onboarding-fees/payments", { params, contextModule: "admin" })
+  getPayments: (params = {}) => apiClient.get("/common/onboarding-fees/payments", { params, contextModule: "admin" }),
+  getEarningsSummary: () => apiClient.get("/common/onboarding-fees/payments/earnings-summary", { contextModule: "admin" })
 };

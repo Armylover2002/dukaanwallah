@@ -6,7 +6,8 @@ import {
     createOnboardingPaymentOrder,
     getOnboardingFeesConfig,
     updateOnboardingFeeConfig,
-    getOnboardingPayments
+    getOnboardingPayments,
+    getOnboardingPaymentsEarningsSummary
 } from '../controllers/onboardingFee.controller.js';
 
 const router = express.Router();
@@ -19,5 +20,6 @@ router.post('/public/create-order', createOnboardingPaymentOrder);
 router.get('/config', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), getOnboardingFeesConfig);
 router.put('/config/:role', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), updateOnboardingFeeConfig);
 router.get('/payments', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), getOnboardingPayments);
+router.get('/payments/earnings-summary', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), getOnboardingPaymentsEarningsSummary);
 
 export default router;
