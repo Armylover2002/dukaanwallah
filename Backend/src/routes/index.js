@@ -27,6 +27,7 @@ import subscriptionRoutes from '../modules/food/subscriptions/routes/subscriptio
 import commonSettingsRoutes from '../modules/common/routes/settings.routes.js';
 import { getGlobalSettings as getPublicSettings } from '../modules/common/controllers/settings.controller.js';
 import onboardingFeeRoutes from '../modules/common/routes/onboardingFee.routes.js';
+import whatsappRoutes from '../modules/whatsapp/routes/whatsapp.routes.js';
 
 const router = express.Router();
 
@@ -56,6 +57,7 @@ router.use('/v1/uploads', uploadRoutes);
 // Global Settings routes
 router.use('/v1/common/settings', commonSettingsRoutes);
 router.use('/v1/common/onboarding-fees', onboardingFeeRoutes);
+router.use('/v1/common/whatsapp', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), whatsappRoutes);
 
 // Backward compatibility for public settings
 router.get('/v1/food/admin/business-settings/public', getPublicSettings);

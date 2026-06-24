@@ -132,6 +132,7 @@ const ReactSite = lazy(() => import("@food/pages/admin/system/ReactSite"));
 const CleanDatabase = lazy(() => import("@food/pages/admin/system/CleanDatabase"));
 const DeletedAccounts = lazy(() => import("@food/pages/admin/system/DeletedAccounts"));
 const AddonActivation = lazy(() => import("@food/pages/admin/system/AddonActivation"));
+const WhatsAppSettings = lazy(() => import("@food/pages/admin/system/WhatsAppSettings"));
 const LandingPageManagement = lazy(() => import("@food/pages/admin/system/LandingPageManagement"));
 const DiningManagement = lazy(() => import("@food/pages/admin/system/DiningManagement"));
 const DiningList = lazy(() => import("@food/pages/admin/system/DiningList"));
@@ -381,6 +382,7 @@ export default function AdminRouter() {
             <Route path="react-site" element={<ReactSite />} />
             <Route path="clean-database" element={<CleanDatabase />} />
             <Route path="deleted-accounts" element={<DeletedAccounts />} />
+            <Route path="whatsapp-settings" element={<WhatsAppSettings />} />
             <Route path="addon-activation" element={<AddonActivation />} />
             <Route path="hero-banner-management" element={<LandingPageManagement />} />
             <Route path="dining-management" element={<DiningManagement />} />

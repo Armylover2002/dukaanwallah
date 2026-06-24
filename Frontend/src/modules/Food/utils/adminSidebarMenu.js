@@ -281,6 +281,7 @@ export const adminSidebarMenu = [
     items: [
       { type: "link", label: "Broadcast Notification", permissionKey: "broadcast", path: "/admin/food/broadcast-notification", icon: "Bell" },
       { type: "link", label: "Deleted Accounts", permissionKey: "deleted_accounts", path: "/admin/food/deleted-accounts", icon: "Trash2" },
+      { type: "link", label: "WhatsApp Settings", permissionKey: "whatsapp_settings", path: "/admin/food/whatsapp-settings", icon: "MessageCircle" },
     ],
   },
   {
