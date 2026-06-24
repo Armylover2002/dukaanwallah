@@ -454,7 +454,8 @@ export default function HomeHeader({
             />
 
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center space-x-2 z-20">
-              <button
+              {/* Mic Icon Removed per user request */}
+              {/* <button
                 type="button"
                 // onClick={handleVoiceSearch} 
                 onClick={() => navigate("/food/user/search")}
@@ -465,7 +466,7 @@ export default function HomeHeader({
                 <Mic className="h-5 w-5" strokeWidth={2} />
               </button>
 
-              <div className="h-6 w-[1px] bg-gray-300"></div>
+              <div className="h-6 w-[1px] bg-gray-300"></div> */}
 
               <div className="flex items-center space-x-1 pl-1">
                 <span className="text-[10px] font-bold text-[#2e7d32] uppercase">Veg</span>

@@ -149,42 +149,18 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
       {
         $group: {
           _id: null,
+          // Use payment.amountDue (exact COD amount collected from customer).
+          // Fall back to pricing.total only when amountDue is absent/zero.
+          // Previously used $max across many fields which incorrectly picked
+          // higher numbers like totalAmount/platformFee-inclusive totals.
           cashCollected: {
             $sum: {
-              $let: {
-                vars: {
-                  amountDue: { $ifNull: ["$payment.amountDue", 0] },
-                  payableAmount: { $ifNull: ["$payableAmount", 0] },
-                  totalAmount: { $ifNull: ["$totalAmount", 0] },
-                  amount: { $ifNull: ["$amount", 0] },
-                  total: { $ifNull: ["$total", 0] },
-                  pricingTotal: { $ifNull: ["$pricing.total", 0] },
-                  platformFee: { $ifNull: ["$pricing.platformFee", 0] },
-                },
-                in: {
-                  $max: [
-                    0,
-                    "$$amountDue",
-                    "$$payableAmount",
-                    "$$totalAmount",
-                    "$$amount",
-                    "$$total",
-                    {
-                      $add: [
-                        "$$pricingTotal",
-                        {
-                          $cond: [
-                            { $gt: ["$$platformFee", 0] },
-                            "$$platformFee",
-                            0,
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-              },
-            },
+              $cond: [
+                { $gt: [{ $ifNull: ["$payment.amountDue", 0] }, 0] },
+                "$payment.amountDue",
+                { $ifNull: ["$pricing.total", 0] }
+              ]
+            }
           },
         },
       },

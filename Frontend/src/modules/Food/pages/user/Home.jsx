@@ -416,13 +416,13 @@ export default function Home() {
               />
             </Suspense>
 
-            <Suspense fallback={null}>
+            {/* <Suspense fallback={null}>
               <SortFilterSection
                 activeFilters={state.activeFilters}
                 toggleFilter={actions.toggleFilter}
                 setIsFilterOpen={(val) => { }} // Hook handles internal apply
               />
-            </Suspense>
+            </Suspense> */}
 
             <Suspense fallback={<RestaurantGridSkeleton count={3} />}>
               <RestaurantGrid

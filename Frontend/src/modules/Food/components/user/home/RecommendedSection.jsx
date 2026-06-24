@@ -132,8 +132,10 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
               menu.sections.forEach(section => {
                 if (section.items) {
                   section.items.forEach(item => {
+                    const isVegItem = item.foodType === "Veg" || item.foodType === "veg" || item.isVeg === true || item.isVeg === "true";
                     items.push({
                       ...item,
+                      isVeg: isVegItem,
                       restaurantId: restaurant.mongoId || restaurant.id,
                       restaurant: restaurant.name,
                       restaurantData: restaurant
@@ -166,7 +168,7 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
   const displayedProducts = useMemo(() => {
     let filtered = products;
     if (vegMode) {
-      filtered = products.filter(p => p.foodType === "Veg" || p.isVeg === true || p.isVeg === "true");
+      filtered = products.filter(p => p.isVeg);
     }
     return filtered.slice(0, 6);
   }, [products, vegMode]);
@@ -253,11 +255,11 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
-                  {product.isVeg && (
+                  {/* product.isVeg && (
                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-gray-200 px-1.5 py-0.5 rounded shadow-sm flex items-center">
                       <span className="text-[8px] font-bold text-green-700">VEG</span>
                     </div>
-                  )}
+                  ) */}
                 </div>
                 <div className="p-3 flex flex-col flex-1">
                   <h4 className="font-bold text-sm text-[#1c1c1e] line-clamp-2">

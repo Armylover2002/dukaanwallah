@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, startTransition, useDeferredValue } from "react"
 import { useSearchParams, Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmark, BadgePercent, Mic, Grid2x2 } from "lucide-react"
+import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmark, BadgePercent, Mic, Grid2x2, X } from "lucide-react"
 import { Card, CardContent } from "@food/components/ui/card"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
@@ -772,7 +772,7 @@ export default function SearchResults() {
           {/* Search Bar with Back Button */}
           <div className="flex items-center gap-2 px-3 sm:px-4 md:px-6 lg:px-8 py-3 md:py-4 border-b border-gray-100 dark:border-gray-800">
             <button
-              onClick={() => navigate('/food/user')}
+              onClick={() => navigate(-1)}
               className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-gray-300" />
@@ -786,9 +786,19 @@ export default function SearchResults() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-10 h-11 rounded-lg border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-[#2a2a2a] focus:border-gray-500 dark:focus:border-gray-600 text-sm dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
               />
-              <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Mic className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              </button>
+              {searchQuery ? (
+                <button 
+                  type="button" 
+                  onClick={() => { setSearchQuery(""); setSearchParams({}); }} 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                </button>
+              ) : (
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Mic className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                </button>
+              )}
             </form>
           </div>
 
