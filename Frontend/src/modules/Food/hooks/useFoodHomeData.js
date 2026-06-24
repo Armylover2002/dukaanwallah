@@ -53,7 +53,7 @@ export const useFoodHomeData = ({
   // --- Restaurants State ---
   const [restaurantsData, setRestaurantsData] = useState(globalHomeCache.restaurants || []);
   const [loadingRestaurants, setLoadingRestaurants] = useState(!globalHomeCache.restaurants);
-  const [visibleRestaurantCount, setVisibleRestaurantCount] = useState(6);
+  const [visibleRestaurantCount, setVisibleRestaurantCount] = useState(10);
   const [isLoadingFilterResults, setIsLoadingFilterResults] = useState(false);
   
   // ... existing filter state ...
@@ -270,7 +270,7 @@ export const useFoodHomeData = ({
   );
   useEffect(() => {
     const restaurantIds = menuUnionRestaurantIdsKey.split(",").filter(Boolean);
-    const shouldFetchMenuMeta = vegMode || realCategories.length === 0;
+    const shouldFetchMenuMeta = realCategories.length === 0;
     if (!menuUnionRestaurantIdsKey || !shouldFetchMenuMeta) {
       setMenuCategories([]);
       return;
@@ -385,7 +385,7 @@ export const useFoodHomeData = ({
   }, [fetchRestaurants]);
 
   const loadMoreRestaurants = useCallback(() => {
-    setVisibleRestaurantCount(prev => Math.min(prev + 6, filteredRestaurants.length));
+    setVisibleRestaurantCount(prev => Math.min(prev + 10, filteredRestaurants.length));
   }, [filteredRestaurants.length]);
 
   return {

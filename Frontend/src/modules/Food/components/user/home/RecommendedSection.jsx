@@ -162,6 +162,15 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
     fetchProducts();
   }, [restaurantIdsKey]); // Stable string dependency — no spurious re-runs
 
+  // Must be before any early returns — React hook rules
+  const displayedProducts = useMemo(() => {
+    let filtered = products;
+    if (vegMode) {
+      filtered = products.filter(p => p.foodType === "Veg" || p.isVeg === true || p.isVeg === "true");
+    }
+    return filtered.slice(0, 6);
+  }, [products, vegMode]);
+
   // Loading Skeleton
   if (loading) {
     return (
@@ -189,14 +198,6 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
       </section>
     );
   }
-
-  const displayedProducts = useMemo(() => {
-    let filtered = products;
-    if (vegMode) {
-      filtered = products.filter(p => p.foodType === "Veg" || p.isVeg === true || p.isVeg === "true");
-    }
-    return filtered.slice(0, 6);
-  }, [products, vegMode]);
 
   if (!displayedProducts || displayedProducts.length === 0) return null;
 

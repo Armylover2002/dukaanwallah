@@ -7,6 +7,34 @@ import { Button } from "@food/components/ui/button";
 import { RestaurantGridSkeleton, LoadingSkeletonRegion } from "@food/components/ui/loading-skeletons";
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability";
 import RestaurantImageCarousel from "./RestaurantImageCarousel";
+import { diningAPI, restaurantAPI } from "@food/api";
+
+// Module-level prefetch cache — shared with RestaurantDetails via window
+const PREFETCH_CACHE_KEY = "__food_restaurant_prefetch_cache__";
+if (!window[PREFETCH_CACHE_KEY]) window[PREFETCH_CACHE_KEY] = new Map();
+export const restaurantPrefetchCache = window[PREFETCH_CACHE_KEY];
+
+const prefetchingSet = new Set(); // Track in-flight prefetches to avoid duplicate calls
+
+const prefetchRestaurant = async (slug) => {
+  if (!slug || restaurantPrefetchCache.has(slug) || prefetchingSet.has(slug)) return;
+  prefetchingSet.add(slug);
+  try {
+    const res = await diningAPI.getRestaurantBySlug(slug);
+    if (res?.data?.success && res?.data?.data) {
+      restaurantPrefetchCache.set(slug, res.data.data);
+      return;
+    }
+  } catch { /* silent */ }
+  try {
+    const res = await restaurantAPI.getRestaurantById(slug);
+    if (res?.data?.success && res?.data?.data) {
+      restaurantPrefetchCache.set(slug, res.data.data);
+    }
+  } catch { /* silent */ } finally {
+    prefetchingSet.delete(slug);
+  }
+};
 
 const FoodRestaurantCard = memo(({ 
   restaurant, 
@@ -43,7 +71,12 @@ const FoodRestaurantCard = memo(({
       }}
     >
       <div className="h-full group">
-        <Link to={`/user/restaurants/${restaurantSlug}`} className="flex h-full">
+        <Link
+          to={`/user/restaurants/${restaurantSlug}`}
+          className="flex h-full"
+          onMouseEnter={() => prefetchRestaurant(restaurantSlug)}
+          onTouchStart={() => prefetchRestaurant(restaurantSlug)}
+        >
           <Card
             className={`relative flex h-full w-full flex-col gap-0 overflow-hidden rounded-[28px] border-0 border-background bg-white py-0 shadow-sm transition-all duration-500 hover:shadow-xl dark:border-gray-800 dark:bg-[#1a1a1a] ${
               isOutOfService || !availability.isOpen ? "grayscale opacity-75" : ""
@@ -160,32 +193,9 @@ const RestaurantGrid = memo(({
   backendOrigin,
   hasMoreRestaurants,
   loadMoreRestaurants,
-  restaurantLoadMoreRef
 }) => {
-  const observer = React.useRef();
-
   // Pre-compute Date object once per tick to avoid N new Date() calls inside card renders
   const currentDate = React.useMemo(() => new Date(availabilityTick), [availabilityTick]);
-
-  React.useEffect(() => {
-    if (loadingRestaurants || !hasMoreRestaurants) return;
-
-    if (observer.current) observer.current.disconnect();
-
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        loadMoreRestaurants();
-      }
-    }, { threshold: 0.1, rootMargin: '100px' });
-
-    if (restaurantLoadMoreRef?.current) {
-      observer.current.observe(restaurantLoadMoreRef.current);
-    }
-
-    return () => {
-      if (observer.current) observer.current.disconnect();
-    };
-  }, [loadingRestaurants, hasMoreRestaurants, loadMoreRestaurants, restaurantLoadMoreRef]);
 
   return (
     <section className="content-auto space-y-0 pb-8 pt-3 sm:pt-4 md:pb-10 lg:pt-6">
@@ -235,13 +245,26 @@ const RestaurantGrid = memo(({
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-2 px-4 pt-4 sm:pt-6">
-        {hasMoreRestaurants && loadingRestaurants && (
-          <div className="flex items-center justify-center py-4">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FE5502] border-t-transparent"></div>
-          </div>
+      <div className="flex flex-col items-center gap-2 px-4 pt-4 pb-28 sm:pt-6">
+        {hasMoreRestaurants && (
+          <button
+            onClick={loadMoreRestaurants}
+            disabled={loadingRestaurants}
+            className="w-full max-w-xs rounded-2xl border-2 border-[#FE5502] bg-white py-3 text-sm font-bold text-[#FE5502] shadow-sm transition-all duration-200 hover:bg-orange-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loadingRestaurants ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#FE5502] border-t-transparent" />
+                Loading...
+              </>
+            ) : (
+              "Load More Restaurants"
+            )}
+          </button>
         )}
-        <div ref={restaurantLoadMoreRef} className="h-10 w-full" aria-hidden="true" />
+        {!hasMoreRestaurants && visibleRestaurants.length > 0 && (
+          <p className="text-xs text-gray-400 font-medium py-2">You've seen all restaurants</p>
+        )}
       </div>
     </section>
   );

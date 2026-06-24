@@ -437,7 +437,6 @@ export default function Home() {
                 backendOrigin={BACKEND_ORIGIN}
                 hasMoreRestaurants={restaurants.hasMore}
                 loadMoreRestaurants={actions.loadMoreRestaurants}
-                restaurantLoadMoreRef={restaurantLoadMoreRef}
               />
             </Suspense>
           </motion.div>

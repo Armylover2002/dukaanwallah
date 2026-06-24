@@ -207,75 +207,83 @@ function RestaurantDetailsContent() {
         let response = null
         let apiRestaurant = null
 
-        // Try dining API first (if available). If it doesn't return a valid restaurant,
-        // always fall back to restaurant API (important when diningAPI is stubbed).
-        try {
-          response = await diningAPI.getRestaurantBySlug(slug)
-          if (response?.data?.success && response?.data?.data) {
-            apiRestaurant = response.data.data
-            debugLog('? Found restaurant in dining API:', apiRestaurant)
-          } else {
-            debugLog('? Dining API returned no restaurant, falling back to restaurant API...')
-          }
-        } catch (diningError) {
-          // If dining API errors, we still fall back unless it's a hard network failure handled below.
-          if (diningError?.response?.status === 404) {
-            debugLog('? Restaurant not found in dining API, trying restaurant API...')
-          } else {
-            debugWarn('? Dining API failed, trying restaurant API...', diningError?.message)
-          }
+        // ---- PREFETCH CACHE CHECK ----
+        // If the user hovered over the card, data may already be prefetched.
+        const prefetchCache = window["__food_restaurant_prefetch_cache__"];
+        if (prefetchCache && prefetchCache.has(slug)) {
+          apiRestaurant = prefetchCache.get(slug);
+          debugLog('? Found restaurant in prefetch cache:', apiRestaurant);
         }
 
-        // Restaurant API fallback (works for both ObjectId and slug)
+        // ---- API FETCH (only if not in prefetch cache) ----
         if (!apiRestaurant) {
+          // Try dining API first
           try {
-            // First, try to get restaurant directly by slug/ID (no zoneId needed)
-            try {
-              response = await restaurantAPI.getRestaurantById(slug)
-              if (response?.data?.success && response?.data?.data) {
-                apiRestaurant = response.data.data
-                debugLog('? Found restaurant in restaurant API by slug/ID:', apiRestaurant)
-              }
-            } catch (directLookupError) {
-              // If direct lookup fails, try searching by name.
-              // Fallback without zoneId so missing live location never blocks this page.
-              debugLog('? Direct lookup failed, trying search by name...')
-
-                const searchVariants = zoneId
-                  ? [{ limit: 100, zoneId: zoneId, _ts: Date.now() }, { limit: 100, _ts: Date.now() }]
-                  : [{ limit: 100, _ts: Date.now() }]
-
-                for (const searchParams of searchVariants) {
-                  try {
-                    const searchResponse = await restaurantAPI.getRestaurants(searchParams, { noCache: true })
-                    const restaurants = searchResponse?.data?.data?.restaurants || searchResponse?.data?.data || []
-
-                    // Try to find by slug match or name match
-                    const restaurantName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-                    const matchingRestaurant = restaurants.find(r =>
-                      r.slug === slug ||
-                      r.name?.toLowerCase().replace(/\s+/g, '-') === slug.toLowerCase() ||
-                      r.name?.toLowerCase() === restaurantName.toLowerCase()
-                    )
-
-                    if (matchingRestaurant) {
-                      // Get full restaurant details by ID
-                      const fullResponse = await restaurantAPI.getRestaurantById(matchingRestaurant._id || matchingRestaurant.restaurantId)
-                      if (fullResponse.data && fullResponse.data.success && fullResponse.data.data) {
-                        apiRestaurant = fullResponse.data.data
-                        debugLog('? Found restaurant in restaurant API by name search:', apiRestaurant)
-                        break
-                      }
-                    }
-                  } catch (searchError) {
-                    debugWarn('? Search fallback failed for params:', searchParams, searchError?.message)
-                  }
-                }
+            response = await diningAPI.getRestaurantBySlug(slug)
+            if (response?.data?.success && response?.data?.data) {
+              apiRestaurant = response.data.data
+              debugLog('? Found restaurant in dining API:', apiRestaurant)
+            } else {
+              debugLog('? Dining API returned no restaurant, falling back to restaurant API...')
             }
-          } catch (restaurantError) {
-            debugError('? Restaurant not found in restaurant API either:', restaurantError)
+          } catch (diningError) {
+            if (diningError?.response?.status === 404) {
+              debugLog('? Restaurant not found in dining API, trying restaurant API...')
+            } else {
+              debugWarn('? Dining API failed, trying restaurant API...', diningError?.message)
+            }
           }
-        }
+
+          // Restaurant API fallback (works for both ObjectId and slug)
+          if (!apiRestaurant) {
+            try {
+              // First, try to get restaurant directly by slug/ID (no zoneId needed)
+              try {
+                response = await restaurantAPI.getRestaurantById(slug)
+                if (response?.data?.success && response?.data?.data) {
+                  apiRestaurant = response.data.data
+                  debugLog('? Found restaurant in restaurant API by slug/ID:', apiRestaurant)
+                }
+              } catch (directLookupError) {
+                // If direct lookup fails, try searching by name.
+                debugLog('? Direct lookup failed, trying search by name...')
+
+                  const searchVariants = zoneId
+                    ? [{ limit: 100, zoneId: zoneId, _ts: Date.now() }, { limit: 100, _ts: Date.now() }]
+                    : [{ limit: 100, _ts: Date.now() }]
+
+                  for (const searchParams of searchVariants) {
+                    try {
+                      const searchResponse = await restaurantAPI.getRestaurants(searchParams, { noCache: true })
+                      const restaurants = searchResponse?.data?.data?.restaurants || searchResponse?.data?.data || []
+
+                      // Try to find by slug match or name match
+                      const restaurantName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                      const matchingRestaurant = restaurants.find(r =>
+                        r.slug === slug ||
+                        r.name?.toLowerCase().replace(/\s+/g, '-') === slug.toLowerCase() ||
+                        r.name?.toLowerCase() === restaurantName.toLowerCase()
+                      )
+
+                      if (matchingRestaurant) {
+                        // Get full restaurant details by ID
+                        const fullResponse = await restaurantAPI.getRestaurantById(matchingRestaurant._id || matchingRestaurant.restaurantId)
+                        if (fullResponse.data && fullResponse.data.success && fullResponse.data.data) {
+                          apiRestaurant = fullResponse.data.data
+                          debugLog('? Found restaurant in restaurant API by name search:', apiRestaurant)
+                          break
+                        }
+                      }
+                    } catch (searchError) {
+                      debugWarn('? Search fallback failed for params:', searchParams, searchError?.message)
+                    }
+                  }
+              }
+            } catch (restaurantError) {
+              debugError('? Restaurant not found in restaurant API either:', restaurantError)
+            }
+          }
+        } // end prefetch cache check
 
         if (apiRestaurant) {
           debugLog('? Fetched restaurant from API:', apiRestaurant)
@@ -2063,7 +2071,7 @@ function RestaurantDetailsContent() {
       </div>
 
       {/* Main Content Card - "Same to Same" Redesign */}
-      <div className="bg-[#F8F9FA] dark:bg-[#0a0a0a] -mt-4 relative z-10 px-4 pt-0 min-h-[50vh]">
+      <div className="bg-[#F8F9FA] dark:bg-[#0a0a0a] -mt-4 relative z-10 px-4 pt-0 pb-28 min-h-[50vh]">
         <div className="max-w-7xl mx-auto space-y-4">
           {/* Info Card */}
           <div className="bg-white dark:bg-[#1a1a1a] rounded-[28px] shadow-[0_10px_40px_rgb(0,0,0,0.04)] border border-gray-100 dark:border-gray-800 p-5 space-y-4">
