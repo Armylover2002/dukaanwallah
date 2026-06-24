@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Flame, X, Bookmark, Share2 } from "lucide-react";
 import { restaurantAPI } from "@food/api";
 import { useCart } from "@food/context/CartContext";
+import toast from "react-hot-toast";
+import { useProfile } from "@food/context/ProfileContext";
 
 // Module-level cache: persists across component unmount/remount, avoids re-fetching same restaurants
 const productsCache = new Map();
@@ -100,6 +102,7 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
   const [loading, setLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { addToCart } = useCart();
+  const { vegMode } = useProfile();
 
   // Stable key derived from IDs — prevents unnecessary re-fetches when parent re-renders
   const restaurantIdsKey = useMemo(
@@ -146,7 +149,7 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
         });
 
         const results = await Promise.all(fetchPromises);
-        const allProducts = results.flat().slice(0, 6);
+        const allProducts = results.flat();
         productsCache.set(restaurantIdsKey, allProducts);
         setProducts(allProducts);
       } catch {
@@ -187,10 +190,18 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
     );
   }
 
-  if (!products || products.length === 0) return null;
+  const displayedProducts = useMemo(() => {
+    let filtered = products;
+    if (vegMode) {
+      filtered = products.filter(p => p.foodType === "Veg" || p.isVeg === true || p.isVeg === "true");
+    }
+    return filtered.slice(0, 6);
+  }, [products, vegMode]);
+
+  if (!displayedProducts || displayedProducts.length === 0) return null;
 
   const handleAddToCart = (product, quantity) => {
-    addToCart({
+    const result = addToCart({
       ...product,
       quantity,
       price: product.price,
@@ -198,7 +209,13 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
       restaurantId: product.restaurantId,
       restaurant: product.restaurant
     });
-    setSelectedProduct(null);
+    
+    if (result && !result.ok) {
+      toast.error(result.error || "Cannot add item to cart");
+    } else {
+      setSelectedProduct(null);
+      toast.success("Item added to cart");
+    }
   };
 
   return (
@@ -215,7 +232,7 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {products.map((product, index) => (
+        {displayedProducts.map((product, index) => (
             <motion.div
               key={`recommended-prod-${product._id || product.id || index}`}
               initial={{ opacity: 0, y: 12 }}

@@ -1250,6 +1250,10 @@ function RestaurantDetailsContent() {
           const result = addToCart(cartItem, sourcePosition)
           if (result?.ok === false) {
             toast.error(result.error || 'Cannot add item from different restaurant. Please clear cart first.')
+            setQuantities((prev) => ({
+              ...prev,
+              [lineItemId]: existingCartItem.quantity,
+            }))
             return
           }
           if (newQuantity > existingCartItem.quantity + 1) {
@@ -1270,6 +1274,10 @@ function RestaurantDetailsContent() {
         const result = addToCart(cartItem, sourcePosition)
         if (result?.ok === false) {
           toast.error(result.error || 'Cannot add item from different restaurant. Please clear cart first.')
+          setQuantities((prev) => ({
+            ...prev,
+            [lineItemId]: 0,
+          }))
           return
         }
         if (newQuantity > 1) {
@@ -2088,15 +2096,13 @@ function RestaurantDetailsContent() {
           {/* Middle Row: Location & Open Status */}
           <div className="flex items-center justify-between gap-4">
             <div 
-              className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer flex-1 min-w-0"
-              onClick={() => setShowLocationSheet(true)}
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 min-w-0"
             >
               <div className="flex items-center gap-2 truncate">
                 <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 <span className="truncate">
                   {restaurant?.distance || "1.2 km"} | {restaurant?.location || "Location"}
                 </span>
-                <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
               </div>
             </div>
 

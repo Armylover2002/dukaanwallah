@@ -311,10 +311,9 @@ export default function Home() {
     }
   }, [addFavorite, removeFavorite]);
 
-  // --- Render ---
   return (
-    <div className="relative min-h-screen bg-white dark:bg-[#0a0a0a] pb-16 md:pb-6 overflow-x-clip">
-      <div className="md:hidden relative overflow-x-clip z-[50]">
+    <div className="relative min-h-screen bg-white dark:bg-[#0a0a0a] pb-16 md:pb-6">
+      <div className="md:hidden sticky top-0 z-[60]">
         {!state.isBootstrapped ? (
           <div className="px-4 pt-6 pb-4">
             <div className="h-10 w-48 bg-slate-100 animate-pulse rounded-xl mb-6" />
@@ -334,7 +333,20 @@ export default function Home() {
             onVegModeChange={handleVegModeChange}
             headerVideoUrl={landing.videoUrl}
             quickThemeColor={quickThemeColor}
-            bannerComponent={
+          />
+        )}
+      </div>
+
+      <div className="overflow-x-clip">
+        {/* Mobile Banner Carousel Card (Moved out of HomeHeader so it scrolls normally) */}
+        {activeTab === "food" && state.isBootstrapped && (
+          <div className="md:hidden relative z-10 w-full px-4 py-2 mt-0">
+            <div
+              className="rounded-2xl overflow-hidden shadow-sm relative"
+              style={{
+                background: vegMode ? "linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)" : "linear-gradient(135deg, #ff6b00 0%, #ff8c33 100%)"
+              }}
+            >
               <Suspense fallback={<HeroBannerSkeleton className="h-[130px] w-full" />}>
                 <div className="h-[130px] sm:h-36 md:h-44 mt-3 relative z-10 w-full">
                   <BannerSection
@@ -348,12 +360,11 @@ export default function Home() {
                   />
                 </div>
               </Suspense>
-            }
-          />
+            </div>
+          </div>
         )}
-      </div>
 
-      <AnimatePresence initial={false} mode="wait">
+        <AnimatePresence initial={false} mode="wait">
         {activeTab === "food" ? (
           <motion.div
             key="food-content"
@@ -503,6 +514,7 @@ export default function Home() {
 
       {hasFoodCartItems && <Suspense fallback={null}><MiniCart /></Suspense>}
       <Suspense fallback={null}><OrderTrackingCard hasBottomNav /></Suspense>
+      </div>
     </div>
   );
 }

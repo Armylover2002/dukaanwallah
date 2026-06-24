@@ -268,13 +268,12 @@ export default function HomeHeader({
 
   return (
     <motion.div
-      className={cn("relative transition-all duration-400 pb-0 border-none outline-none z-50", isFood ? "bg-white" : "bg-transparent")}
-      style={!isFood ? { backgroundColor: theme.accent } : undefined}
+      className={cn("relative transition-all duration-400 pb-0 border-none outline-none z-50 backdrop-blur-xl shadow-sm", isFood ? "bg-white/80 dark:bg-[#0a0a0a]/80" : "")}
+      style={!isFood ? { backgroundColor: withAlpha(theme.accent, 0.85) } : undefined}
     >
       {/* 1. Sticky Main Header Top Section */}
       <header
-        className={cn("sticky top-0 z-50 px-4 py-3 transition-colors duration-300 outline-none", isFood ? "bg-white/85 backdrop-blur-md shadow-sm border-b border-gray-100" : "border-b-0 border-none")}
-        style={!isFood ? { backgroundColor: "transparent" } : undefined}
+        className="px-4 py-3 transition-colors duration-300 outline-none bg-transparent"
       >
         <div className="flex items-center justify-between">
 
@@ -451,7 +450,7 @@ export default function HomeHeader({
               onClick={() => navigate("/food/user/search")}
               type="text"
               placeholder={placeholders?.[placeholderIndex] || "Search for food, groceries..."}
-              className="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-[8px] text-sm bg-gray-50 focus:ring-brand-orange focus:border-brand-orange text-gray-900 placeholder:text-gray-400 font-normal cursor-pointer"
+              className="block w-full pl-10 pr-12 py-3 border border-gray-200/50 rounded-[8px] text-sm bg-white/50 backdrop-blur-md focus:ring-brand-orange focus:border-brand-orange text-gray-900 placeholder:text-gray-500 font-medium cursor-pointer shadow-sm"
             />
 
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center space-x-2 z-20">
