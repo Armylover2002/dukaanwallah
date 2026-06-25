@@ -2024,7 +2024,7 @@ export default function OrderTracking() {
       )}
       {/* Safety Modal */}
       <Dialog open={showSafetyModal} onOpenChange={setShowSafetyModal}>
-        <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white z-[200]">
+        <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white z-[700] duration-100 data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100 data-[state=open]:slide-in-from-top-1/2 data-[state=open]:slide-in-from-left-1/2 data-[state=closed]:slide-out-to-top-1/2 data-[state=closed]:slide-out-to-left-1/2">
           <DialogHeader className="mb-4 border-b border-gray-100 pb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">

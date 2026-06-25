@@ -80,11 +80,10 @@ const OrderTransactionsPage = () => {
                                     >
                                         <div className="flex items-center gap-4">
                                             <div
-                                                className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                                                    isRefund
-                                                        ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                                                }`}
+                                                className={`h-10 w-10 rounded-lg flex items-center justify-center ${isRefund
+                                                    ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                                    }`}
                                             >
                                                 {isRefund ? (
                                                     <ArrowUpRight size={19} />
@@ -112,11 +111,10 @@ const OrderTransactionsPage = () => {
                                             </div>
                                         </div>
                                         <div
-                                            className={`text-sm font-semibold ${
-                                                isRefund ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'
-                                            }`}
+                                            className={`text-sm font-semibold ${isRefund ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'
+                                                }`}
                                         >
-                                            {isRefund ? '+' : '-'}₹{amount}
+                                            ₹{amount}
                                         </div>
                                     </div>
                                 );

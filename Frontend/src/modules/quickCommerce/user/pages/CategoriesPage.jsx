@@ -63,21 +63,11 @@ const CategoriesHeader = () => {
     return (
         <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm px-4 pt-4 pb-4">
             <div className="max-w-[1400px] mx-auto">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex flex-col cursor-pointer" onClick={handleLocationClick}>
-                        <div className="flex items-center gap-1.5 mb-1">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Delivery in</span>
-                            <span className="bg-[#FE5502] text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">App</span>
-                        </div>
-                        <div className="flex items-center gap-1 group">
-                            <span className="text-[22px] md:text-[26px] font-black text-slate-900 leading-none">
-                                {currentLocation?.time || "12-15 mins"}
-                            </span>
-                            <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-gray-800 transition-colors" />
-                        </div>
-                        <span className="text-[11px] text-gray-500 truncate max-w-[200px] mt-1">
-                            {isFetchingLocation ? "Detecting location..." : (currentLocation?.name || "Select Location")}
-                        </span>
+                <div className="flex justify-between items-center mb-3">
+                    <div className="flex flex-col">
+                        <h1 className="text-xl md:text-2xl font-semibold text-slate-800 tracking-tight uppercase">
+                            My Category
+                        </h1>
                     </div>
                 </div>
                 
@@ -170,7 +160,7 @@ const CategoriesPage = () => {
     return (
         <div className="min-h-screen bg-white transition-colors duration-500">
             <CategoriesHeader />
-            <div className="max-w-[1400px] mx-auto px-4 pt-[180px] md:pt-[200px] pb-20">
+            <div className="max-w-[1400px] mx-auto px-4 pt-[136px] md:pt-[148px] pb-20">
                 <AnimatePresence mode="wait">
                     {isLoading ? (
                         <motion.div

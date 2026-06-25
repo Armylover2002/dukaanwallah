@@ -807,25 +807,6 @@ const CartPage = () => {
           </div>
         </section>
 
-        {/* Checkout Card */}
-        <Link to={checkoutPath} state={{ selectedPayment }} className="block mt-4">
-          <section className="rounded-[24px] bg-white p-5 shadow-sm transition-all hover:shadow-md active:scale-[0.99]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Checkout</p>
-                <h2 className="mt-1 text-lg font-bold text-slate-900">
-                  Address, payment and seller confirmation
-                </h2>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Review delivery details on the next screen and place the order to push it into the matched seller dashboard.
-                </p>
-              </div>
-              <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0c831f]/10 text-[#0c831f]">
-                <ChevronRight size={18} />
-              </div>
-            </div>
-          </section>
-        </Link>
       </div>
 
       {/* Sticky Bottom Bar */}
