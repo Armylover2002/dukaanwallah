@@ -2934,7 +2934,15 @@ export default function Cart() {
             {/* Pay Using - Slim Pro UI */}
             <div
               className="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#222222] rounded-xl border border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#282828] active:scale-[0.98] transition-all duration-200 shadow-sm"
-              onClick={() => setShowPaymentSheet(true)}
+              onClick={() => {
+                const isAuthenticated = !!localStorage.getItem('accessToken') || !!localStorage.getItem('user_accessToken');
+                if (!isAuthenticated) {
+                  toast.error("Please login to proceed to checkout");
+                  navigate('/user/auth/login?redirect=/cart');
+                } else {
+                  setShowPaymentSheet(true);
+                }
+              }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-orange-100/80 dark:bg-orange-900/40 flex items-center justify-center flex-shrink-0">

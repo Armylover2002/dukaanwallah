@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Lottie from 'lottie-react';
 import {
   ArrowLeft,
@@ -24,6 +24,7 @@ import { getQuickCategoriesPath, getQuickCheckoutPath } from '../utils/routes';
 import { resolveQuickImageUrl } from '../utils/image';
 import { useLocation as useAppLocation } from '../context/LocationContext';
 import LocationDrawer from '../components/shared/LocationDrawer';
+import { useAuth } from '@core/context/AuthContext';
 
 // ─── Pure helpers (outside component — no closure allocation on each render) ──
 
@@ -202,6 +203,8 @@ CartItem.displayName = 'CartItem';
 
 const CartPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const { cart, removeFromCart, updateQuantity, cartTotal, clearCart, loading } = useCart();
   const { showToast } = useToast();
   const { settings } = useSettings();
@@ -820,16 +823,29 @@ const CartPage = () => {
             </p>
           </div>
 
-          <Link
-            to={checkoutPath}
-            state={{ selectedPayment }}
-            className="block w-full flex-1 sm:min-w-[220px]"
-          >
-            <Button className="h-12 w-full rounded-2xl bg-[#0c831f] px-4 text-sm text-white whitespace-normal sm:whitespace-nowrap hover:bg-[#0b721b]">
-              <ShoppingBag size={18} className="mr-2" />
+          {!isAuthenticated ? (
+            <Button
+              onClick={() => {
+                showToast("Please login to proceed to checkout.", "error");
+                navigate("/user/auth/login", { state: { from: location } });
+              }}
+              className="h-12 w-full rounded-2xl bg-[#0c831f] px-4 text-sm text-white whitespace-normal sm:whitespace-nowrap hover:bg-[#0b721b] block w-full flex-1 sm:min-w-[220px]"
+            >
+              <ShoppingBag size={18} className="mr-2 inline" />
               Proceed to Checkout
             </Button>
-          </Link>
+          ) : (
+            <Link
+              to={checkoutPath}
+              state={{ selectedPayment }}
+              className="block w-full flex-1 sm:min-w-[220px]"
+            >
+              <Button className="h-12 w-full rounded-2xl bg-[#0c831f] px-4 text-sm text-white whitespace-normal sm:whitespace-nowrap hover:bg-[#0b721b]">
+                <ShoppingBag size={18} className="mr-2" />
+                Proceed to Checkout
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
