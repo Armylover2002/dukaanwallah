@@ -10,8 +10,9 @@ import {
 import { Search, MapPin, Navigation, Loader2 } from "lucide-react";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
+import { toast } from "sonner";
 
-const libraries = ["places"];
+const libraries = ["places", "geometry"];
 const mapContainerStyle = {
   width: "100%",
   height: "400px",
@@ -137,7 +138,7 @@ const MapPicker = ({
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported on this device.");
+      toast.error("Geolocation is not supported on this device.");
       return;
     }
 
@@ -160,7 +161,7 @@ const MapPicker = ({
       },
       () => {
         setIsFetchingLocation(false);
-        alert("Unable to retrieve your current location. Please allow location access and try again.");
+        toast.error("Unable to retrieve your current location. Please allow location access and try again.");
       },
       {
         enableHighAccuracy: true,
@@ -172,8 +173,20 @@ const MapPicker = ({
 
   const handleConfirm = async () => {
     if (!marker) {
-      alert("Please select a location on the map.");
+      toast.error("Please select a location on the map.");
       return;
+    }
+
+    if (zonePath.length >= 3 && window.google && window.google.maps.geometry) {
+      const point = new window.google.maps.LatLng(marker.lat, marker.lng);
+      const polygon = new window.google.maps.Polygon({ paths: zonePath });
+      
+      const isInside = window.google.maps.geometry.poly.containsLocation(point, polygon);
+      
+      if (!isInside) {
+        toast.error(`The selected location is outside the allowed service zone${zoneLabel ? ` (${zoneLabel})` : ''}. Please select a location within the highlighted area.`);
+        return;
+      }
     }
 
     setIsGeocoding(true);

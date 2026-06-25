@@ -893,6 +893,9 @@ export default function SellerOnboarding() {
                           ...prev,
                           zoneSource: zoneSource || "",
                           zoneId: zoneId || "",
+                          lat: "",
+                          lng: "",
+                          address: "",
                         }));
                       }}
                       disabled={zonesLoading}
