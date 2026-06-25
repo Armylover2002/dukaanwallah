@@ -105,36 +105,41 @@ const normalizeCartData = (rawCart) => {
         item.cartLineId ||
         buildCartLineId(baseItemId, variantId)
 
-      return {
-        ...item,
-        id: lineItemId,
-        lineItemId,
-        itemId: String(baseItemId),
-        productId: String(baseItemId),
-        variantId: variantId ? String(variantId) : "",
-        variantName,
-        variantPrice: Number.isFinite(parsedVariantPrice) ? parsedVariantPrice : 0,
-        name: item.name || item.product?.name || "Item",
-        orderType,
-        type: orderType,
-        sourceId,
-        sourceName:
-          item.sourceName ||
-          (orderType === "quick"
-            ? item.quickStoreName || item.storeName || item.sellerName || "Quick Commerce"
-            : normalizedRestaurantName),
-        quantity:
-          Number.isFinite(parsedQuantity) && parsedQuantity > 0
-            ? Math.floor(parsedQuantity)
-            : 1,
-        price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
-        otherPrice: Number(item.otherPrice) || 0,
-        restaurant: normalizedRestaurantName,
-        restaurantId: normalizedRestaurantId,
-        image: normalizedImage,
-        imageUrl: normalizedImage,
-      }
-    })
+        const typeStr = String(item.foodType || "").toLowerCase().trim()
+        const isExplicitlyNonVeg = typeStr === "non-veg" || typeStr === "nonveg" || item.isVeg === false || item.isVeg === "false"
+
+        return {
+          ...item,
+          id: lineItemId,
+          lineItemId,
+          itemId: String(baseItemId),
+          productId: String(baseItemId),
+          variantId: variantId ? String(variantId) : "",
+          variantName,
+          variantPrice: Number.isFinite(parsedVariantPrice) ? parsedVariantPrice : 0,
+          name: item.name || item.product?.name || "Item",
+          orderType,
+          type: orderType,
+          sourceId,
+          sourceName:
+            item.sourceName ||
+            (orderType === "quick"
+              ? item.quickStoreName || item.storeName || item.sellerName || "Quick Commerce"
+              : normalizedRestaurantName),
+          quantity:
+            Number.isFinite(parsedQuantity) && parsedQuantity > 0
+              ? Math.floor(parsedQuantity)
+              : 1,
+          price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
+          otherPrice: Number(item.otherPrice) || 0,
+          restaurant: normalizedRestaurantName,
+          restaurantId: normalizedRestaurantId,
+          image: normalizedImage,
+          imageUrl: normalizedImage,
+          isVeg: !isExplicitlyNonVeg,
+          foodType: isExplicitlyNonVeg ? 'Non-Veg' : 'Veg',
+        }
+      })
 }
 
 const resolveCartEntryId = (items, itemId, variantId = "") => {

@@ -1124,11 +1124,7 @@ function RestaurantDetailsContent() {
   // Helper function to update item quantity in both local state and cart
   const updateItemQuantity = (item, newQuantity, event = null, preferredVariant = null) => {
     // Check authentication
-    if (!isModuleAuthenticated('user')) {
-      toast.error("Please login to add items to cart")
-      navigate('/user/auth/login', { state: { from: location.pathname } })
-      return
-    }
+    // Guest users are allowed to add items to the cart.
 
     // CRITICAL: Check if user is in service zone or restaurant is available
     if (isOutOfService) {
@@ -1196,7 +1192,8 @@ function RestaurantDetailsContent() {
       restaurantId: validRestaurantId, // Use validated restaurantId
       description: item.description,
       originalPrice: item.originalPrice,
-      isVeg: item.isVeg !== false, // Add isVeg property
+      foodType: item.foodType, // Persist foodType for cart normalization
+      isVeg: item.isVeg, // Pass existing isVeg flag if any
       preparationTime: item.preparationTime // Add preparationTime property
     }
 

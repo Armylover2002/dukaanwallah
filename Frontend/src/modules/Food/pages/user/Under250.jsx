@@ -608,11 +608,7 @@ export default function Under250() {
   // Helper function to update item quantity in bothlocal state and cart
   const updateItemQuantity = (item, newQuantity, event = null, restaurantName = null) => {
     // Check authentication
-    if (!isModuleAuthenticated('user')) {
-      toast.error("Please login to add items to cart")
-      navigate('/user/auth/login', { state: { from: location.pathname } })
-      return
-    }
+    // Guest users are allowed to add items to the cart.
 
     // CRITICAL: Check if user is in service zone
     if (isOutOfService) {
@@ -639,6 +635,8 @@ export default function Under250() {
       restaurant: restaurant,
       description: item.description || "",
       originalPrice: item.originalPrice || item.price,
+      foodType: item.foodType, // Persist foodType for cart normalization
+      isVeg: item.isVeg, // Pass existing isVeg flag if any
     }
 
     // Get source position for animation from event target

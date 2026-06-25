@@ -16,11 +16,7 @@ export default function AddToCartButton({ item, className = "" }) {
     e.preventDefault()
     e.stopPropagation()
 
-    if (!isModuleAuthenticated('user')) {
-      toast.error("Please login to add items to cart")
-      navigate('/user/auth/login', { state: { from: location.pathname } })
-      return
-    }
+    // Guest users are allowed to add items to the cart.
 
     addToCart(item)
   }

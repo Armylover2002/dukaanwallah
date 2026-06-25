@@ -2509,7 +2509,8 @@ export default function Cart() {
                                   price: addon.price,
                                   image: addon.image || (addon.images && addon.images[0]) || "",
                                   description: addon.description || "",
-                                  isVeg: true,
+                                  foodType: addon.foodType, // Persist foodType for cart normalization
+                                  isVeg: addon.isVeg, // Pass existing isVeg flag if any
                                   restaurant: cartRestaurantName,
                                   restaurantId: cartRestaurantId
                                 });
