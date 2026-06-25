@@ -270,6 +270,32 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
   const shouldShowHeroFallback = !isInitialPageLoading && !hasHeroBanners;
 
   // ── Mobile banner autoplay ─────────────────────────────────────────────────
+  const fallbackTouchStart = useRef(null);
+  const fallbackTouchEnd = useRef(null);
+
+  const handleFallbackTouchStart = useCallback((e) => {
+    fallbackTouchStart.current = e.targetTouches[0].clientX;
+  }, []);
+
+  const handleFallbackTouchMove = useCallback((e) => {
+    fallbackTouchEnd.current = e.targetTouches[0].clientX;
+  }, []);
+
+  const handleFallbackTouchEnd = useCallback(() => {
+    if (!fallbackTouchStart.current || !fallbackTouchEnd.current) return;
+    const distance = fallbackTouchStart.current - fallbackTouchEnd.current;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      setMobileBannerIndex((prev) => (prev >= 2 ? 0 : prev + 1));
+    } else if (isRightSwipe) {
+      setMobileBannerIndex((prev) => (prev <= 0 ? 1 : prev - 1));
+    }
+    fallbackTouchStart.current = null;
+    fallbackTouchEnd.current = null;
+  }, []);
+
   useEffect(() => {
     const id = setInterval(() => {
       startTransition(() => {
@@ -277,7 +303,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
       });
     }, 3500);
     return () => clearInterval(id);
-  }, []);
+  }, [mobileBannerIndex]);
 
   useEffect(() => {
     if (!isInstantBannerJump) return;
@@ -431,9 +457,12 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
               ) : shouldShowHeroFallback ? (
                 <>
                 <div
-                  className={cn('flex', !isInstantBannerJump && 'transition-transform duration-500 ease-out')}
+                  className={cn('flex touch-pan-y', !isInstantBannerJump && 'transition-transform duration-500 ease-out')}
                   style={{ transform: `translateX(-${mobileBannerIndex * 100}%)` }}
                   onTransitionEnd={handleBannerTransitionEnd}
+                  onTouchStart={handleFallbackTouchStart}
+                  onTouchMove={handleFallbackTouchMove}
+                  onTouchEnd={handleFallbackTouchEnd}
                 >
                   {/* Slide 1 */}
                   <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">

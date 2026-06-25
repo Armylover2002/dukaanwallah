@@ -62,12 +62,38 @@ const ExperienceBannerCarousel = ({
   const stepPercent = 100 / loopedItems.length;
   const sectionTitle = section?.title;
 
+  const touchStart = React.useRef(null);
+  const touchEnd = React.useRef(null);
+
+  const handleTouchStart = useCallback((e) => {
+    touchStart.current = e.targetTouches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isMultiple || !touchStart.current || !touchEnd.current) return;
+    const distance = touchStart.current - touchEnd.current;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      setActiveIndex((prev) => prev + 1);
+    } else if (isRightSwipe) {
+      setActiveIndex((prev) => (prev <= 0 ? items.length - 1 : prev - 1));
+    }
+    touchStart.current = null;
+    touchEnd.current = null;
+  }, [isMultiple, items.length]);
+
   // Auto-advance
   useEffect(() => {
     if (!isMultiple) return;
     const id = setInterval(() => setActiveIndex((prev) => prev + 1), 4000);
     return () => clearInterval(id);
-  }, [isMultiple]);
+  }, [isMultiple, activeIndex]);
 
   // Loop reset trigger
   useEffect(() => {
@@ -97,9 +123,12 @@ const ExperienceBannerCarousel = ({
   return (
     <div
       className={cn(
-        "overflow-hidden",
+        "overflow-hidden touch-pan-y",
         fullWidth && "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]"
       )}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div
         className={cn(
