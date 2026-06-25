@@ -365,58 +365,58 @@ export default function Home() {
         )}
 
         <AnimatePresence initial={false} mode="wait">
-        {activeTab === "food" ? (
-          <motion.div
-            key="food-content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            className="bg-white dark:bg-[#0a0a0a]"
-          >
-            <Suspense fallback={<CategoryChipRowSkeleton className="py-1" />}>
-              <CategoryRail
-                displayCategories={categories.display}
-                showCategorySkeleton={categories.loading}
-                navigate={navigate}
-                setShowAllCategoriesModal={setShowAllCategoriesModal}
-                backendOrigin={BACKEND_ORIGIN}
-              />
-            </Suspense>
+          {activeTab === "food" ? (
+            <motion.div
+              key="food-content"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="bg-white dark:bg-[#0a0a0a]"
+            >
+              <Suspense fallback={<CategoryChipRowSkeleton className="py-1" />}>
+                <CategoryRail
+                  displayCategories={categories.display}
+                  showCategorySkeleton={categories.loading}
+                  navigate={navigate}
+                  setShowAllCategoriesModal={setShowAllCategoriesModal}
+                  backendOrigin={BACKEND_ORIGIN}
+                />
+              </Suspense>
 
-            <Suspense fallback={null}>
-              <RecommendedSection recommendedForYouRestaurants={meta.recommended} />
-            </Suspense>
+              <Suspense fallback={null}>
+                <RecommendedSection recommendedForYouRestaurants={meta.recommended} />
+              </Suspense>
 
 
-            <Suspense fallback={<HeroBannerSkeleton className="h-full w-full px-4 mt-3" />}>
-              <section className="content-auto px-4 py-4 sm:py-6 lg:py-8">
-                <div className="overflow-hidden rounded-2xl h-48 sm:h-64 md:h-72 lg:h-[350px] shadow-lg border border-gray-100">
-                  <BannerSection
-                    showBannerSkeleton={banners.loading}
-                    heroBannerImages={banners.images}
-                    heroBannersData={banners.data}
-                    currentBannerIndex={currentBannerIndex}
-                    setCurrentBannerIndex={setCurrentBannerIndex}
-                    heroShellRef={heroShellRef}
-                    navigate={navigate}
-                    backendOrigin={BACKEND_ORIGIN}
-                    hideOverlay={true}
-                  />
-                </div>
-              </section>
-            </Suspense>
+              <Suspense fallback={<HeroBannerSkeleton className="h-full w-full px-4 mt-3" />}>
+                <section className="content-auto px-4 py-4 sm:py-6 lg:py-8">
+                  <div className="overflow-hidden rounded-2xl h-48 sm:h-64 md:h-72 lg:h-[350px] shadow-lg border border-gray-100">
+                    <BannerSection
+                      showBannerSkeleton={banners.loading}
+                      heroBannerImages={banners.images}
+                      heroBannersData={banners.data}
+                      currentBannerIndex={currentBannerIndex}
+                      setCurrentBannerIndex={setCurrentBannerIndex}
+                      heroShellRef={heroShellRef}
+                      navigate={navigate}
+                      backendOrigin={BACKEND_ORIGIN}
+                      hideOverlay={true}
+                    />
+                  </div>
+                </section>
+              </Suspense>
 
-            <Suspense fallback={null}>
-              <ExploreMoreSection
-                exploreMoreHeading={landing.heading}
-                showExploreSkeleton={landing.loading}
-                finalExploreItems={landing.exploreMore}
-                backendOrigin={BACKEND_ORIGIN}
-              />
-            </Suspense>
+              <Suspense fallback={null}>
+                <ExploreMoreSection
+                  exploreMoreHeading={landing.heading}
+                  showExploreSkeleton={landing.loading}
+                  finalExploreItems={landing.exploreMore}
+                  backendOrigin={BACKEND_ORIGIN}
+                />
+              </Suspense>
 
-            {/* <Suspense fallback={null}>
+              {/* <Suspense fallback={null}>
               <SortFilterSection
                 activeFilters={state.activeFilters}
                 toggleFilter={actions.toggleFilter}
@@ -424,95 +424,95 @@ export default function Home() {
               />
             </Suspense> */}
 
-            <Suspense fallback={<RestaurantGridSkeleton count={3} />}>
-              <RestaurantGrid
-                filteredRestaurants={restaurants.visible}
-                visibleRestaurants={restaurants.visible}
-                showRestaurantSkeleton={restaurants.loading}
-                isLoadingFilterResults={restaurants.isLoadingFilterResults}
-                loadingRestaurants={restaurants.loading}
-                availabilityTick={availabilityTick}
-                isFavorite={isFavorite}
-                onFavoriteToggle={handleFavoriteToggle}
-                backendOrigin={BACKEND_ORIGIN}
-                hasMoreRestaurants={restaurants.hasMore}
-                loadMoreRestaurants={actions.loadMoreRestaurants}
-              />
-            </Suspense>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="quick-content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            className="bg-transparent"
-          >
-            <QuickLocationProvider>
-              <QuickCartProvider>
-                <QuickWishlistProvider>
-                  <QuickCartAnimationProvider>
-                    <QuickProductDetailProvider>
-                      <Suspense fallback={<div className="h-screen w-full bg-white dark:bg-[#0a0a0a]" />}>
-                        <QuickCommerceHomePage
-                          embedded
-                          onThemeChange={({ color }) => color && setQuickThemeColor(color)}
-                          embeddedHeaderColor={quickThemeColor}
-                        />
-                      </Suspense>
-                    </QuickProductDetailProvider>
-                  </QuickCartAnimationProvider>
-                </QuickWishlistProvider>
-              </QuickCartProvider>
-            </QuickLocationProvider>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <Suspense fallback={<RestaurantGridSkeleton count={3} />}>
+                <RestaurantGrid
+                  filteredRestaurants={restaurants.visible}
+                  visibleRestaurants={restaurants.visible}
+                  showRestaurantSkeleton={restaurants.loading}
+                  isLoadingFilterResults={restaurants.isLoadingFilterResults}
+                  loadingRestaurants={restaurants.loading}
+                  availabilityTick={availabilityTick}
+                  isFavorite={isFavorite}
+                  onFavoriteToggle={handleFavoriteToggle}
+                  backendOrigin={BACKEND_ORIGIN}
+                  hasMoreRestaurants={restaurants.hasMore}
+                  loadMoreRestaurants={actions.loadMoreRestaurants}
+                />
+              </Suspense>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="quick-content"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="bg-transparent"
+            >
+              <QuickLocationProvider>
+                <QuickCartProvider>
+                  <QuickWishlistProvider>
+                    <QuickCartAnimationProvider>
+                      <QuickProductDetailProvider>
+                        <Suspense fallback={<div className="h-screen w-full bg-white dark:bg-[#0a0a0a]" />}>
+                          <QuickCommerceHomePage
+                            embedded
+                            onThemeChange={({ color }) => color && setQuickThemeColor(color)}
+                            embeddedHeaderColor={quickThemeColor}
+                          />
+                        </Suspense>
+                      </QuickProductDetailProvider>
+                    </QuickCartAnimationProvider>
+                  </QuickWishlistProvider>
+                </QuickCartProvider>
+              </QuickLocationProvider>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Veg Mode Popups (Enable / Switch Off) */}
-      <VegModePopups
-        showVegModePopup={showVegModePopup}
-        showSwitchOffPopup={showSwitchOffPopup}
-        onCloseVegPopup={(level) => {
-          setShowVegModePopup(false);
-          if (level) {
-            setVegModeContext(level);
-          }
-        }}
-        onCloseSwitchOffPopup={() => {
-          setShowSwitchOffPopup(false);
-          isHandlingSwitchOff.current = false;
-        }}
-        onConfirmSwitchOff={() => {
-          setVegModeContext(false);
-          setShowSwitchOffPopup(false);
-          isHandlingSwitchOff.current = false;
-        }}
-      />
+        {/* Veg Mode Popups (Enable / Switch Off) */}
+        <VegModePopups
+          showVegModePopup={showVegModePopup}
+          showSwitchOffPopup={showSwitchOffPopup}
+          onCloseVegPopup={(level) => {
+            setShowVegModePopup(false);
+            if (level) {
+              setVegModeContext(level);
+            }
+          }}
+          onCloseSwitchOffPopup={() => {
+            setShowSwitchOffPopup(false);
+            isHandlingSwitchOff.current = false;
+          }}
+          onConfirmSwitchOff={() => {
+            setVegModeContext(false);
+            setShowSwitchOffPopup(false);
+            isHandlingSwitchOff.current = false;
+          }}
+        />
 
-      {/* Category Modal */}
-      <AnimatePresence>
-        {showAllCategoriesModal && (
-          <div className="fixed inset-0 z-[9999] flex flex-col bg-white dark:bg-[#1a1a1a]">
-            <HomeHeader embedded location={location} savedAddressText="All Categories" handleLocationClick={() => setShowAllCategoriesModal(false)} />
-            <div className="flex-1 overflow-y-auto p-6 grid grid-cols-3 gap-6">
-              {categories.display.map(cat => (
-                <Link key={cat.id} to={`/user/category/${cat.slug}`} className="flex flex-col items-center gap-2" onClick={() => setShowAllCategoriesModal(false)}>
-                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-sm bg-gray-50">
-                    <OptimizedImage src={cat.image} className="w-full h-full object-cover" backendOrigin={BACKEND_ORIGIN} />
-                  </div>
-                  <span className="text-xs font-semibold text-center">{cat.name}</span>
-                </Link>
-              ))}
+        {/* Category Modal */}
+        <AnimatePresence>
+          {showAllCategoriesModal && (
+            <div className="fixed inset-0 z-[9999] flex flex-col bg-white dark:bg-[#1a1a1a]">
+              <HomeHeader embedded location={location} savedAddressText="All Categories" handleLocationClick={() => setShowAllCategoriesModal(false)} />
+              <div className="flex-1 overflow-y-auto p-6 grid grid-cols-3 gap-6">
+                {categories.display.map(cat => (
+                  <Link key={cat.id} to={`/user/category/${cat.slug}`} className="flex flex-col items-center gap-2" onClick={() => setShowAllCategoriesModal(false)}>
+                    <div className="w-20 h-20 rounded-full overflow-hidden shadow-sm bg-gray-50">
+                      <OptimizedImage src={cat.image} className="w-full h-full object-cover" backendOrigin={BACKEND_ORIGIN} />
+                    </div>
+                    <span className="text-xs font-semibold text-center">{cat.name}</span>
+                  </Link>
+                ))}
+              </div>
+              <Button className="m-6 rounded-2xl" variant="secondary" onClick={() => setShowAllCategoriesModal(false)}>Close</Button>
             </div>
-            <Button className="m-6 rounded-2xl" variant="secondary" onClick={() => setShowAllCategoriesModal(false)}>Close</Button>
-          </div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {hasFoodCartItems && <Suspense fallback={null}><MiniCart /></Suspense>}
-      <Suspense fallback={null}><OrderTrackingCard hasBottomNav /></Suspense>
+        {hasFoodCartItems && <Suspense fallback={null}><MiniCart /></Suspense>}
+        <Suspense fallback={null}><OrderTrackingCard hasBottomNav /></Suspense>
       </div>
     </div>
   );

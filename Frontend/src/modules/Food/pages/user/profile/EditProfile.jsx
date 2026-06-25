@@ -30,9 +30,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import dayjs from 'dayjs'
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 // Gender options
 const genderOptions = [
   { value: "male", label: "Male" },
@@ -131,9 +131,9 @@ export default function EditProfile() {
   // Track dark mode
   useEffect(() => {
     const checkDarkMode = () => {
-      const isDark = document.documentElement.classList.contains('dark') || 
-                     document.body.classList.contains('dark') ||
-                     document.documentElement.style.colorScheme === 'dark';
+      const isDark = document.documentElement.classList.contains('dark') ||
+        document.body.classList.contains('dark') ||
+        document.documentElement.style.colorScheme === 'dark';
       setIsDarkMode(isDark)
     }
     checkDarkMode()
@@ -243,7 +243,9 @@ export default function EditProfile() {
     let normalizedValue = value
     let errorMessage = ""
 
-    if (field === "mobile") {
+    if (field === "name") {
+      normalizedValue = value.replace(/[^a-zA-Z\s]/g, "").slice(0, 30)
+    } else if (field === "mobile") {
       normalizedValue = String(value || "").replace(/\D/g, "").slice(0, 10)
       errorMessage = validateMobile(normalizedValue)
     } else if (field === "alternatePhone") {
@@ -503,6 +505,7 @@ export default function EditProfile() {
                 <Input
                   id="name"
                   type="text"
+                  maxLength={30}
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   className="pr-10 h-12 text-base border border-gray-300 dark:border-gray-700 focus:border-primary-orange focus:ring-1 focus:ring-primary-orange rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white"
@@ -651,8 +654,8 @@ export default function EditProfile() {
           onClick={handleUpdate}
           disabled={!hasChanges || isSaving || isUploadingImage}
           className={`w-full h-14 rounded-xl font-semibold text-base transition-all mb-2 ${hasChanges && !isSaving && !isUploadingImage
-              ? 'bg-primary-orange hover:bg-primary-hover text-white'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            ? 'bg-primary-orange hover:bg-primary-hover text-white'
+            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
         >
           {isSaving ? (

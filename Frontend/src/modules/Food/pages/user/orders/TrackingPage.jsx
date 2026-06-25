@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Share2, RefreshCcw, Home, UtensilsCrossed, ChevronRight, Shield, Phone } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
+import { Button } from "@food/components/ui/button"
 
 const TrackingPage = () => {
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
 
   return (
     <div className="relative min-h-screen bg-gray-900 font-sans overflow-hidden">
@@ -61,7 +64,10 @@ const TrackingPage = () => {
           </div>
 
           {/* Delivery Partner Safety Card */}
-          <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-sm">
+          <div 
+            className="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-sm cursor-pointer"
+            onClick={() => setShowSafetyModal(true)}
+          >
             <div className="flex items-center gap-3">
               <Shield className="w-6 h-6 text-gray-400" />
               <span className="flex-1 text-left font-medium text-white">
@@ -101,6 +107,43 @@ const TrackingPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Safety Modal */}
+      <Dialog open={showSafetyModal} onOpenChange={setShowSafetyModal}>
+        <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white z-[100]">
+          <DialogHeader className="mb-4 border-b border-gray-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-blue-600" />
+              </div>
+              <DialogTitle className="text-xl font-bold text-gray-900">Delivery Partner Safety</DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+              <p className="text-sm text-gray-700 font-medium">Our delivery partners undergo daily temperature checks and wear masks at all times.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+              <p className="text-sm text-gray-700 font-medium">We ensure regular sanitization of delivery bags and vehicles.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+              <p className="text-sm text-gray-700 font-medium">Contactless delivery is enabled by default to minimize physical contact.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+              <p className="text-sm text-gray-700 font-medium">Our partners are trained in hygiene protocols and safe handling of orders.</p>
+            </div>
+          </div>
+          <div className="mt-6">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6" onClick={() => setShowSafetyModal(false)}>
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

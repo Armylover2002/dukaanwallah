@@ -2749,6 +2749,7 @@ export async function getOrderById(
     .populate("dispatch.deliveryPartnerId", "name phone rating totalRatings")
     .populate("dispatchPlan.legs.deliveryPartnerId", "name phone rating totalRatings")
     .populate("userId", "name phone email")
+    .populate("restaurantId", "ownerPhone primaryContactNumber phone restaurantName")
     .select("+deliveryOtp")
     .lean();
   if (!order) throw new NotFoundError("Order not found");

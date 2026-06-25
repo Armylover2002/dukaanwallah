@@ -240,7 +240,7 @@ function buildPickupSources(apiOrder, previousOrder = null, restaurantAddress = 
         name: String(point?.sourceName || (pickupType === "quick" ? "Seller Store" : apiOrder?.restaurantName || previousOrder?.restaurant || "Restaurant")).trim(),
         address: buildAddressFromPickupPoint(point) || fallbackAddress || "Address not available",
         phone: pickupType === "food"
-          ? String(apiOrder?.restaurantPhone || apiOrder?.restaurantId?.phone || apiOrder?.restaurant?.phone || previousOrder?.restaurantPhone || '').trim()
+          ? String(apiOrder?.restaurantPhone || apiOrder?.restaurantId?.primaryContactNumber || apiOrder?.restaurantId?.phone || apiOrder?.restaurantId?.ownerPhone || apiOrder?.restaurant?.primaryContactNumber || apiOrder?.restaurant?.phone || previousOrder?.restaurantPhone || '').trim()
           : String(point?.phone || point?.contactPhone || '').trim(),
       };
     })
@@ -252,7 +252,7 @@ function buildPickupSources(apiOrder, previousOrder = null, restaurantAddress = 
     id: "food:primary", pickupType: "food", label: "Restaurant",
     name: String(apiOrder?.restaurantName || previousOrder?.restaurant || "Restaurant").trim(),
     address: restaurantAddress || previousOrder?.restaurantAddress || "Restaurant location",
-    phone: String(apiOrder?.restaurantPhone || apiOrder?.restaurantId?.phone || apiOrder?.restaurant?.phone || previousOrder?.restaurantPhone || '').trim(),
+    phone: String(apiOrder?.restaurantPhone || apiOrder?.restaurantId?.primaryContactNumber || apiOrder?.restaurantId?.phone || apiOrder?.restaurantId?.ownerPhone || apiOrder?.restaurant?.primaryContactNumber || apiOrder?.restaurant?.phone || previousOrder?.restaurantPhone || '').trim(),
   }];
 }
 
@@ -347,7 +347,7 @@ function transformOrderForTracking(apiOrder, previousOrder = null, explicitResta
     orderId: apiOrder?.orderId || apiOrder?._id,
     restaurant: apiOrder?.restaurantName || previousOrder?.restaurant || (apiOrder?.orderType === 'quick' || /^QC/i.test(apiOrder?.orderId || apiOrder?._id) ? 'Store' : 'Restaurant'),
     orderType: apiOrder?.orderType || previousOrder?.orderType || 'food',
-    restaurantPhone: apiOrder?.restaurantPhone || apiOrder?.restaurantId?.phone || apiOrder?.restaurantId?.ownerPhone || apiOrder?.restaurant?.phone || apiOrder?.restaurant?.ownerPhone || previousOrder?.restaurantPhone || '',
+    restaurantPhone: apiOrder?.restaurantPhone || apiOrder?.restaurantId?.primaryContactNumber || apiOrder?.restaurantId?.phone || apiOrder?.restaurantId?.ownerPhone || apiOrder?.restaurant?.primaryContactNumber || apiOrder?.restaurant?.phone || apiOrder?.restaurant?.ownerPhone || previousOrder?.restaurantPhone || '',
     restaurantAddress, restaurantId: apiOrder?.restaurantId || previousOrder?.restaurantId || null,
     userId: apiOrder?.userId || previousOrder?.userId || null,
     userName: apiOrder?.userName || apiOrder?.userId?.name || apiOrder?.userId?.fullName || previousOrder?.userName || '',
@@ -579,6 +579,7 @@ export default function OrderTracking() {
   const [estimatedTime, setEstimatedTime] = useState(29);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
   const [refundDestination, setRefundDestination] = useState("gateway");
@@ -1160,7 +1161,7 @@ export default function OrderTracking() {
 
   const handleCallRestaurant = useCallback((e) => {
     e?.stopPropagation?.();
-    const raw = order?.restaurantPhone || order?.restaurantId?.phone || order?.restaurantId?.ownerPhone || order?.restaurantId?.contact?.phone || order?.restaurant?.phone || '';
+    const raw = order?.restaurantPhone || order?.restaurantId?.primaryContactNumber || order?.restaurantId?.phone || order?.restaurantId?.ownerPhone || order?.restaurantId?.contact?.phone || order?.restaurant?.primaryContactNumber || order?.restaurant?.phone || '';
     if (!raw || String(raw).replace(/[^\d+]/g, '').length < 5) {
       toast.error(`${isQuickOrder ? 'Store' : 'Restaurant'} phone number not available`);
       return;
@@ -1598,7 +1599,12 @@ export default function OrderTracking() {
         )}
 
         {!isDeliveredOrder && (
-          <motion.button className="w-full bg-white rounded-xl p-4 shadow-sm flex items-center gap-3" {...MOTION_SLIDE_UP(0.6)} whileTap={{ scale: 0.99 }}>
+          <motion.button
+            className="w-full bg-white rounded-xl p-4 shadow-sm flex items-center gap-3"
+            {...MOTION_SLIDE_UP(0.6)}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => setShowSafetyModal(true)}
+          >
             <Shield className="w-6 h-6 text-gray-600" />
             <span className="flex-1 text-left font-medium text-gray-900">Learn about delivery partner safety</span>
             <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -1620,14 +1626,14 @@ export default function OrderTracking() {
             showArrow={false}
           />
           <SectionItem iconNode={customerPinNode} title="Delivery at Location" subtitle={deliveryAddressSubtitle} showArrow={false} />
-          {!isDeliveredOrder && (
+          {/* {!isDeliveredOrder && (
             <SectionItem
               icon={MessageSquare}
               title={order?.note ? "Edit delivery instructions" : "Add delivery instructions"}
               subtitle={order?.note ? order.note.substring(0, 35) + (order.note.length > 35 ? "..." : "") : ""}
               onClick={openInstructionsModal}
             />
-          )}
+          )} */}
         </motion.div>
 
         {/* Pickup Sources */}
@@ -1739,34 +1745,33 @@ export default function OrderTracking() {
               <div className="space-y-4">
                 {/* Status indicator */}
                 <div className="flex items-start gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${
-                    returnOrderDetails.status === 'rejected' ? 'bg-red-500' :
-                    returnOrderDetails.status === 'refund_processed' ? 'bg-green-500' :
-                    'bg-orange-500 animate-pulse'
-                  }`} />
+                  <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${returnOrderDetails.status === 'rejected' ? 'bg-red-500' :
+                      returnOrderDetails.status === 'refund_processed' ? 'bg-green-500' :
+                        'bg-orange-500 animate-pulse'
+                    }`} />
                   <div>
                     <p className="font-bold text-gray-900 text-xs">
                       Status: {
                         returnOrderDetails.status === 'pending_review' ? 'Awaiting Admin Approval' :
-                        returnOrderDetails.status === 'approved' ? 'Approved - Finding Delivery Partner' :
-                        returnOrderDetails.status === 'pickup_assigned' ? 'Rider Assigned for Pickup' :
-                        returnOrderDetails.status === 'picked_up' ? 'Package Picked Up' :
-                        returnOrderDetails.status === 'delivered_to_seller' ? 'Delivered to Store (Awaiting Refund)' :
-                        returnOrderDetails.status === 'refund_processed' ? 'Refund Completed' :
-                        returnOrderDetails.status === 'rejected' ? 'Return Rejected' :
-                        returnOrderDetails.status
+                          returnOrderDetails.status === 'approved' ? 'Approved - Finding Delivery Partner' :
+                            returnOrderDetails.status === 'pickup_assigned' ? 'Rider Assigned for Pickup' :
+                              returnOrderDetails.status === 'picked_up' ? 'Package Picked Up' :
+                                returnOrderDetails.status === 'delivered_to_seller' ? 'Delivered to Store (Awaiting Refund)' :
+                                  returnOrderDetails.status === 'refund_processed' ? 'Refund Completed' :
+                                    returnOrderDetails.status === 'rejected' ? 'Return Rejected' :
+                                      returnOrderDetails.status
                       }
                     </p>
                     <p className="text-[11px] text-gray-500 font-medium mt-0.5 leading-relaxed">
                       {
                         returnOrderDetails.status === 'pending_review' ? 'Your return request has been submitted to Appzeto support and is being reviewed.' :
-                        returnOrderDetails.status === 'approved' ? 'Your return request is approved. We are assigning a delivery partner to collect the package.' :
-                        returnOrderDetails.status === 'pickup_assigned' ? 'A rider is on the way to collect your return items. Please keep the package ready.' :
-                        returnOrderDetails.status === 'picked_up' ? 'Rider has collected the package from you and is delivering it back to the store.' :
-                        returnOrderDetails.status === 'delivered_to_seller' ? 'Return items successfully delivered to the store. Refund will be processed shortly.' :
-                        returnOrderDetails.status === 'refund_processed' ? 'Refund has been successfully processed and credited.' :
-                        returnOrderDetails.status === 'rejected' ? `Rejected: ${returnOrderDetails.rejectionReason || 'No details provided'}` :
-                        ''
+                          returnOrderDetails.status === 'approved' ? 'Your return request is approved. We are assigning a delivery partner to collect the package.' :
+                            returnOrderDetails.status === 'pickup_assigned' ? 'A rider is on the way to collect your return items. Please keep the package ready.' :
+                              returnOrderDetails.status === 'picked_up' ? 'Rider has collected the package from you and is delivering it back to the store.' :
+                                returnOrderDetails.status === 'delivered_to_seller' ? 'Return items successfully delivered to the store. Refund will be processed shortly.' :
+                                  returnOrderDetails.status === 'refund_processed' ? 'Refund has been successfully processed and credited.' :
+                                    returnOrderDetails.status === 'rejected' ? `Rejected: ${returnOrderDetails.rejectionReason || 'No details provided'}` :
+                                      ''
                       }
                     </p>
                   </div>
@@ -2017,6 +2022,42 @@ export default function OrderTracking() {
           }}
         />
       )}
+      {/* Safety Modal */}
+      <Dialog open={showSafetyModal} onOpenChange={setShowSafetyModal}>
+        <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white z-[200]">
+          <DialogHeader className="mb-4 border-b border-gray-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-blue-600" />
+              </div>
+              <DialogTitle className="text-xl font-bold text-gray-900">Delivery Partner Safety</DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+              <p className="text-sm text-gray-700 font-medium">Our delivery partners undergo daily temperature checks and wear masks at all times.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+              <p className="text-sm text-gray-700 font-medium">We ensure regular sanitization of delivery bags and vehicles.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+              <p className="text-sm text-gray-700 font-medium">Contactless delivery is enabled by default to minimize physical contact.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-2 h-2 rounded-full bg-green-500 shrink-0" />
+              <p className="text-sm text-gray-700 font-medium">Our partners are trained in hygiene protocols and safe handling of orders.</p>
+            </div>
+          </div>
+          <div className="mt-6">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6" onClick={() => setShowSafetyModal(false)}>
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -123,9 +123,9 @@ const BannerSection = memo(({
                             }}
                             className="w-fit"
                           >
-                            <button className="bg-[#FE5502] hover:bg-[#E44D02] shadow-[0_4px_12px_rgba(254,85,2,0.5)] flex items-center gap-1 px-4 py-2 rounded-xl text-white font-bold transition-all transform hover:scale-105 active:scale-95">
+                            {/* <button className="bg-[#FE5502] hover:bg-[#E44D02] shadow-[0_4px_12px_rgba(254,85,2,0.5)] flex items-center gap-1 px-4 py-2 rounded-xl text-white font-bold transition-all transform hover:scale-105 active:scale-95">
                               {bannerData?.action || "Order Now"} <span className="font-bold tracking-tighter">&gt;&gt;</span>
-                            </button>
+                            </button> */}
                           </motion.div>
                         </div>
 

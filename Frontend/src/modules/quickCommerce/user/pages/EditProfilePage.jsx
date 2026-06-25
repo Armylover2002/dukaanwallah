@@ -18,7 +18,11 @@ const EditProfilePage = () => {
     });
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        let value = e.target.value;
+        if (e.target.name === 'name') {
+            value = value.replace(/[^a-zA-Z\s]/g, "").slice(0, 30);
+        }
+        setFormData({ ...formData, [e.target.name]: value });
     };
 
     const handleSubmit = async (e) => {
@@ -75,6 +79,7 @@ const EditProfilePage = () => {
                                 <input
                                     type="text"
                                     name="name"
+                                    maxLength={30}
                                     value={formData.name}
                                     onChange={handleChange}
                                     className="bg-transparent w-full text-slate-800 font-bold outline-none placeholder:font-medium"
