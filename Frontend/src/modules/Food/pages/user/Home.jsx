@@ -313,7 +313,7 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-white dark:bg-[#0a0a0a] pb-16 md:pb-6">
-      <div className="md:hidden sticky top-0 z-[60]">
+      <div className={activeTab === "food" ? "md:hidden sticky top-0 z-[60]" : "md:hidden relative z-[60]"}>
         {!state.isBootstrapped ? (
           <div className="px-4 pt-6 pb-4">
             <div className="h-10 w-48 bg-slate-100 animate-pulse rounded-xl mb-6" />
