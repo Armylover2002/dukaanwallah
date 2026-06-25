@@ -378,6 +378,34 @@ export default function Profile() {
       toast.error("Please fill in all required fields.");
       return;
     }
+
+    // Vehicle Number Validation
+    if (isVnRequired && deliveryForm.vehicleNumber) {
+      const vehicleRegex = /^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/;
+      if (!vehicleRegex.test(deliveryForm.vehicleNumber)) {
+        toast.error("Invalid Vehicle Number format. Expected format: MH12AB1234 or 21BH1234AA");
+        return;
+      }
+    }
+
+    // Driving License Validation
+    if (isDlRequired && deliveryForm.drivingLicenseNumber) {
+      const dlRegex = /^[A-Z]{2}[0-9]{13}$/;
+      if (!dlRegex.test(deliveryForm.drivingLicenseNumber)) {
+        toast.error("Invalid Driving License. Must be State Code followed by 13 digits (e.g. MH1220110012345)");
+        return;
+      }
+    }
+
+    // PAN Card Validation
+    if (deliveryForm.panNumber) {
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panRegex.test(deliveryForm.panNumber)) {
+        toast.error("Invalid PAN Card format. Expected format: ABCDE1234F");
+        return;
+      }
+    }
+
     if (aadharClean.length !== 12) {
       toast.error("Aadhaar Number must be exactly 12 digits.");
       return;
@@ -2155,25 +2183,104 @@ export default function Profile() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Vehicle Name/Model</label>
-                <input type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. Splendor, Activa" value={deliveryForm.vehicleName} onChange={e => setDeliveryForm({...deliveryForm, vehicleName: e.target.value})} />
+                <input
+                  type="text"
+                  maxLength={30}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all"
+                  placeholder="E.g. Splendor, Activa"
+                  value={deliveryForm.vehicleName}
+                  onChange={e => setDeliveryForm({...deliveryForm, vehicleName: e.target.value.slice(0, 30)})}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Vehicle Number {deliveryForm.vehicleType !== "bicycle" && <span className="text-red-500">*</span>}</label>
-                <input required={deliveryForm.vehicleType !== "bicycle"} type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. MH12AB1234" value={deliveryForm.vehicleNumber} onChange={e => setDeliveryForm({...deliveryForm, vehicleNumber: e.target.value.toUpperCase()})} />
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Vehicle Number {deliveryForm.vehicleType !== "bicycle" && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  required={deliveryForm.vehicleType !== "bicycle"}
+                  type="text"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${
+                    deliveryForm.vehicleNumber && !/^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/.test(deliveryForm.vehicleNumber)
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
+                  }`}
+                  placeholder="E.g. MH12AB1234"
+                  value={deliveryForm.vehicleNumber}
+                  onChange={e => setDeliveryForm({...deliveryForm, vehicleNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)})}
+                />
+                {deliveryForm.vehicleNumber && (
+                  <p className={`text-[10px] mt-1 font-medium ${
+                    /^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/.test(deliveryForm.vehicleNumber)
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-500"
+                  }`}>
+                    {/^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/.test(deliveryForm.vehicleNumber)
+                      ? "✓ Valid vehicle number format"
+                      : "✗ Format: MH12AB1234 / 21BH1234AA"}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Driving License No {deliveryForm.vehicleType !== "bicycle" && deliveryForm.vehicleType !== "electric_bike" && <span className="text-red-500">*</span>}</label>
-                <input required={deliveryForm.vehicleType !== "bicycle" && deliveryForm.vehicleType !== "electric_bike"} type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. MH1220110012345" value={deliveryForm.drivingLicenseNumber} onChange={e => setDeliveryForm({...deliveryForm, drivingLicenseNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")})} />
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Driving License No {deliveryForm.vehicleType !== "bicycle" && deliveryForm.vehicleType !== "electric_bike" && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  required={deliveryForm.vehicleType !== "bicycle" && deliveryForm.vehicleType !== "electric_bike"}
+                  type="text"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${
+                    deliveryForm.drivingLicenseNumber && !/^[A-Z]{2}[0-9]{13}$/.test(deliveryForm.drivingLicenseNumber)
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
+                  }`}
+                  placeholder="E.g. MH1220110012345"
+                  value={deliveryForm.drivingLicenseNumber}
+                  onChange={e => setDeliveryForm({...deliveryForm, drivingLicenseNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15)})}
+                />
+                {deliveryForm.drivingLicenseNumber && (
+                  <p className={`text-[10px] mt-1 font-medium ${
+                    /^[A-Z]{2}[0-9]{13}$/.test(deliveryForm.drivingLicenseNumber)
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-500"
+                  }`}>
+                    {/^[A-Z]{2}[0-9]{13}$/.test(deliveryForm.drivingLicenseNumber)
+                      ? "✓ Valid license format"
+                      : "✗ Must be State Code + 13 digits"}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">PAN Number <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="ABCDE1234F" value={deliveryForm.panNumber} onChange={e => setDeliveryForm({...deliveryForm, panNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")})} />
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  PAN Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  type="text"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${
+                    deliveryForm.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(deliveryForm.panNumber)
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
+                  }`}
+                  placeholder="ABCDE1234F"
+                  value={deliveryForm.panNumber}
+                  onChange={e => setDeliveryForm({...deliveryForm, panNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)})}
+                />
+                {deliveryForm.panNumber && (
+                  <p className={`text-[10px] mt-1 font-medium ${
+                    /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(deliveryForm.panNumber)
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-500"
+                  }`}>
+                    {/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(deliveryForm.panNumber)
+                      ? "✓ Valid PAN number format"
+                      : "✗ Format: 5 letters + 4 digits + 1 letter"}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Aadhaar Number <span className="text-red-500">*</span></label>

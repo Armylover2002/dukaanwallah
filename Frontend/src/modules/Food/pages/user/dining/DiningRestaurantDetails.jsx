@@ -322,21 +322,8 @@ export default function DiningRestaurantDetails() {
         </div>
 
           <div className="px-3 pb-1 pt-3">
-            <button
-              onClick={handleContinueBooking}
-              disabled={!isDiningEnabled}
-              className={`flex h-[52px] w-full items-center justify-center gap-2 rounded-full border px-3 text-[15px] font-medium shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition-all active:scale-[0.98] ${
-                isDiningEnabled
-                  ? "border-[#f1ebee] bg-white text-[#2b2118]"
-                  : "cursor-not-allowed border-[#f2d7da] bg-[#fff5f6] text-[#c06a79] opacity-80"
-              }`}
-            >
-              <Ticket className="h-[15px] w-[15px] text-[#ef4c62]" />
-              <span>{isDiningEnabled ? "Book a table" : "Dining paused"}</span>
-            </button>
-
             {!isDiningEnabled && (
-              <div className="mt-3 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="mb-3 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 Dining bookings are currently turned off by the restaurant.
               </div>
             )}
@@ -394,9 +381,6 @@ export default function DiningRestaurantDetails() {
                 <p className="text-[28px] font-bold leading-none">Flat 50% OFF</p>
                 <p className="mt-2 text-[14px] text-white/80">Dining Carnival offer</p>
               </div>
-              <button className="rounded-full bg-black/45 px-4 py-2 text-[13px] font-semibold text-white backdrop-blur-sm">
-                Book now
-              </button>
             </div>
             <div className="border-t border-white/10 px-4 py-2 text-center text-[12px] text-white/75">
               3 slots available from 3:30 PM today
