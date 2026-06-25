@@ -8,6 +8,19 @@ const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
+const getOrderSubtotal = (order) => {
+  if (!order) return 0;
+  if (order.pricing?.subtotal) return Number(order.pricing.subtotal);
+  if (order.subtotal) return Number(order.subtotal);
+  if (order.itemSubtotal) return Number(order.itemSubtotal);
+  if (order.itemTotal) return Number(order.itemTotal);
+  
+  if (Array.isArray(order.items) && order.items.length > 0) {
+    return order.items.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+  }
+  
+  return Number(order.totalAmount || order.orderTotal || order.amount || 0);
+};
 
 export default function HubFinance() {
   const navigate = useNavigate()
@@ -191,7 +204,7 @@ export default function HubFinance() {
 
   const invoiceSummary = useMemo(() => {
     const earnings = invoiceOrders.reduce((sum, order) => sum + (order.payout || order.restaurantEarning || 0), 0)
-    const gross = invoiceOrders.reduce((sum, order) => sum + (order.totalAmount || order.orderTotal || 0), 0)
+    const gross = invoiceOrders.reduce((sum, order) => sum + getOrderSubtotal(order), 0)
     return { earnings, gross, count: invoiceOrders.length }
   }, [invoiceOrders])
 
@@ -558,7 +571,7 @@ export default function HubFinance() {
                   const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : (order.deliveredAt ? new Date(order.deliveredAt).toLocaleDateString('en-IN') : 'N/A')
                   const foodItems = order.foodNames || (order.items && order.items.map(item => item.name).join(', ')) || 'N/A'
                   const itemQuantities = order.items ? order.items.map(item => (item.quantity || 1).toString()).join(', ') : 'N/A'
-                  const orderAmount = order.totalAmount || order.orderTotal || order.amount || 0
+                  const orderAmount = getOrderSubtotal(order)
                   const earning = order.payout || order.restaurantEarning || 0
                   
                   return `
@@ -1243,7 +1256,7 @@ export default function HubFinance() {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-semibold text-gray-900">
-                            ₹{(order.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₹{getOrderSubtotal(order).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                           <p className="text-xs text-gray-500">Total</p>
                         </div>

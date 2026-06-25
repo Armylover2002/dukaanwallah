@@ -22,9 +22,9 @@ import {
   Phone,
 } from "lucide-react"
 import ResendNotificationButton from "@food/components/restaurant/ResendNotificationButton"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 const toNumber = (value) => {
   const num = Number(value)
@@ -54,12 +54,12 @@ export default function OrderDetails() {
   const navigate = useNavigate()
   const goBack = useRestaurantBackNavigation()
   const { orderId } = useParams()
-  
+
   // State for order data
   const [orderData, setOrderData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  
+
   // Toast state
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("")
@@ -71,19 +71,19 @@ export default function OrderDetails() {
       try {
         setLoading(true)
         setError(null)
-        
+
         const response = await restaurantAPI.getOrderById(orderId)
-        
+
         if (response.data?.success && response.data.data?.order) {
           const order = response.data.data.order
           const orderStatusRaw = String(order.status || order.orderStatus || "").toLowerCase()
           const pricing = order.pricing || {}
           const computedSubtotal = Array.isArray(order.items)
             ? order.items.reduce((sum, item) => {
-                const price = Number(item?.price || 0)
-                const qty = Number(item?.quantity || 1)
-                return sum + (Number.isFinite(price) ? price : 0) * (Number.isFinite(qty) ? qty : 1)
-              }, 0)
+              const price = Number(item?.price || 0)
+              const qty = Number(item?.quantity || 1)
+              return sum + (Number.isFinite(price) ? price : 0) * (Number.isFinite(qty) ? qty : 1)
+            }, 0)
             : 0
 
           const itemSubtotal =
@@ -110,23 +110,9 @@ export default function OrderDetails() {
           const couponDiscount = firstNumber(pricing.couponDiscount, order.couponDiscount) ?? 0
           const referralDiscount = firstNumber(pricing.referralDiscount, order.referralDiscount) ?? 0
 
-          const total =
-            firstNumber(
-              pricing.total,
-              order.payment?.amountDue,
-              order.totalAmount,
-              order.total,
-              order.amount
-            ) ??
-            Math.max(
-              0,
-              itemSubtotal +
-                taxes +
-                packagingFee +
-                deliveryFee +
-                platformFee -
-                discount
-            )
+          const adminCommission = firstNumber(pricing.restaurantCommission, order.restaurantCommission) ?? 0
+
+          const total = Math.max(0, itemSubtotal - adminCommission)
           const paidAmount = firstNumber(order.payment?.amountDue, order.payment?.amount, total) ?? total
 
           const addressParts = [
@@ -185,7 +171,7 @@ export default function OrderDetails() {
           } else if (paymentMethod === "cash") {
             paymentStatus = orderStatusRaw === "delivered" ? "PAID" : "COD"
           }
-          
+
           const statusLower = orderStatusRaw
           const reached = {
             confirmed: order.tracking?.confirmed?.status || ["confirmed", "preparing", "ready", "ready_for_pickup", "picked_up", "out_for_delivery", "delivered"].includes(statusLower),
@@ -224,6 +210,7 @@ export default function OrderDetails() {
               discount,
               couponDiscount,
               referralDiscount,
+              adminCommission,
               total,
               paidAmount,
               paymentStatus
@@ -254,7 +241,7 @@ export default function OrderDetails() {
               ...(statusLower === 'cancelled' ? [{ event: 'Cancelled', timestamp: order.cancelledAt ? new Date(order.cancelledAt).toLocaleString('en-GB') : '', status: 'rejected', reason: order.cancellationReason }] : [])
             ]
           }
-          
+
           setOrderData(transformedOrder)
         } else {
           throw new Error('Order not found')
@@ -306,301 +293,301 @@ export default function OrderDetails() {
       setIsGeneratingPDF(true)
       setToastMessage("Generating receipt...")
       setShowToast(true)
-      
+
       // Small delay to show the toast
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       // Check if orderData exists
       if (!orderData) {
         throw new Error("Order data not found")
       }
-      
+
       const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.getWidth()
-    const pageHeight = doc.internal.pageSize.getHeight()
-    const leftMargin = 15
-    const rightMargin = 15
-    const bottomMargin = 20
-    let yPosition = 20
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const leftMargin = 15
+      const rightMargin = 15
+      const bottomMargin = 20
+      let yPosition = 20
 
-    const ensureSpace = (requiredHeight = 0, resetY = 20) => {
-      if (yPosition + requiredHeight > pageHeight - bottomMargin) {
-        doc.addPage()
-        yPosition = resetY
+      const ensureSpace = (requiredHeight = 0, resetY = 20) => {
+        if (yPosition + requiredHeight > pageHeight - bottomMargin) {
+          doc.addPage()
+          yPosition = resetY
+        }
       }
-    }
 
-    // Header - Restaurant Name
-    doc.setFontSize(18)
-    doc.setFont("helvetica", "bold")
-    doc.text(orderData.restaurant, pageWidth / 2, yPosition, { align: "center" })
-    yPosition += 7
+      // Header - Restaurant Name
+      doc.setFontSize(18)
+      doc.setFont("helvetica", "bold")
+      doc.text(orderData.restaurant, pageWidth / 2, yPosition, { align: "center" })
+      yPosition += 7
 
-    doc.setFontSize(10)
-    doc.setFont("helvetica", "normal")
-    doc.text(orderData.address, pageWidth / 2, yPosition, { align: "center" })
-    yPosition += 15
-
-    // Order Receipt Title
-    doc.setFontSize(16)
-    doc.setFont("helvetica", "bold")
-    doc.text("ORDER RECEIPT", pageWidth / 2, yPosition, { align: "center" })
-    yPosition += 10
-
-    // Horizontal line
-    doc.setLineWidth(0.5)
-    doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
-    yPosition += 10
-
-    // Order Information
-    doc.setFontSize(11)
-    doc.setFont("helvetica", "bold")
-    doc.text("Order ID:", leftMargin, yPosition)
-    doc.setFont("helvetica", "normal")
-    doc.text(orderData.id, 50, yPosition)
-    yPosition += 7
-
-    doc.setFont("helvetica", "bold")
-    doc.text("Date & Time:", leftMargin, yPosition)
-    doc.setFont("helvetica", "normal")
-    doc.text(`${orderData.date}, ${orderData.time}`, 50, yPosition)
-    yPosition += 7
-
-    doc.setFont("helvetica", "bold")
-    doc.text("Status:", leftMargin, yPosition)
-    doc.setFont("helvetica", "normal")
-    // Set color based on status
-    if (orderData.status === "REJECTED" || orderData.status === "CANCELLED") {
-      doc.setTextColor(220, 38, 38) // Red
-    } else if (orderData.status === "DELIVERED") {
-      doc.setTextColor(22, 163, 74) // Green
-    }
-    doc.text(orderData.status, 50, yPosition)
-    doc.setTextColor(0, 0, 0) // Reset to black
-    yPosition += 10
-
-    // Customer Details Section
-    doc.setLineWidth(0.5)
-    ensureSpace(35)
-    doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
-    yPosition += 8
-
-    doc.setFontSize(12)
-    doc.setFont("helvetica", "bold")
-    doc.text("CUSTOMER DETAILS", leftMargin, yPosition)
-    yPosition += 8
-
-    doc.setFontSize(10)
-    doc.setFont("helvetica", "bold")
-    doc.text("Name:", leftMargin, yPosition)
-    doc.setFont("helvetica", "normal")
-    doc.text(orderData.customer.name, 50, yPosition)
-    yPosition += 6
-
-    doc.setFont("helvetica", "bold")
-    doc.text("Location:", leftMargin, yPosition)
-    doc.setFont("helvetica", "normal")
-    const locationLines = doc.splitTextToSize(orderData.customer.location || "-", pageWidth - 65)
-    doc.text(locationLines, 50, yPosition)
-    yPosition += locationLines.length * 5
-
-    doc.setFont("helvetica", "bold")
-    doc.text("Distance:", leftMargin, yPosition)
-    doc.setFont("helvetica", "normal")
-    doc.text(orderData.customer.distance || "-", 50, yPosition)
-    yPosition += 10
-
-    // Items Section
-    doc.setLineWidth(0.5)
-    ensureSpace(20)
-    doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
-    yPosition += 8
-
-    doc.setFontSize(12)
-    doc.setFont("helvetica", "bold")
-    doc.text("ITEM DETAILS", 15, yPosition)
-    yPosition += 5
-
-    // Items Table
-    const itemsTableData = orderData.items.map(item => [
-      `${item.quantity}x`,
-      item.name,
-      item.type || "-",
-      formatMoney(item.price)
-    ])
-
-    // Use autoTable with the doc instance
-    autoTable(doc, {
-      startY: yPosition,
-      head: [["Qty", "Item Name", "Type", "Price"]],
-      body: itemsTableData,
-      theme: "grid",
-      headStyles: {
-        fillColor: [55, 65, 81],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: "bold"
-      },
-      bodyStyles: {
-        fontSize: 9
-      },
-      margin: { left: leftMargin, right: rightMargin }
-    })
-
-    yPosition = doc.lastAutoTable.finalY + 10
-
-    // Bill Details Section
-    doc.setLineWidth(0.5)
-    ensureSpace(50)
-    doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
-    yPosition += 8
-
-    doc.setFontSize(12)
-    doc.setFont("helvetica", "bold")
-    doc.text("BILL DETAILS", 15, yPosition)
-    yPosition += 8
-
-    doc.setFontSize(10)
-    doc.setFont("helvetica", "normal")
-    const billRows = [
-      ["Item Subtotal:", formatMoney(orderData.billing.itemSubtotal)],
-      ["Taxes:", formatMoney(orderData.billing.taxes)],
-    ]
-    if (Number(orderData.billing.packagingFee) > 0) {
-      billRows.push(["Packaging Fee:", formatMoney(orderData.billing.packagingFee)])
-    }
-    if (Number(orderData.billing.deliveryFee) > 0) {
-      billRows.push(["Delivery Fee:", formatMoney(orderData.billing.deliveryFee)])
-    }
-    if (Number(orderData.billing.platformFee) > 0) {
-      billRows.push(["Platform Fee:", formatMoney(orderData.billing.platformFee)])
-    }
-    if (Number(orderData.billing.discount) > 0) {
-      billRows.push(["Discount:", formatDiscount(orderData.billing.discount)])
-    }
-    if (Number(orderData.billing.couponDiscount) > 0) {
-      billRows.push(["Coupon Discount:", formatDiscount(orderData.billing.couponDiscount)])
-    }
-    if (Number(orderData.billing.referralDiscount) > 0) {
-      billRows.push(["Referral Discount:", formatDiscount(orderData.billing.referralDiscount)])
-    }
-    billRows.forEach(([label, value]) => {
-      doc.text(label, 15, yPosition)
-      doc.text(value, pageWidth - rightMargin, yPosition, { align: "right" })
-      yPosition += 6
-    })
-
-    // Dashed line for total
-    doc.setLineDash([2, 2])
-    doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
-    yPosition += 6
-    doc.setLineDash([]) // Reset to solid line
-
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(11)
-    doc.text("Total Bill:", leftMargin, yPosition)
-    doc.text(formatMoney(orderData.billing.total), pageWidth - rightMargin, yPosition, { align: "right" })
-    yPosition += 6
-    if (Number(orderData.billing.paidAmount) > 0) {
-      doc.setFont("helvetica", "normal")
       doc.setFontSize(10)
-      doc.text("Amount Paid:", leftMargin, yPosition)
-      doc.text(formatMoney(orderData.billing.paidAmount), pageWidth - rightMargin, yPosition, { align: "right" })
-      yPosition += 6
-    }
+      doc.setFont("helvetica", "normal")
+      doc.text(orderData.address, pageWidth / 2, yPosition, { align: "center" })
+      yPosition += 15
 
-    doc.setFontSize(9)
-    doc.setFont("helvetica", "normal")
-    doc.text(`Payment Status: ${orderData.billing.paymentStatus}`, leftMargin, yPosition)
-    yPosition += 10
+      // Order Receipt Title
+      doc.setFontSize(16)
+      doc.setFont("helvetica", "bold")
+      doc.text("ORDER RECEIPT", pageWidth / 2, yPosition, { align: "center" })
+      yPosition += 10
 
-    // Rejection/Cancellation Reason (if exists)
-    if (orderData.reason) {
+      // Horizontal line
       doc.setLineWidth(0.5)
-      ensureSpace(25)
+      doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
+      yPosition += 10
+
+      // Order Information
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "bold")
+      doc.text("Order ID:", leftMargin, yPosition)
+      doc.setFont("helvetica", "normal")
+      doc.text(orderData.id, 50, yPosition)
+      yPosition += 7
+
+      doc.setFont("helvetica", "bold")
+      doc.text("Date & Time:", leftMargin, yPosition)
+      doc.setFont("helvetica", "normal")
+      doc.text(`${orderData.date}, ${orderData.time}`, 50, yPosition)
+      yPosition += 7
+
+      doc.setFont("helvetica", "bold")
+      doc.text("Status:", leftMargin, yPosition)
+      doc.setFont("helvetica", "normal")
+      // Set color based on status
+      if (orderData.status === "REJECTED" || orderData.status === "CANCELLED") {
+        doc.setTextColor(220, 38, 38) // Red
+      } else if (orderData.status === "DELIVERED") {
+        doc.setTextColor(22, 163, 74) // Green
+      }
+      doc.text(orderData.status, 50, yPosition)
+      doc.setTextColor(0, 0, 0) // Reset to black
+      yPosition += 10
+
+      // Customer Details Section
+      doc.setLineWidth(0.5)
+      ensureSpace(35)
       doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
       yPosition += 8
 
-      doc.setFontSize(11)
+      doc.setFontSize(12)
       doc.setFont("helvetica", "bold")
-      doc.setTextColor(220, 38, 38)
-      doc.text("REASON:", leftMargin, yPosition)
+      doc.text("CUSTOMER DETAILS", leftMargin, yPosition)
+      yPosition += 8
+
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "bold")
+      doc.text("Name:", leftMargin, yPosition)
+      doc.setFont("helvetica", "normal")
+      doc.text(orderData.customer.name, 50, yPosition)
       yPosition += 6
+
+      doc.setFont("helvetica", "bold")
+      doc.text("Location:", leftMargin, yPosition)
+      doc.setFont("helvetica", "normal")
+      const locationLines = doc.splitTextToSize(orderData.customer.location || "-", pageWidth - 65)
+      doc.text(locationLines, 50, yPosition)
+      yPosition += locationLines.length * 5
+
+      doc.setFont("helvetica", "bold")
+      doc.text("Distance:", leftMargin, yPosition)
+      doc.setFont("helvetica", "normal")
+      doc.text(orderData.customer.distance || "-", 50, yPosition)
+      yPosition += 10
+
+      // Items Section
+      doc.setLineWidth(0.5)
+      ensureSpace(20)
+      doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
+      yPosition += 8
+
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("ITEM DETAILS", 15, yPosition)
+      yPosition += 5
+
+      // Items Table
+      const itemsTableData = orderData.items.map(item => [
+        `${item.quantity}x`,
+        item.name,
+        item.type || "-",
+        formatMoney(item.price)
+      ])
+
+      // Use autoTable with the doc instance
+      autoTable(doc, {
+        startY: yPosition,
+        head: [["Qty", "Item Name", "Type", "Price"]],
+        body: itemsTableData,
+        theme: "grid",
+        headStyles: {
+          fillColor: [55, 65, 81],
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: "bold"
+        },
+        bodyStyles: {
+          fontSize: 9
+        },
+        margin: { left: leftMargin, right: rightMargin }
+      })
+
+      yPosition = doc.lastAutoTable.finalY + 10
+
+      // Bill Details Section
+      doc.setLineWidth(0.5)
+      ensureSpace(50)
+      doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
+      yPosition += 8
+
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("BILL DETAILS", 15, yPosition)
+      yPosition += 8
+
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      const billRows = [
+        ["Item Subtotal:", formatMoney(orderData.billing.itemSubtotal)],
+        ["Taxes:", formatMoney(orderData.billing.taxes)],
+      ]
+      if (Number(orderData.billing.packagingFee) > 0) {
+        billRows.push(["Packaging Fee:", formatMoney(orderData.billing.packagingFee)])
+      }
+      if (Number(orderData.billing.deliveryFee) > 0) {
+        billRows.push(["Delivery Fee:", formatMoney(orderData.billing.deliveryFee)])
+      }
+      if (Number(orderData.billing.platformFee) > 0) {
+        billRows.push(["Platform Fee:", formatMoney(orderData.billing.platformFee)])
+      }
+      if (Number(orderData.billing.discount) > 0) {
+        billRows.push(["Discount:", formatDiscount(orderData.billing.discount)])
+      }
+      if (Number(orderData.billing.couponDiscount) > 0) {
+        billRows.push(["Coupon Discount:", formatDiscount(orderData.billing.couponDiscount)])
+      }
+      if (Number(orderData.billing.referralDiscount) > 0) {
+        billRows.push(["Referral Discount:", formatDiscount(orderData.billing.referralDiscount)])
+      }
+      billRows.forEach(([label, value]) => {
+        doc.text(label, 15, yPosition)
+        doc.text(value, pageWidth - rightMargin, yPosition, { align: "right" })
+        yPosition += 6
+      })
+
+      // Dashed line for total
+      doc.setLineDash([2, 2])
+      doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
+      yPosition += 6
+      doc.setLineDash([]) // Reset to solid line
+
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(11)
+      doc.text("Total Bill:", leftMargin, yPosition)
+      doc.text(formatMoney(orderData.billing.total), pageWidth - rightMargin, yPosition, { align: "right" })
+      yPosition += 6
+      if (Number(orderData.billing.paidAmount) > 0) {
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(10)
+        doc.text("Amount Paid:", leftMargin, yPosition)
+        doc.text(formatMoney(orderData.billing.paidAmount), pageWidth - rightMargin, yPosition, { align: "right" })
+        yPosition += 6
+      }
 
       doc.setFontSize(9)
       doc.setFont("helvetica", "normal")
-      const reasonLines = doc.splitTextToSize(orderData.reason, pageWidth - (leftMargin + rightMargin))
-      doc.text(reasonLines, leftMargin, yPosition)
-      yPosition += (reasonLines.length * 5) + 5
-      doc.setTextColor(0, 0, 0)
-    }
+      doc.text(`Payment Status: ${orderData.billing.paymentStatus}`, leftMargin, yPosition)
+      yPosition += 10
 
-    // Order Timeline
-    ensureSpace(40)
+      // Rejection/Cancellation Reason (if exists)
+      if (orderData.reason) {
+        doc.setLineWidth(0.5)
+        ensureSpace(25)
+        doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
+        yPosition += 8
 
-    doc.setLineWidth(0.5)
-    doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
-    yPosition += 8
+        doc.setFontSize(11)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(220, 38, 38)
+        doc.text("REASON:", leftMargin, yPosition)
+        yPosition += 6
 
-    doc.setFontSize(12)
-    doc.setFont("helvetica", "bold")
-    doc.text("ORDER TIMELINE", leftMargin, yPosition)
-    yPosition += 8
-
-    orderData.timeline.forEach((event) => {
-      ensureSpace(15)
-      doc.setFontSize(10)
-      doc.setFont("helvetica", "bold")
-      
-      // Add status indicator
-      if (event.status === "completed") {
-        doc.setFillColor(22, 163, 74)
-      } else if (event.status === "rejected") {
-        doc.setFillColor(220, 38, 38)
-      } else {
-        doc.setFillColor(156, 163, 175)
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "normal")
+        const reasonLines = doc.splitTextToSize(orderData.reason, pageWidth - (leftMargin + rightMargin))
+        doc.text(reasonLines, leftMargin, yPosition)
+        yPosition += (reasonLines.length * 5) + 5
+        doc.setTextColor(0, 0, 0)
       }
-      doc.circle(18, yPosition - 1, 2, "F")
-      
-      doc.setTextColor(0, 0, 0)
-      doc.text(event.event, 25, yPosition)
-      yPosition += 5
-      
-      doc.setFontSize(8)
-      doc.setFont("helvetica", "normal")
-      doc.setTextColor(100, 100, 100)
-      doc.text(event.timestamp || "-", 25, yPosition)
+
+      // Order Timeline
+      ensureSpace(40)
+
+      doc.setLineWidth(0.5)
+      doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
       yPosition += 8
-      doc.setTextColor(0, 0, 0)
-    })
 
-    ensureSpace(15)
-    // Footer
-    yPosition = pageHeight - bottomMargin
-    doc.setFontSize(8)
-    doc.setFont("helvetica", "italic")
-    doc.setTextColor(100, 100, 100)
-    doc.text("Thank you for your business!", pageWidth / 2, yPosition, { align: "center" })
-    yPosition += 5
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: "center" })
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("ORDER TIMELINE", leftMargin, yPosition)
+      yPosition += 8
 
-    // Save the PDF
-    doc.save(`Order_Receipt_${orderData.id}.pdf`)
-    
-    // Show success message
-    setToastMessage("Receipt downloaded successfully!")
-    setShowToast(true)
-    setTimeout(() => setShowToast(false), 2000)
+      orderData.timeline.forEach((event) => {
+        ensureSpace(15)
+        doc.setFontSize(10)
+        doc.setFont("helvetica", "bold")
+
+        // Add status indicator
+        if (event.status === "completed") {
+          doc.setFillColor(22, 163, 74)
+        } else if (event.status === "rejected") {
+          doc.setFillColor(220, 38, 38)
+        } else {
+          doc.setFillColor(156, 163, 175)
+        }
+        doc.circle(18, yPosition - 1, 2, "F")
+
+        doc.setTextColor(0, 0, 0)
+        doc.text(event.event, 25, yPosition)
+        yPosition += 5
+
+        doc.setFontSize(8)
+        doc.setFont("helvetica", "normal")
+        doc.setTextColor(100, 100, 100)
+        doc.text(event.timestamp || "-", 25, yPosition)
+        yPosition += 8
+        doc.setTextColor(0, 0, 0)
+      })
+
+      ensureSpace(15)
+      // Footer
+      yPosition = pageHeight - bottomMargin
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "italic")
+      doc.setTextColor(100, 100, 100)
+      doc.text("Thank you for your business!", pageWidth / 2, yPosition, { align: "center" })
+      yPosition += 5
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: "center" })
+
+      // Save the PDF
+      doc.save(`Order_Receipt_${orderData.id}.pdf`)
+
+      // Show success message
+      setToastMessage("Receipt downloaded successfully!")
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 2000)
     } catch (error) {
       debugError("Error generating PDF:", error)
       debugError("Error details:", error.message, error.stack)
       setToastMessage(`Failed: ${error.message || "Unknown error"}`)
-      setShowToast(true)  
+      setShowToast(true)
       setTimeout(() => setShowToast(false), 3000)
     } finally {
       setIsGeneratingPDF(false)
     }
-    
+
   }
 
   const getStatusColor = (status) => {
@@ -715,15 +702,15 @@ export default function OrderDetails() {
               </span>
               <span className="text-xs text-gray-500">{orderData.date}, {orderData.time}</span>
               {/* Resend button for order details */}
-              {(orderData.status === "PREPARING" || orderData.status === "READY" || orderData.status === "CONFIRMED") && 
+              {(orderData.status === "PREPARING" || orderData.status === "READY" || orderData.status === "CONFIRMED") &&
                 orderData.dispatchStatus !== "accepted" && (
-                <div className="mt-2">
-                  <ResendNotificationButton 
-                    orderId={orderId} 
-                    onSuccess={() => window.location.reload()} 
-                  />
-                </div>
-              )}
+                  <div className="mt-2">
+                    <ResendNotificationButton
+                      orderId={orderId}
+                      onSuccess={() => window.location.reload()}
+                    />
+                  </div>
+                )}
             </div>
           </div>
 
@@ -756,7 +743,7 @@ export default function OrderDetails() {
         {/* Customer Details Section */}
         <div>
           <h2 className="text-base font-bold text-gray-900 mb-3">Customer details</h2>
-          
+
           {/* Customer Card */}
           <div className="bg-white rounded-lg p-4 gap-8 flex flex-col mb-3">
             <div className="flex items-center gap-3">
@@ -769,9 +756,9 @@ export default function OrderDetails() {
               </div>
 
               <hr className="border-gray-200 my-3" />
-              
+
             </div>
-               <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <MapPin className="w-5 h-5 text-gray-600" />
               <div className="flex-1">
                 <p className="text-sm text-gray-900">{orderData.customer.location}</p>
@@ -847,7 +834,7 @@ export default function OrderDetails() {
         {/* Item Details Section */}
         <div>
           <h2 className="text-base font-bold text-gray-900 mb-3">Item details</h2>
-          
+
           {orderData.items.map((item, index) => (
             <div key={index} className="bg-white rounded-lg p-4">
               <div className="flex items-start gap-3">
@@ -878,56 +865,22 @@ export default function OrderDetails() {
         {/* Bill Details Section */}
         <div>
           <h2 className="text-base font-bold text-gray-900 mb-3">Bill details</h2>
-          
+
           <div className="bg-white  rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-gray-600">Item subtotal</span>
               <span className="text-sm text-gray-900">{formatMoney(orderData.billing.itemSubtotal)}</span>
             </div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-gray-600">Taxes</span>
-              <span className="text-sm text-gray-900">{formatMoney(orderData.billing.taxes)}</span>
-            </div>
-            {Number(orderData.billing.packagingFee) > 0 && (
+            {Number(orderData.billing.adminCommission) > 0 && (
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-600">Packaging fee</span>
-                <span className="text-sm text-gray-900">{formatMoney(orderData.billing.packagingFee)}</span>
+                <span className="text-sm text-gray-600">Admin commission</span>
+                <span className="text-sm text-red-600">-{formatMoney(orderData.billing.adminCommission)}</span>
               </div>
             )}
-            {Number(orderData.billing.deliveryFee) > 0 && (
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-600">Delivery fee</span>
-                <span className="text-sm text-gray-900">{formatMoney(orderData.billing.deliveryFee)}</span>
-              </div>
-            )}
-            {Number(orderData.billing.platformFee) > 0 && (
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-600">Platform fee</span>
-                <span className="text-sm text-gray-900">{formatMoney(orderData.billing.platformFee)}</span>
-              </div>
-            )}
-            {Number(orderData.billing.discount) > 0 && (
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-green-700">Discount</span>
-                <span className="text-sm text-green-700">{formatDiscount(orderData.billing.discount)}</span>
-              </div>
-            )}
-            {Number(orderData.billing.couponDiscount) > 0 && (
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-green-700">Coupon discount</span>
-                <span className="text-sm text-green-700">{formatDiscount(orderData.billing.couponDiscount)}</span>
-              </div>
-            )}
-            {Number(orderData.billing.referralDiscount) > 0 && (
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-green-700">Referral discount</span>
-                <span className="text-sm text-green-700">{formatDiscount(orderData.billing.referralDiscount)}</span>
-              </div>
-            )}
-            <div className="my-3"></div>
+            <div className="my-3 border-t border-gray-100"></div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-900">Total bill</span>
+                <span className="text-sm font-semibold text-gray-900">Total bill (Restaurant Earnings)</span>
                 <span className="px-2 py-0.5 bg-gray-200 text-gray-700 text-xs font-medium rounded">
                   {orderData.billing.paymentStatus}
                 </span>
@@ -936,8 +889,8 @@ export default function OrderDetails() {
             </div>
             {Number(orderData.billing.paidAmount) > 0 && (
               <div className="flex items-center justify-between mt-2">
-                <span className="text-sm text-gray-600">Amount paid</span>
-                <span className="text-sm font-medium text-gray-900">{formatMoney(orderData.billing.paidAmount)}</span>
+                {/* <span className="text-sm text-gray-600">Amount paid</span> */}
+                {/* <span className="text-sm font-medium text-gray-900">{formatMoney(orderData.billing.paidAmount)}</span> */}
               </div>
             )}
           </div>
@@ -946,31 +899,30 @@ export default function OrderDetails() {
         {/* Order Timeline Section */}
         <div>
           <h2 className="text-base font-bold text-gray-900 mb-3">Order timeline</h2>
-          
+
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="relative">
               {/* Timeline Line */}
               <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-300"></div>
-              
+
               {/* Timeline Events */}
               <div className="space-y-4">
                 {orderData.timeline.map((event, index) => (
                   <div key={index} className="relative flex items-start gap-3">
                     {/* Icon */}
-                    <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center ${
-                      event.status === "completed" 
-                        ? "bg-gray-900" 
-                        : event.status === "rejected"
+                    <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center ${event.status === "completed"
+                      ? "bg-gray-900"
+                      : event.status === "rejected"
                         ? "bg-red-600"
                         : "bg-gray-400"
-                    }`}>
+                      }`}>
                       {event.status === "completed" ? (
                         <CheckCircle className="w-4 h-4 text-white" />
                       ) : (
                         <XCircle className="w-4 h-4 text-white" />
                       )}
                     </div>
-                    
+
                     {/* Event Details */}
                     <div className="flex-1 pt-1">
                       <p className="text-sm text-gray-900">{event.event}</p>

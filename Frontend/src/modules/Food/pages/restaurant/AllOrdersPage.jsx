@@ -239,7 +239,7 @@ export default function AllOrdersPage() {
       address,
       customer: customerName,
       items,
-      totalPrice: order.pricing?.total || 0,
+      totalPrice: order.pricing?.subtotal || 0,
       reason,
       tags: tags.length > 0 ? tags : undefined,
       createdAt: order.createdAt,

@@ -158,7 +158,7 @@ function CompletedOrders({ onSelectOrder, refreshToken = 0 }) {
             itemsSummary: buildOrderItemsSummary(order.items),
             photoUrl: getOrderPreviewItem(order.items)?.image || null,
             photoAlt: getOrderPreviewItem(order.items)?.name || "Order",
-            amount: order.pricing?.total || order.total || 0,
+            amount: order.pricing?.subtotal || order.total || 0,
             paymentMethod: order.paymentMethod || order.payment?.method || null,
           }));
 
@@ -365,7 +365,7 @@ function CancelledOrders({ onSelectOrder, refreshToken = 0 }) {
             itemsSummary: buildOrderItemsSummary(order.items),
             photoUrl: getOrderPreviewItem(order.items)?.image || null,
             photoAlt: getOrderPreviewItem(order.items)?.name || "Order",
-            amount: order.pricing?.total || order.total || 0,
+            amount: order.pricing?.subtotal || order.total || 0,
             paymentMethod: order.paymentMethod || order.payment?.method || null,
           }));
 
@@ -1004,7 +1004,7 @@ export default function OrdersMain() {
     const directTotal = Number(orderLike.total);
     if (Number.isFinite(directTotal) && directTotal > 0) return directTotal;
 
-    const pricingTotal = Number(orderLike.pricing?.total);
+    const pricingTotal = Number(orderLike.pricing?.subtotal);
     if (Number.isFinite(pricingTotal) && pricingTotal > 0) return pricingTotal;
 
     const amountDue = Number(orderLike.payment?.amountDue);
@@ -1301,7 +1301,7 @@ export default function OrdersMain() {
               restaurantId: orderToPopup.restaurantId,
               restaurantName: orderToPopup.restaurantName,
               items: getRestaurantVisibleItems(orderToPopup.items || []),
-              total: orderToPopup.pricing?.total || 0,
+              total: orderToPopup.pricing?.subtotal || 0,
               customerAddress: orderToPopup.address,
               status: orderToPopup.status,
               createdAt: orderToPopup.createdAt,

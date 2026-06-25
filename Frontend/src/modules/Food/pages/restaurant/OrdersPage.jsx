@@ -44,7 +44,7 @@ export default function OrdersPage() {
     ? {
         ...newOrder,
         orderMongoId: newOrder.orderMongoId || newOrder._id || newOrder.id,
-        total: newOrder.total ?? newOrder.pricing?.total ?? 0,
+        total: newOrder.total ?? newOrder.pricing?.subtotal ?? 0,
         customerAddress: newOrder.customerAddress || newOrder.deliveryAddress || newOrder.address,
       }
     : null
@@ -166,7 +166,7 @@ export default function OrdersPage() {
               items: order.items?.length || 0,
               timeAgo: timeAgo,
               deliveryType: 'Home Delivery',
-              amount: order.pricing?.total || 0,
+              amount: order.pricing?.subtotal || 0,
               status: order.status || 'pending',
               createdAt: order.createdAt,
               customerName: order.userId?.name || order.customerName || 'Customer',
@@ -236,7 +236,7 @@ export default function OrdersPage() {
                 items: order.items?.length || 0,
                 timeAgo: timeAgo,
                 deliveryType: 'Home Delivery',
-                amount: order.pricing?.total || 0,
+                amount: order.pricing?.subtotal || 0,
                 status: order.status || 'pending',
                 createdAt: order.createdAt,
                 customerName: order.userId?.name || order.customerName || 'Customer',
@@ -289,7 +289,7 @@ export default function OrdersPage() {
                 items: order.items?.length || 0,
                 timeAgo: timeAgo,
                 deliveryType: 'Home Delivery',
-                amount: order.pricing?.total || 0,
+                amount: order.pricing?.subtotal || 0,
                 status: order.status || 'pending',
                 createdAt: order.createdAt,
                 customerName: order.userId?.name || order.customerName || 'Customer',
