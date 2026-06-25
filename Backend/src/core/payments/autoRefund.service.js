@@ -27,7 +27,7 @@ const ONLINE_METHODS = ['razorpay', 'razorpay_qr'];
  *
  * Idempotency: Skips silently if payment.refund.status is already 'processed'.
  */
-export async function autoRefundForCancelledOrder(order, refundToOverride) {
+export async function autoRefundForCancelledOrder(order, refundToOverride, customDescription) {
     const paymentStatus = String(order.payment?.status || '').trim().toLowerCase();
     const paymentMethod = String(order.payment?.method || '').trim().toLowerCase();
     const existingRefundStatus = String(order.payment?.refund?.status || '').trim().toLowerCase();
@@ -73,7 +73,7 @@ export async function autoRefundForCancelledOrder(order, refundToOverride) {
             await refundWalletBalance(
                 order.userId,
                 refundAmount,
-                `Refund for cancelled order #${order.orderId}`,
+                customDescription || `Refund for cancelled order #${order.orderId}`,
                 {
                     orderId: String(order._id),
                     orderReadableId: String(order.orderId || ''),

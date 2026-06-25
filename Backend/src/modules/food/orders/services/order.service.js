@@ -3359,7 +3359,13 @@ export async function updateOrderStatusRestaurant(
     // ✅ AUTOMATED REFUND: Full refund on restaurant cancellation (wallet or gateway)
     if (String(orderStatus).includes("cancel")) {
       try {
-        await autoRefundForCancelledOrder(order);
+        let overrideMethod = undefined;
+        let customDesc = undefined;
+        if (orderStatus === 'cancelled_by_restaurant') {
+            overrideMethod = 'wallet';
+            customDesc = 'Refund for restaurant-rejected order';
+        }
+        await autoRefundForCancelledOrder(order, overrideMethod, customDesc);
         // Re-save order with updated payment status after refund attempt
         await order.save();
       } catch (err) {
