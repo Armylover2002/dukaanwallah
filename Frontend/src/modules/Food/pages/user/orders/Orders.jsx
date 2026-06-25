@@ -697,25 +697,28 @@ Order again from this restaurant in the ${companyName} app.`
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10 font-sans">
-      {/* Header */}
-      <div className="bg-white dark:bg-[#111111] p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-transparent dark:border-gray-800">
-        <Link to="/food/user">
-          <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-white cursor-pointer" />
-        </Link>
-        <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
-      </div>
+      {/* Sticky Header & Search Bar Wrapper */}
+      <div className="sticky top-0 z-10 bg-white dark:bg-[#111111] shadow-sm border-b border-gray-100 dark:border-gray-800">
+        {/* Header */}
+        <div className="p-4 flex items-center">
+          <Link to="/food/user">
+            <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-white cursor-pointer" />
+          </Link>
+          <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
+        </div>
 
-      {/* Search Bar */}
-      <div className="p-4 bg-white dark:bg-[#111111] mt-1">
-        <div className="flex items-center bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 shadow-sm">
-          <Search className="w-5 h-5 text-[#FE5502]" />
-          <input
-            type="text"
-            placeholder="Search by restaurant or dish"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 ml-3 outline-none bg-transparent text-gray-600 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
-          />
+        {/* Search Bar */}
+        <div className="p-4 pt-0">
+          <div className="flex items-center bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 shadow-sm">
+            <Search className="w-5 h-5 text-[#FE5502]" />
+            <input
+              type="text"
+              placeholder="Search by restaurant or dish"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 ml-3 outline-none bg-transparent text-gray-600 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+            />
+          </div>
         </div>
       </div>
 
