@@ -345,7 +345,7 @@ export default function Cart() {
     if (normalized === "other") return "Other"
     return label || "Saved address"
   }
-  const sanitizeRecipientPhone = (value) => String(value || "").replace(/[^\d+]/g, "").slice(0, 14)
+  const sanitizeRecipientPhone = (value) => String(value || "").replace(/[^\d]/g, "").slice(0, 10)
   const savedAddress = getDefaultAddress()
   const selectedAddress = addresses.find((addr) => getAddressId(addr) && getAddressId(addr) === selectedAddressId)
 
@@ -2783,11 +2783,12 @@ export default function Cart() {
                       </label>
                       <input
                         type="text"
+                        maxLength={15}
                         value={recipientDetails.name}
                         onChange={(e) =>
                           setRecipientDetails((prev) => ({
                             ...prev,
-                            name: e.target.value,
+                            name: e.target.value.slice(0, 25),
                           }))
                         }
                         placeholder="Enter recipient name"
@@ -2800,6 +2801,7 @@ export default function Cart() {
                       </label>
                       <input
                         type="tel"
+                        maxLength={10}
                         value={recipientDetails.phone}
                         onChange={(e) =>
                           setRecipientDetails((prev) => ({
