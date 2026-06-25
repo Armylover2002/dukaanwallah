@@ -446,7 +446,7 @@ export default function EditProfile() {
       <div className="bg-white dark:bg-[#1a1a1a] sticky top-0 z-10 border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto flex items-center gap-3 px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 md:py-5 lg:py-6">
           <button
-            onClick={goBack}
+            onClick={() => navigate(-1)}
             className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-white" />
@@ -505,7 +505,6 @@ export default function EditProfile() {
                 <Input
                   id="name"
                   type="text"
-                  maxLength={30}
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   className="pr-10 h-12 text-base border border-gray-300 dark:border-gray-700 focus:border-primary-orange focus:ring-1 focus:ring-primary-orange rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white"

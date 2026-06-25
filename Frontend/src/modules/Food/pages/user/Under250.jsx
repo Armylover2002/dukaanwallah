@@ -836,8 +836,8 @@ export default function Under250() {
       <div
         ref={stickyHeaderRef}
         className={`fixed top-0 left-0 right-0 z-40 w-full md:hidden transition-all duration-300 ${hasScrolledPastBanner
-          ? "bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200"
-          : "bg-transparent"
+          ? "bg-white/95 dark:bg-[#111111]/95 backdrop-blur-sm shadow-sm border-b border-gray-200 dark:border-gray-800"
+          : "bg-white/80 dark:bg-[#111111]/80 backdrop-blur-md shadow-sm border-b border-gray-200/30 dark:border-gray-800/30"
           }`}
       >
         <div className="relative z-50 pt-2 sm:pt-3 pb-2">

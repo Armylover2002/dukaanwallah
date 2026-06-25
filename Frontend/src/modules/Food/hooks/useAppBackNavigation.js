@@ -104,12 +104,17 @@ const resolveBackPath = ({ pathname, search, state }) => {
   if (
     normalizedPath === "/cart/checkout" ||
     normalizedPath === "/cart/select-address" ||
-    normalizedPath === "/cart/address-selector" ||
     normalizedPath === "/user/cart/checkout" ||
-    normalizedPath === "/user/cart/select-address" ||
-    normalizedPath === "/user/cart/address-selector"
+    normalizedPath === "/user/cart/select-address"
   ) {
     return "/cart"
+  }
+
+  if (
+    normalizedPath === "/cart/address-selector" ||
+    normalizedPath === "/user/cart/address-selector"
+  ) {
+    return explicitBackPath || "/cart"
   }
 
   if (normalizedPath === "/user/address-selector") {
