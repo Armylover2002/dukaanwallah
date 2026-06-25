@@ -219,7 +219,7 @@ export default function EditProfile() {
 
   const validateEmail = (value) => {
     if (!value) return ""
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Please enter a valid email"
+    return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/.test(value) ? "" : "Please enter a valid email"
   }
 
   const validateMobile = (value) => {

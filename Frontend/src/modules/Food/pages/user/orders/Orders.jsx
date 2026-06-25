@@ -5,6 +5,7 @@ import { orderAPI } from "@food/api"
 import { useCart } from "@food/context/CartContext"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@common/utils/businessSettings"
+import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }
@@ -12,6 +13,7 @@ const debugError = (...args) => { }
 
 export default function Orders() {
   const navigate = useNavigate()
+  const goBack = useAppBackNavigation()
   const { replaceCart } = useCart()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -664,9 +666,9 @@ Order again from this restaurant in the ${companyName} app.`
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10">
         <div className="bg-white dark:bg-[#111111] p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-transparent dark:border-gray-800">
-          <Link to="/user">
+          <button onClick={() => navigate(-1)} className="focus:outline-none">
             <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-white cursor-pointer" />
-          </Link>
+          </button>
           <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
         </div>
         <div className="flex items-center justify-center py-20">
@@ -680,9 +682,9 @@ Order again from this restaurant in the ${companyName} app.`
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10">
         <div className="bg-white dark:bg-[#111111] p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-transparent dark:border-gray-800">
-          <Link to="/user">
+          <button onClick={() => navigate(-1)} className="focus:outline-none">
             <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-white cursor-pointer" />
-          </Link>
+          </button>
           <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
         </div>
         <div className="px-4 py-8 text-center">
@@ -701,9 +703,9 @@ Order again from this restaurant in the ${companyName} app.`
       <div className="sticky top-0 z-10 bg-white dark:bg-[#111111] shadow-sm border-b border-gray-100 dark:border-gray-800">
         {/* Header */}
         <div className="p-4 flex items-center">
-          <Link to="/food/user">
+          <button onClick={() => navigate(-1)} className="focus:outline-none">
             <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-white cursor-pointer" />
-          </Link>
+          </button>
           <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
         </div>
 
@@ -945,10 +947,10 @@ Order again from this restaurant in the ${companyName} app.`
                         </span>
                         {order.payment.status && (
                           <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${(order.payment.status === 'paid' || order.payment.status === 'completed' || order.payment.status === 'captured') ? 'bg-green-100 text-green-700' :
-                              (order.payment.status === 'failed' || order.payment.status === 'cancelled') ? 'bg-red-100 text-red-700' :
-                                (order.payment.status === 'pending' || order.payment.status === 'cod_pending' || order.payment.status === 'created' || order.payment.status === 'pending_qr') ? 'bg-yellow-100 text-yellow-700' :
-                                  (order.payment.status === 'refunded') ? 'bg-blue-100 text-blue-700' :
-                                    'bg-gray-100 text-gray-700'
+                            (order.payment.status === 'failed' || order.payment.status === 'cancelled') ? 'bg-red-100 text-red-700' :
+                              (order.payment.status === 'pending' || order.payment.status === 'cod_pending' || order.payment.status === 'created' || order.payment.status === 'pending_qr') ? 'bg-yellow-100 text-yellow-700' :
+                                (order.payment.status === 'refunded') ? 'bg-blue-100 text-blue-700' :
+                                  'bg-gray-100 text-gray-700'
                             }`}>
                             {order.payment.status === 'cod_pending' || order.payment.status === 'created' || order.payment.status === 'pending_qr' ? 'Pending' :
                               order.payment.status === 'paid' || order.payment.status === 'captured' ? 'Paid' :

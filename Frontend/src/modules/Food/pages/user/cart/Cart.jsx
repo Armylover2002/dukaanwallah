@@ -2161,7 +2161,7 @@ export default function Cart() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={handleBack}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -2193,7 +2193,7 @@ export default function Cart() {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 md:h-8 md:w-8 flex-shrink-0 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={handleBack}
+                onClick={() => navigate(-1)}
               >
                 <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
               </Button>

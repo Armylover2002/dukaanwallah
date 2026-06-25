@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation as useRouterLocation } from "react-router-dom"
 import { ChevronLeft, ChevronRight, Plus, MapPin, MoreHorizontal, Navigation, Home, Building2, Briefcase, Phone, X, Crosshair, Search } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
@@ -100,6 +100,7 @@ const persistSelectedLocation = (locationData) => {
 export default function AddressSelectorPage() {
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
+  const routerLocation = useRouterLocation()
   const { location, loading, requestLocation, reverseGeocode } = useGeoLocation()
   const { addresses = [], addAddress, updateAddress, setDefaultAddress, userProfile } = useProfile()
   const [showAddressForm, setShowAddressForm] = useState(false)
@@ -341,8 +342,9 @@ export default function AddressSelectorPage() {
         } else {
           toast.success("Location updated", { id: "geo" })
           // Redirect if they are on the main selection page
+          const from = routerLocation?.state?.from || "/food/user"
           setTimeout(() => {
-            navigate("/food/user")
+            navigate(from, { replace: true })
           }, 800)
         }
       } else {
@@ -362,7 +364,7 @@ export default function AddressSelectorPage() {
       toast.success("Address selected")
       
       // Use "from" state if available, otherwise default to home page
-      const from = location?.state?.from || "/food/user"
+      const from = routerLocation?.state?.from || "/food/user"
       setTimeout(() => {
         navigate(from, { replace: true })
       }, 500)
@@ -477,7 +479,7 @@ export default function AddressSelectorPage() {
         setKeywordAddressSuggestions([])
         
         // Use "from" state if available, otherwise default to home page
-        const from = location?.state?.from || "/food/user"
+        const from = routerLocation?.state?.from || "/food/user"
         setTimeout(() => {
           navigate(from, { replace: true })
         }, 500)

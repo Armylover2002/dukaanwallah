@@ -10,6 +10,7 @@ const toFoodPath = (value) => {
   if (trimmed === "/food") return trimmed
   if (trimmed.startsWith("/user/")) return `/food${trimmed}`
   if (trimmed === "/user") return "/food/user"
+  if (trimmed.startsWith("/")) return trimmed
   return null
 }
 
