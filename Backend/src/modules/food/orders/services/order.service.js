@@ -1908,17 +1908,19 @@ export async function calculateOrder(userId, dto) {
     : "";
   if (codeRaw) {
     const now = new Date();
+    
+    let resolvedRestaurantId = primaryRestaurantId;
+    if (primaryRestaurantId && !mongoose.Types.ObjectId.isValid(primaryRestaurantId)) {
+      const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');
+      const rest = await FoodRestaurant.findOne({ restaurantId: primaryRestaurantId }).select('_id').lean();
+      if (rest) {
+        resolvedRestaurantId = rest._id;
+      }
+    }
+
     let offer = await FoodOffer.findOne({ couponCode: codeRaw }).lean();
     if (!offer) {
       const { RestaurantCoupon } = await import('../../admin/models/restaurantCoupon.model.js');
-      let resolvedRestaurantId = primaryRestaurantId;
-      if (primaryRestaurantId && !mongoose.Types.ObjectId.isValid(primaryRestaurantId)) {
-        const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');
-        const rest = await FoodRestaurant.findOne({ restaurantId: primaryRestaurantId }).select('_id').lean();
-        if (rest) {
-          resolvedRestaurantId = rest._id;
-        }
-      }
       const isIdValid = mongoose.Types.ObjectId.isValid(resolvedRestaurantId);
       const restCoupon = isIdValid ? await RestaurantCoupon.findOne({
         couponCode: codeRaw,
@@ -1960,7 +1962,7 @@ export async function calculateOrder(userId, dto) {
       const endOk = !offer.endDate || now < new Date(offer.endDate);
       const scopeOk =
         offer.restaurantScope !== "selected" ||
-        String(offer.restaurantId || "") === String(primaryRestaurantId || "");
+        String(offer.restaurantId || "") === String(resolvedRestaurantId || "");
       const minOk = subtotal >= (Number(offer.minOrderValue) || 0);
       let usageOk = true;
       if (

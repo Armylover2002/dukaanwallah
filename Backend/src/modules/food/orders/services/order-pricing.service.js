@@ -212,6 +212,16 @@ export async function calculateOrderPricing(userId, dto) {
 
   if (codeRaw) {
     const now = new Date();
+    
+    let resolvedRestaurantId = dto.restaurantId;
+    if (resolvedRestaurantId && !mongoose.Types.ObjectId.isValid(resolvedRestaurantId)) {
+      const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');
+      const rest = await FoodRestaurant.findOne({ restaurantId: resolvedRestaurantId }).select('_id').lean();
+      if (rest) {
+        resolvedRestaurantId = rest._id;
+      }
+    }
+
     let offer = await FoodOffer.findOne({ couponCode: codeRaw }).lean();
     if (offer) {
       const statusOk = offer.status === "active";
@@ -219,7 +229,7 @@ export async function calculateOrderPricing(userId, dto) {
       const endOk = !offer.endDate || now < new Date(offer.endDate);
       const scopeOk =
         offer.restaurantScope !== "selected" ||
-        String(offer.restaurantId || "") === String(dto.restaurantId || "");
+        String(offer.restaurantId || "") === String(resolvedRestaurantId || "");
       const minOk = subtotal >= (Number(offer.minOrderValue) || 0);
       let usageOk = true;
       if (
@@ -281,11 +291,11 @@ export async function calculateOrderPricing(userId, dto) {
       }
     } else {
       const { RestaurantCoupon } = await import('../../admin/models/restaurantCoupon.model.js');
-      const isIdValid = mongoose.Types.ObjectId.isValid(dto.restaurantId);
+      const isIdValid = mongoose.Types.ObjectId.isValid(resolvedRestaurantId);
       const restCoupon = isIdValid ? await RestaurantCoupon.findOne({
         couponCode: codeRaw,
         status: 'Approved',
-        restaurantId: new mongoose.Types.ObjectId(dto.restaurantId)
+        restaurantId: new mongoose.Types.ObjectId(resolvedRestaurantId)
       }).lean() : null;
 
       if (restCoupon) {
