@@ -32,10 +32,29 @@ export async function autoRefundForCancelledOrder(order, refundToOverride, custo
     const paymentMethod = String(order.payment?.method || '').trim().toLowerCase();
     const existingRefundStatus = String(order.payment?.refund?.status || '').trim().toLowerCase();
 
-    // ── Guard: already refunded ──────────────────────────────────────────────
+    // ── Guard: already refunded (in-memory check) ────────────────────────
     if (existingRefundStatus === 'processed' || paymentStatus === 'refunded') {
         logger.info(`[AutoRefund] Skipped — already refunded. Order: ${order.orderId}`);
         return { method: order.payment?.refund?.processedMethod || 'unknown', status: 'already_processed' };
+    }
+
+    // ── Guard: Atomic Database Lock ──────────────────────────────────────────
+    // Prevent race conditions (e.g., user double-clicking cancel, or simultaneous API calls)
+    if (order.constructor && typeof order.constructor.findOneAndUpdate === 'function' && order._id) {
+        const lockedOrder = await order.constructor.findOneAndUpdate(
+            { 
+                _id: order._id, 
+                'payment.refund.status': { $nin: ['processed', 'processing'] },
+                'payment.status': { $nin: ['refunded'] }
+            },
+            { $set: { 'payment.refund.status': 'processing' } },
+            { new: true }
+        );
+
+        if (!lockedOrder) {
+            logger.info(`[AutoRefund] Skipped — concurrent request acquired lock or already refunded. Order: ${order.orderId}`);
+            return { method: order.payment?.refund?.processedMethod || 'unknown', status: 'already_processed' };
+        }
     }
 
     // ── Guard: only refund paid orders ──────────────────────────────────────

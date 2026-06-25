@@ -28,11 +28,19 @@ export const clearContentCache = () => {
 
 const toIdString = (value) => {
   if (!value) return null;
+  let str = null;
   if (typeof value === 'object' && value !== null) {
-    if (value._id) return String(value._id);
-    if (value.id) return String(value.id);
+    if (value._id) str = String(value._id);
+    else if (value.id) str = String(value.id);
+    else str = String(value);
+  } else {
+    str = String(value);
   }
-  return String(value);
+  
+  if (str && mongoose.Types.ObjectId.isValid(str)) {
+    return str;
+  }
+  return null;
 };
 
 const toId = (value) => {
@@ -86,7 +94,7 @@ export const getQuickHeroConfig = async ({ pageType = 'home', headerId = null } 
 
   const query = { pageType };
   if (pageType === 'header') {
-    query.headerId = headerId ? String(headerId) : null;
+    query.headerId = headerId && headerId !== 'all' && headerId !== 'null' && mongoose.Types.ObjectId.isValid(String(headerId)) ? String(headerId) : null;
   }
 
   const data = await QuickHeroConfig.findOne(query).sort({ updatedAt: -1, createdAt: -1 }).lean();
@@ -144,7 +152,7 @@ export const getQuickExperienceSections = async ({ pageType = 'home', headerId =
     if (isAllCategory && isAdmin) {
       // Admin: show sections across all header categories
     } else {
-      query.headerId = headerId ? String(headerId) : null;
+      query.headerId = headerId && headerId !== 'all' && headerId !== 'null' && mongoose.Types.ObjectId.isValid(String(headerId)) ? String(headerId) : null;
     }
   }
 

@@ -64,14 +64,35 @@ export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatu
   const currentStatus = sellerOrder.status;
   if (currentStatus === nextStatus) return sellerOrder;
 
-  // 1. Update SellerOrder
-  sellerOrder.status = nextStatus;
-  sellerOrder.workflowStatus = SELLER_TO_WORKFLOW_MAP[nextStatus] || sellerOrder.workflowStatus;
-  if (nextStatus === 'delivered') sellerOrder.deliveredAt = new Date();
+  // 1. Atomically update SellerOrder to prevent race conditions (e.g. double-clicks)
+  const updatePayload = {
+    $set: {
+      status: nextStatus,
+      workflowStatus: SELLER_TO_WORKFLOW_MAP[nextStatus] || sellerOrder.workflowStatus,
+    }
+  };
+
+  if (nextStatus === 'delivered') updatePayload.$set.deliveredAt = new Date();
   if (nextStatus === 'cancelled' && reason) {
-    sellerOrder.cancellationReason = reason;
+    updatePayload.$set.cancellationReason = reason;
   }
-  await sellerOrder.save();
+
+  const updatedSellerOrder = await SellerOrder.findOneAndUpdate(
+    {
+      _id: sellerOrder._id,
+      status: currentStatus // ATOMIC GUARD: Ensure status hasn't changed concurrently
+    },
+    updatePayload,
+    { new: true }
+  );
+
+  if (!updatedSellerOrder) {
+    logger.info(`[Concurrent Access] Skipped order status update for ${sellerOrder.orderId} from ${currentStatus} to ${nextStatus}.`);
+    return sellerOrder;
+  }
+
+  // Update our local reference to the atomically updated document
+  Object.assign(sellerOrder, updatedSellerOrder.toObject());
 
   // 1b. Earnings credit: create/upsert an "Order Payment" transaction once delivered.
   // This is idempotent (unique by sellerId + orderId + type).
@@ -203,7 +224,7 @@ export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatu
 const handleSellerOrderCancellation = async (parentOrder, reason = '') => {
   // ✅ AUTOMATED REFUND: Full refund on seller cancellation (wallet or gateway)
   try {
-    await autoRefundForCancelledOrder(parentOrder);
+    await autoRefundForCancelledOrder(parentOrder, 'wallet', 'Refund for seller-rejected Quick Section order');
     // parentOrder.payment fields are updated in-memory; caller will .save()
   } catch (err) {
     logger.error(`[handleSellerOrderCancellation] Auto-refund failed for Quick Order ${parentOrder.orderId}: ${err?.message || err}`);
