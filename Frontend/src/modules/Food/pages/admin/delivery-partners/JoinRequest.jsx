@@ -19,6 +19,8 @@ export default function JoinRequest() {
   const [isApproveOpen, setIsApproveOpen] = useState(false)
   const [isDenyOpen, setIsDenyOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
+  const [isDocsListOpen, setIsDocsListOpen] = useState(false)
+  const [lightboxImage, setLightboxImage] = useState(null)
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [viewDetails, setViewDetails] = useState(null)
   const [processing, setProcessing] = useState(false)
@@ -209,6 +211,36 @@ export default function JoinRequest() {
       setLoading(false)
     }
   }
+
+  const handleViewDocs = async (request) => {
+    try {
+      setLoading(true)
+      const response = await adminAPI.getDeliveryPartnerById(request._id)
+      
+      if (response.data && response.data.success) {
+        setViewDetails(response.data.data.delivery)
+        setIsDocsListOpen(true)
+      } else {
+        toast.error("Failed to load documents")
+      }
+    } catch (err) {
+      debugError("Error fetching documents:", err)
+      toast.error(err.response?.data?.message || "Failed to load documents")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Listen for Escape key to close Lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setLightboxImage(null)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
 
   const handleExportPDF = () => {
     if (filteredRequests.length === 0) {
@@ -474,6 +506,13 @@ export default function JoinRequest() {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
+                            <button
+                              onClick={() => handleViewDocs(request)}
+                              className="p-1.5 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                              title="View Documents"
+                            >
+                              <FileCheck className="w-4 h-4" />
+                            </button>
                             {activeTab === "pending" && (
                               <>
                                 <button
@@ -603,7 +642,8 @@ export default function JoinRequest() {
                       <img 
                         src={viewDetails.profileImage.url} 
                         alt={viewDetails.name}
-                        className="w-24 h-24 rounded-full object-cover border-2 border-slate-200"
+                        className="w-24 h-24 rounded-full object-cover border-2 border-slate-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={() => setLightboxImage(viewDetails.profileImage.url)}
                       />
                     ) : (
                       <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center">
@@ -785,11 +825,9 @@ export default function JoinRequest() {
                       {viewDetails.vehicle.vehicleImage && (
                         <div className="col-span-4 mt-3">
                           <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Vehicle Image</label>
-                          <a
-                            href={viewDetails.vehicle.vehicleImage}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block relative rounded-lg overflow-hidden border border-slate-200 group bg-slate-50 shadow-sm"
+                          <div
+                            className="inline-block relative rounded-lg overflow-hidden border border-slate-200 group bg-slate-50 shadow-sm cursor-pointer"
+                            onClick={() => setLightboxImage(viewDetails.vehicle.vehicleImage)}
                           >
                             <img
                               src={viewDetails.vehicle.vehicleImage}
@@ -797,8 +835,16 @@ export default function JoinRequest() {
                               className="w-full max-w-sm h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                             />
                             <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
-                              <ExternalLink className="w-4 h-4" /> View Fullscreen
+                              <Eye className="w-4 h-4" /> View Image
                             </div>
+                          </div>
+                          <a
+                            href={viewDetails.vehicle.vehicleImage}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-xs text-blue-600 hover:text-blue-700 mt-1.5 font-medium"
+                          >
+                            <ExternalLink className="w-3 h-3 inline align-middle mr-0.5" /> Open in New Tab
                           </a>
                         </div>
                       )}
@@ -822,14 +868,30 @@ export default function JoinRequest() {
                               <p className="text-sm text-slate-700 mb-1">Number: {viewDetails.documents.aadhar.number}</p>
                             )}
                             {viewDetails.documents.aadhar.document && (
-                              <a 
-                                href={viewDetails.documents.aadhar.document} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
-                              >
-                                <ExternalLink className="w-3 h-3" /> View Document
-                              </a>
+                              <div className="mt-2">
+                                <div 
+                                  onClick={() => setLightboxImage(viewDetails.documents.aadhar.document)}
+                                  className="relative w-full h-32 rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-slate-50 shadow-sm group"
+                                >
+                                  <img 
+                                    src={viewDetails.documents.aadhar.document} 
+                                    alt="Aadhar Card" 
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                                    <Eye className="w-3.5 h-3.5" /> View
+                                  </div>
+                                </div>
+                                <a 
+                                  href={viewDetails.documents.aadhar.document} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="w-3 h-3" /> Open in New Tab
+                                </a>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -844,14 +906,30 @@ export default function JoinRequest() {
                               <p className="text-sm text-slate-700 mb-1">Number: {viewDetails.documents.pan.number}</p>
                             )}
                             {viewDetails.documents.pan.document && (
-                              <a 
-                                href={viewDetails.documents.pan.document} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
-                              >
-                                <ExternalLink className="w-3 h-3" /> View Document
-                              </a>
+                              <div className="mt-2">
+                                <div 
+                                  onClick={() => setLightboxImage(viewDetails.documents.pan.document)}
+                                  className="relative w-full h-32 rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-slate-50 shadow-sm group"
+                                >
+                                  <img 
+                                    src={viewDetails.documents.pan.document} 
+                                    alt="PAN Card" 
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                                    <Eye className="w-3.5 h-3.5" /> View
+                                  </div>
+                                </div>
+                                <a 
+                                  href={viewDetails.documents.pan.document} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="w-3 h-3" /> Open in New Tab
+                                </a>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -871,14 +949,30 @@ export default function JoinRequest() {
                               </p>
                             )}
                             {viewDetails.documents.drivingLicense.document && (
-                              <a 
-                                href={viewDetails.documents.drivingLicense.document} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
-                              >
-                                <ExternalLink className="w-3 h-3" /> View Document
-                              </a>
+                              <div className="mt-2">
+                                <div 
+                                  onClick={() => setLightboxImage(viewDetails.documents.drivingLicense.document)}
+                                  className="relative w-full h-32 rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-slate-50 shadow-sm group"
+                                >
+                                  <img 
+                                    src={viewDetails.documents.drivingLicense.document} 
+                                    alt="Driving License" 
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                                    <Eye className="w-3.5 h-3.5" /> View
+                                  </div>
+                                </div>
+                                <a 
+                                  href={viewDetails.documents.drivingLicense.document} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="w-3 h-3" /> Open in New Tab
+                                </a>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -893,14 +987,30 @@ export default function JoinRequest() {
                               <p className="text-sm text-slate-700 mb-1">Number: {viewDetails.documents.vehicleRC.number}</p>
                             )}
                             {viewDetails.documents.vehicleRC.document && (
-                              <a 
-                                href={viewDetails.documents.vehicleRC.document} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
-                              >
-                                <ExternalLink className="w-3 h-3" /> View Document
-                              </a>
+                              <div className="mt-2">
+                                <div 
+                                  onClick={() => setLightboxImage(viewDetails.documents.vehicleRC.document)}
+                                  className="relative w-full h-32 rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-slate-50 shadow-sm group"
+                                >
+                                  <img 
+                                    src={viewDetails.documents.vehicleRC.document} 
+                                    alt="Vehicle RC" 
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                                    <Eye className="w-3.5 h-3.5" /> View
+                                  </div>
+                                </div>
+                                <a 
+                                  href={viewDetails.documents.vehicleRC.document} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="w-3 h-3" /> Open in New Tab
+                                </a>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1002,6 +1112,245 @@ export default function JoinRequest() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View Documents Dialog */}
+      <Dialog open={isDocsListOpen} onOpenChange={setIsDocsListOpen}>
+        <DialogContent className="max-w-3xl bg-white p-0 opacity-0 data-[state=open]:opacity-100 data-[state=closed]:opacity-0 transition-opacity duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:scale-100 data-[state=closed]:scale-100 max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-200">
+            <DialogTitle className="text-xl font-bold text-slate-900">Uploaded Documents</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            {viewDetails ? (
+              <div className="space-y-6 mt-4">
+                <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
+                  {viewDetails.profileImage?.url ? (
+                    <img 
+                      src={viewDetails.profileImage.url} 
+                      alt={viewDetails.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                      <User className="w-6 h-6 text-slate-400" />
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">{viewDetails.name}</h4>
+                    <p className="text-xs text-slate-500">{viewDetails.email} | {viewDetails.phone}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Aadhar */}
+                  {viewDetails.documents?.aadhar && (
+                    <div className="border border-slate-100 rounded-lg p-4 bg-slate-50 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500 uppercase">Aadhar Card</label>
+                        {viewDetails.documents.aadhar.number && (
+                          <p className="text-sm text-slate-700 mt-1 font-medium">Number: {viewDetails.documents.aadhar.number}</p>
+                        )}
+                      </div>
+                      {viewDetails.documents.aadhar.document ? (
+                        <div className="mt-3">
+                          <div 
+                            onClick={() => setLightboxImage(viewDetails.documents.aadhar.document)}
+                            className="relative w-full h-36 rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-white group shadow-inner"
+                          >
+                            <img 
+                              src={viewDetails.documents.aadhar.document} 
+                              alt="Aadhar Card" 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                              <Eye className="w-4 h-4" /> View Full Image
+                            </div>
+                          </div>
+                          <a 
+                            href={viewDetails.documents.aadhar.document} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-2 font-medium"
+                          >
+                            <ExternalLink className="w-3 h-3" /> Open in New Tab
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-3 italic">No document image uploaded</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PAN */}
+                  {viewDetails.documents?.pan && (
+                    <div className="border border-slate-100 rounded-lg p-4 bg-slate-50 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500 uppercase">PAN Card</label>
+                        {viewDetails.documents.pan.number && (
+                          <p className="text-sm text-slate-700 mt-1 font-medium">Number: {viewDetails.documents.pan.number}</p>
+                        )}
+                      </div>
+                      {viewDetails.documents.pan.document ? (
+                        <div className="mt-3">
+                          <div 
+                            onClick={() => setLightboxImage(viewDetails.documents.pan.document)}
+                            className="relative w-full h-36 rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-white group shadow-inner"
+                          >
+                            <img 
+                              src={viewDetails.documents.pan.document} 
+                              alt="PAN Card" 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                              <Eye className="w-4 h-4" /> View Full Image
+                            </div>
+                          </div>
+                          <a 
+                            href={viewDetails.documents.pan.document} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-2 font-medium"
+                          >
+                            <ExternalLink className="w-3 h-3" /> Open in New Tab
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-3 italic">No document image uploaded</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Driving License */}
+                  {viewDetails.documents?.drivingLicense && (
+                    <div className="border border-slate-100 rounded-lg p-4 bg-slate-50 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500 uppercase">Driving License</label>
+                        {viewDetails.documents.drivingLicense.number && (
+                          <p className="text-sm text-slate-700 mt-1 font-medium">Number: {viewDetails.documents.drivingLicense.number}</p>
+                        )}
+                        {viewDetails.documents.drivingLicense.expiryDate && (
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Expiry: {new Date(viewDetails.documents.drivingLicense.expiryDate).toLocaleDateString('en-GB')}
+                          </p>
+                        )}
+                      </div>
+                      {viewDetails.documents.drivingLicense.document ? (
+                        <div className="mt-3">
+                          <div 
+                            onClick={() => setLightboxImage(viewDetails.documents.drivingLicense.document)}
+                            className="relative w-full h-36 rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-white group shadow-inner"
+                          >
+                            <img 
+                              src={viewDetails.documents.drivingLicense.document} 
+                              alt="Driving License" 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                              <Eye className="w-4 h-4" /> View Full Image
+                            </div>
+                          </div>
+                          <a 
+                            href={viewDetails.documents.drivingLicense.document} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-2 font-medium"
+                          >
+                            <ExternalLink className="w-3 h-3" /> Open in New Tab
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-3 italic">No document image uploaded</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Vehicle RC */}
+                  {viewDetails.documents?.vehicleRC && (viewDetails.documents.vehicleRC.number || viewDetails.documents.vehicleRC.document) && (
+                    <div className="border border-slate-100 rounded-lg p-4 bg-slate-50 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500 uppercase">Vehicle RC</label>
+                        {viewDetails.documents.vehicleRC.number && (
+                          <p className="text-sm text-slate-700 mt-1 font-medium">Number: {viewDetails.documents.vehicleRC.number}</p>
+                        )}
+                      </div>
+                      {viewDetails.documents.vehicleRC.document ? (
+                        <div className="mt-3">
+                          <div 
+                            onClick={() => setLightboxImage(viewDetails.documents.vehicleRC.document)}
+                            className="relative w-full h-36 rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-white group shadow-inner"
+                          >
+                            <img 
+                              src={viewDetails.documents.vehicleRC.document} 
+                              alt="Vehicle RC" 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                              <Eye className="w-4 h-4" /> View Full Image
+                            </div>
+                          </div>
+                          <a 
+                            href={viewDetails.documents.vehicleRC.document} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-2 font-medium"
+                          >
+                            <ExternalLink className="w-3 h-3" /> Open in New Tab
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-3 italic">No document image uploaded</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="px-6 pb-6 border-t border-slate-200">
+            <button
+              onClick={() => setIsDocsListOpen(false)}
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all"
+            >
+              Close
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox Modal (For Zooming Document Images) */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-[110] bg-slate-950/90 flex flex-col items-center justify-center p-4 transition-all duration-300 animate-in fade-in"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            type="button"
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-full transition-colors focus:outline-none"
+            onClick={() => setLightboxImage(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          
+          <div className="max-w-3xl max-h-[85vh] w-full flex items-center justify-center">
+            <img
+              src={lightboxImage}
+              alt="Expanded document view"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/5 cursor-zoom-out select-none"
+              onClick={(e) => {
+                e.stopPropagation()
+                setLightboxImage(null)
+              }}
+            />
+          </div>
+          
+          <p className="text-white/60 text-xs font-medium mt-4 select-none">
+            Click anywhere or press Esc to close
+          </p>
+        </div>
+      )}
 
       {/* Filter Panel */}
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>

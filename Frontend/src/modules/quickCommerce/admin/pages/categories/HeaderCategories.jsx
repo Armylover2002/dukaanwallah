@@ -216,13 +216,24 @@ const HeaderCategories = () => {
       return;
     }
 
+    if (parseFloat(formData.adminCommission) > 100) {
+      toast.error("Admin commission cannot exceed 100%");
+      return;
+    }
+
     setIsSaving(true);
     try {
       const data = new FormData();
       // Ensure type is always header
       data.append("type", "header");
       Object.keys(formData).forEach((key) => {
-        if (key !== "type") data.append(key, formData[key]);
+        if (key !== "type") {
+          let value = formData[key];
+          if (key === "adminCommission" || key === "handlingFees") {
+            value = parseFloat(value) || 0;
+          }
+          data.append(key, value);
+        }
       });
 
       if (imageFile) {
@@ -685,9 +696,23 @@ const HeaderCategories = () => {
                     <input
                       type="number"
                       value={formData.adminCommission}
-                      onChange={(e) =>
-                        setFormData({ ...formData, adminCommission: parseFloat(e.target.value) || 0 })
-                      }
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (val !== "" && parseFloat(val) > 100) {
+                          val = "100";
+                        }
+                        setFormData({ ...formData, adminCommission: val });
+                      }}
+                      onFocus={(e) => {
+                        if (parseFloat(e.target.value) === 0) {
+                          setFormData({ ...formData, adminCommission: "" });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === "") {
+                          setFormData({ ...formData, adminCommission: 0 });
+                        }
+                      }}
                       className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                       placeholder="0"
                       min="0"
@@ -702,8 +727,18 @@ const HeaderCategories = () => {
                       type="number"
                       value={formData.handlingFees}
                       onChange={(e) =>
-                        setFormData({ ...formData, handlingFees: parseFloat(e.target.value) || 0 })
+                        setFormData({ ...formData, handlingFees: e.target.value })
                       }
+                      onFocus={(e) => {
+                        if (parseFloat(e.target.value) === 0) {
+                          setFormData({ ...formData, handlingFees: "" });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === "") {
+                          setFormData({ ...formData, handlingFees: 0 });
+                        }
+                      }}
                       className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                       placeholder="0"
                       min="0"

@@ -780,43 +780,65 @@ const ReturnOrders = () => {
               </div>
 
               {/* Delivery Rider Assignment Details */}
-              {selectedReturn.deliveryPartnerId && (
+              {(selectedReturn.deliveryPartnerId || ['approved', 'pickup_assigned'].includes(selectedReturn.status)) && (
                 <div className="space-y-3">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                    <Truck className="h-4 w-4" /> Delivery Pickup details
-                  </h4>
-                  <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100/50 space-y-2.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="font-semibold text-slate-400">Rider Name</span>
-                      <span className="font-bold text-slate-700">{selectedReturn.deliveryPartnerId?.name || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="font-semibold text-slate-400">Rider Phone</span>
-                      <span className="font-bold text-slate-700">{selectedReturn.deliveryPartnerId?.phone || 'N/A'}</span>
-                    </div>
-                    
-                    {selectedReturn.pickupOtp && (
-                      <div className="flex justify-between text-xs items-center pt-1">
-                        <span className="font-semibold text-slate-400">Rider OTP Code</span>
-                        <span className="text-xs font-black tracking-widest text-rose-600 bg-rose-50 border border-rose-100 px-3 py-1 rounded-lg">
-                          {selectedReturn.pickupOtp}
-                        </span>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                      <Truck className="h-4 w-4" /> Delivery Pickup Details
+                    </h4>
+                    {['approved', 'pickup_assigned'].includes(selectedReturn.status) && (
+                      <button
+                        onClick={() => {
+                          fetchAvailablePartners();
+                          setSelectedPartnerId(selectedReturn.deliveryPartnerId?._id || '');
+                          setIsAssignModalOpen(true);
+                        }}
+                        className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 rounded-xl transition-all"
+                      >
+                        {selectedReturn.deliveryPartnerId ? "Change Delivery Partner" : "Assign Delivery Partner"}
+                      </button>
                     )}
-
-                    <div className="flex justify-between text-xs">
-                      <span className="font-semibold text-slate-400">OTP Status</span>
-                      <Badge variant={selectedReturn.otpVerified ? 'success' : 'outline'} className="text-[9px] font-bold py-0.5">
-                        {selectedReturn.otpVerified ? 'VERIFIED' : 'PENDING'}
-                      </Badge>
-                    </div>
-
-                    {selectedReturn.pickupProofImageUrl && (
-                      <div className="pt-2.5 space-y-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Pickup Proof Photo</span>
-                        <div className="max-w-xs rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white">
-                          <img src={selectedReturn.pickupProofImageUrl} alt="Pickup Proof" className="w-full h-auto max-h-40 object-cover" />
+                  </div>
+                  <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100/50 space-y-2.5">
+                    {selectedReturn.deliveryPartnerId ? (
+                      <>
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-400">Rider Name</span>
+                          <span className="font-bold text-slate-700">{selectedReturn.deliveryPartnerId?.name || 'N/A'}</span>
                         </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-400">Rider Phone</span>
+                          <span className="font-bold text-slate-700">{selectedReturn.deliveryPartnerId?.phone || 'N/A'}</span>
+                        </div>
+                        
+                        {selectedReturn.pickupOtp && (
+                          <div className="flex justify-between text-xs items-center pt-1">
+                            <span className="font-semibold text-slate-400">Rider OTP Code</span>
+                            <span className="text-xs font-black tracking-widest text-rose-600 bg-rose-50 border border-rose-100 px-3 py-1 rounded-lg">
+                              {selectedReturn.pickupOtp}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-400">OTP Status</span>
+                          <Badge variant={selectedReturn.otpVerified ? 'success' : 'outline'} className="text-[9px] font-bold py-0.5">
+                            {selectedReturn.otpVerified ? 'VERIFIED' : 'PENDING'}
+                          </Badge>
+                        </div>
+
+                        {selectedReturn.pickupProofImageUrl && (
+                          <div className="pt-2.5 space-y-1">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Pickup Proof Photo</span>
+                            <div className="max-w-xs rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white">
+                              <img src={selectedReturn.pickupProofImageUrl} alt="Pickup Proof" className="w-full h-auto max-h-40 object-cover" />
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="py-2 text-center">
+                        <p className="text-xs text-slate-500 font-semibold">No delivery partner assigned yet.</p>
                       </div>
                     )}
                   </div>
@@ -891,7 +913,7 @@ const ReturnOrders = () => {
                   }}
                   className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
                 >
-                  <Truck className="h-4 w-4" /> ASSIGN / CHANGE DELIVERY RIDER
+                  <Truck className="h-4 w-4" /> {selectedReturn.deliveryPartnerId ? 'CHANGE DELIVERY PARTNER' : 'ASSIGN DELIVERY PARTNER'}
                 </button>
               </div>
             )}

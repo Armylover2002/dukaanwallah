@@ -410,7 +410,7 @@ export const getAdminCategories = async (_req, res) => {
 
   const [categories, total] = await Promise.all([
     QuickCategory.find(query)
-      .sort({ sortOrder: 1, createdAt: -1 })
+      .sort({ createdAt: -1 })
       .skip(String(tree) === 'true' ? 0 : (currentPage - 1) * perPage)
       .limit(perPage)
       .lean(),
