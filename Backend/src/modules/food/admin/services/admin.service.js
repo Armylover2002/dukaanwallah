@@ -2205,10 +2205,13 @@ export async function getRestaurantAnalytics(restaurantId) {
     const cancelledOrders = orders.filter(o => ['cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin'].includes(o.orderStatus));
 
     // Money metrics should come from the ledger (FoodTransaction), not FoodOrder.
+    // NOTE: Filter logic must match getTransactionReport summary exactly so both views
+    // show the same restaurantEarning value for the same restaurant.
+    // Transaction Report counts: tx.status in [captured, settled] OR orderId.orderStatus === 'delivered'
     const completedTx = (txRows || []).filter((tx) => {
         const orderStatus = tx?.orderId?.orderStatus;
-        if (orderStatus) return orderStatus === 'delivered';
-        return tx?.status === 'captured' || tx?.status === 'authorized' || tx?.status === 'settled';
+        const txStatus = tx?.status;
+        return txStatus === 'captured' || txStatus === 'settled' || orderStatus === 'delivered';
     });
 
     const sum = (arr, pick) => (arr || []).reduce((s, it) => s + (Number(pick(it)) || 0), 0);

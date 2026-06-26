@@ -550,7 +550,7 @@ export default function PointOfSale() {
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
                     <span className="text-sm text-[#8a94aa]">Total Revenue</span>
-                    <span className="text-base font-semibold text-[#334257]">{formatCurrency(analyticsData.totalRevenue)}</span>
+                    <span className="text-base font-semibold text-[#334257]">{formatCurrency(analyticsData.restaurantEarning)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
                     <span className="text-sm text-[#8a94aa]">Restaurant Share</span>
