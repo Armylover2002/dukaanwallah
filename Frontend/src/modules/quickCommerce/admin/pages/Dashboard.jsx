@@ -89,7 +89,8 @@ const AdminDashboard = () => {
             color: 'text-blue-600',
             bg: 'bg-blue-50',
             trend: usersGrowth,
-            description: 'Active this month'
+            description: 'Active this month',
+            path: '/admin/quick-commerce/customers'
         },
         {
             label: 'Active Sellers',
@@ -98,7 +99,8 @@ const AdminDashboard = () => {
             color: 'text-purple-600',
             bg: 'bg-purple-50',
             trend: sellersGrowth,
-            description: 'Verified stores'
+            description: 'Verified stores',
+            path: '/admin/quick-commerce/sellers/active'
         },
         {
             label: 'Total Orders',
@@ -107,7 +109,8 @@ const AdminDashboard = () => {
             color: 'text-orange-600',
             bg: 'bg-orange-50',
             trend: ordersGrowth,
-            description: 'Last 30 days'
+            description: 'Last 30 days',
+            path: '/admin/quick-commerce/orders/all'
         },
         {
             label: 'Total Revenue',
@@ -116,7 +119,8 @@ const AdminDashboard = () => {
             color: 'text-emerald-600',
             bg: 'bg-emerald-50',
             trend: revenueGrowth,
-            description: 'Net earnings'
+            description: 'Net earnings',
+            path: '/admin/quick-commerce/wallet'
         },
         {
             label: 'GST Collected',
@@ -125,7 +129,8 @@ const AdminDashboard = () => {
             color: 'text-cyan-600',
             bg: 'bg-cyan-50',
             trend: '+0%',
-            description: 'Tax received'
+            description: 'Tax received',
+            path: '/admin/quick-commerce/billing'
         },
         {
             label: 'Platform Charges',
@@ -134,7 +139,8 @@ const AdminDashboard = () => {
             color: 'text-indigo-600',
             bg: 'bg-indigo-50',
             trend: '+0%',
-            description: 'Platform fees'
+            description: 'Platform fees',
+            path: '/admin/quick-commerce/billing'
         },
     ];
 
@@ -254,7 +260,11 @@ const AdminDashboard = () => {
                         description={stat.description}
                         color={stat.color}
                         bg={stat.bg}
-                        className={cn("ring-1 ring-gray-100", stat.bg + "/30")}
+                        onClick={() => stat.path && navigate(stat.path)}
+                        className={cn(
+                            "ring-1 ring-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/20",
+                            stat.bg + "/30"
+                        )}
                     />
                 ))}
             </div>
@@ -265,7 +275,8 @@ const AdminDashboard = () => {
                     <Card
                         title="Earnings"
                         subtitle="Monthly revenue trends"
-                        className="h-full"
+                        className="h-full cursor-pointer hover:shadow-lg hover:border-primary/20 hover:-translate-y-1 transition-all duration-300 select-none"
+                        onClick={() => navigate('/admin/quick-commerce/wallet')}
                     >
                         <div className="ds-chart-container min-h-[250px]">
                             <ResponsiveContainer width="100%" height={250}>
@@ -319,7 +330,8 @@ const AdminDashboard = () => {
                     <Card
                         title="Top Categories"
                         subtitle="Sales breakdown by category"
-                        className="h-full border-none shadow-sm ring-1 ring-gray-100"
+                        className="h-full border-none shadow-sm ring-1 ring-gray-100 cursor-pointer hover:shadow-lg hover:border-primary/20 hover:-translate-y-1 transition-all duration-300 select-none"
+                        onClick={() => navigate('/admin/quick-commerce/categories/header')}
                     >
                         <div className="h-[250px] min-h-[250px] relative">
                             <ResponsiveContainer width="100%" height={250}>

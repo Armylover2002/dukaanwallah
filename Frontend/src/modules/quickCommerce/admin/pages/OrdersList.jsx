@@ -112,35 +112,34 @@ const OrdersList = () => {
             const response = await adminApi.getOrders(params);
             if (response.data.success) {
                 const payload = response.data.result || {};
-                const dbOrders = Array.isArray(payload.items) ? payload.items : (response.data.results || []);
-                const formatted = dbOrders.map(o => ({
-                    // Payable amount = pricing.total (subtotal+delivery+handling+gst...) + platformFee
-                    // Older backend payloads may still send amount as pricing.total only.
-                    id: String(o.orderId || o._id || ''),
-                    _id: o._id,
-                    orderType: String(o.orderType || 'quick').toLowerCase(),
-                    customer: String(o.customer?.name || o.sellerOrder?.customer?.name || 'Unknown'),
-                    seller: String(o.seller?.shopName || o.storeName || 'Unknown'),
-                    items: o.itemCount || o.items?.length || 0,
-                    amount: (() => {
-                        const pricingTotal = Number(o.pricing?.total ?? 0);
-                        const platformFee = Number(o.pricing?.platformFee ?? 0);
-                        const computedPayable = Math.max(0, pricingTotal + platformFee);
-                        const provided = Number(o.amount);
-                        if (Number.isFinite(platformFee) && platformFee > 0) return computedPayable;
-                        return Number.isFinite(provided) ? provided : pricingTotal;
-                    })(),
-                    status: String(getLegacyStatusFromOrder(o) || 'pending'),
-                    rawStatus: String(o.orderStatus || ''),
-                    workflowStatus: o.workflowStatus,
-                    workflowVersion: o.workflowVersion,
-                    returnStatus: o.returnStatus,
-                    createdAt: o.createdAt || null,
-                    updatedAt: o.updatedAt || null,
-                    date: formatOrderTimestamp(o.createdAt),
-                    payment: o.payment?.method === 'cod' || o.payment?.method === 'cash' ? 'COD' : 'Digital',
-                    paymentMethod: String(o.payment?.method || '').toLowerCase(),
-                }));
+                const rawOrders = Array.isArray(payload.items) ? payload.items : (response.data.results || []);
+                const dbOrders = Array.isArray(rawOrders) ? rawOrders.filter(Boolean) : [];
+                const formatted = dbOrders.map(o => {
+                    const pricingTotal = Number(o?.pricing?.total ?? 0);
+                    const provided = Number(o?.payment?.amountDue || o?.amount);
+                    const orderAmount = (Number.isFinite(provided) && provided > 0) ? provided : pricingTotal;
+
+
+                    return {
+                        id: String(o?.orderId || o?._id || ''),
+                        _id: o?._id,
+                        orderType: String(o?.orderType || 'quick').toLowerCase(),
+                        customer: String(o?.customer?.name || o?.sellerOrder?.customer?.name || 'Unknown'),
+                        seller: String(o?.seller?.shopName || o?.storeName || 'Unknown'),
+                        items: o?.itemCount || o?.items?.length || 0,
+                        amount: orderAmount,
+                        status: String(getLegacyStatusFromOrder(o) || 'pending'),
+                        rawStatus: String(o?.orderStatus || ''),
+                        workflowStatus: o?.workflowStatus,
+                        workflowVersion: o?.workflowVersion,
+                        returnStatus: o?.returnStatus,
+                        createdAt: o?.createdAt || null,
+                        updatedAt: o?.updatedAt || null,
+                        date: formatOrderTimestamp(o?.createdAt),
+                        payment: o?.payment?.method === 'cod' || o?.payment?.method === 'cash' ? 'COD' : 'Digital',
+                        paymentMethod: String(o?.payment?.method || '').toLowerCase(),
+                    };
+                });
                 setOrders(formatted);
                 formatted.forEach((row) => {
                     if (row?.id) joinOrderRoom(row.id, getToken);
@@ -549,8 +548,8 @@ const OrdersList = () => {
                                     </td>
                                     <td className="px-4 py-5 text-right">
                                         <div className="flex flex-col items-end">
-                                            <span className="text-sm font-black text-slate-900">₹{order.amount.toLocaleString()}</span>
-                                            <span className="text-[10px] font-bold text-slate-400 mt-0.5">{order.payment}</span>
+                                            <span className="text-sm font-black text-slate-900">₹{(order?.amount || 0).toLocaleString()}</span>
+                                            <span className="text-[10px] font-bold text-slate-400 mt-0.5">{order?.payment}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-5 text-right">

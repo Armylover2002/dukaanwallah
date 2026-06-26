@@ -176,7 +176,7 @@ export default function OrderDetail() {
 
         const payableTotal = Math.max(
             0,
-            Number(order?.pricing?.total || 0) + Number(order?.pricing?.platformFee || 0),
+            Number(order?.pricing?.total || 0),
         );
 
         const itemsHtml = orderItems.map((item) => {
@@ -217,6 +217,7 @@ export default function OrderDetail() {
                     <p>Subtotal: ${formatCurrency(order.pricing?.subtotal)}</p>
                     <p>Delivery Fee: ${formatCurrency(order.pricing?.deliveryFee)}</p>
                     <p>Platform Fee: ${formatCurrency(order.pricing?.platformFee)}</p>
+                    <p>Taxes & Charges (GST): ${formatCurrency(order.pricing?.tax || 0)}</p>
                     <p><strong>Total: ${formatCurrency(payableTotal)}</strong></p>
                 </body>
             </html>
@@ -347,10 +348,14 @@ export default function OrderDetail() {
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform Fee</span>
                                 <span className="text-sm font-bold text-slate-700">{formatCurrency(order.pricing?.platformFee)}</span>
                             </div>
+                            <div className="flex items-center justify-between w-full max-w-[240px]">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Taxes & Charges (GST)</span>
+                                <span className="text-sm font-bold text-slate-700">{formatCurrency(order.pricing?.tax || 0)}</span>
+                            </div>
                             <div className="h-px w-full max-w-[240px] bg-slate-200 my-2" />
                             <div className="flex items-center justify-between w-full max-w-[240px]">
                                 <span className="text-xs font-black text-slate-900 uppercase tracking-tight">Total Payable</span>
-                                <span className="text-2xl font-black text-fuchsia-600">{formatCurrency(Number(order.pricing?.total || 0) + Number(order.pricing?.platformFee || 0))}</span>
+                                <span className="text-2xl font-black text-fuchsia-600">{formatCurrency(Number(order.pricing?.total || 0))}</span>
                             </div>
                         </div>
                     </Card>
