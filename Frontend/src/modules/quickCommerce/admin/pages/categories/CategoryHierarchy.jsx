@@ -11,16 +11,19 @@ import {
   Layers,
   ArrowRight,
   Package,
+  Plus
 } from "lucide-react";
 import { adminApi } from "../../services/adminApi";
 import Card from "@shared/components/ui/Card";
 import Badge from "@shared/components/ui/Badge";
 import { toast } from "sonner";
+import CategoryWizardModal from "./CategoryWizardModal";
 
 const CategoryHierarchy = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   // Selection State for Miller Columns
   const [selectedHeader, setSelectedHeader] = useState(null);
@@ -173,13 +176,11 @@ const CategoryHierarchy = () => {
             <Layers className="w-6 h-6 text-indigo-600" />
             Category Hierarchy Explorer
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-gray-500 text-sm mt-1 mb-3">
             Visual overview of your catalog structure ({stats.total} items)
           </p>
-        </div>
-
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4 text-sm text-gray-500 bg-gray-50 px-4 py-2 rounded-xl">
+          
+          <div className="flex items-center gap-4 text-sm text-gray-500 bg-gray-50 px-4 py-2 rounded-xl inline-flex w-max">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
               <span>
@@ -201,6 +202,16 @@ const CategoryHierarchy = () => {
               </span>
             </div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-6 self-start mt-2">
+          <button 
+            onClick={() => setIsWizardOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Add Category
+          </button>
         </div>
       </div>
 
@@ -361,6 +372,11 @@ const CategoryHierarchy = () => {
           )}
         </div>
       </div>
+      <CategoryWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onComplete={fetchCategories}
+      />
     </div>
   );
 };

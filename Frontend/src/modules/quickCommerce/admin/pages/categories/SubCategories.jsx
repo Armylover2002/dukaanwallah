@@ -271,19 +271,13 @@ const SubCategories = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Subcategories</h1>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Sub Categories
+          </h1>
           <p className="text-gray-500 mt-1">
             Manage level 3 categories linked to secondary categories
           </p>
         </div>
-        {canCreate && (
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-            <Plus className="w-5 h-5" />
-            Add New Subcategory
-          </button>
-        )}
       </div>
 
       <Card className="border-none shadow-sm">
