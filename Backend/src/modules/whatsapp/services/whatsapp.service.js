@@ -41,10 +41,16 @@ export const sendWhatsAppTemplate = async (
         }
 
         const settings = await getWhatsappSettings();
-        const apiUrl = process.env.WHATSAPP_API_URL || 'http://bhashsms.com/api/sendmsgutil.php';
+        const apiUrl = process.env.WHATSAPP_API_URL || 'http://bhashsms.com/api/sendmsg.php';
 
         if (!settings.username || !settings.password || !settings.senderId) {
             throw new Error('WhatsApp API credentials are not fully configured');
+        }
+
+        // Format mobile number to ensure it has country code (e.g., 91)
+        let formattedMobile = String(mobile).replace(/\D/g, '');
+        if (formattedMobile.length === 10) {
+            formattedMobile = '91' + formattedMobile;
         }
 
         // Build Params string (comma separated)
@@ -60,10 +66,11 @@ export const sendWhatsAppTemplate = async (
             user: settings.username,
             pass: settings.password,
             sender: settings.senderId,
-            phone: mobile,
+            phone: formattedMobile,
             text: process.env.WHATSAPP_DEFAULT_TEMPLATE_NAME || 'order_confirmation',
             priority: 'wa',
-            stype: 'normal'
+            stype: 'normal',
+            Params: templateParams
         };
 
         let apiResponse = null;
