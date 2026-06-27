@@ -151,16 +151,12 @@ const Earnings = () => {
                 </p>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 font-medium">Gross Sales (Incl. Delivery)</span>
+                    <span className="text-slate-500 font-medium">Gross Sales</span>
                     <span className="text-slate-900 font-bold">₹{Number(data?.balances?.grossSales ?? 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500 font-medium">Admin Commission</span>
                     <span className="text-rose-500 font-bold">- ₹{Number(data?.balances?.totalCommission ?? 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 font-medium">Delivery Charges</span>
-                    <span className="text-rose-500 font-bold">- ₹{Number(data?.balances?.deliveryFees ?? 0).toLocaleString()}</span>
                   </div>
                   <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
                     <span className="text-slate-900 font-black">Net Payout</span>

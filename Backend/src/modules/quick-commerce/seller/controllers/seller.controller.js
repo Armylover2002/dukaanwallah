@@ -2143,18 +2143,14 @@ export const getSellerEarningsController = async (req, res) => {
     const totalNetEarnings = baseNetEarnings + totalAdjustments;
 
     const grossSales = orders.reduce(
-      (sum, o) => sum + num(o.pricing?.total),
+      (sum, o) => sum + num(o.pricing?.subtotal),
       0,
     );
     const totalCommission = orders.reduce(
       (sum, o) => sum + num(o.pricing?.commission),
       0,
     );
-    const subtotal = orders.reduce(
-      (sum, o) => sum + num(o.pricing?.subtotal),
-      0,
-    );
-    const deliveryFees = grossSales - subtotal;
+    const deliveryFees = 0;
 
     const totalWithdrawn = transactions
       .filter((item) => item.type === "Withdrawal" && item.status === "Settled")
