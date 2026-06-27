@@ -749,11 +749,17 @@ const AddProduct = () => {
                 )}
               </div>
 
-              <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                  Product Title
-                </label>
+              <div className="space-y-1.5 flex flex-col relative">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
+                    Product Title
+                  </label>
+                  <span className={`text-[10px] font-semibold ${formData.name.length >= 100 ? 'text-red-500' : 'text-slate-400'}`}>
+                    {formData.name.length}/100
+                  </span>
+                </div>
                 <input
+                  maxLength={100}
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
@@ -762,15 +768,24 @@ const AddProduct = () => {
                   placeholder="e.g. Premium Basmati Rice"
                 />
               </div>
-              <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                  About this item
-                </label>
+              <div className="space-y-1.5 flex flex-col relative">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
+                    About this item
+                  </label>
+                  <span className={`text-[10px] font-semibold ${formData.description.trim().split(/\s+/).filter(Boolean).length >= 150 ? 'text-red-500' : 'text-slate-400'}`}>
+                    {formData.description.trim().split(/\s+/).filter(Boolean).length}/150 words
+                  </span>
+                </div>
                 <textarea
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const text = e.target.value;
+                    const wordsCount = text.trim().split(/\s+/).filter(Boolean).length;
+                    if (wordsCount <= 150 || text.length < formData.description.length) {
+                      setFormData({ ...formData, description: text });
+                    }
+                  }}
                   onWheel={(e) => e.stopPropagation()}
                   onTouchMove={(e) => e.stopPropagation()}
                   className="w-full px-4 py-3 bg-slate-100 border-none rounded-2xl text-sm font-semibold min-h-[160px] max-h-[260px] outline-none transition-all focus:ring-2 focus:ring-orange-500/5 resize-none overflow-y-auto custom-scrollbar"
@@ -778,11 +793,17 @@ const AddProduct = () => {
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5 flex flex-col">
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                    Brand Name
-                  </label>
+                <div className="space-y-1.5 flex flex-col relative">
+                  <div className="flex justify-between items-center ml-1">
+                    <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
+                      Brand Name
+                    </label>
+                    <span className={`text-[10px] font-semibold ${formData.brand.length >= 50 ? 'text-red-500' : 'text-slate-400'}`}>
+                      {formData.brand.length}/50
+                    </span>
+                  </div>
                   <input
+                    maxLength={50}
                     value={formData.brand}
                     onChange={(e) =>
                       setFormData({ ...formData, brand: e.target.value })
@@ -906,7 +927,7 @@ const AddProduct = () => {
                   <div
                     key={variant.id}
                     className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-end group relative">
-                    <div className="col-span-12 md:col-span-3 space-y-1">
+                    <div className="col-span-12 md:col-span-7 space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
                         Variant Name
                       </label>
@@ -921,63 +942,7 @@ const AddProduct = () => {
                         className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-orange-500/10"
                       />
                     </div>
-                    <div className="col-span-6 md:col-span-2 space-y-1">
-                      <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                        Price
-                      </label>
-                      <input
-                        type="number"
-                        value={variant.price}
-                        onChange={(e) => {
-                          const newVariants = [...formData.variants];
-                          newVariants[index].price = e.target.value;
-                          setFormData({ ...formData, variants: newVariants });
-                        }}
-                        placeholder="500"
-                        className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500/10"
-                      />
-                    </div>
-                    <div className="col-span-6 md:col-span-2 space-y-1">
-                      <label className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest ml-1">
-                        Sale
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={variant.salePrice}
-                        onChange={(e) => {
-                          const newVariants = [...formData.variants];
-                          newVariants[index].salePrice = e.target.value;
-                          setFormData({ ...formData, variants: newVariants });
-                        }}
-                        placeholder="450"
-                        className={`w-full px-3 py-2 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 ${variant.salePrice && Number(variant.salePrice) < 1 ? "bg-red-50 ring-1 ring-red-300 text-red-600 focus:ring-red-300" : "bg-emerald-50 ring-1 ring-emerald-100 text-emerald-700 focus:ring-emerald-200"}`}
-                      />
-                      {variant.salePrice && Number(variant.salePrice) < 1 && (
-                        <p className="text-[9px] font-semibold text-red-500 ml-1">Min value is 1</p>
-                      )}
-                    </div>
-                    <div className="col-span-6 md:col-span-2 space-y-1">
-                      <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                        Stock
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={variant.stock}
-                        onChange={(e) => {
-                          const newVariants = [...formData.variants];
-                          newVariants[index].stock = e.target.value;
-                          setFormData({ ...formData, variants: newVariants });
-                        }}
-                        placeholder="10"
-                        className={`w-full px-3 py-2 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 ${variant.stock && Number(variant.stock) < 1 ? "bg-red-50 ring-1 ring-red-300 text-red-600 focus:ring-red-300" : "bg-white ring-1 ring-slate-200 focus:ring-orange-500/10"}`}
-                      />
-                      {variant.stock && Number(variant.stock) < 1 && (
-                        <p className="text-[9px] font-semibold text-red-500 ml-1">Min value is 1</p>
-                      )}
-                    </div>
-                    <div className="col-span-5 md:col-span-2 space-y-1">
+                    <div className="col-span-11 md:col-span-4 space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
                         Product Code
                       </label>
@@ -1145,6 +1110,7 @@ const AddProduct = () => {
                         <>
                           <input
                             type="file"
+                            accept="image/*"
                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
                             onChange={(e) => handleImageUpload(e, "gallery")}
                           />
