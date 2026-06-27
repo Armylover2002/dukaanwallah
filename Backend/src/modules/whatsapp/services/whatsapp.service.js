@@ -135,3 +135,90 @@ export const sendWhatsAppTemplate = async (
         };
     }
 };
+
+/**
+ * Send the `promotional_offer` WhatsApp template to a list of users.
+ * Params order: CustomerName, CouponCode, DiscountValue, ExpiryDate
+ *
+ * @param {Array<{name:string, phone:string}>} users
+ * @param {object} coupon  – must have: couponCode, discountValue, expiryDate
+ */
+export const sendPromotionalOfferToUsers = async (users, coupon) => {
+    try {
+        if (!Array.isArray(users) || users.length === 0) return;
+
+        const { couponCode, discountValue, expiryDate } = coupon || {};
+        if (!couponCode || discountValue == null || !expiryDate) return;
+
+        const settings = await getWhatsappSettings();
+        const apiUrl   = process.env.WHATSAPP_API_URL || 'http://bhashsms.com/api/sendmsg.php';
+        const username = process.env.WHATSAPP_USERNAME || settings.username;
+        const password = process.env.WHATSAPP_PASSWORD || settings.password;
+        const senderId = process.env.WHATSAPP_SENDER_ID || settings.senderId;
+
+        if (!username || !password || !senderId) {
+            console.error('[WhatsApp] Promotional offer skipped: credentials not configured');
+            return;
+        }
+
+        const formattedExpiry = (() => {
+            try {
+                const d = new Date(expiryDate);
+                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+            } catch { return String(expiryDate); }
+        })();
+
+        // Batch send — fire and forget per user
+        for (const user of users) {
+            const rawMobile = String(user.phone || '').replace(/\D/g, '');
+            if (!rawMobile) continue;
+            const mobile = rawMobile.length === 10 ? '91' + rawMobile : rawMobile;
+            if (mobile.length < 12) continue;
+
+            const customerName = String(user.name || 'Customer').trim() || 'Customer';
+            const templateParams = [customerName, couponCode, discountValue, formattedExpiry].join(',');
+
+            const requestParams = {
+                user: username,
+                pass: password,
+                sender: senderId,
+                phone: mobile,
+                text: 'promotional_offer',
+                priority: 'wa',
+                stype: 'normal',
+                Params: templateParams
+            };
+
+            // Non-blocking — log and move on
+            axios.get(apiUrl, { params: requestParams })
+                .then(async (res) => {
+                    const responseStr = typeof res.data === 'string'
+                        ? res.data.toLowerCase()
+                        : JSON.stringify(res.data).toLowerCase();
+                    const isError = responseStr.includes('error') || responseStr.includes('invalid') || responseStr.includes('failed');
+                    await WhatsappLog.create({
+                        mobile: user.phone,
+                        requestParams: { ...requestParams, pass: '***' },
+                        response: res.data,
+                        status: isError ? 'ERROR' : 'SUCCESS',
+                        errorMessage: isError ? 'API returned failure response' : undefined
+                    });
+                })
+                .catch(async (err) => {
+                    console.error(`[WhatsApp] Promotional offer failed for ${mobile}: ${err.message}`);
+                    try {
+                        await WhatsappLog.create({
+                            mobile: user.phone,
+                            requestParams: { ...requestParams, pass: '***' },
+                            response: err.message,
+                            status: 'ERROR',
+                            errorMessage: err.message
+                        });
+                    } catch { /* ignore log error */ }
+                });
+        }
+    } catch (err) {
+        console.error(`[WhatsApp] sendPromotionalOfferToUsers error: ${err.message}`);
+    }
+};
+

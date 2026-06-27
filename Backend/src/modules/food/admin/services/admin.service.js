@@ -28,6 +28,7 @@ import { FoodRestaurantSupportTicket } from '../../restaurant/models/supportTick
 import { FoodOrder } from '../../orders/models/order.model.js';
 import { FoodTransaction } from '../../orders/models/foodTransaction.model.js';
 import { FoodRestaurantWithdrawal } from '../../restaurant/models/foodRestaurantWithdrawal.model.js';
+import { sendPromotionalOfferToUsers } from '../../../whatsapp/services/whatsapp.service.js';
 import { 
     creditWallet, 
     debitWallet
@@ -3573,6 +3574,21 @@ export async function createAdminOffer(body) {
         }
     }
 
+    // Fire-and-forget: send promotional_offer WhatsApp to all active users
+    try {
+        const users = await FoodUser.find(
+            { phone: { $exists: true, $ne: '' }, isDeleted: { $ne: true } },
+            { name: 1, phone: 1, _id: 0 }
+        ).lean();
+        sendPromotionalOfferToUsers(users, {
+            couponCode: doc.couponCode,
+            discountValue: doc.discountValue,
+            expiryDate: doc.endDate
+        }).catch(e => console.error('[WhatsApp] Admin offer promo send error:', e));
+    } catch (e) {
+        console.error('[WhatsApp] Admin offer user fetch error:', e);
+    }
+
     return doc.toObject();
 }
 
@@ -5351,6 +5367,23 @@ export async function updateRestaurantCouponStatus(id, status) {
 
     if (!updated) {
         throw new ValidationError('Coupon request not found');
+    }
+
+    // Fire-and-forget: notify all users when coupon is Approved
+    if (status === 'Approved') {
+        try {
+            const users = await FoodUser.find(
+                { phone: { $exists: true, $ne: '' }, isDeleted: { $ne: true } },
+                { name: 1, phone: 1, _id: 0 }
+            ).lean();
+            sendPromotionalOfferToUsers(users, {
+                couponCode: updated.couponCode,
+                discountValue: updated.discountValue,
+                expiryDate: updated.expiryDate
+            }).catch(e => console.error(`[WhatsApp] Coupon approval promo send error (${type}):`, e));
+        } catch (e) {
+            console.error('[WhatsApp] Coupon approval user fetch error:', e);
+        }
     }
 
     try {
