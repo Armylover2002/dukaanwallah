@@ -48,9 +48,7 @@ const ProductMobileCard = React.memo(({
   setIsVariantsViewModalOpen,
   cn
 }) => {
-  const totalStock = p.variants?.length > 0
-    ? p.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
-    : p.stock;
+  const totalStock = p.stock || 0;
   return (
     <div className="flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors">
       <div className="h-14 w-14 rounded-xl overflow-hidden bg-slate-100 ring-1 ring-slate-200 shrink-0">
@@ -107,9 +105,7 @@ const ProductRow = React.memo(({
   setIsVariantsViewModalOpen,
   cn
 }) => {
-  const totalStock = p.variants?.length > 0
-    ? p.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
-    : p.stock;
+  const totalStock = p.stock || 0;
   return (
     <tr className="ds-table-row">
       <td className="ds-table-cell">
@@ -575,9 +571,6 @@ const ProductManagement = () => {
           {
             id: Date.now(),
             name: "Default",
-            price: item.price || "",
-            salePrice: item.salePrice || "",
-            stock: item.stock || "",
             sku: item.sku || "",
           },
         ],
@@ -1332,43 +1325,19 @@ const ProductManagement = () => {
                         <h4 className="text-sm font-bold">Product Variants</h4>
                         <button
                           type="button"
-                          onClick={() => setFormData({ ...formData, variants: [...formData.variants, { id: Date.now(), name: "", price: "", salePrice: "", stock: "", sku: "" }] })}
+                          onClick={() => setFormData({ ...formData, variants: [...formData.variants, { id: Date.now(), name: "", sku: "" }] })}
                           className="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg text-[10px] font-bold">+ ADD</button>
                       </div>
                       <div className="space-y-3">
                         {formData.variants.map((v, i) => (
-                          <div key={v.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-                            <div className="md:col-span-2 space-y-1">
+                          <div key={v.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                            <div className="space-y-1">
                               <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">Variant Name</label>
                               <input value={v.name} onChange={e => {
                                 const news = [...formData.variants];
                                 news[i].name = e.target.value;
                                 setFormData({ ...formData, variants: news });
                               }} placeholder="e.g. 1kg" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">Price</label>
-                              <input type="number" value={v.price} onChange={e => {
-                                const news = [...formData.variants];
-                                news[i].price = e.target.value;
-                                setFormData({ ...formData, variants: news });
-                              }} placeholder="Price" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest ml-1">Sale Price</label>
-                              <input type="number" value={v.salePrice} onChange={e => {
-                                const news = [...formData.variants];
-                                news[i].salePrice = e.target.value;
-                                setFormData({ ...formData, variants: news });
-                              }} placeholder="Sale" className="w-full bg-emerald-50/50 px-3 py-2 rounded-xl text-xs ring-1 ring-emerald-100 text-emerald-700 outline-none" />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">Stock</label>
-                              <input type="number" value={v.stock} onChange={e => {
-                                const news = [...formData.variants];
-                                news[i].stock = e.target.value;
-                                setFormData({ ...formData, variants: news });
-                              }} placeholder="Stock" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="flex-1 space-y-1">
@@ -1377,7 +1346,7 @@ const ProductManagement = () => {
                                   const news = [...formData.variants];
                                   news[i].sku = e.target.value;
                                   setFormData({ ...formData, variants: news });
-                                }} placeholder="SKU" className="w-full bg-white px-3 py-2 rounded-xl text-[10px] ring-1 ring-slate-100 outline-none" />
+                                }} placeholder="SKU" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
                               </div>
                               <button type="button" onClick={() => setFormData({ ...formData, variants: formData.variants.filter((_, idx) => idx !== i) })} className="text-rose-500 p-2 hover:bg-rose-50 rounded-lg shrink-0 mb-0.5">
                                 <HiOutlineTrash className="h-4 w-4" />
@@ -1499,8 +1468,8 @@ const ProductManagement = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <Badge variant={v.stock === 0 ? "rose" : v.stock <= 10 ? "amber" : "emerald"} className="text-[10px] font-black uppercase tracking-widest px-2 shadow-sm">
-                        {v.stock === 0 ? 'OUT OF STOCK' : `${v.stock} UNITS`}
+                      <Badge variant={viewingVariants?.stock === 0 ? "rose" : viewingVariants?.stock <= 10 ? "amber" : "emerald"} className="text-[10px] font-black uppercase tracking-widest px-2 shadow-sm">
+                        {viewingVariants?.stock === 0 ? 'OUT OF STOCK' : `${viewingVariants?.stock || 0} UNITS`}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">

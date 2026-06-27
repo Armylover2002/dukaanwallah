@@ -4,6 +4,7 @@ import { getIO, rooms } from '../../../config/socket.js';
 import { Seller } from '../seller/models/seller.model.js';
 import { SellerOrder } from '../seller/models/sellerOrder.model.js';
 import { SellerTransaction } from '../seller/models/sellerTransaction.model.js';
+import { SellerProduct } from '../seller/models/sellerProduct.model.js';
 import { QuickOrder } from '../models/order.model.js';
 import { FoodDeliveryPartner } from '../../food/delivery/models/deliveryPartner.model.js';
 import {
@@ -130,6 +131,22 @@ export const updateSellerOrderStatus = async (sellerOrderId, sellerId, nextStatu
           `[QuickEarnings] Failed to upsert seller transaction for ${sellerOrder.orderId}: ${err?.message || err}`,
         );
       }
+    }
+    // Auto deduct stock for items
+    try {
+      if (sellerOrder.items && sellerOrder.items.length > 0) {
+        for (const item of sellerOrder.items) {
+          if (item.productId) {
+            const product = await SellerProduct.findById(item.productId);
+            if (product) {
+              product.stock = Math.max(0, (product.stock || 0) - (item.quantity || 1));
+              await product.save();
+            }
+          }
+        }
+      }
+    } catch (stockErr) {
+      logger.error(`[QuickStock] Failed to deduct stock for order ${sellerOrder.orderId}: ${stockErr?.message || stockErr}`);
     }
   }
 
