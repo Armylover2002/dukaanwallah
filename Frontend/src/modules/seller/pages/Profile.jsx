@@ -222,74 +222,72 @@ const SellerProfile = () => {
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 font-['Outfit']">
       {/* Header Section */}
-      <div className="relative mb-24 px-4">
-        {/* Banner Background */}
-        <div className="bg-linear-to-r from-slate-900 via-slate-950 to-black h-64 rounded-lg shadow-2xl relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20">
+      <div className="relative mb-8 lg:mb-12 px-4">
+        {/* Banner Container */}
+        <div className="relative bg-linear-to-r from-slate-900 via-slate-950 to-black rounded-lg shadow-2xl p-6 md:p-12 flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-10 overflow-hidden">
+          {/* Banner Background Effects */}
+          <div className="absolute inset-0 opacity-20 pointer-events-none">
             <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-slate-500/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
           </div>
-        </div>
 
-        {/* Profile Info Row */}
-        <div className="absolute bottom-8 left-12 right-12 flex flex-col md:flex-row items-center md:items-end gap-10">
           {/* Avatar Container */}
-          <div className="h-44 w-44 rounded-full bg-white p-2 shadow-[0_30px_70px_rgba(0,0,0,0.15)] flex-shrink-0">
-            <div className="h-full w-full rounded-full bg-slate-50 flex items-center justify-center border-4 border-slate-50">
-              <span className="text-7xl font-black text-slate-900">
-                {profile?.name?.charAt(0)}
+          <div className="relative z-10 h-32 w-32 md:h-44 md:w-44 rounded-full bg-white p-2 shadow-[0_30px_70px_rgba(0,0,0,0.15)] flex-shrink-0">
+            <div className="h-full w-full rounded-full bg-slate-50 flex items-center justify-center border-4 border-slate-50 overflow-hidden">
+              <span className="text-5xl md:text-7xl font-black text-slate-900">
+                {profile?.name?.charAt(0) || "U"}
               </span>
             </div>
           </div>
 
           {/* Info Block */}
-          <div className="flex-1 pb-4 text-center md:text-left">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-3">
-              <span className="px-4 py-1.5 bg-white/10 backdrop-blur-xl text-white text-[10px] font-black uppercase tracking-[2px] rounded-full border border-white/20">
-                {profile?.role}
+          <div className="relative z-10 flex-1 text-center md:text-left min-w-0 flex flex-col items-center md:items-start">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-3">
+              <span className="px-3 py-1.5 bg-white/10 backdrop-blur-xl text-white text-[10px] font-black uppercase tracking-[2px] rounded-full border border-white/20">
+                {profile?.role || "Seller"}
               </span>
               <span
-                className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[2px] rounded-full border ${profile?.isActive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}
+                className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-[2px] rounded-full border ${profile?.isActive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}
                 style={{ backdropFilter: "blur(12px)" }}>
                 {profile?.isActive ? "Active" : "Inactive"}
               </span>
             </div>
-            <h1 className="text-6xl font-black text-white tracking-tighter drop-shadow-sm mb-1">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter drop-shadow-sm mb-1 line-clamp-2 break-words w-full">
               {profile?.name}
             </h1>
-            <p className="text-white/60 font-black tracking-[1px] text-lg">
+            <p className="text-white/60 font-black tracking-[1px] text-sm md:text-lg truncate w-full">
               {profile?.shopName}
             </p>
           </div>
 
           {/* Action Button */}
-          <div className="pb-4">
+          <div className="relative z-10 w-full md:w-auto mt-4 md:mt-0 flex justify-center md:justify-end pb-2 md:pb-4">
             {!isEditing ? (
               <Button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white hover:text-slate-950 transition-all rounded-lg px-12 py-5 flex items-center gap-4 font-black tracking-[3px] text-xs shadow-[0_20px_40px_rgba(0,0,0,0.1)] hover:scale-[1.05] active:scale-[0.95]">
-                <Edit2 size={18} /> EDIT PROFILE
+                className="w-full md:w-auto bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white hover:text-slate-950 transition-all rounded-lg px-8 py-4 md:py-5 flex items-center justify-center gap-3 font-black tracking-[3px] text-[10px] md:text-xs shadow-lg hover:scale-[1.02] active:scale-[0.98]">
+                <Edit2 size={16} /> EDIT PROFILE
               </Button>
             ) : (
-              <div className="flex gap-4">
+              <div className="flex gap-2 w-full md:w-auto">
                 <Button
                   type="button"
                   onClick={() => setIsEditing(false)}
                   variant="outline"
-                  className="h-[64px] w-[64px] flex items-center justify-center bg-white/5 text-white border border-white/20 hover:bg-white hover:text-slate-900 rounded-lg shadow-lg transition-all backdrop-blur-md">
-                  <X size={24} className="stroke-[2.5]" />
+                  className="h-12 w-12 md:h-[64px] md:w-[64px] flex items-center justify-center bg-white/5 text-white border border-white/20 hover:bg-white hover:text-slate-900 rounded-lg shadow-lg transition-all backdrop-blur-md shrink-0">
+                  <X size={20} className="stroke-[2.5]" />
                 </Button>
                 <Button
                   type="button"
                   onClick={handleSubmit}
                   disabled={isSaving}
-                  className="bg-white text-slate-950 hover:bg-slate-100 rounded-lg px-12 py-5 font-black tracking-[3px] text-xs flex items-center gap-4 shadow-[0_25px_50px_rgba(0,0,0,0.15)] h-[64px]">
+                  className="flex-1 md:flex-none bg-white text-slate-950 hover:bg-slate-100 rounded-lg px-6 md:px-10 py-4 md:py-5 font-black tracking-[3px] text-[10px] md:text-xs flex items-center justify-center gap-2 shadow-lg h-12 md:h-[64px]">
                   {isSaving ? (
                     "UPDATING..."
                   ) : (
                     <>
-                      <Save size={20} /> SAVE CHANGES
+                      <Save size={18} /> SAVE CHANGES
                     </>
                   )}
                 </Button>

@@ -441,18 +441,20 @@ export default function SellerAuth() {
               </div>
             )}
 
-            <div className="text-center pt-4 pb-2 lg:pb-0">
-              <p className="text-slate-400 text-xs font-medium">
-                By logging in, you agree to our <br />
-                <button
-                  type="button"
-                  onClick={() => navigate("/profile/terms")}
-                  className="bg-transparent border-0 p-0 text-[#f26522] font-bold hover:underline cursor-pointer"
-                >
-                  Terms & Conditions
-                </button>
-              </p>
-            </div>
+            {step === "phone" && (
+              <div className="text-center pt-4 pb-2 lg:pb-0">
+                <p className="text-slate-400 text-xs font-medium">
+                  By logging in, you agree to our <br />
+                  <button
+                    type="button"
+                    onClick={() => navigate("/profile/terms")}
+                    className="bg-transparent border-0 p-0 text-[#f26522] font-bold hover:underline cursor-pointer"
+                  >
+                    Terms & Conditions
+                  </button>
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

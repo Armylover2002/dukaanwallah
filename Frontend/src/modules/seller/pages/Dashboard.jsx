@@ -106,6 +106,7 @@ const Dashboard = () => {
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
       description: "vs last month",
+      path: "/seller/earnings",
     },
     {
       label: "Total Orders",
@@ -116,6 +117,7 @@ const Dashboard = () => {
       iconBg: "bg-orange-50",
       iconColor: "text-orange-600",
       description: "vs last month",
+      path: "/seller/orders",
     },
     {
       label: "Avg Order Value",
@@ -126,6 +128,7 @@ const Dashboard = () => {
       iconBg: "bg-purple-50",
       iconColor: "text-purple-600",
       description: "per order",
+      path: "/seller/orders",
     },
     {
       label: "Pending Orders",
@@ -136,6 +139,7 @@ const Dashboard = () => {
       iconBg: "bg-red-50",
       iconColor: "text-red-600",
       description: "need attention",
+      path: "/seller/orders",
     },
   ];
 
@@ -258,17 +262,18 @@ const Dashboard = () => {
       {/* Stats Grid */}
       <div className="ds-grid-stats">
         {stats.map((stat) => (
-          <StatCard
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            trend={stat.change}
-            trendDirection={stat.changeType === "increase" ? "up" : "down"}
-            description={stat.description}
-            color={stat.iconColor}
-            bg={stat.iconBg}
-          />
+          <div key={stat.label} onClick={() => stat.path && navigate(stat.path)} className={cn("transition-transform", stat.path ? "cursor-pointer hover:-translate-y-1 active:scale-95" : "")}>
+            <StatCard
+              label={stat.label}
+              value={stat.value}
+              icon={stat.icon}
+              trend={stat.change}
+              trendDirection={stat.changeType === "increase" ? "up" : "down"}
+              description={stat.description}
+              color={stat.iconColor}
+              bg={stat.iconBg}
+            />
+          </div>
         ))}
       </div>
 

@@ -730,8 +730,8 @@ const ProductManagement = () => {
       </div>
 
       {/* Toolbox */}
-      <BlurFade delay={0.25}>
-        <Card className="relative z-30 border-none shadow-sm ring-1 ring-slate-100 p-3 bg-white/60 backdrop-blur-xl">
+      <BlurFade delay={0.25} className="relative z-30">
+        <Card className="relative z-30 border-none shadow-md ring-1 ring-slate-100 bg-white p-4 mb-8">
           <div className="flex flex-col lg:flex-row gap-3 items-center">
             <div className="relative flex-1 group w-full">
               <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 group-focus-within:text-orange-500 transition-all" />
@@ -771,18 +771,104 @@ const ProductManagement = () => {
               </select>
               <button
                 onClick={() => setIsFilterOpen((prev) => !prev)}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-white ring-1 ring-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+                className={cn(
+                  "flex items-center space-x-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ring-1",
+                  (filterCategory !== "all" || filterStatus !== "All" || priceMin !== "" || priceMax !== "")
+                    ? "ring-orange-500 text-orange-600 bg-orange-50"
+                    : "bg-white ring-slate-200 text-slate-600 hover:bg-slate-50"
+                )}
               >
                 <HiOutlineFunnel className="h-4 w-4" />
                 <span>Filters</span>
               </button>
+
+              {isFilterOpen && (
+                <div
+                  ref={filterDropdownRef}
+                  className="absolute z-[9999] right-0 top-[110%] w-[calc(100vw-2rem)] sm:w-64 rounded-xl border border-slate-200 bg-white shadow-2xl p-4 space-y-3"
+                  style={{ maxWidth: '320px' }}
+                >
+                  <div>
+                    <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
+                      Status
+                    </p>
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-orange-500/10 outline-none bg-white"
+                    >
+                      <option value="All">All</option>
+                      <option value="Active">Active</option>
+                      <option value="Low Stock">Low Stock</option>
+                      <option value="Out of Stock">Out of Stock</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
+                        Min Price
+                      </p>
+                      <input
+                        type="number"
+                        min="0"
+                        value={priceMin}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || Number(val) >= 0) setPriceMin(val);
+                        }}
+                        placeholder="e.g. 100"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-orange-500/10 outline-none bg-white"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
+                        Max Price
+                      </p>
+                      <input
+                        type="number"
+                        min="1"
+                        value={priceMax}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || Number(val) >= 1) setPriceMax(val);
+                        }}
+                        placeholder="e.g. 1000"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-orange-500/10 outline-none bg-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterCategory("all");
+                        setFilterStatus("All");
+                        setPriceMin("");
+                        setPriceMax("");
+                        setSearchTerm("");
+                        setSearchParams({});
+                      }}
+                      className="text-[11px] font-bold text-slate-600 hover:text-slate-700"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsFilterOpen(false)}
+                      className="px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Card>
       </BlurFade>
 
       {/* Product Table */}
-      <BlurFade delay={0.3}>
+      <BlurFade delay={0.3} className="relative z-10">
         <Card className="relative z-10 border-none shadow-xl ring-1 ring-slate-100 overflow-hidden rounded-3xl">
           {/* Mobile Card List */}
           <div className="md:hidden divide-y divide-slate-100">
@@ -857,86 +943,6 @@ const ProductManagement = () => {
         </Card>
       </BlurFade>
 
-      {isFilterOpen && (
-        <div
-          ref={filterDropdownRef}
-          className="fixed z-[9999] right-4 top-auto w-[calc(100vw-2rem)] sm:w-64 sm:absolute sm:right-4 sm:top-auto rounded-xl border border-slate-200 bg-white shadow-xl p-4 space-y-3"
-          style={{ maxWidth: '320px' }}
-        >
-          <div>
-            <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
-              Status
-            </p>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-orange-500/10 outline-none bg-white"
-            >
-              <option value="All">All</option>
-              <option value="Active">Active</option>
-              <option value="Low Stock">Low Stock</option>
-              <option value="Out of Stock">Out of Stock</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
-                Min Price
-              </p>
-              <input
-                type="number"
-                min="0"
-                value={priceMin}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "" || Number(val) >= 0) setPriceMin(val);
-                }}
-                placeholder="e.g. 100"
-                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-orange-500/10 outline-none bg-white"
-              />
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-1">
-                Max Price
-              </p>
-              <input
-                type="number"
-                min="1"
-                value={priceMax}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "" || Number(val) >= 1) setPriceMax(val);
-                }}
-                placeholder="e.g. 1000"
-                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-orange-500/10 outline-none bg-white"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setFilterCategory("all");
-                setFilterStatus("All");
-                setPriceMin("");
-                setPriceMax("");
-                setSearchTerm("");
-                setSearchParams({});
-              }}
-              className="text-[11px] font-bold text-slate-600 hover:text-slate-700"
-            >
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsFilterOpen(false)}
-              className="px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="mt-4">
         <Pagination
