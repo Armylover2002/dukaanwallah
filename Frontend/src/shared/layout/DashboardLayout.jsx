@@ -74,6 +74,17 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const lastEarningsErrorToastAtRef = useRef(0);
 
     useEffect(() => {
+        if (isSidebarOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isSidebarOpen]);
+
+    useEffect(() => {
         shownOrderIdsRef.current = shownOrderIds;
     }, [shownOrderIds]);
     useEffect(() => {

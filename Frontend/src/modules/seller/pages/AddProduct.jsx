@@ -144,6 +144,11 @@ const AddProduct = () => {
       toast.error("Please fill in the Product Title");
       return;
     }
+    
+    if (!formData.mainImage && !formData.mainImageFile) {
+      toast.error("Product image is mandatory. Please upload a primary image.");
+      return;
+    }
 
     // Validate all three category levels are selected
     if (!formData.header || !formData.category || !formData.subcategory) {
@@ -638,24 +643,6 @@ const AddProduct = () => {
           <HiOutlineArrowLeft className="mr-2 h-5 w-5" />
           Back to Products
         </Button>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="min-w-[140px]">
-            {isSaving ? (
-              <>
-                <HiOutlineArrowPath className="mr-2 h-5 w-5 animate-spin" />
-                Publishing...
-              </>
-            ) : (
-              "Save & Publish"
-            )}
-          </Button>
-        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[600px] border border-slate-100">
@@ -717,7 +704,7 @@ const AddProduct = () => {
                   Import from Product ID
                   <span className="text-[9px] font-medium text-slate-400 normal-case tracking-normal">(optional)</span>
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     value={productIdInput}
                     onChange={e => { setProductIdInput(e.target.value); setAutoFilled(false); }}
@@ -729,7 +716,7 @@ const AddProduct = () => {
                     type="button"
                     onClick={handleProductIdLookup}
                     disabled={!productIdInput.trim() || isLookingUp}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shrink-0"
+                    className="flex justify-center items-center gap-1.5 px-4 py-2.5 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm whitespace-nowrap"
                   >
                     {isLookingUp ? (
                       <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
@@ -1134,6 +1121,25 @@ const AddProduct = () => {
 
           
         </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 md:left-80 z-[70] bg-white border-t border-slate-200 p-4 px-6 flex justify-end gap-3 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
+        <Button variant="outline" onClick={() => navigate(-1)}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="min-w-[140px]">
+          {isSaving ? (
+            <>
+              <HiOutlineArrowPath className="mr-2 h-5 w-5 animate-spin" />
+              Publishing...
+            </>
+          ) : (
+            "Save & Publish"
+          )}
+        </Button>
       </div>
     </div>
   );

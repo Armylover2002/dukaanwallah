@@ -110,9 +110,11 @@ export default function SellerPendingApproval() {
                 <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">
                   {item.label}
                 </p>
-                <p className={`mt-3 inline-flex rounded-full px-4 py-2 text-sm font-black ${item.tone}`}>
-                  {item.value}
-                </p>
+                <div className="mt-3 overflow-hidden">
+                  <p className={`inline-block max-w-full rounded-2xl px-4 py-2 text-sm font-black break-words ${item.tone}`}>
+                    {item.value}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
