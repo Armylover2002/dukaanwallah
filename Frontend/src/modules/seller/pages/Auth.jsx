@@ -489,7 +489,7 @@ export default function SellerAuth() {
 
               <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex gap-3">
                 <div className="flex-1 text-xs text-amber-800 leading-relaxed font-medium">
-                  <strong>Please note:</strong> Re-onboarding will clear your previous draft. You must fill out the form entirely from scratch.
+                  <strong>Please note:</strong> Your previously submitted details have been preserved. Please review and update the information based on the rejection reason above.
                 </div>
               </div>
             </div>

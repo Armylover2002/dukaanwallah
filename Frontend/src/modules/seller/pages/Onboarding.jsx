@@ -132,6 +132,7 @@ export default function SellerOnboarding() {
   const [isSavingHours, setIsSavingHours] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hoursDraft, setHoursDraft] = useState({ openingTime: "", closingTime: "" });
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [feeConfig, setFeeConfig] = useState(undefined);
   const [fetchingFees, setFetchingFees] = useState(false);
   const [rejectionReason, setRejectionReason] = useState(null);
@@ -324,14 +325,50 @@ export default function SellerOnboarding() {
       try {
         const response = await sellerApi.getProfile();
         const data = response?.data?.result || {};
+        
+        const isDummyName = data.name && String(data.name).startsWith("Seller ");
+        const isDummyShopName = data.shopName && String(data.shopName).startsWith("Store ");
+        const isDummyEmail = data.email && (String(data.email).endsWith("@seller.local") || String(data.email).endsWith("@user.local"));
+
+        const populatedForm = {
+          ...initialState,
+          name: isDummyName ? "" : (data.name || ""),
+          shopName: isDummyShopName ? "" : (data.shopName || ""),
+          email: isDummyEmail ? "" : (data.email || ""),
+          phone: getSellerPhone(data) || initialState.phone,
+          zoneId: data.shopInfo?.zoneId || data.zoneId || "",
+          zoneSource: data.shopInfo?.zoneSource || data.zoneSource || "",
+          address: data.location?.formattedAddress || data.location?.address || data.address || "",
+          lat: data.location?.coordinates?.[1] || data.location?.latitude || data.lat || "",
+          lng: data.location?.coordinates?.[0] || data.location?.longitude || data.lng || "",
+          radius: data.serviceRadius || data.radius || 5,
+          businessType: data.shopInfo?.businessType || data.businessType || "",
+          alternatePhone: data.shopInfo?.alternatePhone || data.alternatePhone || "",
+          supportEmail: data.shopInfo?.supportEmail || data.supportEmail || "",
+          openingHours: data.shopInfo?.openingHours || data.openingHours || "",
+          bankName: data.bankInfo?.bankName || "",
+          accountHolderName: data.bankInfo?.accountHolderName || "",
+          accountNumber: data.bankInfo?.accountNumber || "",
+          ifscCode: data.bankInfo?.ifscCode || "",
+          accountType: data.bankInfo?.accountType || "",
+          upiId: data.bankInfo?.upiId || "",
+          panNumber: data.documents?.panNumber || "",
+          gstRegistered: data.documents?.gstRegistered || false,
+          gstNumber: data.documents?.gstNumber || "",
+          gstLegalName: data.documents?.gstLegalName || "",
+          fssaiNumber: data.documents?.fssaiNumber || "",
+          fssaiExpiry: data.documents?.fssaiExpiry ? String(data.documents.fssaiExpiry).split("T")[0] : "",
+          shopLicenseNumber: data.documents?.shopLicenseNumber || "",
+          shopLicenseExpiry: data.documents?.shopLicenseExpiry ? String(data.documents.shopLicenseExpiry).split("T")[0] : "",
+        };
 
         if (sessionStorage.getItem("sellerReonboard") === "true") {
-          setForm((prev) => ({ ...initialState, phone: getSellerPhone(data) || prev.phone }));
-          setHoursDraft({ openingTime: "", closingTime: "" });
+          setForm((prev) => ({ ...populatedForm }));
+          setHoursDraft(parseOpeningHours(data?.shopInfo?.openingHours || data?.openingHours || ""));
           setRejectionReason(data.approvalNotes || data.rejectionReason || "Your previous application was rejected. Please update your details.");
           setIsReonboardBypass(true); // bypass payment for re-applying
         } else {
-          setForm((prev) => ({ ...initialState, phone: getSellerPhone(data) || prev.phone }));
+          setForm((prev) => ({ ...populatedForm }));
           setHoursDraft(parseOpeningHours(data?.shopInfo?.openingHours || data?.openingHours || ""));
 
           // If rejected, show reason and bypass onboarding fee
@@ -342,6 +379,20 @@ export default function SellerOnboarding() {
             setIsReonboardBypass(true); // bypass payment if already registered
           }
         }
+        
+        // Restore from draft if available
+        try {
+          const draft = localStorage.getItem("sellerOnboardingDraft");
+          if (draft) {
+            const parsedDraft = JSON.parse(draft);
+            if (parsedDraft.phone === getSellerPhone(data)) {
+              setForm((prev) => ({ ...prev, ...parsedDraft }));
+            }
+          }
+        } catch (e) {
+          console.error("Error loading draft", e);
+        }
+        setIsDraftLoaded(true);
       } catch (error) {
         if (error?.response?.status !== 401) {
           toast.error("Failed to load seller onboarding data");
@@ -382,6 +433,12 @@ export default function SellerOnboarding() {
 
     loadZones();
   }, []);
+
+  useEffect(() => {
+    if (isDraftLoaded && !isLoading) {
+      localStorage.setItem("sellerOnboardingDraft", JSON.stringify(form));
+    }
+  }, [form, isDraftLoaded, isLoading]);
 
   const completionText = useMemo(() => {
     const fields = [
@@ -587,6 +644,7 @@ export default function SellerOnboarding() {
           await sellerApi.updateProfile(payload);
           await refreshUser();
           sessionStorage.removeItem("sellerReonboard");
+          localStorage.removeItem("sellerOnboardingDraft");
           toast.success("Application submitted for admin approval");
           navigate("/seller/pending", { replace: true });
         } else {
@@ -614,6 +672,7 @@ export default function SellerOnboarding() {
                 await sellerApi.updateProfile(payload);
                 await refreshUser();
                 sessionStorage.removeItem("sellerReonboard");
+                localStorage.removeItem("sellerOnboardingDraft");
                 toast.success("Application submitted for admin approval");
                 navigate("/seller/pending", { replace: true });
               } catch (error) {
@@ -637,6 +696,7 @@ export default function SellerOnboarding() {
         await sellerApi.updateProfile(payload);
         await refreshUser();
         sessionStorage.removeItem("sellerReonboard");
+        localStorage.removeItem("sellerOnboardingDraft");
         toast.success("Application submitted for admin approval");
         navigate("/seller/pending", { replace: true });
       }
