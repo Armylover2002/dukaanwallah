@@ -252,10 +252,10 @@ const SellerProfile = () => {
                 {profile?.isActive ? "Active" : "Inactive"}
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter drop-shadow-sm mb-1 line-clamp-2 break-words w-full">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter drop-shadow-sm mb-1 break-words w-full">
               {profile?.name}
             </h1>
-            <p className="text-white/60 font-black tracking-[1px] text-sm md:text-lg truncate w-full">
+            <p className="text-white/60 font-black tracking-[1px] text-sm md:text-lg break-words w-full">
               {profile?.shopName}
             </p>
           </div>
@@ -299,8 +299,8 @@ const SellerProfile = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Main Info Card */}
-        <div className="md:col-span-2 space-y-8">
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
+        <div className="md:col-span-2 space-y-6 sm:space-y-8">
+          <Card className="p-5 sm:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
             <h3 className="text-xl font-black text-slate-900 mb-8 border-b border-slate-50 pb-4">
               Business Profile
             </h3>
@@ -387,8 +387,8 @@ const SellerProfile = () => {
           </Card>
 
           {/* Location & Radius Settings Card */}
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
-            <div className="flex justify-between items-center mb-8 border-b border-slate-50 pb-4">
+          <Card className="p-5 sm:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 border-b border-slate-50 pb-4">
               <h3 className="text-xl font-black text-slate-900">
                 Location & Service Settings
               </h3>
@@ -396,18 +396,18 @@ const SellerProfile = () => {
                 <Button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="bg-orange-500 text-white hover:bg-orange-600 rounded-lg px-6 py-2 text-[10px] font-black tracking-[2px]">
+                  className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600 rounded-lg px-6 py-3 sm:py-2 text-[10px] font-black tracking-[2px]">
                   MANAGE
                 </Button>
               )}
             </div>
 
             <div className="space-y-6">
-              <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100/50 space-y-6">
-                <div className="flex items-center justify-between gap-6">
-                  <div className="flex items-center gap-4">
+              <div className="bg-slate-50 p-4 sm:p-6 rounded-2xl border-2 border-slate-100/50 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div
-                      className={`h-12 w-12 rounded-xl flex items-center justify-center transition-all ${
+                      className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                         formData.lat
                           ? "bg-emerald-100 text-emerald-600 shadow-[0_8px_20px_-6px_rgba(16,185,129,0.3)]"
                           : "bg-white text-slate-400 shadow-sm"
@@ -431,14 +431,14 @@ const SellerProfile = () => {
                       type="button"
                       onClick={() => setIsMapOpen(true)}
                       disabled={isLocationSaving}
-                      className="bg-white text-slate-900 border-2 border-slate-200 hover:border-slate-900 rounded-lg px-8 py-3 text-[10px] font-black tracking-[2px] shadow-sm hover:shadow-md transition-all whitespace-nowrap">
+                      className="w-full sm:w-auto bg-white text-slate-900 border-2 border-slate-200 hover:border-slate-900 rounded-lg px-8 py-3 text-[10px] font-black tracking-[2px] shadow-sm hover:shadow-md transition-all whitespace-nowrap">
                       {isLocationSaving ? "UPDATING..." : "CHANGE PIN"}
                     </Button>
                   )}
                 </div>
 
                 {formData.lat !== null && formData.lat !== undefined && (
-                  <div className="pt-6 border-t border-slate-200/60 flex flex-wrap gap-8">
+                  <div className="pt-6 border-t border-slate-200/60 flex flex-wrap gap-4 sm:gap-8">
                     <div className="space-y-2">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
                         Service Radius
@@ -486,8 +486,8 @@ const SellerProfile = () => {
         </div>
 
         {/* Sidebar Card */}
-        <div className="space-y-8">
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-800 text-white">
+        <div className="space-y-6 sm:space-y-8">
+          <Card className="p-5 sm:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-800 text-white">
             <h4 className="text-[10px] font-black uppercase tracking-[4px] text-white/40 mb-6">
               Security & Trust
             </h4>
@@ -532,7 +532,7 @@ const SellerProfile = () => {
             </div>
           </Card>
 
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-white border border-slate-100">
+          <Card className="p-5 sm:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-white border border-slate-100">
             <h4 className="text-[10px] font-black uppercase tracking-[4px] text-slate-400 mb-6">
               Session Management
             </h4>
@@ -549,7 +549,7 @@ const SellerProfile = () => {
             </div>
           </Card>
 
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-red-50/50 border border-red-100/50">
+          <Card className="p-5 sm:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-red-50/50 border border-red-100/50">
             <h4 className="text-[10px] font-black uppercase tracking-[4px] text-red-600 mb-6">
               Danger Zone
             </h4>
