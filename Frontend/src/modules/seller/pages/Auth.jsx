@@ -137,8 +137,7 @@ export default function SellerAuth() {
       );
       setOtpPhone(resolvedPhone);
 
-      const resolvedOtpArray = devOtp ? String(devOtp).split("").slice(0, 4) : ["", "", "", ""];
-      while (resolvedOtpArray.length < 4) resolvedOtpArray.push("");
+      const resolvedOtpArray = ["", "", "", ""];
       setOtp(resolvedOtpArray);
 
       setStep("otp");
@@ -447,7 +446,7 @@ export default function SellerAuth() {
                 By logging in, you agree to our <br />
                 <button
                   type="button"
-                  onClick={() => navigate("/seller/terms")}
+                  onClick={() => navigate("/profile/terms")}
                   className="bg-transparent border-0 p-0 text-[#f26522] font-bold hover:underline cursor-pointer"
                 >
                   Terms & Conditions
