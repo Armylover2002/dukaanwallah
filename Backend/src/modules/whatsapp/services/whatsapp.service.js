@@ -43,7 +43,12 @@ export const sendWhatsAppTemplate = async (
         const settings = await getWhatsappSettings();
         const apiUrl = process.env.WHATSAPP_API_URL || 'http://bhashsms.com/api/sendmsg.php';
 
-        if (!settings.username || !settings.password || !settings.senderId) {
+        // Credentials: env vars take priority, DB settings are fallback
+        const username = process.env.WHATSAPP_USERNAME || settings.username;
+        const password = process.env.WHATSAPP_PASSWORD || settings.password;
+        const senderId = process.env.WHATSAPP_SENDER_ID || settings.senderId;
+
+        if (!username || !password || !senderId) {
             throw new Error('WhatsApp API credentials are not fully configured');
         }
 
@@ -63,9 +68,9 @@ export const sendWhatsAppTemplate = async (
         ].join(',');
 
         const requestParams = {
-            user: settings.username,
-            pass: settings.password,
-            sender: settings.senderId,
+            user: username,
+            pass: password,
+            sender: senderId,
             phone: formattedMobile,
             text: process.env.WHATSAPP_DEFAULT_TEMPLATE_NAME || 'order_confirmation',
             priority: 'wa',

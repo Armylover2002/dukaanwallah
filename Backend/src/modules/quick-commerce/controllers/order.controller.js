@@ -18,6 +18,7 @@ import { haversineKm } from '../../food/orders/services/order.helpers.js';
 import { createRazorpayOrder, isRazorpayConfigured, getRazorpayKeyId } from '../../food/orders/helpers/razorpay.helper.js';
 import { autoRefundForCancelledOrder } from '../../../core/payments/autoRefund.service.js';
 import { verifyPayment as verifyFoodPayment } from '../../food/orders/services/order.service.js';
+import { sendWhatsAppTemplate } from '../../whatsapp/services/whatsapp.service.js';
 
 const approvedProductFilter = {
   $or: [
@@ -505,6 +506,26 @@ export const placeOrder = async (req, res) => {
       })();
     }
 
+    if (!isOnlinePayment) {
+      // COD: send WhatsApp after successful order creation
+      try {
+        const mobile = String(order.deliveryAddress?.phone || '').trim();
+        if (mobile) {
+          const customerName = String(req.body?.address?.name || 'Customer').trim() || 'Customer';
+          const itemsStr = order.items.map(i => `${i.name || i.productName} x${i.quantity}`).join(', ');
+          const totalAmount = getOrderPayableAmount(order);
+          logger.info(`[WhatsApp] Sending COD confirmation to ${mobile} for quick order ${order.orderId}`);
+          sendWhatsAppTemplate(mobile, customerName, order.orderId, itemsStr, totalAmount, 'COD').catch(err => {
+            logger.error(`[WhatsApp] COD send failed for quick order ${order.orderId}: ${err.message}`);
+          });
+        } else {
+          logger.warn(`[WhatsApp] Skipped COD notification for ${order.orderId}: no phone in deliveryAddress`);
+        }
+      } catch (waErr) {
+        logger.error(`[WhatsApp] COD trigger error for quick order ${order.orderId}: ${waErr.message}`);
+      }
+    }
+
     return res.status(201).json({
       success: true,
       result: {
@@ -943,6 +964,23 @@ export const verifyPayment = async (req, res) => {
       logger.error(`Quick guest verifyPayment fanout/notification failed: ${fanoutErr.message}`);
     }
 
+    // Online payment verified: send WhatsApp confirmation
+    try {
+      const mobile = String(order.deliveryAddress?.phone || '').trim();
+      if (mobile) {
+        const customerName = 'Customer';
+        const itemsStr = order.items.map(i => `${i.name || i.productName} x${i.quantity}`).join(', ');
+        const totalAmount = getOrderPayableAmount(order);
+        logger.info(`[WhatsApp] Sending Online confirmation to ${mobile} for quick order ${order.orderId}`);
+        sendWhatsAppTemplate(mobile, customerName, order.orderId, itemsStr, totalAmount, 'Online').catch(err => {
+          logger.error(`[WhatsApp] Online send failed for quick order ${order.orderId}: ${err.message}`);
+        });
+      } else {
+        logger.warn(`[WhatsApp] Skipped Online notification for ${order.orderId}: no phone in deliveryAddress`);
+      }
+    } catch (waErr) {
+      logger.error(`[WhatsApp] Online trigger error for quick order ${order.orderId}: ${waErr.message}`);
+    }
     return res.status(200).json({
       success: true,
       message: 'Payment verified successfully',

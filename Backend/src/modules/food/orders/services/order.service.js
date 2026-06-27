@@ -13,6 +13,7 @@ import { buildPaginationOptions, buildPaginatedResult } from '../../../../utils/
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
 import { FoodDeliveryCommissionRule } from '../../admin/models/deliveryCommissionRule.model.js';
+import { sendWhatsAppTemplate } from '../../../whatsapp/services/whatsapp.service.js';
 import {
   sendNotificationToOwner,
   sendNotificationToOwners,
@@ -2595,6 +2596,31 @@ export async function createOrder(userId, dto) {
     }
   }
 
+  if (order.payment.method === 'cash') {
+    try {
+      // Get phone from deliveryAddress (always stored here per schema)
+      const mobile = String(order.deliveryAddress?.phone || '').trim();
+      if (mobile) {
+        // Fetch customer name from FoodUser record; fall back gracefully
+        let customerName = 'Customer';
+        try {
+          const userDoc = await FoodUser.findById(order.userId).select('name').lean();
+          if (userDoc?.name) customerName = userDoc.name;
+        } catch { /* ignore – name is non-critical */ }
+        const itemsStr = Array.isArray(order.items) ? order.items.map(i => `${i.name || i.menuItemName} x${i.quantity}`).join(', ') : '';
+        const totalAmount = Number(order.pricing?.total || 0);
+        logger.info(`[WhatsApp] Sending COD confirmation to ${mobile} for order ${order.orderId}`);
+        sendWhatsAppTemplate(mobile, customerName, order.orderId, itemsStr, totalAmount, 'COD').catch(err => {
+          logger.error(`[WhatsApp] COD send failed for order ${order.orderId}: ${err.message}`);
+        });
+      } else {
+        logger.warn(`[WhatsApp] Skipped COD notification for ${order.orderId}: no phone in deliveryAddress`);
+      }
+    } catch (waErr) {
+      logger.error(`[WhatsApp] COD trigger error for order ${order.orderId}: ${waErr.message}`);
+    }
+  }
+
   const saved = order.toObject();
   return { order: saved, razorpay: razorpayPayload };
 }
@@ -2681,6 +2707,29 @@ export async function verifyPayment(userId, dto) {
       orderMongoId: String(order._id),
     },
   });
+
+  try {
+    // Get phone from deliveryAddress (always stored here per schema)
+    const mobile = String(order.deliveryAddress?.phone || '').trim();
+    if (mobile) {
+      // Fetch customer name from FoodUser record; fall back gracefully
+      let customerName = 'Customer';
+      try {
+        const userDoc = await FoodUser.findById(order.userId).select('name').lean();
+        if (userDoc?.name) customerName = userDoc.name;
+      } catch { /* ignore – name is non-critical */ }
+      const itemsStr = Array.isArray(order.items) ? order.items.map(i => `${i.name || i.menuItemName} x${i.quantity}`).join(', ') : '';
+      const totalAmount = Number(order.pricing?.total || 0);
+      logger.info(`[WhatsApp] Sending Online confirmation to ${mobile} for order ${order.orderId}`);
+      sendWhatsAppTemplate(mobile, customerName, order.orderId, itemsStr, totalAmount, 'Online').catch(err => {
+        logger.error(`[WhatsApp] Online send failed for order ${order.orderId}: ${err.message}`);
+      });
+    } else {
+      logger.warn(`[WhatsApp] Skipped Online notification for ${order.orderId}: no phone in deliveryAddress`);
+    }
+  } catch (waErr) {
+    logger.error(`[WhatsApp] Online trigger error for order ${order.orderId}: ${waErr.message}`);
+  }
 
   const settings =
     order.orderType === "food" ||
