@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FCM Push Notification Debugger</title>
+  <style>
+    body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 20px; max-width: 900px; margin: 0 auto; }
+    h1 { color: #38bdf8; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .ok { color: #4ade80; } .warn { color: #facc15; } .err { color: #f87171; }
+    button { background: #0284c7; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 4px; font-size: 14px; }
+    button:hover { background: #0369a1; }
+    pre { background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; }
+    .step { border-left: 3px solid #0284c7; padding-left: 12px; margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <h1>🔔 FCM Push Notification Debugger</h1>
+  <p style="color:#94a3b8">This tool diagnoses why push notifications are not working on web.</p>
+
+  <div class="card">
+    <h3>Step 1: Auto-checks (running...)</h3>
+    <div id="checks"></div>
+  </div>
+
+  <div class="card">
+    <h3>Step 2: Manual Actions</h3>
+    <button onclick="forceUpdateSW()">🔄 Force Update Service Worker</button>
+    <button onclick="requestPermission()">🔔 Request Notification Permission</button>
+    <button onclick="getToken()">🔑 Get FCM Token</button>
+    <button onclick="sendTestFromBackend()">🚀 Send Test Notification (via Backend)</button>
+    <button onclick="clearAllLogs()">🗑️ Clear Logs</button>
+  </div>
+
+  <div class="card">
+    <h3>Logs</h3>
+    <pre id="log"></pre>
+  </div>
+
+  <script type="module">
+    const API_BASE = 'http://localhost:5000/api/v1';
+    const logEl = document.getElementById('log');
+    const checksEl = document.getElementById('checks');
+
+    function log(msg, type = 'info') {
+      const colors = { info: '#94a3b8', ok: '#4ade80', warn: '#facc15', err: '#f87171' };
+      const now = new Date().toLocaleTimeString();
+      logEl.innerHTML += `<span style="color:${colors[type]}">[${now}] ${msg}</span>\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function addCheck(label, status, detail = '') {
+      const c = status === 'ok' ? 'ok' : status === 'warn' ? 'warn' : 'err';
+      const icon = status === 'ok' ? '✅' : status === 'warn' ? '⚠️' : '❌';
+      checksEl.innerHTML += `<div class="step"><b class="${c}">${icon} ${label}</b>${detail ? ` — <span style="color:#94a3b8">${detail}</span>` : ''}</div>`;
+    }
+
+    // ── Auto checks ──────────────────────────────────────────────────
+    async function runChecks() {
+      log('Starting diagnostics...', 'info');
+
+      // 1. HTTPS / secure context
+      const isSecure = window.isSecureContext || location.hostname === 'localhost';
+      addCheck('Secure Context (HTTPS/localhost)', isSecure ? 'ok' : 'err', location.origin);
+
+      // 2. Notification API
+      const hasNotif = 'Notification' in window;
+      addCheck('Notification API available', hasNotif ? 'ok' : 'err');
+
+      // 3. Notification permission
+      const perm = hasNotif ? Notification.permission : 'unsupported';
+      addCheck('Notification permission', perm === 'granted' ? 'ok' : perm === 'default' ? 'warn' : 'err', perm);
+
+      // 4. Service Worker support
+      const hasSW = 'serviceWorker' in navigator;
+      addCheck('Service Worker API', hasSW ? 'ok' : 'err');
+
+      // 5. PushManager
+      const hasPush = 'PushManager' in window;
+      addCheck('PushManager API', hasPush ? 'ok' : 'err');
+
+      // 6. firebase-web-config.js reachable
+      try {
+        const r = await fetch('/firebase-web-config.js', { cache: 'no-store' });
+        const text = await r.text();
+        const hasApiKey = text.includes('VITE_FIREBASE_API_KEY');
+        addCheck('firebase-web-config.js reachable', r.ok && hasApiKey ? 'ok' : 'err', r.ok ? 'found' : `HTTP ${r.status}`);
+        log('firebase-web-config.js: ' + (hasApiKey ? 'Config keys present ✅' : 'Keys MISSING ❌'), hasApiKey ? 'ok' : 'err');
+      } catch (e) {
+        addCheck('firebase-web-config.js reachable', 'err', e.message);
+      }
+
+      // 7. Service Worker registration
+      if (hasSW) {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration('/');
+          if (reg) {
+            addCheck('Service Worker registered', 'ok', reg.scope);
+            log(`SW state: ${reg.active?.state || 'no active SW'}`, reg.active ? 'ok' : 'warn');
+            log(`SW script: ${reg.active?.scriptURL || 'unknown'}`, 'info');
+
+            // Check if it's the new SW with our fix
+            if (reg.active?.scriptURL?.includes('firebase-messaging-sw.js')) {
+              // Check if SW is the new version by looking at its state
+              if (reg.installing) {
+                log('⚠️ New SW is INSTALLING — refresh browser tab!', 'warn');
+                addCheck('Service Worker up to date', 'warn', 'New version installing — close & reopen tab');
+              } else if (reg.waiting) {
+                log('⚠️ New SW is WAITING — old SW still active. Open Chrome DevTools → Application → Service Workers → click "skipWaiting"', 'warn');
+                addCheck('Service Worker up to date', 'warn', 'Waiting to activate — force update below');
+              } else {
+                addCheck('Service Worker up to date', 'ok', 'Active');
+              }
+            }
+          } else {
+            addCheck('Service Worker registered', 'warn', 'Not yet registered — visit the app page first');
+            log('No SW registered at /. Visit localhost:5173/food first, then come back here.', 'warn');
+          }
+        } catch (e) {
+          addCheck('Service Worker registered', 'err', e.message);
+        }
+      }
+
+      // 8. localStorage tokens
+      const accessTokenKeys = ['user_accessToken', 'restaurant_accessToken', 'delivery_accessToken', 'admin_accessToken'];
+      const foundTokens = accessTokenKeys.filter(k => localStorage.getItem(k));
+      addCheck('User logged in (access token found)', foundTokens.length > 0 ? 'ok' : 'warn',
+        foundTokens.length > 0 ? foundTokens.join(', ') : 'Not logged in — FCM token cannot be saved to backend');
+
+      // 9. FCM cached token check
+      const fcmCacheKeys = Object.keys(localStorage).filter(k => k.startsWith('fcm_web_registered_token_'));
+      if (fcmCacheKeys.length > 0) {
+        fcmCacheKeys.forEach(k => {
+          const token = localStorage.getItem(k);
+          addCheck(`FCM token cached (${k.replace('fcm_web_registered_token_', '')})`, token ? 'ok' : 'warn',
+            token ? token.slice(0, 20) + '...' : 'empty');
+        });
+      } else {
+        addCheck('FCM token cached in localStorage', 'warn', 'No cached FCM token found — token may not have been registered yet');
+      }
+
+      // 10. Backend connectivity
+      try {
+        const r = await fetch(`${API_BASE.replace('/api/v1', '')}/api/v1/fcm-tokens/check`);
+        const j = await r.json();
+        addCheck('Backend FCM endpoint reachable', j.success ? 'ok' : 'err', j.message);
+      } catch (e) {
+        addCheck('Backend FCM endpoint reachable', 'err', e.message);
+      }
+
+      log('Diagnostics complete.', 'info');
+    }
+
+    // ── Manual actions ─────────────────────────────────────────────
+    window.forceUpdateSW = async () => {
+      if (!('serviceWorker' in navigator)) return log('SW not supported', 'err');
+      log('Force-updating service worker...', 'info');
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          log(`Unregistering SW: ${reg.scope}`, 'warn');
+          await reg.unregister();
+        }
+        log('All SWs unregistered. Now re-registering...', 'info');
+        const newReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        log(`New SW registered: ${newReg.scope}`, 'ok');
+        log('Reload the app tab (localhost:5173/food) for the new SW to activate.', 'warn');
+      } catch (e) {
+        log('SW update failed: ' + e.message, 'err');
+      }
+    };
+
+    window.requestPermission = async () => {
+      if (!('Notification' in window)) return log('Notifications not supported', 'err');
+      log(`Current permission: ${Notification.permission}`, 'info');
+      if (Notification.permission !== 'granted') {
+        const result = await Notification.requestPermission();
+        log(`Permission result: ${result}`, result === 'granted' ? 'ok' : 'err');
+      } else {
+        log('Permission already granted ✅', 'ok');
+      }
+    };
+
+    window.getToken = async () => {
+      log('Attempting to get FCM token...', 'info');
+      try {
+        const configRes = await fetch('/firebase-web-config.js', { cache: 'no-store' });
+        const configText = await configRes.text();
+        // Parse config from JS file
+        const match = configText.match(/self\.FIREBASE_WEB_CONFIG\s*=\s*(\{[\s\S]*?\});/);
+        if (!match) return log('Could not parse firebase-web-config.js', 'err');
+        const config = JSON.parse(match[1]);
+        log('Firebase config loaded: projectId=' + config.VITE_FIREBASE_PROJECT_ID, 'ok');
+
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js');
+        const { getMessaging, getToken, isSupported } = await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js');
+
+        const supported = await isSupported().catch(() => false);
+        if (!supported) return log('Firebase Messaging not supported in this browser', 'err');
+
+        const fbConfig = {
+          apiKey: config.VITE_FIREBASE_API_KEY,
+          authDomain: config.VITE_FIREBASE_AUTH_DOMAIN,
+          projectId: config.VITE_FIREBASE_PROJECT_ID,
+          appId: config.VITE_FIREBASE_APP_ID,
+          messagingSenderId: config.VITE_FIREBASE_MESSAGING_SENDER_ID,
+          storageBucket: config.VITE_FIREBASE_STORAGE_BUCKET,
+        };
+
+        const app = getApps().length ? getApps()[0] : initializeApp(fbConfig, 'debugger-app');
+        const messaging = getMessaging(app);
+
+        const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        log('SW registered, getting FCM token...', 'info');
+
+        const token = await getToken(messaging, {
+          vapidKey: config.VITE_FIREBASE_VAPID_KEY,
+          serviceWorkerRegistration: reg,
+        });
+
+        if (token) {
+          log('✅ FCM Token obtained: ' + token.slice(0, 30) + '...', 'ok');
+          log('Full token (copy this for testing):\n' + token, 'ok');
+        } else {
+          log('❌ No FCM token returned. Check notification permissions.', 'err');
+        }
+      } catch (e) {
+        log('getToken failed: ' + e.message, 'err');
+        console.error(e);
+      }
+    };
+
+    window.sendTestFromBackend = async () => {
+      // Try to find any stored access token
+      const tokenKeys = ['user_accessToken', 'restaurant_accessToken', 'delivery_accessToken'];
+      let authToken = null;
+      for (const k of tokenKeys) {
+        const t = localStorage.getItem(k);
+        if (t) { authToken = t; log(`Using auth token from: ${k}`, 'info'); break; }
+      }
+      if (!authToken) {
+        log('❌ No auth token found in localStorage. Please log in to the app first.', 'err');
+        return;
+      }
+      log('Sending test notification via backend...', 'info');
+      try {
+        const res = await fetch(`${API_BASE}/fcm-tokens/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ platform: 'web' })
+        });
+        const json = await res.json();
+        log('Backend response: ' + JSON.stringify(json, null, 2), res.ok ? 'ok' : 'err');
+      } catch (e) {
+        log('Backend test failed: ' + e.message, 'err');
+      }
+    };
+
+    window.clearAllLogs = () => { logEl.innerHTML = ''; };
+
+    runChecks();
+  </script>
+</body>
+</html>

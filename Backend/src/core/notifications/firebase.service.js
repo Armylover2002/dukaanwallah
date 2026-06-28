@@ -152,8 +152,9 @@ const buildMessagePayload = (payload = {}, token) => {
     const image =
         sanitizeString(payload.icon || payload.notification?.image || payload.notification?.icon || data.image || data.imageUrl);
 
-    // If payload.dataOnly is true, we omit the 'notification' block.
-    // This prevents FCM from auto-displaying while allowing app code to show a 'Local Notification'.
+    // If payload.dataOnly is true, we omit the root 'notification' block so that
+    // FCM does not auto-display a system popup — the frontend SW handles display via
+    // onBackgroundMessage() instead (custom UI, custom sound, dedup logic).
     const message = { token };
 
     if (!payload.dataOnly) {
@@ -163,8 +164,21 @@ const buildMessagePayload = (payload = {}, token) => {
         }
     }
 
-    if (Object.keys(data).length > 0) {
-        message.data = data;
+    // Build the data map. Always include it if there are keys.
+    const finalData = { ...data };
+
+    // FIX #3: When dataOnly=true, inject title/body/image into the data map so the
+    // Service Worker's onBackgroundMessage handler has the text it needs to call
+    // self.registration.showNotification(). Without this the SW receives an empty
+    // payload and cannot build a meaningful notification.
+    if (payload.dataOnly) {
+        if (notification.title) finalData.title = notification.title;
+        if (notification.body)  finalData.body  = notification.body;
+        if (image)              finalData.image  = image;
+    }
+
+    if (Object.keys(finalData).length > 0) {
+        message.data = finalData;
     }
 
     message.android = {
@@ -175,20 +189,28 @@ const buildMessagePayload = (payload = {}, token) => {
             default_vibrate_timings: true,
             default_light_settings: true,
             click_action: 'FLUTTER_NOTIFICATION_CLICK',
-            actions: [] 
+            actions: []
         }
     };
 
-    message.webpush = {
-        headers: {
-            Urgency: 'high'
-        },
-        notification: {
-            title: notification.title,
-            body: notification.body,
-            icon: image || payload.icon || '/favicon.ico'
-        }
-    };
+    // FIX #3: Only include webpush.notification for normal (non-dataOnly) messages.
+    // When dataOnly=true, the presence of webpush.notification causes Chrome to
+    // intercept the push and show its own system popup, completely bypassing the
+    // custom onBackgroundMessage handler in the Service Worker.
+    // For dataOnly messages we still set Urgency so delivery is fast, but we omit
+    // the notification block so the SW gets full control over display.
+    if (!payload.dataOnly) {
+        message.webpush = {
+            headers: { Urgency: 'high' },
+            notification: {
+                title: notification.title,
+                body: notification.body,
+                icon: image || payload.icon || '/favicon.ico'
+            }
+        };
+    } else {
+        message.webpush = { headers: { Urgency: 'high' } };
+    }
 
     return message;
 };

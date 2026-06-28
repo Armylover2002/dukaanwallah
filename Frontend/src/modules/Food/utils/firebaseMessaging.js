@@ -683,88 +683,181 @@ async function attachForegroundListener(firebaseAppInstance) {
   foregroundListenerAttached = true;
 }
 
+// Per-module registration state — keyed by module name.
+// This prevents repeated FCM registrations on every React route change.
+const registeredModules = new Set();
+const registrationInFlightByModule = {};
+
 export async function registerWebPushForCurrentModule(pathname = window.location.pathname) {
   const moduleName = normalizeModuleFromPath(pathname);
-  if (moduleName === "admin") return;
+  if (moduleName === "admin") {
+    pushDebugLog(PUSH_DEBUG_PREFIX, "Registration skipped: admin module is not handled for web push.");
+    return;
+  }
   initPushNotificationClient();
 
-  const accessToken = localStorage.getItem(`${moduleName}_accessToken`);
-  if (!accessToken) return;
+  const accessTokenKey = `${moduleName}_accessToken`;
+  const accessToken = localStorage.getItem(accessTokenKey);
+  pushDebugLog(PUSH_DEBUG_PREFIX, `Checking credentials for ${moduleName}`, {
+    accessTokenKey,
+    hasToken: !!accessToken,
+    tokenLength: accessToken?.length || 0
+  });
 
-  const supportsBrowserPush = isSupportedBrowser() && isSecureContextForPush();
+  if (!accessToken) {
+    pushDebugLog(PUSH_DEBUG_PREFIX, `Registration deferred: no active accessToken for module ${moduleName}`);
+    return;
+  }
+
+  // ── Already registered for this module in this session ──────────────────────
+  if (registeredModules.has(moduleName)) {
+    pushDebugLog(PUSH_DEBUG_PREFIX, `Registration skipped: already registered module ${moduleName} in this session.`);
+    return;
+  }
+
+  const hasNotification = typeof window !== "undefined" && "Notification" in window;
+  const hasSW = typeof window !== "undefined" && "serviceWorker" in navigator;
+  const hasPushManager = typeof window !== "undefined" && "PushManager" in window;
+  const isSecure = typeof window !== "undefined" && (window.isSecureContext || window.location.hostname === "localhost");
+
+  pushDebugLog(PUSH_DEBUG_PREFIX, "Checking browser push capabilities", {
+    hasNotification,
+    hasSW,
+    hasPushManager,
+    isSecure,
+    permission: typeof Notification !== "undefined" ? Notification.permission : "unsupported"
+  });
+
+  const supportsBrowserPush = hasNotification && hasSW && hasPushManager && isSecure;
 
   if (supportsBrowserPush) {
-    if (registrationInFlight) return registrationInFlight;
+    if (registrationInFlightByModule[moduleName]) {
+      pushDebugLog(PUSH_DEBUG_PREFIX, `Registration guard: already in flight for module ${moduleName}`);
+      return registrationInFlightByModule[moduleName];
+    }
 
-    registrationInFlight = (async () => {
+    pushDebugLog(PUSH_DEBUG_PREFIX, `Starting registration flow for module ${moduleName}`);
+
+    registrationInFlightByModule[moduleName] = (async () => {
       const firebasePublicEnv = await getFirebasePublicEnv();
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Loaded Firebase public environment", {
+        hasVapidKey: !!firebasePublicEnv?.vapidKey,
+        projectId: firebasePublicEnv?.projectId
+      });
+
       if (!firebasePublicEnv?.vapidKey) {
         console.warn("FCM web registration skipped: FIREBASE_VAPID_KEY is missing in env setup.");
         return;
       }
 
       const app = getMessagingFirebaseApp(firebasePublicEnv);
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Firebase app instance check", {
+        hasApp: !!app,
+        appName: app?.name
+      });
+
       if (!app) {
         console.warn("FCM web registration skipped: Firebase public web config is incomplete.");
         return;
       }
 
+      const currentPermission = Notification.permission;
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Notification permission check", { currentPermission });
+
       const permission =
-        Notification.permission === "default"
+        currentPermission === "default"
           ? await Notification.requestPermission()
-          : Notification.permission;
+          : currentPermission;
+
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Notification permission resolved", { permission });
 
       if (permission !== "granted") {
         console.warn("FCM web registration skipped: Notification permission not granted.", permission);
         return;
       }
 
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Importing Firebase messaging library...");
       const { getMessaging, getToken, isSupported } = await import("firebase/messaging");
-      const supported = await isSupported().catch(() => false);
+      const supported = await isSupported().catch((err) => {
+        pushDebugWarn(PUSH_DEBUG_PREFIX, "Failed to check Firebase Messaging support", { error: err?.message || err });
+        return false;
+      });
+      
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Firebase messaging browser support verified", { supported });
       if (!supported) return;
 
-      const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-      pushDebugLog(PUSH_DEBUG_PREFIX, "Service worker registered for push", {
-        scope: registration.scope,
-        moduleName,
-      });
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Registering service worker file...");
+      let registration = await navigator.serviceWorker.getRegistration("/");
+      if (!registration || !registration.active) {
+        registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+        pushDebugLog(PUSH_DEBUG_PREFIX, "New service worker registered for push", {
+          scope: registration.scope,
+          moduleName,
+        });
+      } else {
+        pushDebugLog(PUSH_DEBUG_PREFIX, "Reusing existing active service worker", {
+          scope: registration.scope,
+          moduleName,
+        });
+      }
+
       const messaging = getMessaging(app);
+
+      pushDebugLog(PUSH_DEBUG_PREFIX, "Requesting token from FCM...", {
+        vapidKey: firebasePublicEnv.vapidKey ? `${firebasePublicEnv.vapidKey.slice(0, 10)}...` : "missing"
+      });
 
       const token = await getToken(messaging, {
         vapidKey: firebasePublicEnv.vapidKey,
         serviceWorkerRegistration: registration,
+      }).catch((tokenError) => {
+        pushDebugWarn(PUSH_DEBUG_PREFIX, "getToken call failed with error", {
+          message: tokenError?.message || tokenError,
+          code: tokenError?.code,
+          stack: tokenError?.stack
+        });
+        throw tokenError;
       });
 
-      if (!token) return;
-      pushDebugLog(PUSH_DEBUG_PREFIX, "FCM token resolved", {
+      if (!token) {
+        console.warn("FCM web registration: getToken returned empty token. Check VAPID key and notification permissions.");
+        return;
+      }
+
+      pushDebugLog(PUSH_DEBUG_PREFIX, "FCM token successfully resolved", {
         moduleName,
         tokenPreview: `${token.slice(0, 12)}...`,
       });
 
-      // Removed localStorage caching (getSavedToken/setSavedToken) as per user requirements.
-      // The backend 'upsert' already handles duplicates efficiently.
       try {
         pushDebugLog(PUSH_DEBUG_PREFIX, "Synchronizing FCM token with backend database", { moduleName, tokenPreview: `${token?.slice(0, 10)}...` });
         await saveTokenByModule(moduleName, token);
         pushDebugLog(PUSH_DEBUG_PREFIX, "FCM token synchronized with backend successfully");
+        registeredModules.add(moduleName);
       } catch (e) {
         pushDebugWarn(PUSH_DEBUG_PREFIX, "Failed to synchronize FCM token to backend", { error: e?.message || e, stack: e?.stack });
       }
-      
+
       await attachForegroundListener(app);
     })()
     .catch((e) => {
       console.error("FCM web registration failed:", e);
     })
     .finally(() => {
-      registrationInFlight = null;
+      delete registrationInFlightByModule[moduleName];
     });
 
-    return registrationInFlight;
+    return registrationInFlightByModule[moduleName];
+  } else {
+    pushDebugLog(PUSH_DEBUG_PREFIX, "Browser push not supported, falling back to Flutter WebView native registration", {
+      hasNotification,
+      hasSW,
+      hasPushManager,
+      isSecure
+    });
   }
 
-  // Flutter WebView fallback: register native token when browser web push isn't available.
-  // This keeps restaurant/delivery FCM alerts working even when Web Push APIs are limited.
   await registerNativeWebViewFcmToken(moduleName);
   return null;
 }
+

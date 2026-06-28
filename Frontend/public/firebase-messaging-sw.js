@@ -2,9 +2,24 @@
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js");
 
-const sanitize = (value) => String(value || "").trim().replace(/^['"]|['"]$/g, "");
+// ─── FIX #1: Load Firebase config synchronously ──────────────────────────────
+// firebase-web-config.js is generated at build time by scripts/generate-firebase-config.js
+// and sets self.FIREBASE_WEB_CONFIG. Using importScripts here guarantees the Firebase
+// app is initialized *synchronously* during SW evaluation, so the browser correctly
+// sees a push handler before any push events arrive.
+// (The old approach used an async fetch + IIFE which deferred handler registration
+//  past the synchronous evaluation window, silently dropping all background pushes.)
+try {
+  importScripts("/firebase-web-config.js");
+} catch (e) {
+  // If the config JS is missing (old build), log clearly and stop — don't crash the SW.
+  console.error("[push-sw] firebase-web-config.js not found. Background push is disabled.", e);
+}
+
+const sanitize = (value) => String(value || "").trim().replace(/^['\"]|['\"]$/g, "");
 const PUSH_DEBUG_PREFIX = "[push-sw]";
 const pushDebugLog = () => { };
+
 const getNotificationKey = (payload) =>
   payload?.data?.notificationId ||
   payload?.data?.messageId ||
@@ -60,71 +75,57 @@ async function hasVisibleClientForTarget(payload = {}) {
       return false;
     }
   });
-  pushDebugLog(PUSH_DEBUG_PREFIX, "Visible client check", {
-    count: windowClients.length,
-    targetPath,
-    targetRoot,
-    hasVisibleClient: Boolean(visibleClient),
-    clients: windowClients.map((client) => ({
-      url: client.url,
-      visibilityState: client.visibilityState,
-      focused: client.focused,
-    })),
-  });
   return Boolean(visibleClient);
 }
 
-async function loadFirebaseWebConfig() {
-  const candidates = [
-    "/firebase-web-config.json",
-    "/api/v1/food/public/env",
-  ];
-  for (const url of candidates) {
-    try {
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) continue;
-      const json = await response.json();
-      const data = url.endsWith(".json") ? (json || {}) : ((json && json.data) || {});
-      const config = {
-        apiKey: sanitize(data.VITE_FIREBASE_API_KEY || data.FIREBASE_API_KEY),
-        authDomain: sanitize(data.VITE_FIREBASE_AUTH_DOMAIN || data.FIREBASE_AUTH_DOMAIN),
-        projectId: sanitize(data.VITE_FIREBASE_PROJECT_ID || data.FIREBASE_PROJECT_ID),
-        appId: sanitize(data.VITE_FIREBASE_APP_ID || data.FIREBASE_APP_ID),
-        messagingSenderId: sanitize(data.VITE_FIREBASE_MESSAGING_SENDER_ID || data.FIREBASE_MESSAGING_SENDER_ID),
-        storageBucket: sanitize(data.VITE_FIREBASE_STORAGE_BUCKET || data.FIREBASE_STORAGE_BUCKET),
-        measurementId: sanitize(data.VITE_FIREBASE_MEASUREMENT_ID || data.FIREBASE_MEASUREMENT_ID),
-      };
+// ─── FIX #1 (continued): Synchronous Firebase init ───────────────────────────
+// self.FIREBASE_WEB_CONFIG is set by the importScripts call above.
+// We initialize Firebase synchronously here so the push handler is registered
+// before the browser finishes evaluating this script.
+const _swConfig = self.FIREBASE_WEB_CONFIG || {};
 
-      if (config.apiKey && config.projectId && config.appId && config.messagingSenderId) {
-        pushDebugLog(PUSH_DEBUG_PREFIX, "Loaded Firebase web config");
-        return config;
-      }
-    } catch {
-      // try next candidate
-    }
-  }
+if (
+  _swConfig.VITE_FIREBASE_API_KEY &&
+  _swConfig.VITE_FIREBASE_PROJECT_ID &&
+  _swConfig.VITE_FIREBASE_APP_ID &&
+  _swConfig.VITE_FIREBASE_MESSAGING_SENDER_ID
+) {
+  const firebaseConfig = {
+    apiKey: sanitize(_swConfig.VITE_FIREBASE_API_KEY),
+    authDomain: sanitize(_swConfig.VITE_FIREBASE_AUTH_DOMAIN),
+    projectId: sanitize(_swConfig.VITE_FIREBASE_PROJECT_ID),
+    appId: sanitize(_swConfig.VITE_FIREBASE_APP_ID),
+    messagingSenderId: sanitize(_swConfig.VITE_FIREBASE_MESSAGING_SENDER_ID),
+    storageBucket: sanitize(_swConfig.VITE_FIREBASE_STORAGE_BUCKET),
+    measurementId: sanitize(_swConfig.VITE_FIREBASE_MEASUREMENT_ID),
+  };
 
-  return null;
-}
-
-(async () => {
-  const config = await loadFirebaseWebConfig();
-  if (!config || !config.apiKey || !config.projectId || !config.appId || !config.messagingSenderId) {
-    return;
-  }
-
-  firebase.initializeApp(config);
-  pushDebugLog(PUSH_DEBUG_PREFIX, "Firebase messaging service worker initialized");
+  firebase.initializeApp(firebaseConfig);
+  pushDebugLog(PUSH_DEBUG_PREFIX, "Firebase messaging service worker initialized (synchronous)");
   const messaging = firebase.messaging();
 
+  // ─── FIX #2: Only one push handler — the Firebase SDK's own ─────────────────
+  // The old code had BOTH messaging.onBackgroundMessage() AND a manual
+  // self.addEventListener("push", ...) that called event.waitUntil(Promise.resolve()).
+  // That instant resolve told the browser to kill the SW immediately, terminating
+  // Firebase's handler before it could call showNotification().
+  // Now we only use onBackgroundMessage() — the SDK manages the event lifecycle.
   messaging.onBackgroundMessage(async (payload) => {
     pushDebugLog(PUSH_DEBUG_PREFIX, "Received Firebase background message", { payload });
 
     const visibleClient = await hasVisibleClientForTarget(payload);
 
     if (!visibleClient) {
-      const title = payload?.notification?.title || payload?.data?.title || "New Notification";
-      const body = payload?.notification?.body || payload?.data?.body || "";
+      // Use payload.data.title/body if available (sent by backend for dataOnly messages)
+      // Fall back to payload.notification for normal notification messages
+      const title =
+        payload?.notification?.title ||
+        payload?.data?.title ||
+        "New Notification";
+      const body =
+        payload?.notification?.body ||
+        payload?.data?.body ||
+        "";
       const image =
         payload?.notification?.image ||
         payload?.data?.image ||
@@ -152,24 +153,17 @@ async function loadFirebaseWebConfig() {
       });
     }
 
-    // Always notify clients regardless of visibility
+    // Always notify open clients regardless of visibility (for in-app toast/sound)
     await notifyOpenClients(payload);
   });
-})();
+} else {
+  console.warn("[push-sw] Firebase config missing or incomplete. Background push disabled.");
+}
 
-self.addEventListener("push", (event) => {
-  if (!event.data) return;
-
-  try {
-    const payload = event.data.json();
-    pushDebugLog(PUSH_DEBUG_PREFIX, "Received raw push event", { payload });
-    // No client relay here. onBackgroundMessage handles delivery, and relaying in both
-    // places can produce duplicate notifications in web clients.
-    event.waitUntil(Promise.resolve());
-  } catch {
-    // Ignore malformed payloads.
-  }
-});
+// ─── FIX #2: Manual push listener REMOVED ────────────────────────────────────
+// The old self.addEventListener("push", ...) with event.waitUntil(Promise.resolve())
+// was causing the SW to be killed before Firebase could show the notification.
+// Firebase SDK handles push events internally via onBackgroundMessage above.
 
 self.addEventListener("notificationclick", (event) => {
   pushDebugLog(PUSH_DEBUG_PREFIX, "Notification click received", {
