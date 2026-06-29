@@ -10,19 +10,10 @@ const generateOtpCode = () => {
     return String(code);
 };
 
-const normalizePhoneForOtp = (phone) => {
-    const raw = String(phone || '').trim();
-    if (raw.includes('@')) {
-        return raw.toLowerCase();
-    }
-    return raw.replace(/\D/g, '');
-};
+const normalizePhoneForOtp = (phone) => String(phone || '').replace(/\D/g, '');
 
 const getPhoneCandidates = (phone) => {
     const raw = String(phone || '').trim();
-    if (raw.includes('@')) {
-        return [raw.toLowerCase()];
-    }
     const digits = normalizePhoneForOtp(phone);
     const last10 = digits.slice(-10);
 
@@ -48,27 +39,30 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
         const digits = String(phone || '').replace(/\D/g, '');
         const msisdn = digits.startsWith('91') ? digits : `91${digits}`;
 
-        // EXACT DLT TEMPLATE provided by user:
-        // "Welcome to the ##var## powered by SMSINDIAHUB. Your OTP for registration is ##var##"
-        const message = `Welcome to the Appzeto powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
+        // Approved DLT template (ID: 1007282516644508833):
+        // "Welcome to the ##var## powered by Appzeto.Your OTP for registration is ##var##.BGADEC"
+        const message = `Welcome to the Dukaanwallah powered by Appzeto.Your OTP for registration is ${otp}.BGADEC`;
 
-        // SMS India Hub HTTP GET API — query param names are case-sensitive per SOP
-        const url = new URL('http://cloud.smsindiahub.in/vendorsms/pushsms.aspx');
-        url.searchParams.append('APIKey', config.smsApiKey);
-        url.searchParams.append('sid', config.smsSenderId);
-        url.searchParams.append('msisdn', msisdn);
-        url.searchParams.append('msg', message);
-        url.searchParams.append('gwid', '2');
-        url.searchParams.append('fl', '0');
+        // Build the GET URL manually using encodeURIComponent.
+        // This ensures spaces are encoded as %20 (not +), which is strictly required by SMS India Hub's DLT validator.
+        let url = `https://cloud.smsindiahub.in/vendorsms/pushsms.aspx` +
+            `?APIKey=${encodeURIComponent(config.smsApiKey)}` +
+            `&msisdn=${encodeURIComponent(msisdn)}` +
+            `&sid=${encodeURIComponent(config.smsSenderId)}` +
+            `&msg=${encodeURIComponent(message)}` +
+            `&fl=0` +
+            `&gwid=2`;
+
         if (config.smsIndiaHubUsername) {
-            url.searchParams.append('uname', config.smsIndiaHubUsername);
+            url += `&uname=${encodeURIComponent(config.smsIndiaHubUsername)}`;
         }
         if (config.smsDltTemplateId) {
-            url.searchParams.append('DLT_TE_ID', config.smsDltTemplateId);
+            url += `&DLT_TE_ID=${encodeURIComponent(config.smsDltTemplateId)}`;
         }
 
-        logger.info(`[SMS] Sending OTP to ${msisdn} via SMS India Hub...`);
-        const response = await fetch(url.toString());
+        logger.info(`[SMS] Sending OTP to ${msisdn} | URL: ${url.replace(config.smsApiKey, 'HIDDEN')}`);
+
+        const response = await fetch(url);
         const resultText = await response.text();
         logger.info(`[SMS] Raw response for ${msisdn}: ${resultText}`);
 
@@ -83,7 +77,7 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
             console.error(`❌ [SMS ERROR] ${errMsg}`);
             if (parsed.ErrorCode === '006') {
                 // eslint-disable-next-line no-console
-                console.error('❌ [SMS ERROR] ErrorCode 006 = DLT Template mismatch. The message text must EXACTLY match your registered TRAI DLT template. Login to https://cloud.smsindiahub.in and verify the approved template text.');
+                console.error(`❌ [SMS ERROR] ErrorCode 006 = DLT Template mismatch.\n  Sent: "${message}"\n  Template ID: ${config.smsDltTemplateId}\n  Check template text on https://cloud.smsindiahub.in`);
             }
         } else if (!response.ok) {
             logger.error(`SMS API HTTP error for ${phone}: ${response.status} – ${resultText}`);
@@ -92,9 +86,9 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
         }
     } catch (error) {
         logger.error(`Error sending SMS to ${phone}: ${error.message}`);
-        // Do NOT throw — OTP is already stored in DB; SMS failure should not block the flow
     }
 };
+
 
 export const createOrUpdateOtp = async (phone, options = {}) => {
     const forceRandom = options?.forceRandom === true;
@@ -121,12 +115,11 @@ export const createOrUpdateOtp = async (phone, options = {}) => {
     }
 
     const shouldUseDefaultOtp = config.useDefaultOtp && !forceRandom;
-    const isEmail = String(phone || '').includes('@');
 
     let otp;
-    if (shouldUseDefaultOtp || isEmail) {
+    if (shouldUseDefaultOtp) {
         otp = '1234';
-        logger.info(`Default OTP '1234' used for ${phone}`);
+        logger.info(`Default OTP mode enabled – OTP is ${otp} for phone ${phone}`);
     } else {
         otp = generateOtpCode();
     }
@@ -150,24 +143,17 @@ export const createOrUpdateOtp = async (phone, options = {}) => {
         existing.lastRequestAt = now;
         await existing.save();
     } else {
-        await FoodOtp.create({ 
+        await FoodOtp.create({
             phone: normalizedPhone,
-            otp, 
+            otp,
             expiresAt,
             requestCount: 1,
             lastRequestAt: now
         });
     }
 
-    // Delivery based on phone/email context
-    if (isEmail) {
-        try {
-            const { sendUserOtpEmail } = await import('../../utils/email.js');
-            await sendUserOtpEmail(phone, otp);
-        } catch (err) {
-            logger.warn(`Could not send email OTP to ${phone}: ${err.message}`);
-        }
-    } else if (!shouldUseDefaultOtp && config.smsApiKey && config.smsSenderId) {
+    // Only send SMS if not in default OTP mode and credentials exist.
+    if (!shouldUseDefaultOtp && config.smsApiKey && config.smsSenderId) {
         await sendSmsViaIndiaHub(phone, otp);
     } else if (!shouldUseDefaultOtp) {
         logger.warn(`OTP generated for ${phone}, but SMS delivery is skipped because SMS India Hub credentials are missing.`);
@@ -201,4 +187,3 @@ export const verifyOtp = async (phone, otp) => {
     await record.deleteOne();
     return { valid: true };
 };
-

@@ -113,47 +113,42 @@ if (
   messaging.onBackgroundMessage(async (payload) => {
     pushDebugLog(PUSH_DEBUG_PREFIX, "Received Firebase background message", { payload });
 
-    const visibleClient = await hasVisibleClientForTarget(payload);
+    // Always show a system OS notification — even if the app tab is open.
+    const title =
+      payload?.notification?.title ||
+      payload?.data?.title ||
+      "New Notification";
+    const body =
+      payload?.notification?.body ||
+      payload?.data?.body ||
+      "";
+    const image =
+      payload?.notification?.image ||
+      payload?.data?.image ||
+      payload?.data?.imageUrl ||
+      undefined;
+    const notificationKey = getNotificationKey(payload);
 
-    if (!visibleClient) {
-      // Use payload.data.title/body if available (sent by backend for dataOnly messages)
-      // Fall back to payload.notification for normal notification messages
-      const title =
-        payload?.notification?.title ||
-        payload?.data?.title ||
-        "New Notification";
-      const body =
-        payload?.notification?.body ||
-        payload?.data?.body ||
-        "";
-      const image =
-        payload?.notification?.image ||
-        payload?.data?.image ||
-        payload?.data?.imageUrl ||
-        undefined;
-      const notificationKey = getNotificationKey(payload);
+    pushDebugLog(PUSH_DEBUG_PREFIX, "Showing service worker notification", {
+      title,
+      body,
+      image,
+      notificationKey,
+    });
 
-      pushDebugLog(PUSH_DEBUG_PREFIX, "Showing service worker notification", {
-        title,
-        body,
-        image,
-        notificationKey,
-      });
+    self.registration.showNotification(title, {
+      body,
+      icon: "/favicon.ico",
+      image,
+      tag: notificationKey,
+      renotify: true,
+      silent: false,
+      requireInteraction: false,
+      vibrate: [200, 100, 200, 100, 300],
+      data: payload?.data || {},
+    });
 
-      self.registration.showNotification(title, {
-        body,
-        icon: "/favicon.ico",
-        image,
-        tag: notificationKey,
-        renotify: false,
-        silent: false,
-        requireInteraction: false,
-        vibrate: [200, 100, 200, 100, 300],
-        data: payload?.data || {},
-      });
-    }
-
-    // Always notify open clients regardless of visibility (for in-app toast/sound)
+    // Also notify open clients for in-app sound playback
     await notifyOpenClients(payload);
   });
 } else {

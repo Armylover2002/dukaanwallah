@@ -182,14 +182,13 @@ const buildMessagePayload = (payload = {}, token) => {
     }
 
     message.android = {
-        priority: 'high',
+        priority: 'HIGH',
         notification: {
             channel_id: 'default',
             sound: 'default',
             default_vibrate_timings: true,
             default_light_settings: true,
-            click_action: 'FLUTTER_NOTIFICATION_CLICK',
-            actions: []
+            click_action: 'FLUTTER_NOTIFICATION_CLICK'
         }
     };
 
@@ -255,11 +254,19 @@ const readTokensFromDoc = (doc, platform) => {
 };
 
 export const listOwnerTokens = async ({ ownerType, ownerId, platform }) => {
-    if (!ownerType || !ownerId) return [];
+    if (!ownerType || !ownerId) {
+        console.warn('[FCM-DEBUG] listOwnerTokens - missing ownerType or ownerId', { ownerType, ownerId });
+        return [];
+    }
     const model = getOwnerModel(ownerType);
-    if (!model) return [];
+    if (!model) {
+        console.warn(`[FCM-DEBUG] listOwnerTokens - no model for ownerType: ${ownerType}`);
+        return [];
+    }
     const doc = await model.findById(ownerId).select('fcmTokens fcmTokenMobile').lean();
-    return readTokensFromDoc(doc, platform);
+    const tokens = readTokensFromDoc(doc, platform);
+    console.log(`[FCM-DEBUG] listOwnerTokens: ownerType=${ownerType}, ownerId=${ownerId}, platform=${platform||'all'}, docFound=${!!doc}, tokenCount=${tokens.length}, tokens=[${tokens.map(t=>t.slice(0,10)).join(',')}]`);
+    return tokens;
 };
 
 export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, platform = 'web' }) => {
@@ -401,8 +408,10 @@ export const sendNotificationToOwner = async ({ ownerType, ownerId, payload, pla
 
     const tokens = await listOwnerTokens({ ownerType, ownerId, platform });
     if (!tokens.length) {
+        console.warn(`[FCM-DEBUG] sendNotificationToOwner - NO TOKENS FOUND for ownerType=${ownerType}, ownerId=${ownerId}, platform=${platform||'all'}. Skipping FCM send.`);
         return { successCount: 0, failureCount: 0, results: [] };
     }
+    console.log(`[FCM-DEBUG] sendNotificationToOwner - Found ${tokens.length} token(s) for ${ownerType}:${ownerId}. Sending FCM...`);
     try {
         console.log(`[FCM] Sending to ${ownerType}:${ownerId}. Title: "${enrichedPayload.title || 'Data Only'}"`);
         const response = await sendPushNotification(tokens, enrichedPayload);

@@ -17,7 +17,7 @@ const tokenCachePrefix = "fcm_web_registered_token_";
 const pushSoundEnabledStorageKey = "push_sound_enabled";
 let publicEnvPromise = null;
 let foregroundListenerAttached = false;
-let registrationInFlight = null;
+// registrationInFlight removed — replaced by per-module registrationInFlightByModule below
 let serviceWorkerMessageListenerAttached = false;
 const MESSAGING_APP_NAME = "web-push-app";
 const recentForegroundNotifications = new Map();
@@ -571,14 +571,6 @@ function showForegroundNotification(payload = {}) {
     }
   }
 
-  // Still show in-app toast for immediate context if we are in focus
-  if (typeof document !== "undefined" && document.visibilityState === "visible") {
-    if (body) {
-      toast.success(`${title}: ${body}`);
-    } else {
-      toast.success(title);
-    }
-  }
 }
 
 function attachServiceWorkerMessageListener() {
@@ -665,11 +657,17 @@ export function initPushNotificationClient() {
 }
 
 async function attachForegroundListener(firebaseAppInstance) {
-  if (foregroundListenerAttached) return;
+  if (foregroundListenerAttached) {
+    pushDebugLog(PUSH_DEBUG_PREFIX, "Foreground listener already attached — skipping");
+    return;
+  }
 
   const { getMessaging, onMessage, isSupported } = await import("firebase/messaging");
   const supported = await isSupported().catch(() => false);
-  if (!supported) return;
+  if (!supported) {
+    pushDebugWarn(PUSH_DEBUG_PREFIX, "Firebase Messaging not supported in this browser — foreground listener NOT attached");
+    return;
+  }
 
   const messaging = getMessaging(firebaseAppInstance);
   setupPushSoundUnlock();
@@ -681,7 +679,9 @@ async function attachForegroundListener(firebaseAppInstance) {
   });
 
   foregroundListenerAttached = true;
+  pushDebugLog(PUSH_DEBUG_PREFIX, "✅ Foreground onMessage listener registered successfully");
 }
+
 
 // Per-module registration state — keyed by module name.
 // This prevents repeated FCM registrations on every React route change.
@@ -710,9 +710,18 @@ export async function registerWebPushForCurrentModule(pathname = window.location
   }
 
   // ── Already registered for this module in this session ──────────────────────
+  // Allow re-registration if the FCM token has rotated since last save.
   if (registeredModules.has(moduleName)) {
-    pushDebugLog(PUSH_DEBUG_PREFIX, `Registration skipped: already registered module ${moduleName} in this session.`);
-    return;
+    // Check if the current FCM token still matches what we last saved.
+    // If it's the same, skip. If it changed (token rotation), fall through to re-register.
+    const cachedToken = getSavedToken(moduleName);
+    if (cachedToken) {
+      pushDebugLog(PUSH_DEBUG_PREFIX, `Registration skipped: already registered module ${moduleName} in this session.`);
+      return;
+    }
+    // Token not cached — means previous save failed. Allow retry.
+    registeredModules.delete(moduleName);
+    pushDebugLog(PUSH_DEBUG_PREFIX, `Re-registering module ${moduleName} — no cached token found.`);
   }
 
   const hasNotification = typeof window !== "undefined" && "Notification" in window;
@@ -738,7 +747,9 @@ export async function registerWebPushForCurrentModule(pathname = window.location
 
     pushDebugLog(PUSH_DEBUG_PREFIX, `Starting registration flow for module ${moduleName}`);
 
-    registrationInFlightByModule[moduleName] = (async () => {
+    // Store in local var BEFORE assigning to map so the return below always
+    // gets the right promise reference even after .finally() deletes the map entry.
+    const inFlight = (async () => {
       const firebasePublicEnv = await getFirebasePublicEnv();
       pushDebugLog(PUSH_DEBUG_PREFIX, "Loaded Firebase public environment", {
         hasVapidKey: !!firebasePublicEnv?.vapidKey,
@@ -803,6 +814,12 @@ export async function registerWebPushForCurrentModule(pathname = window.location
 
       const messaging = getMessaging(app);
 
+      // ── Attach foreground listener IMMEDIATELY after messaging is ready ──────
+      // Previously this was called AFTER token sync, meaning any FCM message
+      // arriving during the token registration window (~2–3 s) would be silently
+      // dropped. onMessage() is idempotent via foregroundListenerAttached guard.
+      await attachForegroundListener(app);
+
       pushDebugLog(PUSH_DEBUG_PREFIX, "Requesting token from FCM...", {
         vapidKey: firebasePublicEnv.vapidKey ? `${firebasePublicEnv.vapidKey.slice(0, 10)}...` : "missing"
       });
@@ -832,13 +849,14 @@ export async function registerWebPushForCurrentModule(pathname = window.location
       try {
         pushDebugLog(PUSH_DEBUG_PREFIX, "Synchronizing FCM token with backend database", { moduleName, tokenPreview: `${token?.slice(0, 10)}...` });
         await saveTokenByModule(moduleName, token);
+        // Cache the token locally so token-rotation checks work correctly
+        setSavedToken(moduleName, token);
         pushDebugLog(PUSH_DEBUG_PREFIX, "FCM token synchronized with backend successfully");
         registeredModules.add(moduleName);
       } catch (e) {
         pushDebugWarn(PUSH_DEBUG_PREFIX, "Failed to synchronize FCM token to backend", { error: e?.message || e, stack: e?.stack });
       }
 
-      await attachForegroundListener(app);
     })()
     .catch((e) => {
       console.error("FCM web registration failed:", e);
@@ -847,7 +865,9 @@ export async function registerWebPushForCurrentModule(pathname = window.location
       delete registrationInFlightByModule[moduleName];
     });
 
-    return registrationInFlightByModule[moduleName];
+    // Assign to map so concurrent calls wait on the same promise
+    registrationInFlightByModule[moduleName] = inFlight;
+    return inFlight;
   } else {
     pushDebugLog(PUSH_DEBUG_PREFIX, "Browser push not supported, falling back to Flutter WebView native registration", {
       hasNotification,
