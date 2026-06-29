@@ -57,6 +57,7 @@ import {
     normalizeFoodVariantsInput,
     serializeFoodVariants
 } from './foodVariant.service.js';
+import { QuickReturnOrder } from '../../../quick-commerce/returns/models/quickReturnOrder.model.js';
 
 const parseBooleanLike = (value, fieldName) => {
     if (typeof value === 'boolean') return value;
@@ -5110,7 +5111,8 @@ export async function getSidebarBadges() {
             pendingEarningAddons,
             pendingSafetyReports,
             pendingEmergencyHelp,
-            pendingRestaurantComplaints
+            pendingRestaurantComplaints,
+            pendingReturnOrders
         ] = await Promise.all([
             FoodRestaurant.countDocuments({ status: 'pending' }),
             FoodDeliveryPartner.countDocuments({ status: 'pending' }),
@@ -5125,7 +5127,8 @@ export async function getSidebarBadges() {
             FoodEarningAddonHistory.countDocuments({ status: 'pending' }),
             FoodSafetyEmergencyReport.countDocuments({ status: 'pending' }),
             FoodDeliveryEmergencyHelp.countDocuments({ status: 'pending' }),
-            FoodSupportTicket.countDocuments({ status: 'open', restaurantId: { $exists: true } })
+            FoodSupportTicket.countDocuments({ status: 'open', restaurantId: { $exists: true } }),
+            QuickReturnOrder.countDocuments({ status: 'pending_review' })
         ]);
 
         return {
@@ -5142,7 +5145,8 @@ export async function getSidebarBadges() {
             earningAddons: pendingEarningAddons,
             safetyReports: pendingSafetyReports,
             emergencyHelp: pendingEmergencyHelp,
-            restaurantComplaints: pendingRestaurantComplaints
+            restaurantComplaints: pendingRestaurantComplaints,
+            returnOrders: pendingReturnOrders
         };
     } catch (error) {
         console.error('Error fetching sidebar badges:', error);

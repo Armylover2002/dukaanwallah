@@ -23,6 +23,7 @@ import { SellerReturn } from "../models/sellerReturn.model.js";
 import { SellerStockAdjustment } from "../models/sellerStockAdjustment.model.js";
 import { SellerTransaction } from "../models/sellerTransaction.model.js";
 import { QuickOrder } from "../../models/order.model.js";
+import { QuickSellerCommission } from "../../admin/models/sellerCommission.model.js";
 import { FoodDeliveryPartner } from "../../../food/delivery/models/deliveryPartner.model.js";
 import {
   buildDeliverySocketPayload,
@@ -920,6 +921,13 @@ export const verifySellerOtpController = async (req, res) => {
         approvedAt: null,
         rejectedAt: null,
         lastLogin: new Date(),
+      });
+      
+      // Initialize default 10% commission for newly created sellers
+      await QuickSellerCommission.create({
+        sellerId: seller._id,
+        defaultCommission: { type: 'percentage', value: 10 },
+        status: true
       });
     } else {
       if (seller.isActive === false || seller.isDeleted === true || seller.accountStatus === 'deleted') {

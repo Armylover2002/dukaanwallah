@@ -347,13 +347,14 @@ const SearchPage = () => {
                                     Lowest Price Ever!
                                 </h2>
                                 <button
-                                    className="flex items-center gap-1 text-sm font-bold"
+                                    onClick={() => navigate('/quick/categories')}
+                                    className="flex items-center gap-1 text-sm font-bold hover:underline"
                                     style={{ color: primaryColor }}
                                 >
                                     See All <ChevronRight size={16} />
                                 </button>
                             </div>
-                            <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar -mx-5 px-5 pb-4 snap-x">
+                            <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 md:-mx-5 md:px-5 pb-4 snap-x">
                                 {isLoading && allProducts.length === 0
                                     ? [...Array(4)].map((_, i) => (
                                         <div

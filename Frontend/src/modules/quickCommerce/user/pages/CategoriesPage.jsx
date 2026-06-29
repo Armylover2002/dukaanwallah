@@ -184,7 +184,6 @@ const CategoriesPage = () => {
                                         <h2 className="text-[15px] md:text-base font-black text-slate-900 tracking-wide uppercase transition-colors">
                                             {group.title}
                                         </h2>
-                                        <div className="h-[1px] flex-1 bg-gray-100" />
                                     </div>
                                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-x-2 gap-y-5 md:gap-4">
                                         {group.categories.map((category) => (

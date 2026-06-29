@@ -54,8 +54,8 @@ import LuggageIcon from "@mui/icons-material/Luggage";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import SearchIcon from "@mui/icons-material/Search";
-import MicIcon from "@mui/icons-material/Mic";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 
@@ -605,9 +605,6 @@ const MainLocationHeader = ({
                     readOnly
                     className="flex-1 bg-transparent border-none outline-none pl-3 text-slate-800 font-bold placeholder:text-slate-300 text-[15px] cursor-pointer"
                   />
-                  <div className="flex items-center gap-2 border-l border-red-100 pl-3">
-                    <MicIcon sx={{ color: "#FE5502", fontSize: 20 }} />
-                  </div>
                 </motion.div>
               </div>
 

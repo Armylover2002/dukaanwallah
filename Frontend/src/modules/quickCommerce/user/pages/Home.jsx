@@ -339,10 +339,10 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
 
   const filteredProducts = useMemo(() => {
     const activeCatId = activeCategory?._id || activeCategory?.id;
-    const isAll = !activeCatId || 
-                  activeCatId === 'all' || 
-                  activeCategory?.slug === 'all' || 
-                  activeCategory?.name?.toLowerCase() === 'all';
+    const isAll = !activeCatId ||
+      activeCatId === 'all' ||
+      activeCategory?.slug === 'all' ||
+      activeCategory?.name?.toLowerCase() === 'all';
 
     if (isAll) return products;
     if (categoryProducts !== null) return categoryProducts;
@@ -380,10 +380,10 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
   // ── Offer sections filter (memoized — this was running on every render) ───
   const visibleOfferSections = useMemo(() => {
     const activeCatId = activeCategory?._id || activeCategory?.id;
-    const isAll = !activeCatId || 
-                  activeCatId === 'all' || 
-                  activeCategory?.slug === 'all' || 
-                  activeCategory?.name?.toLowerCase() === 'all';
+    const isAll = !activeCatId ||
+      activeCatId === 'all' ||
+      activeCategory?.slug === 'all' ||
+      activeCategory?.name?.toLowerCase() === 'all';
 
     return [...offerSections]
       .filter((section) => {
@@ -456,97 +456,97 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
                 </div>
               ) : shouldShowHeroFallback ? (
                 <>
-                <div
-                  className={cn('flex touch-pan-y', !isInstantBannerJump && 'transition-transform duration-500 ease-out')}
-                  style={{ transform: `translateX(-${mobileBannerIndex * 100}%)` }}
-                  onTransitionEnd={handleBannerTransitionEnd}
-                  onTouchStart={handleFallbackTouchStart}
-                  onTouchMove={handleFallbackTouchMove}
-                  onTouchEnd={handleFallbackTouchEnd}
-                >
-                  {/* Slide 1 */}
-                  <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
-                    <div className="w-full h-[174px] bg-[#B05212] p-4 relative overflow-hidden flex items-center shadow-md rounded-[20px]">
-                      {/* Faint dashed lines background */}
-                      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
-                        <path d="M -10 40 Q 30 -20 60 40 T 130 40" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
-                        <path d="M -20 70 Q 20 120 70 60 T 140 70" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
-                      </svg>
-                      
-                      <div className="relative z-10 w-[55%] flex flex-col items-start justify-center gap-1 pl-2">
-                        <div className="flex flex-col leading-[1.05]">
-                          <h4 className="text-[32px] sm:text-[36px] font-[1000] text-white tracking-tight">Fastest</h4>
-                          <h4 className="text-[32px] sm:text-[36px] font-[1000] text-[#FFD6B3] tracking-tighter italic">Groceries</h4>
-                        </div>
-                        <p className="text-[12px] sm:text-[13px] font-medium text-white/95 mt-1 mb-2">Get it all in 10 minutes or less.</p>
-                        <button className="bg-white text-[#B05212] px-5 py-2 rounded-full font-bold text-[13px] tracking-wide shadow-md hover:bg-gray-50 active:scale-95 transition-all">
-                          Shop Now
-                        </button>
-                      </div>
-                      
-                      <div className="absolute right-0 bottom-0 top-0 w-[45%] flex items-center justify-end overflow-hidden">
-                        <div className="h-full w-full bg-orange-100 rounded-l-[16px] overflow-hidden shadow-[-4px_0_15px_rgba(0,0,0,0.15)] relative">
-                          <img src={CardBanner} alt="Promo" className="w-full h-full object-cover object-left" loading="lazy" />
-                          <div className="absolute inset-0 bg-gradient-to-r from-[#B05212]/20 to-transparent pointer-events-none" />
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
+                  <div
+                    className={cn('flex touch-pan-y', !isInstantBannerJump && 'transition-transform duration-500 ease-out')}
+                    style={{ transform: `translateX(-${mobileBannerIndex * 100}%)` }}
+                    onTransitionEnd={handleBannerTransitionEnd}
+                    onTouchStart={handleFallbackTouchStart}
+                    onTouchMove={handleFallbackTouchMove}
+                    onTouchEnd={handleFallbackTouchEnd}
+                  >
+                    {/* Slide 1 */}
+                    <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
+                      <div className="w-full h-[174px] bg-[#B05212] p-4 relative overflow-hidden flex items-center shadow-md rounded-[20px]">
+                        {/* Faint dashed lines background */}
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
+                          <path d="M -10 40 Q 30 -20 60 40 T 130 40" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+                          <path d="M -20 70 Q 20 120 70 60 T 140 70" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+                        </svg>
 
-                  {/* Slide 2 */}
-                  <motion.div onClick={() => navigate('/categories')} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
-                    <div className="w-full h-[174px] bg-white dark:bg-card relative overflow-hidden flex shadow-md rounded-[20px] group">
-                      <img src={CardBanner} alt="Promotion" className="w-full h-full object-cover" loading="lazy" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
-                    </div>
-                  </motion.div>
+                        <div className="relative z-10 w-[55%] flex flex-col items-start justify-center gap-1 pl-2">
+                          <div className="flex flex-col leading-[1.05]">
+                            <h4 className="text-[32px] sm:text-[36px] font-[1000] text-white tracking-tight">Fastest</h4>
+                            <h4 className="text-[32px] sm:text-[36px] font-[1000] text-[#FFD6B3] tracking-tighter italic">Groceries</h4>
+                          </div>
+                          <p className="text-[12px] sm:text-[13px] font-medium text-white/95 mt-1 mb-2">Get it all in 10 minutes or less.</p>
+                          <button className="bg-white text-[#B05212] px-5 py-2 rounded-full font-bold text-[13px] tracking-wide shadow-md hover:bg-gray-50 active:scale-95 transition-all">
+                            Shop Now
+                          </button>
+                        </div>
 
-                  {/* Slide 3 — reuses slide 1 content */}
-                  <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
-                    <div className="w-full h-[174px] bg-[#B05212] p-4 relative overflow-hidden flex items-center shadow-md rounded-[20px]">
-                      {/* Faint dashed lines background */}
-                      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
-                        <path d="M -10 40 Q 30 -20 60 40 T 130 40" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
-                        <path d="M -20 70 Q 20 120 70 60 T 140 70" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
-                      </svg>
-                      
-                      <div className="relative z-10 w-[55%] flex flex-col items-start justify-center gap-1 pl-2">
-                        <div className="flex flex-col leading-[1.05]">
-                          <h4 className="text-[32px] sm:text-[36px] font-[1000] text-white tracking-tight">Fastest</h4>
-                          <h4 className="text-[32px] sm:text-[36px] font-[1000] text-[#FFD6B3] tracking-tighter italic">Groceries</h4>
-                        </div>
-                        <p className="text-[12px] sm:text-[13px] font-medium text-white/95 mt-1 mb-2">Get it all in 10 minutes or less.</p>
-                        <button className="bg-white text-[#B05212] px-5 py-2 rounded-full font-bold text-[13px] tracking-wide shadow-md hover:bg-gray-50 active:scale-95 transition-all">
-                          Shop Now
-                        </button>
-                      </div>
-                      
-                      <div className="absolute right-0 bottom-0 top-0 w-[45%] flex items-center justify-end overflow-hidden">
-                        <div className="h-full w-full bg-orange-100 rounded-l-[16px] overflow-hidden shadow-[-4px_0_15px_rgba(0,0,0,0.15)] relative">
-                          <img src={CardBanner} alt="Promo" className="w-full h-full object-cover object-left" loading="lazy" />
-                          <div className="absolute inset-0 bg-gradient-to-r from-[#B05212]/20 to-transparent pointer-events-none" />
+                        <div className="absolute right-0 bottom-0 top-0 w-[45%] flex items-center justify-end overflow-hidden">
+                          <div className="h-full w-full bg-orange-100 rounded-l-[16px] overflow-hidden shadow-[-4px_0_15px_rgba(0,0,0,0.15)] relative">
+                            <img src={CardBanner} alt="Promo" className="w-full h-full object-cover object-left" loading="lazy" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#B05212]/20 to-transparent pointer-events-none" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                </div>
-                {/* Fallback Pagination Dots */}
-                <div className="flex justify-center items-center gap-1.5 mt-3 pb-1">
-                  {[0, 1].map((idx) => {
-                    const realActiveIndex = mobileBannerIndex % 2;
-                    const isActive = idx === realActiveIndex;
-                    return (
-                      <div
-                        key={idx}
-                        className={cn(
-                          "h-[4px] rounded-full transition-all duration-300",
-                          isActive ? "w-4 bg-black" : "w-[6px] bg-gray-200"
-                        )}
-                      />
-                    );
-                  })}
-                </div>
-              </>
+                    </motion.div>
+
+                    {/* Slide 2 */}
+                    <motion.div onClick={() => navigate('/categories')} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
+                      <div className="w-full h-[174px] bg-white dark:bg-card relative overflow-hidden flex shadow-md rounded-[20px] group">
+                        <img src={CardBanner} alt="Promotion" className="w-full h-full object-cover" loading="lazy" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+                      </div>
+                    </motion.div>
+
+                    {/* Slide 3 — reuses slide 1 content */}
+                    <motion.div onClick={navigateToCategories} whileTap={{ scale: 0.96 }} className="min-w-full px-3 py-2">
+                      <div className="w-full h-[174px] bg-[#B05212] p-4 relative overflow-hidden flex items-center shadow-md rounded-[20px]">
+                        {/* Faint dashed lines background */}
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
+                          <path d="M -10 40 Q 30 -20 60 40 T 130 40" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+                          <path d="M -20 70 Q 20 120 70 60 T 140 70" fill="none" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+                        </svg>
+
+                        <div className="relative z-10 w-[55%] flex flex-col items-start justify-center gap-1 pl-2">
+                          <div className="flex flex-col leading-[1.05]">
+                            <h4 className="text-[32px] sm:text-[36px] font-[1000] text-white tracking-tight">Fastest</h4>
+                            <h4 className="text-[32px] sm:text-[36px] font-[1000] text-[#FFD6B3] tracking-tighter italic">Groceries</h4>
+                          </div>
+                          <p className="text-[12px] sm:text-[13px] font-medium text-white/95 mt-1 mb-2">Get it all in 10 minutes or less.</p>
+                          <button className="bg-white text-[#B05212] px-5 py-2 rounded-full font-bold text-[13px] tracking-wide shadow-md hover:bg-gray-50 active:scale-95 transition-all">
+                            Shop Now
+                          </button>
+                        </div>
+
+                        <div className="absolute right-0 bottom-0 top-0 w-[45%] flex items-center justify-end overflow-hidden">
+                          <div className="h-full w-full bg-orange-100 rounded-l-[16px] overflow-hidden shadow-[-4px_0_15px_rgba(0,0,0,0.15)] relative">
+                            <img src={CardBanner} alt="Promo" className="w-full h-full object-cover object-left" loading="lazy" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#B05212]/20 to-transparent pointer-events-none" />
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                  {/* Fallback Pagination Dots */}
+                  <div className="flex justify-center items-center gap-1.5 mt-3 pb-1">
+                    {[0, 1].map((idx) => {
+                      const realActiveIndex = mobileBannerIndex % 2;
+                      const isActive = idx === realActiveIndex;
+                      return (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "h-[4px] rounded-full transition-all duration-300",
+                            isActive ? "w-4 bg-black" : "w-[6px] bg-gray-200"
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+                </>
               ) : null}
             </div>
           </div>
@@ -565,19 +565,19 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
                 borderBottomColor: 'rgba(255, 255, 255, 0.12)',
               }}
             >
-              <div 
+              <div
                 className="absolute inset-y-0 left-0 w-16 pointer-events-none z-10"
-                style={{ 
-                  backgroundImage: `linear-gradient(to right, ${activeCategory?.headerColor || '#F26522'}, transparent)` 
-                }} 
+                style={{
+                  backgroundImage: `linear-gradient(to right, ${activeCategory?.headerColor || '#F26522'}, transparent)`
+                }}
               />
-              <div 
+              <div
                 className="absolute inset-y-0 right-0 w-16 pointer-events-none z-10"
-                style={{ 
-                  backgroundImage: `linear-gradient(to left, ${activeCategory?.headerColor || '#F26522'}, transparent)` 
-                }} 
+                style={{
+                  backgroundImage: `linear-gradient(to left, ${activeCategory?.headerColor || '#F26522'}, transparent)`
+                }}
               />
-              <div 
+              <div
                 className="classic-marquee-track flex w-max items-center gap-4 px-3 md:px-6 py-4 text-sm md:text-base font-bold -translate-y-[4px] text-white/95 transition-colors duration-300"
               >
                 {[...MARQUEE_MESSAGES, ...MARQUEE_MESSAGES].map((message, idx) => (
@@ -788,9 +788,6 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
                             {sectionProducts.length} items
                           </div>
                         )}
-                        <div className="relative z-10 flex items-center justify-center h-full">
-                          <Sparkles className="text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]" size={30} />
-                        </div>
                       </motion.div>
                     </div>
 

@@ -556,58 +556,79 @@ export const placeOrder = async (req, res) => {
 };
 
 export const getMyOrders = async (req, res) => {
-  const idQuery = resolveId(req);
+  try {
+    const idQuery = resolveId(req);
 
-  if (!idQuery) {
-    return res.status(400).json({ success: false, message: 'sessionId or userId is required' });
+    if (!idQuery) {
+      return res.status(400).json({ success: false, message: 'sessionId or userId is required' });
+    }
+
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const skip = (page - 1) * limit;
+
+    const orders = await QuickOrder.find({ ...idQuery, orderType: 'quick' })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+      
+    // Estimate total results based on this chunk to avoid slow countDocuments queries
+    const hasMore = orders.length === limit;
+    const totalResults = skip + orders.length + (hasMore ? 1 : 0);
+
+    const sellerIds = [
+      ...new Set(
+        orders
+          .map((order) =>
+            String(order?.items?.find((item) => item?.type === 'quick')?.sourceId || order?.items?.[0]?.sourceId || '').trim(),
+          )
+          .filter((value) => mongoose.Types.ObjectId.isValid(value)),
+      ),
+    ];
+
+    const sellers = sellerIds.length
+      ? await Seller.find({ _id: { $in: sellerIds } }).select('_id name shopName').lean()
+      : [];
+    const sellerMap = sellers.reduce((acc, seller) => {
+      acc[String(seller._id)] = seller;
+      return acc;
+    }, {});
+
+    const mappedOrders = orders.map((order) => {
+      const normalized = normalizeOrderSummary(order);
+      const sellerId = String(
+        order?.items?.find((item) => item?.type === 'quick')?.sourceId || order?.items?.[0]?.sourceId || '',
+      ).trim();
+      const seller = sellerMap[sellerId] || null;
+
+      return {
+        ...normalized,
+        sellerId: seller?._id || null,
+        storeName: seller?.shopName || seller?.name || '',
+        seller: seller
+          ? {
+              _id: seller._id,
+              name: seller.name || '',
+              shopName: seller.shopName || seller.name || 'Store',
+            }
+          : null,
+      };
+    });
+
+    return res.json({
+      success: true,
+      result: mappedOrders,
+      results: mappedOrders,
+      page,
+      limit,
+      totalPages: Math.ceil(totalResults / limit),
+      totalResults,
+    });
+  } catch (error) {
+    console.error('[getMyOrders] Error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
-
-  const orders = await QuickOrder.find({ ...idQuery, orderType: 'quick' }).sort({ createdAt: -1 }).lean();
-
-  const sellerIds = [
-    ...new Set(
-      orders
-        .map((order) =>
-          String(order?.items?.find((item) => item?.type === 'quick')?.sourceId || order?.items?.[0]?.sourceId || '').trim(),
-        )
-        .filter((value) => mongoose.Types.ObjectId.isValid(value)),
-    ),
-  ];
-
-  const sellers = sellerIds.length
-    ? await Seller.find({ _id: { $in: sellerIds } }).select('_id name shopName').lean()
-    : [];
-  const sellerMap = sellers.reduce((acc, seller) => {
-    acc[String(seller._id)] = seller;
-    return acc;
-  }, {});
-
-  const mappedOrders = orders.map((order) => {
-    const normalized = normalizeOrderSummary(order);
-    const sellerId = String(
-      order?.items?.find((item) => item?.type === 'quick')?.sourceId || order?.items?.[0]?.sourceId || '',
-    ).trim();
-    const seller = sellerMap[sellerId] || null;
-
-    return {
-      ...normalized,
-      sellerId: seller?._id || null,
-      storeName: seller?.shopName || seller?.name || '',
-      seller: seller
-        ? {
-            _id: seller._id,
-            name: seller.name || '',
-            shopName: seller.shopName || seller.name || 'Store',
-          }
-        : null,
-    };
-  });
-
-  return res.json({
-    success: true,
-    result: mappedOrders,
-    results: mappedOrders,
-  });
 };
 
 export const getOrderById = async (req, res) => {

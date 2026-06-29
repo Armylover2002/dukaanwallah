@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom"
 import { Tag, User, Truck, UtensilsCrossed, ArrowUpRight } from "lucide-react"
 import { useAuth } from "@core/context/AuthContext"
+import useKeyboardVisible from "@/shared/utils/useKeyboardVisible"
 
 export default function BottomNavigation() {
   const location = useLocation()
@@ -30,6 +31,9 @@ export default function BottomNavigation() {
         !pathname.includes("/dining") &&
         !pathname.includes("/under-250") &&
         !pathname.includes("/profile")))
+  const isKeyboardVisible = useKeyboardVisible()
+
+  if (isKeyboardVisible) return null;
 
   return (
     <div

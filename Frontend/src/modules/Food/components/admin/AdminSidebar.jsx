@@ -189,6 +189,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     if (l.includes("emergency help")) return badges.emergencyHelp
     if (l.includes("earning addon history")) return badges.earningAddons
     if (l.includes("safety emergency reports")) return badges.safetyReports
+    if (l === "return orders" || p.includes("return-orders")) return badges.returnOrders
     if (l === "deliveryman" && !p.includes("join-request")) return badges.deliveryPartners // expandable parent
     if (l.includes("join request") || p.includes("join-request")) return badges.deliveryPartners
     return 0

@@ -505,13 +505,13 @@ const CartPage = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f7f7f7] px-4 py-6">
-        <div className="mx-auto max-w-md">
-          <div className="mb-5 flex items-center gap-3">
+      <div className="fixed inset-0 z-[100] bg-[#f7f7f7] px-4 py-6 overflow-hidden flex flex-col">
+        <div className="mx-auto max-w-md w-full h-full flex flex-col">
+          <div className="mb-5 flex items-center gap-3 shrink-0">
             <button
               type="button"
               onClick={handleBack}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm shrink-0"
             >
               <ArrowLeft size={18} />
             </button>
@@ -521,12 +521,12 @@ const CartPage = () => {
             </div>
           </div>
 
-          <div className="rounded-[28px] bg-white px-6 py-10 text-center shadow-sm">
-            <div className="mx-auto mb-6 flex h-44 w-44 items-center justify-center">
+          <div className="flex-1 bg-white rounded-[28px] px-6 py-10 shadow-sm flex flex-col items-center justify-center mb-8">
+            <div className="mb-6 flex h-44 w-44 items-center justify-center">
               <Lottie animationData={emptyBoxAnimation} loop className="h-40 w-40" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900">Your cart is empty</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
+            <p className="mt-3 text-sm leading-6 text-slate-500 text-center">
               Pick a few essentials and they&apos;ll show up here.
             </p>
             <Link to={categoriesPath} className="mt-6 inline-flex w-full">

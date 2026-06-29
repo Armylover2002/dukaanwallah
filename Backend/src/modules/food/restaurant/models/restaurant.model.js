@@ -294,9 +294,9 @@ const restaurantSchema = new mongoose.Schema(
     },
     commissionPercentage: {
       type: Number,
-      default: 0,
+      default: 10,
       min: 0,
-      max: 100
+      max: 100,
     },
     isDeleted: {
       type: Boolean,

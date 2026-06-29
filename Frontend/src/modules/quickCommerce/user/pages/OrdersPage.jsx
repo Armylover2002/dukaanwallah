@@ -10,6 +10,7 @@ import {
 import { customerApi } from "../services/customerApi";
 import { getOrderStatusLabel, getLegacyStatusFromOrder } from "@/shared/utils/orderStatus";
 import { getQuickCategoriesPath } from "../utils/routes";
+import { useCart } from "../context/CartContext";
 import { joinOrderRoom, leaveOrderRoom, onOrderStatusUpdate } from "@/core/services/orderSocket";
 
 // ─── Helpers (module-level, no re-creation per render) ───────────────────────
@@ -32,7 +33,7 @@ const formatTime = (dateStr) =>
 
 // ─── Order Card (memoized to skip re-render when props unchanged) ─────────────
 
-const OrderCard = memo(({ order, onNavigate }) => {
+const OrderCard = memo(({ order, onNavigate, onReorder, reorderingId }) => {
   const orderCode = order.orderId || order.orderNumber || order.id || "";
   const orderLookupId = order.orderId || order._id || order.id || orderCode;
   const legacy = getLegacyStatusFromOrder(order);
@@ -128,7 +129,15 @@ const OrderCard = memo(({ order, onNavigate }) => {
             {"\u20B9"}
             {order.pricing?.total ?? order.total ?? 0}
           </span>
-          <ChevronRight size={16} className="text-slate-300 dark:text-slate-600" />
+          <button
+            onClick={(e) => onReorder(e, order)}
+            disabled={reorderingId === orderLookupId}
+            className="ml-2 flex items-center gap-1 rounded-full border border-[#0c831f]/20 bg-[#0c831f]/10 px-3 py-1 text-[11px] font-bold text-[#0c831f] transition-colors hover:bg-[#0c831f]/20 active:scale-95 disabled:opacity-50"
+          >
+            {reorderingId === orderLookupId ? <Loader2 size={12} className="animate-spin" /> : null}
+            Reorder
+          </button>
+          <ChevronRight size={16} className="hidden md:block text-slate-300 dark:text-slate-600" />
         </div>
       </div>
     </article>
@@ -142,8 +151,32 @@ OrderCard.displayName = "OrderCard";
 const OrdersPage = () => {
   const navigate = useNavigate();
   const categoriesPath = getQuickCategoriesPath();
+  const { addToCart } = useCart();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reorderingId, setReorderingId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const handleReorder = useCallback(
+    async (e, order) => {
+      e.stopPropagation();
+      if (!order.items || order.items.length === 0) return;
+      try {
+        const firstItem = order.items[0];
+        const productId = String(
+          firstItem?.sourceId || firstItem?.productId || firstItem?.itemId || firstItem?.id || firstItem?._id || ""
+        ).split("::")[0];
+        if (productId) {
+          navigate(`/quick/product/${encodeURIComponent(productId)}`);
+        }
+      } catch (error) {
+        console.error("Failed to redirect to product", error);
+      }
+    },
+    [navigate],
+  );
 
   // Stable token getter — never changes between renders
   const getToken = useCallback(
@@ -166,31 +199,42 @@ const OrdersPage = () => {
     [navigate],
   );
 
-  // Fetch orders once on mount
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await customerApi.getMyOrders();
-        const rawList = response?.data?.result || response?.data?.results || [];
-        const list = Array.isArray(rawList) ? rawList.filter(isQuickOrder) : [];
+  const fetchOrders = useCallback(async (pageNum = 1) => {
+    try {
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
 
-        setOrders(list);
-        list.forEach((order) => {
-          const orderId = String(
-            order?.orderId || order?.orderNumber || order?.id || order?._id || "",
-          ).trim();
-          if (orderId) joinOrderRoom(orderId, getToken);
-        });
-      } catch (error) {
-        console.error("Failed to fetch orders:", error);
-        setOrders([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const response = await customerApi.getMyOrders({ page: pageNum, limit: 15 });
+      const rawList = response?.data?.result || response?.data?.results || [];
+      const list = Array.isArray(rawList) ? rawList.filter(isQuickOrder) : [];
 
-    fetchOrders();
+      setOrders((prev) => (pageNum === 1 ? list : [...prev, ...list]));
+
+      const totalPages = response?.data?.totalPages || 1;
+      setHasMore(pageNum < totalPages);
+
+      list.forEach((order) => {
+        const orderId = String(
+          order?.orderId || order?.orderNumber || order?.id || order?._id || "",
+        ).trim();
+        if (orderId) joinOrderRoom(orderId, getToken);
+      });
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      if (pageNum === 1) setOrders([]);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
   }, [getToken]);
+
+  useEffect(() => {
+    fetchOrders(page);
+  }, [fetchOrders, page]);
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) setPage((p) => p + 1);
+  };
 
   // Socket: live status updates
   useEffect(() => {
@@ -282,8 +326,29 @@ const OrdersPage = () => {
         ) : (
           orders.map((order) => {
             const key = String(order.id || order._id || order.orderId || order.orderNumber || "");
-            return <OrderCard key={key} order={order} onNavigate={handleNavigate} />;
+            return (
+              <OrderCard
+                key={key}
+                order={order}
+                onNavigate={handleNavigate}
+                onReorder={handleReorder}
+                reorderingId={reorderingId}
+              />
+            );
           })
+        )}
+        
+        {hasMore && orders.length > 0 && (
+          <div className="flex justify-center pt-2 pb-6">
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:bg-card dark:text-slate-200 dark:hover:bg-white/5"
+            >
+              {loadingMore && <Loader2 size={16} className="animate-spin text-slate-400" />}
+              {loadingMore ? "Loading..." : "Load More"}
+            </button>
+          </div>
         )}
       </div>
     </div>
