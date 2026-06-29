@@ -1,8 +1,9 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "@shared/layout/DashboardLayout";
 import { useAuth } from "@core/context/AuthContext";
 import Orders from "../pages/Orders";
+import { useQCReturnCount } from "../context/useQCReturnCount";
 import {
   HiOutlineSquares2X2,
   HiOutlineCube,
@@ -36,7 +37,7 @@ const PendingApproval = React.lazy(() => import("../pages/PendingApproval"));
 const Coupons = React.lazy(() => import("../pages/Coupons"));
 const CODDepositRequests = React.lazy(() => import("../pages/CODDepositRequests"));
 
-const navItems = [
+const BASE_NAV_ITEMS = [
   { label: "Dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
   { label: "Products", path: "/seller/products", icon: HiOutlineCube },
   { label: "Stock", path: "/seller/inventory", icon: HiOutlineArchiveBox },
@@ -83,28 +84,42 @@ const Loader = () => (
   </div>
 );
 
-const SellerWorkspace = () => (
-  <DashboardLayout navItems={navItems} title="Seller Panel">
-    <Routes>
-      <Route index element={<Dashboard />} />
-      <Route path="products" element={<ProductManagement />} />
-      <Route path="products/add" element={<AddProduct />} />
-      <Route path="inventory" element={<StockManagement />} />
-      <Route path="orders" element={<Orders />} />
-      <Route path="returns" element={<Returns />} />
-      <Route path="return-orders" element={<ReturnOrders />} />
-      <Route path="tracking" element={<DeliveryTracking />} />
-      <Route path="analytics" element={<Analytics />} />
-      <Route path="transactions" element={<Transactions />} />
-      <Route path="cod-deposits" element={<CODDepositRequests />} />
-      <Route path="earnings" element={<Earnings />} />
-      <Route path="withdrawals" element={<Withdrawals />} />
-      <Route path="coupons" element={<Coupons />} />
-      <Route path="profile" element={<Profile />} />
-      <Route path="*" element={<Navigate to="/seller" replace />} />
-    </Routes>
-  </DashboardLayout>
-);
+function SellerWorkspace() {
+  const { count: qcReturnCount } = useQCReturnCount();
+
+  const navItems = useMemo(
+    () =>
+      BASE_NAV_ITEMS.map((item) =>
+        item.path === "/seller/return-orders" && qcReturnCount > 0
+          ? { ...item, badge: qcReturnCount }
+          : item,
+      ),
+    [qcReturnCount],
+  );
+
+  return (
+    <DashboardLayout navItems={navItems} title="Seller Panel">
+      <Routes>
+        <Route index element={<Dashboard />} />
+        <Route path="products" element={<ProductManagement />} />
+        <Route path="products/add" element={<AddProduct />} />
+        <Route path="inventory" element={<StockManagement />} />
+        <Route path="orders" element={<Orders />} />
+        <Route path="returns" element={<Returns />} />
+        <Route path="return-orders" element={<ReturnOrders />} />
+        <Route path="tracking" element={<DeliveryTracking />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="transactions" element={<Transactions />} />
+        <Route path="cod-deposits" element={<CODDepositRequests />} />
+        <Route path="earnings" element={<Earnings />} />
+        <Route path="withdrawals" element={<Withdrawals />} />
+        <Route path="coupons" element={<Coupons />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="*" element={<Navigate to="/seller" replace />} />
+      </Routes>
+    </DashboardLayout>
+  );
+}
 
 const SellerAccessRouter = () => {
   const { user, refreshUser } = useAuth();

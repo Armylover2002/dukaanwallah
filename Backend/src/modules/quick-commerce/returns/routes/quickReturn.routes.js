@@ -52,6 +52,7 @@ router.post('/delivery/return-pickups/:id/confirm-pickup', ...partnerOnly, retur
 router.post('/delivery/return-pickups/:id/deliver-to-seller', ...partnerOnly, returnController.partnerMarkDeliveredToSeller);
 
 // ─── Return Seller Routes ─────────────────────────────────────────────────────
+router.get('/seller/return-orders/count', ...sellerOnly, returnController.sellerGetReturnCount);
 router.get('/seller/return-orders', ...sellerOnly, returnController.sellerGetReturns);
 router.post('/seller/return-orders/:id/confirm-receipt', ...sellerOnly, returnController.sellerConfirmReceipt);
 

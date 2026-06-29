@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { User } from "lucide-react"
 import { deliveryAPI } from "@food/api"
+import useKeyboardVisible from '@/shared/utils/useKeyboardVisible';
 
 // Heroicons Outline
 import {
@@ -26,6 +27,7 @@ export default function BottomNavigation() {
   const location = useLocation()
   const [profileImage, setProfileImage] = useState(null)
   const [imageError, setImageError] = useState(false)
+  const isKeyboardVisible = useKeyboardVisible()
 
   const isActive = (path) => {
     if (path === "/delivery") return location.pathname === "/delivery"
@@ -82,6 +84,8 @@ export default function BottomNavigation() {
       window.removeEventListener('deliveryProfileRefresh', handleProfileRefresh)
     }
   }, [])
+
+  if (isKeyboardVisible) return null
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">

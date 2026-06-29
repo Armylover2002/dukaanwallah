@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, LayoutGrid, ShoppingBag, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import useKeyboardVisible from '@/shared/utils/useKeyboardVisible';
 import {
     getQuickCategoriesPath,
     getQuickHomePath,
@@ -50,6 +51,10 @@ const BottomNav = () => {
             );
         });
     }, [navItems, location.pathname, isSharedQuickProfileRoute]);
+
+    const isKeyboardVisible = useKeyboardVisible();
+
+    if (isKeyboardVisible) return null;
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-[500] bg-white/80 dark:bg-card/80 backdrop-blur-xl border-t border-gray-100 dark:border-border flex items-center justify-around h-[70px] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-4 pb-[env(safe-area-inset-bottom)] transition-all duration-300">

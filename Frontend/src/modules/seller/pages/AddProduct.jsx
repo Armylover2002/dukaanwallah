@@ -36,35 +36,61 @@ const AddProduct = () => {
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    slug: "",
-    sku: "",
-    description: "",
-    price: "",
-    salePrice: "",
-    stock: "",
-    lowStockAlert: 5,
-    category: "",
-    subcategory: "",
-    header: "",
-    status: "active",
-    tags: "",
-    weight: "",
-    brand: "",
-    mainImage: null,
-    galleryImages: [],
-    variants: [
-      {
-        id: Date.now(),
-        name: "Default",
-        price: "",
-        salePrice: "",
-        stock: "",
-        sku: "",
-      },
-    ],
+  const [formData, setFormData] = useState(() => {
+    const defaultData = {
+      name: "",
+      slug: "",
+      sku: "",
+      description: "",
+      price: "",
+      salePrice: "",
+      stock: "",
+      lowStockAlert: 5,
+      category: "",
+      subcategory: "",
+      header: "",
+      status: "active",
+      tags: "",
+      weight: "",
+      brand: "",
+      mainImage: null,
+      galleryImages: [],
+      variants: [
+        {
+          id: Date.now(),
+          name: "Default",
+          price: "",
+          salePrice: "",
+          stock: "",
+          sku: "",
+        },
+      ],
+    };
+    try {
+      const saved = localStorage.getItem("sellerAddProductDraft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...defaultData,
+          ...parsed,
+          // Force clear images to prevent persisting object URLs/large base64s
+          mainImage: null,
+          mainImageFile: null,
+          galleryImages: [],
+          galleryFiles: []
+        };
+      }
+    } catch (e) {
+      console.error("Failed to parse saved product draft", e);
+    }
+    return defaultData;
   });
+
+  React.useEffect(() => {
+    // Save to localStorage, ignoring images
+    const { mainImage, mainImageFile, galleryImages, galleryFiles, ...dataToSave } = formData;
+    localStorage.setItem("sellerAddProductDraft", JSON.stringify(dataToSave));
+  }, [formData]);
 
   // ── Handle Product ID lookup & auto-fill ──────────────────────────────
   const handleProductIdLookup = async () => {
@@ -144,7 +170,7 @@ const AddProduct = () => {
       toast.error("Please fill in the Product Title");
       return;
     }
-    
+
     if (!formData.mainImage && !formData.mainImageFile) {
       toast.error("Product image is mandatory. Please upload a primary image.");
       return;
@@ -231,6 +257,7 @@ const AddProduct = () => {
       data.append("variants", JSON.stringify(formData.variants));
 
       await sellerApi.createProduct(data);
+      localStorage.removeItem("sellerAddProductDraft");
       toast.success("Product saved successfully!");
       navigate("/seller/products");
     } catch (error) {
@@ -263,7 +290,17 @@ const AddProduct = () => {
     }
   };
 
-  const [addMethod, setAddMethod] = useState(null); // 'single', 'bulk', or null
+  const [addMethod, setAddMethod] = useState(() => {
+    return sessionStorage.getItem("sellerAddProductMethod") || null;
+  });
+
+  React.useEffect(() => {
+    if (addMethod) {
+      sessionStorage.setItem("sellerAddProductMethod", addMethod);
+    } else {
+      sessionStorage.removeItem("sellerAddProductMethod");
+    }
+  }, [addMethod]);
   const [csvFile, setCsvFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
@@ -271,7 +308,7 @@ const AddProduct = () => {
 
   const downloadTemplate = () => {
     const headers = [
-      "name", "description", "brand", "price", "salePrice", "stock", "lowStockAlert", 
+      "name", "description", "brand", "price", "salePrice", "stock", "lowStockAlert",
       "header", "category", "subcategory", "mainImage", "galleryImages", "status",
       "variantName", "variantPrice", "variantSalePrice", "variantStock"
     ];
@@ -294,7 +331,7 @@ const AddProduct = () => {
       "89",
       "120"
     ];
-    
+
     // Escaping commas by quoting values
     const escapedRow = sampleRow.map(val => `"${String(val).replace(/"/g, '""')}"`);
     const csvContent = [headers.join(","), escapedRow.join(",")].join("\n");
@@ -568,7 +605,7 @@ const AddProduct = () => {
                         </p>
                       </div>
                     </div>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setValidationErrors([])}
                       className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
@@ -639,9 +676,9 @@ const AddProduct = () => {
         <Button
           variant="ghost"
           className="pl-0 hover:bg-transparent hover:text-orange-500-600"
-          onClick={() => navigate(-1)}>
+          onClick={() => setAddMethod(null)}>
           <HiOutlineArrowLeft className="mr-2 h-5 w-5" />
-          Back to Products
+          Back
         </Button>
       </div>
 
@@ -1119,7 +1156,7 @@ const AddProduct = () => {
             </div>
           )}
 
-          
+
         </div>
       </div>
 

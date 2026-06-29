@@ -271,6 +271,19 @@ export const sellerGetReturns = async (req, res) => {
   }
 };
 
+export const sellerGetReturnCount = async (req, res) => {
+  try {
+    const sellerId = req.user?.sellerId || req.user?.userId;
+    if (!sellerId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized seller.' });
+    }
+    const count = await returnService.getSellerPendingReturnCount(sellerId);
+    return res.json({ success: true, count });
+  } catch (err) {
+    return handleError(res, err, 'sellerGetReturnCount');
+  }
+};
+
 export const sellerConfirmReceipt = async (req, res) => {
   try {
     const { id } = req.params;

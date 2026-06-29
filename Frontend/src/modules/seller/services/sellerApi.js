@@ -138,6 +138,9 @@ export const sellerApi = {
   getQuickCommerceReturns: (params = {}) =>
     call(axiosInstance.get("/quick-commerce/seller/return-orders", { params })),
 
+  getQCReturnCount: () =>
+    call(axiosInstance.get("/quick-commerce/seller/return-orders/count")),
+
   confirmQuickCommerceReturnReceipt: (id) =>
     call(axiosInstance.post(`/quick-commerce/seller/return-orders/${String(id)}/confirm-receipt`)),
 };

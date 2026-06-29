@@ -221,6 +221,14 @@ const SidebarItem = ({
             )}>
             {item.label}
           </span>
+          {item.badge > 0 && (
+            <span className={cn(
+              "ml-auto z-10 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black leading-none",
+              isActive ? "bg-white text-orange-600" : "bg-orange-500 text-white"
+            )}>
+              {item.badge > 99 ? "99+" : item.badge}
+            </span>
+          )}
           {isActive && (
             <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/30 rounded-l-full animate-in slide-in-from-right-1" />
           )}

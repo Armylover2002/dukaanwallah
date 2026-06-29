@@ -536,6 +536,20 @@ export const getSellerReturns = async (sellerId, { status, page = 1, limit = 20 
   return { items, total, page: Number(page), limit: Number(limit) };
 };
 
+/**
+ * Returns the count of pending return requests for a seller.
+ * Counts returns where the seller still needs to act:
+ *   - approved / pickup_assigned → item coming back
+ *   - delivered_to_seller → seller needs to confirm receipt
+ */
+export const getSellerPendingReturnCount = async (sellerId) => {
+  const count = await QuickReturnOrder.countDocuments({
+    sellerId: new mongoose.Types.ObjectId(String(sellerId)),
+    status: { $in: ['approved', 'pickup_assigned', 'delivered_to_seller', 'pending_review'] },
+  });
+  return count;
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 // Seller: Confirm receipt → triggers refund
 // ────────────────────────────────────────────────────────────────────────────

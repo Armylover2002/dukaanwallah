@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom"
 import { useMemo } from "react"
 import { motion } from "framer-motion"
+import useKeyboardVisible from '@/shared/utils/useKeyboardVisible';
 import {
   FileText,
   Package,
@@ -39,7 +40,9 @@ export default function BottomNavOrders() {
   }, [tabs, pathname])
 
   const isInternalPage = pathname.includes("/create-offers")
-  if (isInternalPage) {
+  const isKeyboardVisible = useKeyboardVisible()
+
+  if (isInternalPage || isKeyboardVisible) {
     return null
   }
 

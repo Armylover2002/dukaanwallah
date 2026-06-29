@@ -15,12 +15,12 @@ const isQuickCartItem = (item) => {
 
   return Boolean(
     item.quickStoreId ||
-      item.storeId ||
-      item.store?.id ||
-      item.store?._id ||
-      item.sellerId ||
-      item.seller?.id ||
-      item.seller?._id,
+    item.storeId ||
+    item.store?.id ||
+    item.store?._id ||
+    item.sellerId ||
+    item.seller?.id ||
+    item.seller?._id,
   );
 };
 
@@ -168,7 +168,7 @@ const persistQuickCartSnapshot = (items) => {
           "user_recent_searches_v1",
         ];
         legacyKeys.forEach(key => {
-            if (key !== QUICK_CART_STORAGE_KEY) localStorage.removeItem(key);
+          if (key !== QUICK_CART_STORAGE_KEY) localStorage.removeItem(key);
         });
       } catch (e) {
         console.error("Critical storage failure", e);
@@ -281,7 +281,7 @@ const useStandaloneQuickCart = (isBridged = false) => {
           try {
             const parsed = JSON.parse(e.newValue);
             if (Array.isArray(parsed)) setCart(parsed);
-          } catch {}
+          } catch { }
         }
       }
     };
@@ -532,10 +532,10 @@ export const CartProvider = ({ children }) => {
 
       const nextQuickItems = existingItem
         ? quickItemsFromFoodCart.map((item) =>
-            getProductId(item) === normalizedProduct.id
-              ? { ...item, quantity: Number(item.quantity || 0) + 1 }
-              : item,
-          )
+          getProductId(item) === normalizedProduct.id
+            ? { ...item, quantity: Number(item.quantity || 0) + 1 }
+            : item,
+        )
         : [...quickItemsFromFoodCart, { ...normalizedProduct, quantity: 1 }];
 
       persistQuickCartSnapshot(nextQuickItems);
@@ -593,13 +593,13 @@ export const CartProvider = ({ children }) => {
       const nextQuickItems =
         nextQuantity === 0
           ? quickItemsFromFoodCart.filter(
-              (item) => getProductId(item) !== resolvedProductId,
-            )
+            (item) => getProductId(item) !== resolvedProductId,
+          )
           : quickItemsFromFoodCart.map((item) =>
-              getProductId(item) === resolvedProductId
-                ? { ...item, quantity: nextQuantity }
-                : item,
-            );
+            getProductId(item) === resolvedProductId
+              ? { ...item, quantity: nextQuantity }
+              : item,
+          );
       persistQuickCartSnapshot(nextQuickItems);
       foodCart.updateQuantity(resolvedProductId, nextQuantity);
 

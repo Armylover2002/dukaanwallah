@@ -1069,12 +1069,18 @@ const ProductManagement = () => {
                   {modalTab === "general" && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-1.5 flex flex-col">
-                          <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                            Product Title
-                          </label>
+                        <div className="space-y-1.5 flex flex-col relative">
+                          <div className="flex justify-between items-center ml-1">
+                            <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
+                              Product Title
+                            </label>
+                            <span className={`text-[10px] font-semibold ${(formData.name?.length || 0) >= 100 ? 'text-red-500' : 'text-slate-400'}`}>
+                              {formData.name?.length || 0}/100
+                            </span>
+                          </div>
                           <input
-                            value={formData.name}
+                            maxLength={100}
+                            value={formData.name || ''}
                             onChange={(e) =>
                               setFormData({ ...formData, name: e.target.value })
                             }
@@ -1104,18 +1110,24 @@ const ProductManagement = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="space-y-1.5 flex flex-col">
-                        <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                          About this item
-                        </label>
+                      <div className="space-y-1.5 flex flex-col relative">
+                        <div className="flex justify-between items-center ml-1">
+                          <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
+                            About this item
+                          </label>
+                          <span className={`text-[10px] font-semibold ${((formData.description || '').trim().split(/\s+/).filter(Boolean).length) >= 150 ? 'text-red-500' : 'text-slate-400'}`}>
+                            {(formData.description || '').trim().split(/\s+/).filter(Boolean).length}/150 words
+                          </span>
+                        </div>
                         <textarea
-                          value={formData.description}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              description: e.target.value,
-                            })
-                          }
+                          value={formData.description || ''}
+                          onChange={(e) => {
+                            const text = e.target.value;
+                            const wordsCount = text.trim().split(/\s+/).filter(Boolean).length;
+                            if (wordsCount <= 150 || text.length < (formData.description || '').length) {
+                              setFormData({ ...formData, description: text });
+                            }
+                          }}
                           onWheel={(e) => e.stopPropagation()}
                           onTouchMove={(e) => e.stopPropagation()}
                           className="w-full px-4 py-3 bg-slate-100 border-none rounded-2xl text-sm font-semibold min-h-[160px] max-h-[260px] outline-none resize-none overflow-y-auto custom-scrollbar"
@@ -1123,12 +1135,18 @@ const ProductManagement = () => {
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-1.5 flex flex-col">
-                          <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                            Brand Name
-                          </label>
+                        <div className="space-y-1.5 flex flex-col relative">
+                          <div className="flex justify-between items-center ml-1">
+                            <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">
+                              Brand Name
+                            </label>
+                            <span className={`text-[10px] font-semibold ${(formData.brand?.length || 0) >= 50 ? 'text-red-500' : 'text-slate-400'}`}>
+                              {formData.brand?.length || 0}/50
+                            </span>
+                          </div>
                           <input
-                            value={formData.brand}
+                            maxLength={50}
+                            value={formData.brand || ''}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,

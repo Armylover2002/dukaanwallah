@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import useKeyboardVisible from '@/shared/utils/useKeyboardVisible';
 import {
     LayoutDashboard,
     ClipboardList,
@@ -17,51 +18,7 @@ import { useAuth } from '@/core/context/AuthContext';
 const BottomNav = ({ navItems }) => {
     const { role } = useAuth();
     const location = useLocation();
-    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-
-    useEffect(() => {
-        const initialHeight = window.innerHeight;
-
-        const handleResize = () => {
-            const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            if (currentHeight < initialHeight * 0.85) {
-                setIsKeyboardOpen(true);
-            } else {
-                setIsKeyboardOpen(false);
-            }
-        };
-
-        window.addEventListener("resize", handleResize);
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener("resize", handleResize);
-        }
-
-        const handleFocusIn = (e) => {
-            const tag = e.target.tagName?.toLowerCase();
-            if (['input', 'textarea', 'select'].includes(tag)) {
-                const type = e.target.type;
-                if (!['checkbox', 'radio', 'button', 'submit', 'file'].includes(type)) {
-                    setIsKeyboardOpen(true);
-                }
-            }
-        };
-        
-        const handleFocusOut = () => {
-            setTimeout(handleResize, 150);
-        };
-
-        document.addEventListener("focusin", handleFocusIn);
-        document.addEventListener("focusout", handleFocusOut);
-
-        return () => {
-            window.removeEventListener("resize", handleResize);
-            if (window.visualViewport) {
-                window.visualViewport.removeEventListener("resize", handleResize);
-            }
-            document.removeEventListener("focusin", handleFocusIn);
-            document.removeEventListener("focusout", handleFocusOut);
-        };
-    }, []);
+    const isKeyboardVisible = useKeyboardVisible();
 
     const isSellerPanel = location.pathname.startsWith('/seller');
 
@@ -78,7 +35,7 @@ const BottomNav = ({ navItems }) => {
         { label: 'Earnings', path: '/seller/earnings', icon: Wallet },
     ];
 
-    if (isKeyboardOpen) return null;
+    if (isKeyboardVisible) return null;
 
     return (
         <div className={cn(

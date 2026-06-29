@@ -924,7 +924,7 @@ const Orders = () => {
                 </div>
                 <div className="flex gap-3 shrink-0 w-full lg:w-auto items-center justify-end flex-wrap">
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
-                    <div className="w-full sm:w-32">
+                    <div className="flex-1 sm:flex-none sm:w-32">
                       <DatePicker
                         value={startDate}
                         max={todayStr}
@@ -959,7 +959,7 @@ const Orders = () => {
                     <span className="text-xs font-semibold text-slate-600 hidden sm:inline">
                       to
                     </span>
-                    <div className="w-full sm:w-32 mt-2 sm:mt-0">
+                    <div className="flex-1 sm:flex-none sm:w-32">
                       <DatePicker
                         value={endDate}
                         max={todayStr}
@@ -1132,22 +1132,6 @@ const Orders = () => {
                 <p className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest text-center sm:text-left">
                   Showing {filteredOrders.length} of {orders.length} Orders
                 </p>
-                <div className="flex gap-1 justify-center sm:justify-end">
-                  <button
-                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 opacity-50 cursor-not-allowed"
-                    aria-hidden="true"
-                    disabled
-                    tabIndex={-1}>
-                    <HiOutlineChevronRight className="h-3.5 w-3.5 rotate-180" />
-                  </button>
-                  <button
-                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 opacity-50 cursor-not-allowed"
-                    aria-hidden="true"
-                    disabled
-                    tabIndex={-1}>
-                    <HiOutlineChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
               </div>
             </Card>
           </BlurFade>
