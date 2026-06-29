@@ -137,8 +137,8 @@ export const sendWhatsAppTemplate = async (
 };
 
 /**
- * Send the `promotional_offer` WhatsApp template to a list of users.
- * Params order: CustomerName, CouponCode, DiscountValue, ExpiryDate
+ * Send the `coupon_code_alert` WhatsApp template to a list of users.
+ * Params order: CustomerName, BrandName, CouponCode, DiscountValue, ExpiryDate
  *
  * @param {Array<{name:string, phone:string}>} users
  * @param {object} coupon  – must have: couponCode, discountValue, expiryDate
@@ -168,6 +168,8 @@ export const sendPromotionalOfferToUsers = async (users, coupon) => {
             } catch { return String(expiryDate); }
         })();
 
+        const brandName = process.env.BRAND_NAME || process.env.APP_NAME || 'Dukaanwallah';
+
         // Batch send — fire and forget per user
         for (const user of users) {
             const rawMobile = String(user.phone || '').replace(/\D/g, '');
@@ -176,14 +178,14 @@ export const sendPromotionalOfferToUsers = async (users, coupon) => {
             if (mobile.length < 12) continue;
 
             const customerName = String(user.name || 'Customer').trim() || 'Customer';
-            const templateParams = [customerName, couponCode, discountValue, formattedExpiry].join(',');
+            const templateParams = [customerName, brandName, couponCode, discountValue, formattedExpiry].join(',');
 
             const requestParams = {
                 user: username,
                 pass: password,
                 sender: senderId,
                 phone: mobile,
-                text: 'promotional_offer',
+                text: 'coupon_code_alert',
                 priority: 'wa',
                 stype: 'normal',
                 Params: templateParams
