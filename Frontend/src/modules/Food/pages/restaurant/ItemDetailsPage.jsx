@@ -726,6 +726,11 @@ export default function ItemDetailsPage() {
       return
     }
 
+    if (!images || images.length === 0 || !images.some(img => img)) {
+      toast.error("Please upload at least one image for the item")
+      return
+    }
+
     try {
       setUploadingImages(true)
 

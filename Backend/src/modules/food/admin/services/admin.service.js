@@ -2455,7 +2455,7 @@ export async function updateRestaurantStatus(id, body = {}) {
     const isActive = parseBooleanLike(raw, 'status');
     const status = isActive ? 'approved' : 'rejected';
 
-    return FoodRestaurant.findByIdAndUpdate(
+    const updated = await FoodRestaurant.findByIdAndUpdate(
         id,
         {
             $set: {
@@ -2467,6 +2467,31 @@ export async function updateRestaurantStatus(id, body = {}) {
         },
         { new: true, runValidators: false }
     ).lean();
+
+    if (updated) {
+        try {
+            const { sendNotificationToOwner } = await import('../../../../core/notifications/firebase.service.js');
+            await sendNotificationToOwner({
+                ownerType: 'RESTAURANT',
+                ownerId: updated._id,
+                payload: {
+                    title: isActive ? 'Restaurant Approved! 🎉' : 'Restaurant Disabled 🏪',
+                    body: isActive 
+                        ? `Congratulations! Your restaurant "${updated.name}" has been approved. You can now log in and manage your menu.`
+                        : `Your restaurant "${updated.name}" has been disabled/rejected. Please contact support.`,
+                    data: {
+                        type: 'restaurant_status_update',
+                        status: status,
+                        id: String(updated._id)
+                    }
+                }
+            });
+        } catch (e) {
+            console.error('Failed to notify restaurant partner of status change:', e);
+        }
+    }
+
+    return updated;
 }
 
 export async function updateRestaurantLocation(id, body = {}) {

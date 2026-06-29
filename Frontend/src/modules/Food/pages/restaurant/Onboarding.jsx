@@ -598,12 +598,13 @@ export default function RestaurantOnboarding() {
         longitude: locationDetails.lng,
       },
     }))
-    
+
     if (typeof setLocationPickedFromSuggestion === 'function') {
       setLocationPickedFromSuggestion(true);
     }
   }
 
+  const [isDataInitialized, setIsDataInitialized] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -863,7 +864,7 @@ export default function RestaurantOnboarding() {
           ownerName: "",
           ownerEmail: "",
           ownerPhone: verifiedPhone,
-          primaryContactNumber: verifiedPhone,
+          primaryContactNumber: "",
           zoneId: "",
           ref: "",
           location: {
@@ -935,7 +936,7 @@ export default function RestaurantOnboarding() {
             ownerEmail: serverData.ownerEmail || "",
             ownerPhone: serverData.ownerPhone || verifiedPhone,
             zoneId: normalizeZoneIdValue(serverData.zoneId) || "",
-            primaryContactNumber: serverData.primaryContactNumber || verifiedPhone,
+            primaryContactNumber: serverData.primaryContactNumber || "",
             ref: "",
             location: {
               formattedAddress: serverData.location?.formattedAddress || serverData.location?.address || "",
@@ -997,7 +998,7 @@ export default function RestaurantOnboarding() {
               ...initialStep1,
               ...localData.step1,
               ownerPhone: verifiedPhone || localData.step1.ownerPhone || initialStep1.ownerPhone,
-              primaryContactNumber: verifiedPhone || localData.step1.primaryContactNumber || initialStep1.primaryContactNumber,
+              primaryContactNumber: localData.step1.primaryContactNumber || "",
               zoneId: normalizeZoneIdValue(localData.step1.zoneId) || initialStep1.zoneId,
               location: {
                 ...initialStep1.location,
@@ -1123,6 +1124,7 @@ export default function RestaurantOnboarding() {
         debugError("Error during onboarding initialization:", err)
       } finally {
         setLoading(false)
+        setIsDataInitialized(true)
       }
     }
 
@@ -1173,8 +1175,31 @@ export default function RestaurantOnboarding() {
     }
   }, [])
 
+  // Auto-scroll focused inputs into view (especially useful when virtual keyboard opens)
+  useEffect(() => {
+    const handleFocus = (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
+        // Wait a brief moment for the keyboard to slide up and resize the viewport
+        setTimeout(() => {
+          try {
+            e.target.scrollIntoView({ behavior: "smooth", block: "center" })
+          } catch (err) {
+            // Ignore scroll errors
+          }
+        }, 350)
+      }
+    }
+
+    window.addEventListener("focusin", handleFocus)
+    return () => {
+      window.removeEventListener("focusin", handleFocus)
+    }
+  }, [])
+
   // Save to localStorage whenever step data changes
   useEffect(() => {
+    if (!isDataInitialized) return
+
     let active = true
 
       ; (async () => {
@@ -1185,7 +1210,7 @@ export default function RestaurantOnboarding() {
     return () => {
       active = false
     }
-  }, [step1, step2, step3, step4, step])
+  }, [step1, step2, step3, step4, step, isDataInitialized])
 
   useEffect(() => {
     syncOnboardingFileCache(step2, step3)
@@ -2470,6 +2495,7 @@ export default function RestaurantOnboarding() {
                   nameOnPan: e.target.value.replace(/[^A-Za-z ]/g, ""),
                 })
               }
+              placeholder="Enter your name as on PAN card"
               className="mt-1 bg-white text-sm text-black placeholder-black"
             />
           </div>
@@ -2977,7 +3003,7 @@ export default function RestaurantOnboarding() {
           galleryInputRef={sourcePicker.fallbackInputRef}
         />
 
-        
+
         <MapPicker
           isOpen={isMapPickerOpen}
           onClose={() => setIsMapPickerOpen(false)}

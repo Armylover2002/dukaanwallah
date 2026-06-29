@@ -574,6 +574,15 @@ export default function OrderDetails() {
       // Save the PDF
       doc.save(`Order_Receipt_${orderData.id}.pdf`)
 
+      // Also open the PDF in a new window/tab for instant viewing and manual save/print
+      try {
+        const pdfBlob = doc.output('blob')
+        const blobUrl = URL.createObjectURL(pdfBlob)
+        window.open(blobUrl, '_blank')
+      } catch (e) {
+        debugError("Failed to open PDF in a new tab:", e)
+      }
+
       // Show success message
       setToastMessage("Receipt downloaded successfully!")
       setShowToast(true)
@@ -845,9 +854,16 @@ export default function OrderDetails() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {item.quantity} x {item.name}
-                    </p>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {item.quantity} x {item.name}
+                      </p>
+                      {item.variantName && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Variant: {item.variantName}
+                        </p>
+                      )}
+                    </div>
                     <p className="text-sm font-semibold text-gray-900">{formatMoney(item.price)}</p>
                   </div>
                   {item.type && (

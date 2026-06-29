@@ -196,6 +196,7 @@ export async function createRestaurantFood(restaurantId, body = {}) {
     const description = toStr(body.description);
     const images = Array.isArray(body.images) ? body.images.map(toStr) : (body.image ? [toStr(body.image)] : []);
     const image = images.length > 0 ? images[0] : toStr(body.image);
+    if (!image) throw new ValidationError('Item image is required');
     const isAvailable = body.isAvailable !== false;
     const foodType = normalizeFoodType(body.foodType);
     const preparationTime = toStr(body.preparationTime);
@@ -276,10 +277,13 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
     if (body.description !== undefined) update.description = toStr(body.description);
     if (body.images !== undefined) {
         const images = Array.isArray(body.images) ? body.images.map(toStr) : [];
+        const image = images.length > 0 ? images[0] : '';
+        if (!image) throw new ValidationError('Item image is required');
         update.images = images;
-        update.image = images.length > 0 ? images[0] : '';
+        update.image = image;
     } else if (body.image !== undefined) {
         const img = toStr(body.image);
+        if (!img) throw new ValidationError('Item image is required');
         update.image = img;
         update.images = img ? [img] : [];
     }

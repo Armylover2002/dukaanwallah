@@ -86,7 +86,7 @@ const getRestaurantVisibleItems = (items = []) => {
 
 const buildOrderItemsSummary = (items = []) =>
   getRestaurantVisibleItems(items)
-    .map((item) => `${item.quantity}x ${item.name}`)
+    .map((item) => `${item.quantity}x ${item.name}${item.variantName ? ` (${item.variantName})` : ""}`)
     .join(", ") || "No items";
 
 const getOrderPreviewItem = (items = []) =>
@@ -1819,6 +1819,15 @@ export default function OrdersMain() {
       const fileName = `Order-${orderToPrint.orderId || "Receipt"}-${Date.now()}.pdf`;
       doc.save(fileName);
 
+      // Also open in a new window/tab for instant viewing
+      try {
+        const pdfBlob = doc.output('blob');
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        window.open(blobUrl, '_blank');
+      } catch (e) {
+        debugError("Failed to open PDF in new tab:", e);
+      }
+
       debugLog("? PDF generated successfully:", fileName);
     } catch (error) {
       debugError("? Error generating PDF:", error);
@@ -2771,6 +2780,7 @@ export default function OrdersMain() {
             exit={{ opacity: 0 }}
             onClick={() => setIsSheetOpen(false)}>
             <motion.div
+              data-lenis-prevent
               className="w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto bg-white rounded-t-3xl p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom)+6rem)] shadow-lg"
               initial={{ y: 80 }}
               animate={{ y: 0 }}
@@ -3030,7 +3040,7 @@ const OrderCard = memo(function OrderCard({
               <p className="text-[11px] text-gray-500 mt-1">{customerName}</p>
             </div>
 
-            <div className="flex flex-col items-end gap-1">
+            <div className={`flex flex-col items-end gap-1 ${isPreparing ? "pr-8" : ""}`}>
               <span
                 className={`inline-flex items-start gap-1 px-2 py-1 rounded-full text-[11px] font-medium border text-right whitespace-normal break-words max-w-[140px] leading-tight ${isReady
                   ? "border-green-500 text-green-600"

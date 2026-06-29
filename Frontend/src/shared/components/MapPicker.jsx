@@ -239,19 +239,19 @@ const MapPicker = ({
       title="Select Shop Location"
       size="lg"
       footer={
-        <div className="flex justify-between w-full items-center">
-          <div className="text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row gap-3 justify-between w-full sm:items-center">
+          <div className="text-sm text-gray-500 text-left">
             {marker
               ? address
-                ? <span className="font-medium text-slate-700 truncate max-w-xs block">{address}</span>
+                ? <span className="font-medium text-slate-700 truncate max-w-[280px] sm:max-w-xs block">{address}</span>
                 : `${marker.lat.toFixed(4)}, ${marker.lng.toFixed(4)}`
               : "No location selected"}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex gap-2 justify-end w-full sm:w-auto">
+            <Button variant="outline" onClick={onClose} className="flex-1 sm:flex-initial">
               Cancel
             </Button>
-            <Button onClick={handleConfirm} disabled={!marker || isGeocoding}>
+            <Button onClick={handleConfirm} disabled={!marker || isGeocoding} className="flex-1 sm:flex-initial">
               {isGeocoding ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}

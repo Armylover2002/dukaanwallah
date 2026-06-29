@@ -192,6 +192,36 @@ const buildMessagePayload = (payload = {}, token) => {
         }
     };
 
+    if (payload.dataOnly) {
+        message.apns = {
+            headers: {
+                'apns-priority': '5',
+                'apns-push-type': 'background'
+            },
+            payload: {
+                aps: {
+                    'content-available': 1
+                }
+            }
+        };
+    } else {
+        message.apns = {
+            headers: {
+                'apns-priority': '10',
+                'apns-push-type': 'alert'
+            },
+            payload: {
+                aps: {
+                    alert: {
+                        title: notification.title,
+                        body: notification.body
+                    },
+                    sound: 'default'
+                }
+            }
+        };
+    }
+
     // FIX #3: Only include webpush.notification for normal (non-dataOnly) messages.
     // When dataOnly=true, the presence of webpush.notification causes Chrome to
     // intercept the push and show its own system popup, completely bypassing the
