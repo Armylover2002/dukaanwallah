@@ -3,7 +3,7 @@ import {
   MapPin, Phone, ShieldCheck, CheckCircle2, Loader2, 
   ArrowRight, Lock, AlertCircle, UploadCloud, RotateCcw, 
   Package, Clock, X, ChevronRight, Navigation2, Compass, Map,
-  IndianRupee, Ruler, TrendingUp
+  IndianRupee, Ruler, TrendingUp, Target, Plus, Minus, Play
 } from 'lucide-react';
 import { deliveryAPI } from '@food/api';
 import axiosInstance from '@core/api/axios';
@@ -437,6 +437,7 @@ export default function ReturnPickups() {
                           <input
                             type="file"
                             accept="image/*"
+                            capture="environment"
                             onChange={(e) => handleImageUpload(id, e.target.files[0])}
                             className="hidden"
                           />
@@ -484,12 +485,12 @@ export default function ReturnPickups() {
                         <button
                           onClick={() => handleDeliverToSeller(id)}
                           disabled={completingTask[id] || (sellerOtpInputs[id] || '').length !== 4}
-                          className="px-6 bg-green-500 text-white rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center hover:bg-green-600 active:scale-95 transition-all shadow-md shadow-green-500/10 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap"
+                          className="px-6 bg-green-500 text-white rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center hover:bg-green-600 active:scale-95 transition-all shadow-md shadow-green-500/10 disabled:opacity-50 disabled:pointer-events-none"
                         >
                           {completingTask[id] ? (
                             <Loader2 className="w-5 h-5 animate-spin animate-duration-1000" />
                           ) : (
-                            'Verify & Handover'
+                            'Verify'
                           )}
                         </button>
                       </div>
@@ -550,6 +551,11 @@ function ReturnNavigationModal({ pickup, riderLocation, onClose }) {
   const [directions, setDirections] = useState(null);
   const [distanceText, setDistanceText] = useState('');
   const [durationText, setDurationText] = useState('');
+  const [isSimMode, setIsSimMode] = useState(false);
+  const [simPath, setSimPath] = useState([]);
+  const [simIndex, setSimIndex] = useState(0);
+  const [simPos, setSimPos] = useState(null);
+  const mapRef = useRef(null);
 
   const status = pickup.status;
 
@@ -578,16 +584,22 @@ function ReturnNavigationModal({ pickup, riderLocation, onClose }) {
     ? `${pickup.customerAddress?.street || ''}, ${pickup.customerAddress?.city || ''}` 
     : (pickup.sellerAddress?.address || '');
 
-  const directionsCallback = (result, status) => {
+  const directionsCallback = React.useCallback((result, status) => {
     if (status === 'OK' && result) {
       setDirections(result);
       const leg = result.routes[0]?.legs[0];
       if (leg) {
         setDistanceText(leg.distance?.text || '');
         setDurationText(leg.duration?.text || '');
+        
+        const path = [];
+        leg.steps.forEach(step => {
+          step.path.forEach(p => path.push({ lat: p.lat(), lng: p.lng() }));
+        });
+        setSimPath(path);
       }
     }
-  };
+  }, []);
 
   const [fallbackPos, setFallbackPos] = useState(null);
   useEffect(() => {
@@ -602,7 +614,38 @@ function ReturnNavigationModal({ pickup, riderLocation, onClose }) {
     }
   }, [origin]);
 
-  const activeOrigin = origin || fallbackPos;
+  useEffect(() => {
+    let interval;
+    if (isSimMode && simPath.length > 1 && simIndex < simPath.length - 1) {
+      interval = setInterval(() => {
+        setSimPos(prevPos => {
+          const nextProgress = 0.08;
+          const currentPoint = simPath[simIndex];
+          const nextPoint = simPath[simIndex + 1];
+          if (currentPoint && nextPoint) {
+            const lat = currentPoint.lat + (nextPoint.lat - currentPoint.lat) * nextProgress;
+            const lng = currentPoint.lng + (nextPoint.lng - currentPoint.lng) * nextProgress;
+            
+            // Advance index occasionally
+            if (Math.random() > 0.8) {
+               setSimIndex(idx => idx + 1);
+            }
+            
+            if (mapRef.current) {
+               mapRef.current.panTo({ lat, lng });
+            }
+            return { lat, lng };
+          }
+          return prevPos;
+        });
+      }, 100);
+    } else if (isSimMode && simIndex >= simPath.length - 1) {
+      setIsSimMode(false);
+    }
+    return () => clearInterval(interval);
+  }, [isSimMode, simPath, simIndex]);
+
+  const activeOrigin = isSimMode && simPos ? simPos : (origin || fallbackPos);
 
   if (loadError) {
     return (
@@ -637,12 +680,14 @@ function ReturnNavigationModal({ pickup, riderLocation, onClose }) {
             <span className="text-xs font-black text-gray-950 mt-1 block">QC-RET-{String(pickup._id).slice(-6).toUpperCase()}</span>
           </div>
         </div>
-        <button 
-          onClick={onClose}
-          className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 border border-gray-100 hover:bg-gray-100 transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 border border-gray-100 hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Google Map area */}
@@ -653,15 +698,18 @@ function ReturnNavigationModal({ pickup, riderLocation, onClose }) {
             center={activeOrigin}
             zoom={15}
             options={mapOptions}
+            onLoad={(map) => { mapRef.current = map; }}
           >
-            <DirectionsService
-              options={{
-                origin: activeOrigin,
-                destination: destination,
-                travelMode: 'DRIVING'
-              }}
-              callback={directionsCallback}
-            />
+            {!directions && (
+              <DirectionsService
+                options={{
+                  origin: isSimMode && simPath.length > 0 ? simPath[0] : activeOrigin,
+                  destination: destination,
+                  travelMode: 'DRIVING'
+                }}
+                callback={directionsCallback}
+              />
+            )}
 
             {directions && (
               <DirectionsRenderer
@@ -677,18 +725,14 @@ function ReturnNavigationModal({ pickup, riderLocation, onClose }) {
               />
             )}
 
-            {/* Custom Markers */}
             <Marker 
               position={activeOrigin} 
-              label={{ text: "Rider", color: "#ffffff", fontSize: "10px", fontWeight: "bold" }}
               icon={{
-                path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
-                fillColor: "#3b82f6",
-                fillOpacity: 1,
-                strokeColor: "#ffffff",
-                strokeWeight: 2,
-                scale: 10,
+                url: '/MapRider.png',
+                scaledSize: new window.google.maps.Size(48, 48),
+                anchor: new window.google.maps.Point(24, 24)
               }}
+              zIndex={100}
             />
             <Marker 
               position={destination} 
@@ -702,6 +746,40 @@ function ReturnNavigationModal({ pickup, riderLocation, onClose }) {
                 scale: 10,
               }}
             />
+
+            <div className="absolute right-4 bottom-24 flex flex-col gap-4 z-[120]">
+              <div className="flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+                 <button onClick={() => mapRef.current?.setZoom(mapRef.current?.getZoom() + 1)} className="p-3 hover:bg-gray-50 border-b border-gray-100 text-gray-900 active:scale-90 transition-all"><Plus className="w-5 h-5 stroke-[2.75]" /></button>
+                 <button onClick={() => mapRef.current?.setZoom(mapRef.current?.getZoom() - 1)} className="p-3 hover:bg-gray-50 text-gray-900 active:scale-90 transition-all"><Minus className="w-5 h-5 stroke-[2.75]" /></button>
+              </div>
+              <button 
+                onClick={() => {
+                  const nextSim = !isSimMode;
+                  setIsSimMode(nextSim);
+                  if (nextSim && simPath.length > 0) {
+                    setSimIndex(0);
+                    setSimPos(simPath[0]);
+                  }
+                }}
+                className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center border transition-all ${isSimMode ? 'bg-[#ff8100] border-[#ff8100] text-white' : 'bg-white border-gray-100 text-[#ff8100]'}`}
+              >
+                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${isSimMode ? 'border-white' : 'border-[#ff8100]'}`}>
+                  <Play className={`w-4 h-4 fill-current ml-0.5 ${isSimMode ? 'animate-pulse' : ''}`} />
+                </div>
+              </button>
+              <button 
+                 onClick={() => mapRef.current?.panTo(activeOrigin)} 
+                 className="w-14 h-14 bg-white rounded-full shadow-2xl flex items-center justify-center text-blue-600 border border-gray-100 active:scale-90 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full border-2 border-blue-600 flex items-center justify-center"><Navigation2 className="w-4 h-4" /></div>
+              </button>
+              <button 
+                onClick={() => mapRef.current?.panTo(destination)}
+                className="w-14 h-14 bg-white rounded-full shadow-2xl flex items-center justify-center text-gray-900 border border-gray-100 group active:scale-90 transition-all"
+              >
+                <Target className="w-7 h-7" />
+              </button>
+            </div>
           </GoogleMap>
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">

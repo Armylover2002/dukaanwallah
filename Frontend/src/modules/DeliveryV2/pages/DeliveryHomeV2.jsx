@@ -4,6 +4,8 @@ import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
 import { useProximityCheck } from '@/modules/DeliveryV2/hooks/useProximityCheck';
 import { useOrderManager } from '@/modules/DeliveryV2/hooks/useOrderManager';
 import { useDeliveryNotifications } from '@food/hooks/useDeliveryNotifications';
+import { useDeliveryReturnNotifier } from '@/modules/DeliveryV2/hooks/useDeliveryReturnNotifier';
+import useKeyboardVisible from '@/shared/utils/useKeyboardVisible';
 import { deliveryAPI } from '@food/api';
 import { toast } from 'sonner';
 
@@ -777,6 +779,9 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     }
   };
 
+  const isKeyboardVisible = useKeyboardVisible();
+  const returnPickupCount = useDeliveryReturnNotifier();
+
   const handleMapClick = (lat, lng) => {
     if (activeOrder || incomingOrder || showVerification) {
       setIsModalMinimized(true);
@@ -1243,24 +1248,32 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
       )}
 
       {/* ─── 3. BOTTOM NAV (Fixed - Compact Pro) ─── */}
-      <div className="bg-white border-t border-gray-100 px-4 py-3 pb-6 flex justify-between items-center z-[200] shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-         <button onClick={() => navigate('/food/delivery/feed')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'feed' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
-            <LayoutGrid className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Feed</span>
-         </button>
-         <button onClick={() => navigate('/food/delivery/return-pickups')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'returns' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
-            <RotateCcw className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Returns</span>
-         </button>
-         <button onClick={() => navigate('/food/delivery/pocket')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'pocket' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
-            <Wallet className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Pocket</span>
-         </button>
-         <button onClick={() => navigate('/food/delivery/history')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'history' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
-            <History className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Trip History</span>
-         </button>
-         <button onClick={() => navigate('/food/delivery/profile')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'profile' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
-            <UserIcon className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Profile</span>
-         </button>
-      </div>
-      <SubscriptionConfirmationModal 
+      {!isKeyboardVisible && (
+        <div className="bg-white border-t border-gray-100 px-4 py-3 pb-6 flex justify-between items-center z-[200] shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+           <button onClick={() => navigate('/food/delivery/feed')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'feed' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
+              <LayoutGrid className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Feed</span>
+           </button>
+           <button onClick={() => navigate('/food/delivery/return-pickups')} className={`relative flex flex-col items-center gap-1 transition-all ${currentTab === 'returns' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
+              <RotateCcw className="w-6 h-6" />
+              {returnPickupCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-[#ff8100] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+                  {returnPickupCount}
+                </span>
+              )}
+              <span className="text-[11px] font-medium font-sans">Returns</span>
+           </button>
+           <button onClick={() => navigate('/food/delivery/pocket')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'pocket' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
+              <Wallet className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Pocket</span>
+           </button>
+           <button onClick={() => navigate('/food/delivery/history')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'history' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
+              <History className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Trip History</span>
+           </button>
+           <button onClick={() => navigate('/food/delivery/profile')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'profile' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
+              <UserIcon className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Profile</span>
+           </button>
+        </div>
+      )}
+      <SubscriptionConfirmationModal  
         isOpen={showSubModal}
         loading={isProcessingToggle}
         onClose={() => setShowSubModal(false)}
