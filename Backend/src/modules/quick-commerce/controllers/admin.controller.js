@@ -8,6 +8,7 @@ import { SellerOrder } from '../seller/models/sellerOrder.model.js';
 import { QuickZone } from '../models/quick_zone.model.js';
 import { ensureQuickCommerceSeedData } from '../services/seed.service.js';
 import { uploadImageBuffer } from '../../../services/cloudinary.service.js';
+import { uploadDataUrlToCloudinary } from '../../../utils/cloudinaryUpload.js';
 import { getIO, rooms } from '../../../config/socket.js';
 import {
   getQuickExperienceSections,
@@ -274,16 +275,47 @@ const getCategoryImage = async (req) => {
   if (req.file?.buffer) {
     return uploadImageBuffer(req.file.buffer, 'quick-commerce/categories');
   }
-  return String(req.body?.image || '').trim();
+  const imgStr = String(req.body?.image || '').trim();
+  if (imgStr.startsWith('data:image/') && imgStr.includes(';base64,')) {
+    try {
+      const uploadRes = await uploadDataUrlToCloudinary({
+        dataUrl: imgStr,
+        folder: 'quick-commerce/categories',
+        publicIdPrefix: 'category'
+      });
+      return uploadRes.secureUrl;
+    } catch (err) {
+      console.error('Failed to upload base64 category image to Cloudinary:', err);
+    }
+  }
+  return imgStr;
 };
 
 const getProductImages = async (req) => {
   const mainFile = req.files?.mainImage?.[0];
   const galleryFiles = Array.isArray(req.files?.galleryImages) ? req.files.galleryImages : [];
 
-  const mainImage = mainFile?.buffer
-    ? await uploadImageBuffer(mainFile.buffer, 'quick-commerce/products/main')
-    : String(req.body?.mainImage || req.body?.image || '').trim();
+  let mainImage = '';
+  if (mainFile?.buffer) {
+    mainImage = await uploadImageBuffer(mainFile.buffer, 'quick-commerce/products/main');
+  } else {
+    const mainImgStr = String(req.body?.mainImage || req.body?.image || '').trim();
+    if (mainImgStr.startsWith('data:image/') && mainImgStr.includes(';base64,')) {
+      try {
+        const uploadRes = await uploadDataUrlToCloudinary({
+          dataUrl: mainImgStr,
+          folder: 'quick-commerce/products/main',
+          publicIdPrefix: 'product'
+        });
+        mainImage = uploadRes.secureUrl;
+      } catch (err) {
+        console.error('Failed to upload base64 product mainImage to Cloudinary:', err);
+        mainImage = mainImgStr;
+      }
+    } else {
+      mainImage = mainImgStr;
+    }
+  }
 
   const existingGallery = []
     .concat(req.body?.galleryImages || [])
@@ -291,11 +323,30 @@ const getProductImages = async (req) => {
     .filter(Boolean)
     .map((value) => String(value).trim());
 
+  const processedExistingGallery = await Promise.all(
+    existingGallery.map(async (imgStr) => {
+      if (imgStr.startsWith('data:image/') && imgStr.includes(';base64,')) {
+        try {
+          const uploadRes = await uploadDataUrlToCloudinary({
+            dataUrl: imgStr,
+            folder: 'quick-commerce/products/gallery',
+            publicIdPrefix: 'product-gallery'
+          });
+          return uploadRes.secureUrl;
+        } catch (err) {
+          console.error('Failed to upload base64 gallery image to Cloudinary:', err);
+          return imgStr;
+        }
+      }
+      return imgStr;
+    })
+  );
+
   const uploadedGallery = await Promise.all(
     galleryFiles.map((file) => uploadImageBuffer(file.buffer, 'quick-commerce/products/gallery'))
   );
 
-  const galleryImages = [...existingGallery, ...uploadedGallery].filter(Boolean);
+  const galleryImages = [...processedExistingGallery, ...uploadedGallery].filter(Boolean);
 
   return {
     mainImage,

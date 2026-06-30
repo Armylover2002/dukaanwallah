@@ -18,6 +18,7 @@ import { FeedbackExperience } from '../models/feedbackExperience.model.js';
 import { FoodUser } from '../../../../core/users/user.model.js';
 import { FoodRefreshToken } from '../../../../core/refreshTokens/refreshToken.model.js';
 import { FoodDeliveryCashLimit } from '../models/deliveryCashLimit.model.js';
+import { uploadDataUrlToCloudinary } from '../../../../utils/cloudinaryUpload.js';
 import { FoodDeliveryEmergencyHelp } from '../models/deliveryEmergencyHelp.model.js';
 import { FoodReferralSettings } from '../models/referralSettings.model.js';
 import { FoodReferralLog } from '../models/referralLog.model.js';
@@ -2651,9 +2652,24 @@ export async function getCategories(query) {
 export async function createCategory(body) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Category name is required');
+
+    let imageUrl = typeof body.image === 'string' ? body.image.trim() : '';
+    if (imageUrl.startsWith('data:image/') && imageUrl.includes(';base64,')) {
+        try {
+            const uploadRes = await uploadDataUrlToCloudinary({
+                dataUrl: imageUrl,
+                folder: 'food/categories',
+                publicIdPrefix: 'category'
+            });
+            imageUrl = uploadRes.secureUrl;
+        } catch (err) {
+            console.error('Failed to upload base64 food category image to Cloudinary:', err);
+        }
+    }
+
     const doc = new FoodCategory({
         name,
-        image: typeof body.image === 'string' ? body.image.trim() : '',
+        image: imageUrl,
         type: typeof body.type === 'string' ? body.type.trim() : '',
         foodTypeScope: normalizeCategoryFoodTypeScope(body.foodTypeScope, 'Both'),
         zoneId:
@@ -2760,7 +2776,22 @@ export async function updateCategory(id, body) {
     }
 
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
-    if (body.image !== undefined) doc.image = String(body.image || '').trim();
+    if (body.image !== undefined) {
+        let imageUrl = String(body.image || '').trim();
+        if (imageUrl.startsWith('data:image/') && imageUrl.includes(';base64,')) {
+            try {
+                const uploadRes = await uploadDataUrlToCloudinary({
+                    dataUrl: imageUrl,
+                    folder: 'food/categories',
+                    publicIdPrefix: 'category'
+                });
+                imageUrl = uploadRes.secureUrl;
+            } catch (err) {
+                console.error('Failed to upload base64 food category image to Cloudinary:', err);
+            }
+        }
+        doc.image = imageUrl;
+    }
     if (body.type !== undefined) doc.type = String(body.type || '').trim();
     if (body.foodTypeScope !== undefined) doc.foodTypeScope = nextFoodTypeScope;
     if (!doc.restaurantId && doc.createdByRestaurantId) {

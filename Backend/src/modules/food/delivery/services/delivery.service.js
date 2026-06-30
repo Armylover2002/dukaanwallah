@@ -866,8 +866,8 @@ export const getDeliveryPartnerTripHistory = async (deliveryPartnerId, query = {
     for (const order of orders) {
         const qcSellerId = (order.orderType === 'quick' || order.orderType === 'mixed')
             ? (order.restaurantId ||
-               order.items?.find((item) => item?.type === 'quick' && item?.sourceId)?.sourceId ||
-               order.pickupPoints?.find((point) => point?.pickupType === 'quick' && point?.sourceId)?.sourceId)
+                order.items?.find((item) => item?.type === 'quick' && item?.sourceId)?.sourceId ||
+                order.pickupPoints?.find((point) => point?.pickupType === 'quick' && point?.sourceId)?.sourceId)
             : null;
 
         if (qcSellerId) {
@@ -983,8 +983,8 @@ export const getDeliveryPocketDetails = async (deliveryPartnerId, query = {}) =>
     for (const order of orders) {
         const qcSellerId = (order.orderType === 'quick' || order.orderType === 'mixed')
             ? (order.restaurantId ||
-               order.items?.find((item) => item?.type === 'quick' && item?.sourceId)?.sourceId ||
-               order.pickupPoints?.find((point) => point?.pickupType === 'quick' && point?.sourceId)?.sourceId)
+                order.items?.find((item) => item?.type === 'quick' && item?.sourceId)?.sourceId ||
+                order.pickupPoints?.find((point) => point?.pickupType === 'quick' && point?.sourceId)?.sourceId)
             : null;
 
         if (qcSellerId) {
@@ -1019,7 +1019,7 @@ export const getDeliveryPocketDetails = async (deliveryPartnerId, query = {}) =>
         .lean();
 
     const orderTrips = (orders || []).map(toTripDto);
-    
+
     const returnTrips = (returnOrders || []).map(ret => {
         const dateForUi = ret.refundProcessedAt || ret.sellerConfirmedAt || ret.createdAt;
         const time = dateForUi ? new Date(dateForUi).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';

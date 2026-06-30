@@ -545,9 +545,6 @@ const objectIdOrNull = (value) =>
     ? new mongoose.Types.ObjectId(value)
     : null;
 
-const toDataUrl = (file) =>
-  file ? `data:${file.mimetype};base64,${file.buffer.toString("base64")}` : "";
-
 const parseTags = (value) => {
   if (Array.isArray(value)) {
     return value.map((item) => String(item || "").trim()).filter(Boolean);

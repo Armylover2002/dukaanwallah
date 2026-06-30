@@ -27,6 +27,7 @@ import { logger } from "../../../../utils/logger.js";
  * 2. Admin bonuses
  * 3. Withdrawals (pending/payout)
  * 4. Cash collected vs limit
+ */
 export const healDeliveryPartnerWallet = async (partnerId) => {
   // 1. Self-heal completed deliveries that missed wallet credits (e.g., due to disabled queues in local dev)
   try {

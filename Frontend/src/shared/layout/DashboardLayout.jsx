@@ -184,7 +184,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
         const getToken = () => localStorage.getItem('auth_seller');
         getOrderSocket(getToken);
 
-        const offNew = onSellerOrderNew(getToken, () => {
+        const offNew = onSellerOrderNew(getToken, (payload) => {
+            setNewOrderAlert(payload);
             if (fetchOrdersRef.current) fetchOrdersRef.current(true);
         });
 

@@ -163,6 +163,14 @@ const sellerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    fcmTokens: {
+      type: [String],
+      default: [],
+    },
+    fcmTokenMobile: {
+      type: [String],
+      default: [],
+    },
     isDeleted: {
       type: Boolean,
       default: false,
