@@ -292,7 +292,7 @@ function normalizeDeliveryPartner(partnerRef, fallbackName = "Delivery Partner")
     id: partnerRef?._id || partnerRef?.id || "",
     name,
     phone: String(partnerRef?.phone || partnerRef?.phoneNumber || partnerRef?.contactNumber || partnerRef?.mobile || partnerRef?.contact?.phone || "").trim(),
-    avatar: String(partnerRef?.avatar || partnerRef?.profilePicture || partnerRef?.profileImage || partnerRef?.image || "").trim(),
+    avatar: String(partnerRef?.avatar || partnerRef?.profilePhoto || partnerRef?.profilePicture || partnerRef?.profileImage || partnerRef?.image || "").trim(),
     rating: Number.isFinite(Number(partnerRef?.rating)) ? Number(partnerRef.rating) : null,
     totalRatings: Number(partnerRef?.totalRatings || 0),
   };
@@ -1672,8 +1672,12 @@ export default function OrderTracking() {
                 </p>
               </div>
               {pickupSources.length === 1 && (
-                <motion.button className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center" onClick={handleCallRestaurant} whileTap={{ scale: 0.9 }}>
-                  <Phone className="w-5 h-5 text-[#FE5502]" />
+                <motion.button 
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${isQuickOrder ? 'bg-sky-50' : 'bg-red-50'}`} 
+                  onClick={handleCallRestaurant} 
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Phone className={`w-5 h-5 ${isQuickOrder ? 'text-sky-600' : 'text-[#FE5502]'}`} />
                 </motion.button>
               )}
             </div>
@@ -1695,7 +1699,7 @@ export default function OrderTracking() {
                         <p className="mt-2 font-semibold text-gray-900">{source.name}</p>
                         <p className="mt-1 text-sm text-gray-500">{source.address || 'Address not available'}</p>
                       </div>
-                      {source.phone ? (
+                      {source.phone && pickupSources.length > 1 ? (
                         <motion.button className={`w-10 h-10 rounded-full flex items-center justify-center ${isQuick ? 'bg-sky-50' : 'bg-red-50'}`} onClick={(e) => handleCallPickupSource(source.phone, e)} whileTap={{ scale: 0.9 }}>
                           <Phone className={`w-5 h-5 ${isQuick ? 'text-sky-600' : 'text-[#FE5502]'}`} />
                         </motion.button>

@@ -655,7 +655,11 @@ export const getOrderById = async (req, res) => {
       $or: orderIdentityQuery,
     };
 
-    const order = await QuickOrder.findOne(query).select('+deliveryOtp').lean();
+    const order = await QuickOrder.findOne(query)
+      .select('+deliveryOtp')
+      .populate('dispatch.deliveryPartnerId', 'name phone email profilePhoto rating totalRatings')
+      .populate('dispatchPlan.legs.deliveryPartnerId', 'name phone email profilePhoto rating totalRatings')
+      .lean();
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
@@ -664,7 +668,7 @@ export const getOrderById = async (req, res) => {
     const sellerOrder = await SellerOrder.findOne({ orderId: order.orderId }).lean();
     const seller =
       sellerOrder?.sellerId
-        ? await Seller.findById(sellerOrder.sellerId).select('_id name shopName location').lean()
+        ? await Seller.findById(sellerOrder.sellerId).select('_id name shopName location phone').lean()
         : null;
 
     const deliveryAddress = order.deliveryAddress || {};
@@ -700,6 +704,7 @@ export const getOrderById = async (req, res) => {
               name: seller.shopName || seller.name || 'Store',
               shopName: seller.shopName || seller.name || 'Store',
               location: seller.location || null,
+              phone: seller.phone || '',
             }
           : null,
         sellerOrder: sellerOrder
