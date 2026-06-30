@@ -511,22 +511,22 @@ const CartPage = () => {
             <button
               type="button"
               onClick={handleBack}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm shrink-0"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm shrink-0"
             >
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Your Cart</h1>
-              <p className="text-sm text-slate-500">Add items to get started</p>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">Your Cart</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Add items to get started</p>
             </div>
           </div>
 
-          <div className="flex-1 bg-white rounded-[28px] px-6 py-10 shadow-sm flex flex-col items-center justify-center mb-8">
+          <div className="flex-1 bg-white dark:bg-slate-900 rounded-[28px] px-6 py-10 shadow-sm flex flex-col items-center justify-center mb-8">
             <div className="mb-6 flex h-44 w-44 items-center justify-center">
               <Lottie animationData={emptyBoxAnimation} loop className="h-40 w-40" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Your cart is empty</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500 text-center">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Your cart is empty</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400 text-center">
               Pick a few essentials and they&apos;ll show up here.
             </p>
             <Link to={categoriesPath} className="mt-6 inline-flex w-full">
@@ -542,7 +542,7 @@ const CartPage = () => {
 
   // ── Main render ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#f5f5f5] pb-[calc(9rem+env(safe-area-inset-bottom))]">
+    <div className="min-h-screen bg-[#f5f5f5] dark:bg-slate-950 pb-[calc(9rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto max-w-3xl px-4 py-5">
 
         {/* Header */}
@@ -551,13 +551,13 @@ const CartPage = () => {
             <button
               type="button"
               onClick={handleBack}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm"
             >
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Your Cart1</h1>
-              <p className="text-sm text-slate-500">{itemCount} item{itemCount === 1 ? '' : 's'}</p>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">Your Cart</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{itemCount} item{itemCount === 1 ? '' : 's'}</p>
             </div>
           </div>
           <button
@@ -602,16 +602,16 @@ const CartPage = () => {
         )}
 
         {/* Delivery Banner */}
-        <section className="mb-4 rounded-[24px] bg-[#e9f7ec] p-4 shadow-sm">
+        <section className="mb-4 rounded-[24px] bg-[#e9f7ec] dark:bg-emerald-950/30 p-4 shadow-sm border border-transparent dark:border-emerald-900/50">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-[#0c831f]">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-[#0c831f] dark:text-emerald-400">
                 Delivery in 10 minutes
               </p>
-              <h2 className="mt-1 text-lg font-bold text-slate-900">
+              <h2 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
                 Shipment from your nearby store
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 Fast doorstep delivery with live seller-side processing.
               </p>
             </div>
@@ -727,6 +727,15 @@ const CartPage = () => {
           ))}
         </div>
 
+        <div className="mt-4 flex justify-center">
+          <Link to={categoriesPath} className="w-full">
+            <Button variant="outline" className="w-full h-12 rounded-[20px] border-dashed border-2 border-[#0c831f] text-[#0c831f] hover:bg-[#0c831f]/5 font-bold text-sm tracking-wide dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-500/10">
+              <Plus size={18} className="mr-2" />
+              Add more products
+            </Button>
+          </Link>
+        </div>
+
         {/* Bill Details */}
         <section className="mt-4 rounded-[24px] bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
@@ -783,20 +792,20 @@ const CartPage = () => {
                     type="button"
                     onClick={() => setSelectedPayment(method.id)}
                     className={`flex w-full items-center gap-3 rounded-2xl border-2 p-3 text-left transition-all ${isSelected
-                      ? 'border-[#0c831f] bg-green-50'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-[#0c831f] bg-green-50 dark:bg-green-900/20'
+                      : 'border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-white/20'
                       }`}
                   >
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isSelected ? 'bg-green-100' : 'bg-slate-100'}`}>
-                      <Icon size={18} className={isSelected ? 'text-[#0c831f]' : 'text-slate-600'} />
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isSelected ? 'bg-green-100 dark:bg-green-800' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                      <Icon size={18} className={isSelected ? 'text-[#0c831f] dark:text-green-400' : 'text-slate-600 dark:text-slate-300'} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-bold ${isSelected ? 'text-[#0c831f]' : 'text-slate-800'}`}>
+                      <p className={`text-sm font-bold ${isSelected ? 'text-[#0c831f] dark:text-green-400' : 'text-slate-800 dark:text-white'}`}>
                         {method.label}
                       </p>
-                      <p className="text-xs text-slate-500">{method.sublabel}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{method.sublabel}</p>
                     </div>
-                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${isSelected ? 'border-[#0c831f] bg-[#0c831f]' : 'border-slate-300'}`}>
+                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${isSelected ? 'border-[#0c831f] bg-[#0c831f] dark:border-green-500 dark:bg-green-500' : 'border-slate-300 dark:border-slate-600'}`}>
                       {isSelected && <Check size={12} className="text-white" />}
                     </div>
                   </button>

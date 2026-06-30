@@ -227,6 +227,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
     heroConfig,
     isLoading,
     isBootstrapped,
+    actions,
   } = useQuickHomeData({ currentLocation });
 
   const [mobileBannerIndex, setMobileBannerIndex] = useState(0);
@@ -436,6 +437,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
           embeddedHeaderColor={embeddedHeaderColor}
           showTopContent={!embedded}
           showSearchBar={!embedded}
+          onRefresh={actions?.refresh}
         />
       </div>
 

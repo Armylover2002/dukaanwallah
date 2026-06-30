@@ -20,7 +20,8 @@ import {
   CircleSlash,
   Loader2,
   Star,
-  RotateCcw
+  RotateCcw,
+  Copy
 } from "lucide-react"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -86,6 +87,11 @@ const DeliveryMap = React.memo(function DeliveryMap({
   userLiveCoords = null, userLocationAccuracy = null, onEtaUpdate = null
 }) {
   const toPointFromGeoJSON = useCallback((coords) => {
+    if (coords && typeof coords === 'object' && !Array.isArray(coords)) {
+      const lat = Number(coords.lat || coords.latitude);
+      const lng = Number(coords.lng || coords.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    }
     if (!Array.isArray(coords) || coords.length < 2) return null;
     const lng = Number(coords[0]);
     const lat = Number(coords[1]);
@@ -190,6 +196,8 @@ function getRestaurantCoordsFromOrder(apiOrder, fallback = null) {
     return [apiOrder.restaurantId.location.longitude, apiOrder.restaurantId.location.latitude];
   if (apiOrder?.restaurant?.location?.coordinates?.length >= 2)
     return apiOrder.restaurant.location.coordinates;
+  if (apiOrder?.pickupPoints?.[0]?.location?.coordinates?.length >= 2)
+    return apiOrder.pickupPoints[0].location.coordinates;
   return fallback || null;
 }
 
@@ -279,12 +287,12 @@ function normalizeDeliveryPartner(partnerRef, fallbackName = "Delivery Partner")
   if (!partnerRef) return null;
   if (typeof partnerRef === "string")
     return { id: partnerRef, name: fallbackName, phone: "", avatar: "", rating: null, totalRatings: 0 };
-  const name = String(partnerRef?.name || partnerRef?.fullName || partnerRef?.displayName || fallbackName).trim() || fallbackName;
+  const name = String(partnerRef?.name || partnerRef?.fullName || partnerRef?.firstName || partnerRef?.displayName || fallbackName).trim() || fallbackName;
   return {
     id: partnerRef?._id || partnerRef?.id || "",
     name,
-    phone: String(partnerRef?.phone || partnerRef?.phoneNumber || "").trim(),
-    avatar: String(partnerRef?.avatar || partnerRef?.profilePicture || partnerRef?.profileImage || "").trim(),
+    phone: String(partnerRef?.phone || partnerRef?.phoneNumber || partnerRef?.contactNumber || partnerRef?.mobile || partnerRef?.contact?.phone || "").trim(),
+    avatar: String(partnerRef?.avatar || partnerRef?.profilePicture || partnerRef?.profileImage || partnerRef?.image || "").trim(),
     rating: Number.isFinite(Number(partnerRef?.rating)) ? Number(partnerRef.rating) : null,
     totalRatings: Number(partnerRef?.totalRatings || 0),
   };
@@ -379,6 +387,7 @@ function transformOrderForTracking(apiOrder, previousOrder = null, explicitResta
     assignmentInfo: apiOrder?.assignmentInfo || previousOrder?.assignmentInfo || null,
     tracking: apiOrder?.tracking || previousOrder?.tracking || {},
     deliveryState: apiOrder?.deliveryState || previousOrder?.deliveryState || null,
+    note: apiOrder?.note || apiOrder?.deliveryInstructions || apiOrder?.instructions || previousOrder?.note || '',
     createdAt: apiOrder?.createdAt || previousOrder?.createdAt || null,
     totalAmount: apiOrder?.pricing?.total || apiOrder?.totalAmount || previousOrder?.totalAmount || 0,
     deliveryFee: apiOrder?.pricing?.deliveryFee || apiOrder?.deliveryFee || previousOrder?.deliveryFee || 0,
@@ -576,7 +585,22 @@ export default function OrderTracking() {
   const [orderStatus, setOrderStatus] = useState(() =>
     prefetchedOrder ? mapOrderToTrackingUiStatus(isQuickOrder ? normalizeQuickOrderForTracking(prefetchedOrder) : prefetchedOrder) : 'placed'
   );
-  const [estimatedTime, setEstimatedTime] = useState(29);
+  
+  // Calculate initial ETA dynamically based on order data
+  const getInitialEta = () => {
+    if (!prefetchedOrder) return 29;
+    const orderTime = new Date(
+      prefetchedOrder.createdAt || prefetchedOrder.orderDate || prefetchedOrder.created_at || prefetchedOrder.date || Date.now()
+    );
+    const estimatedMinutes =
+      prefetchedOrder.estimatedDeliveryTime ||
+      prefetchedOrder.estimatedTime ||
+      prefetchedOrder.estimated_delivery_time ||
+      (isQuickOrder ? 15 : 35);
+    const deliveryTime = new Date(orderTime.getTime() + estimatedMinutes * 60000);
+    return Math.max(0, Math.floor((deliveryTime - new Date()) / 60000));
+  };
+  const [estimatedTime, setEstimatedTime] = useState(getInitialEta());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showSafetyModal, setShowSafetyModal] = useState(false);
@@ -594,6 +618,7 @@ export default function OrderTracking() {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [returnOrderDetails, setReturnOrderDetails] = useState(null);
   const [loadingReturnDetails, setLoadingReturnDetails] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // ── Rating state (grouped) ──────────────────────────────────────────────────
   const [ratingModal, setRatingModal] = useState({ open: false, order: null });
@@ -955,9 +980,16 @@ export default function OrderTracking() {
 
   // Estimated time countdown
   useEffect(() => {
+    if (order) {
+      const orderTime = new Date(order.createdAt || order.orderDate || order.created_at || order.date || Date.now());
+      const estimatedMinutes = order.estimatedDeliveryTime || order.estimatedTime || order.estimated_delivery_time || (isQuickOrder ? 15 : 35);
+      const deliveryTime = new Date(orderTime.getTime() + estimatedMinutes * 60000);
+      const remaining = Math.max(0, Math.floor((deliveryTime - new Date()) / 60000));
+      setEstimatedTime(remaining);
+    }
     const timer = setInterval(() => setEstimatedTime((prev) => Math.max(0, prev - 1)), 60000);
     return () => clearInterval(timer);
-  }, []);
+  }, [order?.createdAt, order?.estimatedDeliveryTime, order?.estimatedTime, order?.estimated_delivery_time, isQuickOrder]);
 
   // Confirmation splash
   useEffect(() => {
@@ -1242,18 +1274,9 @@ export default function OrderTracking() {
     }
   }, [isQuickOrder, resolvedLookupId, orderId, deliveryInstructions]);
 
-  const handleShare = useCallback(async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: `Track my order from ${order?.restaurant || companyName}`, text: `Hey! Track my order from ${order?.restaurant || companyName} with ID #${order?.orderId || order?.id}.`, url: window.location.href });
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success("Tracking link copied to clipboard!");
-      }
-    } catch (error) {
-      if (error.name !== 'AbortError') toast.error("Failed to share link");
-    }
-  }, [order?.restaurant, order?.orderId, order?.id, companyName]);
+  const handleShare = useCallback(() => {
+    setShowShareModal(true);
+  }, []);
 
   const handleCloseRating = useCallback(() => {
     setRatingModal({ open: false, order: null });
@@ -1587,11 +1610,11 @@ export default function OrderTracking() {
               </div>
             ))}
             {order?.note && !isDeliveredOrder && (
-              <div className="bg-blue-50/50 p-3 mx-4 mb-4 rounded-lg flex items-start gap-2 border border-blue-100">
+              <div className="bg-blue-50/50 dark:bg-blue-900/20 p-3 mx-4 mb-4 rounded-lg flex items-start gap-2 border border-blue-100 dark:border-blue-800">
                 <MessageSquare className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-0.5">Instruction for Rider</p>
-                  <p className="text-xs text-gray-700 leading-relaxed font-medium">"{order.note}"</p>
+                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-0.5">Instruction for Rider</p>
+                  <p className="text-xs text-gray-700 dark:text-gray-200 leading-relaxed font-medium">"{order.note}"</p>
                 </div>
               </div>
             )}
@@ -2055,6 +2078,58 @@ export default function OrderTracking() {
             <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6" onClick={() => setShowSafetyModal(false)}>
               Got it
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Share Modal */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white z-[700]">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold text-gray-900 text-center">Share tracking link</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-around items-center py-4">
+            <a 
+              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Track my order from ${order?.restaurant || companyName} with ID #${order?.orderId || order?.id}.\n\n${window.location.href}`)}`}
+              target="_blank" rel="noreferrer"
+              className="flex flex-col items-center gap-2 cursor-pointer"
+              onClick={() => setShowShareModal(false)}
+            >
+              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center text-green-600 hover:scale-110 transition-transform">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </div>
+              <span className="text-xs font-semibold text-gray-600">WhatsApp</span>
+            </a>
+            
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success("Link copied!");
+                setShowShareModal(false);
+              }}
+              className="flex flex-col items-center gap-2 cursor-pointer"
+            >
+              <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 hover:scale-110 transition-transform">
+                <Copy className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-semibold text-gray-600">Copy Link</span>
+            </button>
+
+            {navigator.share && (
+              <button 
+                onClick={() => {
+                  navigator.share({ title: `Track my order from ${order?.restaurant || companyName}`, text: `Hey! Track my order from ${order?.restaurant || companyName} with ID #${order?.orderId || order?.id}.`, url: window.location.href }).catch(err => {
+                    if (err.name !== 'AbortError') toast.error("Failed to share link");
+                  });
+                  setShowShareModal(false);
+                }}
+                className="flex flex-col items-center gap-2 cursor-pointer"
+              >
+                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 hover:scale-110 transition-transform">
+                  <Share2 className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-semibold text-gray-600">More Options</span>
+              </button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

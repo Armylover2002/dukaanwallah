@@ -24,7 +24,7 @@ import {
 } from "../../utils/routes";
 import LogoImage from "@/assets/Logo.jpeg";
 import shoppingCartAnimation from "@/assets/lottie/shopping-cart.json";
-import { Sparkles } from "lucide-react";
+import { Sparkles, RefreshCcw } from "lucide-react";
 import { customerApi } from "../../services/customerApi";
 import ThemeToggle from "../layout/ThemeToggle";
 
@@ -275,6 +275,7 @@ const MainLocationHeader = ({
   showTopContent = true,
   showSearchBar = true,
   showCategories = true,
+  onRefresh = null,
 }) => {
   const { scrollY } = useScroll();
   const [isLocationOpen, setIsLocationOpen] = useState(false);
@@ -556,10 +557,19 @@ const MainLocationHeader = ({
                 }}
                 className="relative z-10"
               >
-                <div className="mb-1">
+                <div className="mb-1 flex justify-between items-center pr-2">
                   <span className="inline-flex items-center rounded-full border border-black/10 bg-white/18 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-900 backdrop-blur-sm">
                     {appName}
                   </span>
+                  {onRefresh && (
+                    <button
+                      onClick={onRefresh}
+                      className="text-slate-700 hover:text-slate-900 bg-white/30 p-1.5 rounded-full backdrop-blur-sm active:scale-95 transition-transform border border-black/5 flex items-center justify-center shadow-sm"
+                      aria-label="Refresh page"
+                    >
+                      <RefreshCcw size={14} strokeWidth={2.5} />
+                    </button>
+                  )}
                 </div>
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col">

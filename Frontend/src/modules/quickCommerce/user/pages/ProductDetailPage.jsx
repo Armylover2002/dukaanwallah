@@ -212,7 +212,21 @@ const ProductDetailPage = () => {
     return routeProduct ? normalizeProduct(routeProduct) : null;
   }, [location.state]);
 
-  const [product, setProduct] = useState(initialProduct);
+  const [baseProduct, setBaseProduct] = useState(initialProduct);
+  const [selectedVariant, setSelectedVariant] = useState(initialProduct?.variants?.length > 0 ? initialProduct.variants[0] : null);
+
+  const product = useMemo(() => {
+    if (!baseProduct) return null;
+    if (!selectedVariant) return baseProduct;
+    return {
+      ...baseProduct,
+      price: selectedVariant.price ?? baseProduct.price,
+      originalPrice: selectedVariant.originalPrice ?? baseProduct.originalPrice,
+      name: `${baseProduct.name} - ${selectedVariant.name}`,
+      variant: selectedVariant
+    };
+  }, [baseProduct, selectedVariant]);
+
   const [activeImage, setActiveImage] = useState(initialProduct?.images?.[0] || "");
   const [loadingProduct, setLoadingProduct] = useState(!initialProduct);
   const [productError, setProductError] = useState("");
@@ -227,7 +241,7 @@ const ProductDetailPage = () => {
 
   const quantity = useMemo(() => {
     if (!product) return 0;
-    const cartItem = cart.find((item) => getProductIdentifier(item) === getProductIdentifier(product));
+    const cartItem = cart.find((item) => getProductIdentifier(item) === getProductIdentifier(product) && item.variant?.sku === product.variant?.sku);
     return cartItem ? cartItem.quantity : 0;
   }, [cart, product]);
 
@@ -256,14 +270,17 @@ const ProductDetailPage = () => {
         if (!result) throw new Error("Product not found");
         if (!cancelled) {
           const normalized = normalizeProduct(result, location.state?.product);
-          setProduct(normalized);
+          setBaseProduct(normalized);
+          if (normalized?.variants?.length > 0 && !selectedVariant) {
+             setSelectedVariant(normalized.variants[0]);
+          }
           // Set active image in the same state flush — avoids the extra render
           // from the second useEffect that was watching `product`
           setActiveImage(normalized.images[0] || "");
         }
       } catch (error) {
         if (!cancelled) {
-          setProduct(null);
+          setBaseProduct(null);
           setProductError(error?.response?.data?.message || "Unable to load this product.");
         }
       } finally {
@@ -447,6 +464,30 @@ const ProductDetailPage = () => {
                 </>
               )}
             </div>
+            
+            {/* Variants */}
+            {baseProduct?.variants?.length > 0 && (
+              <div className="mb-5 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 p-4 border border-border">
+                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Select Variant</h4>
+                <div className="flex gap-3 flex-wrap">
+                  {baseProduct.variants.map((v, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedVariant(v)}
+                      className={cn(
+                        'px-4 py-2 font-[600] rounded-lg text-[13px] transition-all border-2',
+                        selectedVariant?.sku === v.sku
+                          ? 'bg-green-50 dark:bg-green-950/30 border-[#0c831f] text-[#0c831f] shadow-sm'
+                          : 'bg-card dark:bg-slate-800 border-border text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm'
+                      )}
+                    >
+                      {v.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <p className="max-w-2xl text-lg font-medium leading-relaxed text-slate-600 dark:text-slate-300 transition-colors">{product.description}</p>
           </div>
 

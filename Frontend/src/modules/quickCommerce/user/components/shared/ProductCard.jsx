@@ -211,7 +211,7 @@ const ProductCard = React.memo(function ProductCard({
       )}
       onClick={handleProductClick}
     >
-      <div className="flex flex-col h-full w-full rounded-xl overflow-hidden transition-all duration-500 product-card-container premium-wave-shimmer bg-[#FFF5F5] border border-red-100/50 shadow-sm hover:shadow-md">
+      <div className="flex flex-col h-full w-full rounded-xl overflow-hidden transition-all duration-500 product-card-container premium-wave-shimmer bg-[#FFF5F5] dark:bg-slate-800 border border-red-100/50 dark:border-white/10 shadow-sm hover:shadow-md">
 
         {/* Image Section */}
         <div className="relative overflow-hidden w-full h-[90px] md:h-[110px] p-1 md:p-2">
@@ -254,27 +254,27 @@ const ProductCard = React.memo(function ProductCard({
             )}
           </AnimatePresence>
 
-          <div className="w-full h-full rounded-md overflow-hidden bg-white flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
+          <div className="w-full h-full rounded-md overflow-hidden bg-white dark:bg-slate-800/50 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
             <img
               ref={imageRef}
               src={resolvedImage}
               srcSet={srcSet}
               sizes={IMG_SIZES}
               alt={product.name}
-              className="w-full h-full object-contain mix-blend-multiply p-0.5 md:p-1"
+              className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal p-0.5 md:p-1"
               loading="lazy"
             />
           </div>
         </div>
 
         {/* Content Section */}
-        <div className="flex flex-col flex-1 px-1.5 py-1 space-y-0.5 bg-[#FFF5F5] border-t border-red-100/30 relative product-content-area transition-all duration-300">
+        <div className="flex flex-col flex-1 px-1.5 py-1 space-y-0.5 bg-[#FFF5F5] dark:bg-slate-800 border-t border-red-100/30 dark:border-white/5 relative product-content-area transition-all duration-300">
           <div className="space-y-0">
             <div className="flex items-center gap-1 text-[7.5px] md:text-[8px] text-slate-500 font-bold uppercase tracking-wider">
               <Clock size={7} className="text-emerald-600" />
               <span>{product.deliveryTime || "10 MINS"}</span>
             </div>
-            <h3 className="text-[11px] md:text-[12.5px] font-bold text-slate-900 line-clamp-1 leading-tight">
+            <h3 className="text-[11px] md:text-[12.5px] font-bold text-slate-900 dark:text-white line-clamp-1 leading-tight">
               {product.name}
             </h3>
             <p className="text-[8px] md:text-[10px] text-slate-400 font-semibold italic">
@@ -284,7 +284,7 @@ const ProductCard = React.memo(function ProductCard({
 
           <div className="mt-auto flex items-center justify-between gap-1 pt-0.5 border-t border-slate-200/20">
             <div className="flex flex-col justify-center">
-              <span className="text-[12.5px] md:text-[14px] font-black text-slate-900 leading-none">
+              <span className="text-[12.5px] md:text-[14px] font-black text-slate-900 dark:text-white leading-none">
                 ₹{formattedPrice}
               </span>
               {product.originalPrice > product.price && (
