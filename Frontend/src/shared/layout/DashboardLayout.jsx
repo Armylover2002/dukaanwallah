@@ -100,6 +100,8 @@ const DashboardLayout = ({ children, navItems, title }) => {
         setOrdersLoading(true);
 
         const fetchOrders = async () => {
+            if (fetchOrdersRef.isFetching) return;
+            fetchOrdersRef.isFetching = true;
             try {
                 const res = await sellerApi.getOrders();
                 if (!res?.data?.success) return;
@@ -151,10 +153,12 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 console.error("Polling Error:", error);
             } finally {
                 setOrdersLoading(false);
+                fetchOrdersRef.isFetching = false;
             }
         };
 
         fetchOrdersRef.current = fetchOrders;
+        fetchOrdersRef.isFetching = false;
         fetchOrders();
         const pollInterval = setInterval(fetchOrders, POLL_INTERVAL_MS);
         return () => clearInterval(pollInterval);

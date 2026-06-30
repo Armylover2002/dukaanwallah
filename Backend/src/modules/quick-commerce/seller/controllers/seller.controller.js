@@ -922,7 +922,7 @@ export const verifySellerOtpController = async (req, res) => {
         rejectedAt: null,
         lastLogin: new Date(),
       });
-      
+
       // Initialize default 10% commission for newly created sellers
       await QuickSellerCommission.create({
         sellerId: seller._id,
@@ -3010,7 +3010,7 @@ export const bulkUploadSellerProductsController = async (req, res) => {
           .trim()
           .replace(/[^A-Z0-9\s-]/g, "")
           .replace(/[\s-]+/g, "-");
-        
+
         const baseSku = `SKU-${cleanName}`.substring(0, 40);
         const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
         const productSku = `${baseSku}-${randomSuffix}`;

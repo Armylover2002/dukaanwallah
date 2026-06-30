@@ -148,7 +148,7 @@ const OrderMobileCard = React.memo(({
           <button
             onClick={(e) => {
               e.stopPropagation();
-            handleStatusUpdate(order.id, "confirmed");
+              handleStatusUpdate(order.id, "confirmed");
             }}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all">
             <HiOutlineCheck className="h-3.5 w-3.5" />
@@ -1482,7 +1482,7 @@ const Orders = () => {
                       {selectedOrder.status.toLowerCase() === "pending" && (
                         <button
                           onClick={() => {
-                          handleStatusUpdate(selectedOrder.id, "confirmed");
+                            handleStatusUpdate(selectedOrder.id, "confirmed");
                             setIsDetailsModalOpen(false);
                           }}
                           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-emerald-500 hover:bg-emerald-600 transition-all shadow-md shadow-emerald-500/20 active:scale-95">

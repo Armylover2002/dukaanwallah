@@ -161,7 +161,7 @@ export const getQuickExperienceSections = async ({ pageType = 'home', headerId =
 
   // --- Category Tree Logic (Optimized) ---
   const getCategoryTreeInfo = async () => {
-    if (cache.categories.data && !isExpired(cache.categories.expiry)) {
+    if (cache.categories.treeInfo && !isExpired(cache.categories.expiry)) {
       return cache.categories.treeInfo;
     }
     const allCategories = await QuickCategory.find(normalizeStatusQuery()).lean();

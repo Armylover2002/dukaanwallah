@@ -4,6 +4,7 @@ import { FoodRestaurant } from "../../restaurant/models/restaurant.model.js";
 import { Seller } from "../../../quick-commerce/seller/models/seller.model.js";
 import { FoodDeliveryPartner } from "../../delivery/models/deliveryPartner.model.js";
 import { getDeliveryPartnerWalletEnhanced } from "../../delivery/services/deliveryFinance.service.js";
+import { getCache, setCache } from "../../../../utils/cacheManager.js";
 import { FoodDailyPass } from "../../subscriptions/models/foodDailyPass.model.js";
 import { UserSubscription } from "../../user/models/userSubscription.model.js";
 import dayjs from "dayjs";
@@ -58,14 +59,17 @@ export async function filterEligiblePartners(partners) {
   for (const p of partners) {
     const isSubEligible = subEligibleIds.has(p.partnerId.toString());
     
-    // Check cash limit
+    // Check cash limit with cache (5 mins TTL)
     try {
-      // Use the SAME wallet calculation as the frontend UI (getDeliveryPartnerWalletEnhanced)
-      // The old getDeliveryPartnerWallet only counted payment.status:'paid' COD orders
-      // which caused cashInHand to appear as ₹0 even when rider had thousands in hand.
-      const wallet = await getDeliveryPartnerWalletEnhanced(p.partnerId);
-      // Block if: (1) admin set limit to 0 OR (2) delivery boy has exhausted their limit
-      const cashLimitHit = wallet.totalCashLimit === 0 || wallet.availableCashLimit <= 0;
+      const cacheKey = `rider_cash_limit_${p.partnerId}`;
+      let cashLimitHit = getCache(cacheKey);
+
+      if (cashLimitHit === null || cashLimitHit === undefined) {
+        const wallet = await getDeliveryPartnerWalletEnhanced(p.partnerId);
+        cashLimitHit = wallet.totalCashLimit === 0 || wallet.availableCashLimit <= 0;
+        setCache(cacheKey, cashLimitHit, 5 * 60 * 1000); // Cache for 5 minutes
+      }
+
       if (cashLimitHit) {
         // If they exceeded limit, turn them offline immediately
         FoodDeliveryPartner.updateOne(
@@ -315,7 +319,7 @@ export async function tryAutoAssign(orderId, options = {}) {
   }
 
   try {
-    // Sweep: force offline any online rider whose cash limit is ₹0 BEFORE dispatching
+    // Sweep: force offline any online rider whose cash limit is ₹0 (Run async, fire-and-forget)
     void enforceCashLimitForAllOnlinePartners().catch(err =>
       logger.warn(`[Dispatch] Pre-dispatch cash-limit sweep failed: ${err.message}`)
     );

@@ -373,6 +373,8 @@ export const sendPushNotification = async (tokens, payload = {}) => {
     const results = await Promise.all(
         uniqueTokens.map(async (token) => {
             const message = buildMessagePayload(payload, token);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
             try {
                 const response = await fetch(FCM_SEND_URL(projectId), {
                     method: 'POST',
@@ -380,7 +382,8 @@ export const sendPushNotification = async (tokens, payload = {}) => {
                         Authorization: `Bearer ${accessToken}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify({ message }),
+                    signal: controller.signal
                 });
 
                 if (!response.ok) {
@@ -403,8 +406,10 @@ export const sendPushNotification = async (tokens, payload = {}) => {
                     token,
                     ok: false,
                     remove: false,
-                    error: error?.message || String(error)
+                    error: error?.name === 'AbortError' ? 'FCM send timed out' : (error?.message || String(error))
                 };
+            } finally {
+                clearTimeout(timeout);
             }
         })
     );
@@ -480,17 +485,16 @@ export const sendNotificationToOwners = async (targets = [], payload = {}) => {
         ? [...new Map(targets.filter(t => t?.ownerType && t?.ownerId).map(t => [`${t.ownerType}:${t.ownerId}`, t])).values()]
         : [];
 
-    const results = [];
-    for (const target of uniqueTargets) {
-        results.push(
-            await sendNotificationToOwner({
+    const results = await Promise.all(
+        uniqueTargets.map((target) =>
+            sendNotificationToOwner({
                 ownerType: target.ownerType,
                 ownerId: target.ownerId,
                 platform: target.platform,
                 payload
             })
-        );
-    }
+        )
+    );
     return results;
 };
 

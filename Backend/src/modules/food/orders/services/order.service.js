@@ -3113,6 +3113,22 @@ export async function listOrdersRestaurant(restaurantId, query) {
       { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "refunded"] } },
     ],
   };
+
+  if (query.status) {
+    const statuses = query.status.split(',').map(s => s.trim());
+    filter.orderStatus = { $in: statuses };
+  }
+
+  if (query.activeOnly === 'true') {
+    filter.orderStatus = { $nin: ['delivered', 'cancelled', 'rejected'] };
+  }
+
+  if (query.startDate || query.endDate) {
+    filter.createdAt = {};
+    if (query.startDate) filter.createdAt.$gte = new Date(query.startDate);
+    if (query.endDate) filter.createdAt.$lte = new Date(query.endDate);
+  }
+
   const [docs, total] = await Promise.all([
     FoodOrder.find(filter)
       .populate("userId", "name phone email profileImage")

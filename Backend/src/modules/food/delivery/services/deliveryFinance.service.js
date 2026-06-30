@@ -27,19 +27,7 @@ import { logger } from "../../../../utils/logger.js";
  * 2. Admin bonuses
  * 3. Withdrawals (pending/payout)
  * 4. Cash collected vs limit
- */
-export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
-  if (
-    !deliveryPartnerId ||
-    !mongoose.Types.ObjectId.isValid(deliveryPartnerId)
-  ) {
-    throw new ValidationError("Invalid delivery partner ID");
-  }
-
-  const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
-  const partner = await FoodDeliveryPartner.findById(partnerId).lean();
-  if (!partner) throw new ValidationError("Delivery partner not found");
-
+export const healDeliveryPartnerWallet = async (partnerId) => {
   // 1. Self-heal completed deliveries that missed wallet credits (e.g., due to disabled queues in local dev)
   try {
     const completedOrders = await FoodOrder.find({
@@ -121,6 +109,28 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
       logger.error(`Auto-rejecting pending withdrawals failed: ${err.message}`);
     }
   }
+};
+
+/**
+ * Get enhanced wallet summary for a delivery partner
+ * Removes heavy self-heal operations from read path.
+ * @param {string} deliveryPartnerId
+ * @returns {Promise<Object>}
+ */
+export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
+  if (
+    !deliveryPartnerId ||
+    !mongoose.Types.ObjectId.isValid(deliveryPartnerId)
+  ) {
+    throw new ValidationError("Invalid delivery partner ID");
+  }
+
+  const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
+  const partner = await FoodDeliveryPartner.findById(partnerId).lean();
+  if (!partner) throw new ValidationError("Delivery partner not found");
+
+  // Run self-healing in background to prevent blocking read path
+  void healDeliveryPartnerWallet(partnerId).catch(err => logger.error(`Background self-heal failed: ${err.message}`));
 
   const [
     cashLimitSettings,
