@@ -48,8 +48,7 @@ export const cacheResponse = (ttlInSeconds = 300, prefix = 'api_cache') => {
 };
 
 /**
- * Clear cache by pattern (e.g. 'api_cache:GET:/api/food/restaurants*')
- * WARNING: 'keys' is O(N), use with care or switch to SCAN for large datasets.
+ * Clear cache by pattern using SCAN (safe for production — avoids blocking KEYS command).
  * @param {string} pattern - Redis glob pattern for keys to delete.
  */
 export const invalidateCache = async (pattern) => {
@@ -58,10 +57,17 @@ export const invalidateCache = async (pattern) => {
     if (!redis || !redis.isReady) return;
 
     try {
-        const keys = await redis.keys(pattern);
-        if (keys.length > 0) {
-            await redis.del(keys);
-            logger.info(`Invalidated ${keys.length} cache keys matching: ${pattern}`);
+        const keysToDelete = [];
+        // Use SCAN instead of KEYS — O(N) distributed across multiple calls, non-blocking
+        for await (const key of redis.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+            keysToDelete.push(key);
+        }
+        if (keysToDelete.length > 0) {
+            // DEL in batches of 100 to avoid large single commands
+            for (let i = 0; i < keysToDelete.length; i += 100) {
+                await redis.del(keysToDelete.slice(i, i + 100));
+            }
+            logger.info(`Invalidated ${keysToDelete.length} cache keys matching: ${pattern}`);
         }
     } catch (err) {
         logger.error(`Cache invalidation error: ${err.message}`);

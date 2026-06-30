@@ -435,13 +435,13 @@ export const adminAPI = {
   /** List restaurants for admin. Requires admin auth. */
   getRestaurants: (params = {}, config = {}) =>
     apiClient.get("/food/admin/restaurants", {
-      params: { limit: 1000, ...params },
+      params: { limit: 50, ...params },
       contextModule: "admin",
       ...config,
     }),
   getRestaurantReviews: (params = {}) =>
     apiClient.get("/food/admin/restaurants/reviews", {
-      params: { page: 1, limit: 1000, ...params },
+      params: { page: 1, limit: 50, ...params },
       contextModule: "admin",
     }),
   /** Categories (admin) */
@@ -732,7 +732,7 @@ export const adminAPI = {
 
   /** Public categories (user app) - zone-aware */
   getPublicCategories: (params = {}, config = {}) =>
-    apiClient.get("/food/restaurant/categories/public", {
+    publicGetOnce("/food/restaurant/categories/public", {
       params: params ?? {},
       ...config,
     }),
@@ -1199,10 +1199,10 @@ export const restaurantAPI = {
       contextModule: "restaurant",
     }),
   /** Public Offers for users (global/selected restaurant) */
-  getPublicOffers: () => apiClient.get("/food/restaurant/offers"),
+  getPublicOffers: () => getPublicOffersOnce(),
   /** Backward-compat helper used by Cart: returns coupons array for an item by adapting public offers */
   getCouponsByItemIdPublic: (restaurantId, _itemId) =>
-    apiClient.get("/food/restaurant/offers", { params: { restaurantId } }).then((res) => {
+    getPublicOffersOnce({ restaurantId }).then((res) => {
       const list = res?.data?.data?.allOffers || res?.data?.allOffers || [];
       const now = Date.now();
       const coupons = list
@@ -1332,7 +1332,7 @@ export const restaurantAPI = {
     let cache = null;
     let cacheKey = "";
     let cacheAt = 0;
-    const CACHE_MS = 800;
+    const CACHE_MS = 3000;
 
     const buildKey = (p = {}) => JSON.stringify({ limit: 50, page: 1, ...p });
 

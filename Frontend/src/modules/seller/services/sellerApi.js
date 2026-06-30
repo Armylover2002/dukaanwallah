@@ -1,4 +1,7 @@
 import axiosInstance from "@core/api/axios";
+import { getWithDedupe, invalidateCache } from "@core/api/dedupe";
+
+const SELLER_ORDERS_CACHE_PREFIX = "/seller/orders";
 
 const normalizeResponse = (response) => {
   const payload =
@@ -18,6 +21,13 @@ const normalizeResponse = (response) => {
 };
 
 const call = (request) => request.then(normalizeResponse);
+
+const sellerGetWithDedupe = (url, params = {}, options = {}) =>
+  getWithDedupe(url, params, { contextModule: "seller", ...options });
+
+const invalidateSellerOrdersCache = () => {
+  invalidateCache(SELLER_ORDERS_CACHE_PREFIX);
+};
 
 export const sellerApi = {
   requestOtp: (phone) =>
@@ -59,18 +69,31 @@ export const sellerApi = {
   getCategoryTree: () => call(axiosInstance.get("/seller/categories/tree")),
 
   getStats: (range = "daily") =>
-    call(axiosInstance.get("/seller/stats", { params: { range } })),
+    call(
+      sellerGetWithDedupe("/seller/stats", { range }, {
+        ttl: 15000,
+        timeout: 45000,
+      }),
+    ),
 
-  getOrders: (params = {}) =>
-    call(axiosInstance.get("/seller/orders", { params })),
+  getOrders: (params = {}, options = {}) =>
+    call(
+      sellerGetWithDedupe(SELLER_ORDERS_CACHE_PREFIX, params, {
+        ttl: 8000,
+        timeout: 45000,
+        ...options,
+      }),
+    ),
 
   updateOrderStatus: (orderId, data = {}) =>
     call(
       axiosInstance.put(`/seller/orders/${String(orderId)}/status`, data),
-    ),
+    ).finally(invalidateSellerOrdersCache),
 
   resendOrderDispatch: (orderId) =>
-    call(axiosInstance.post(`/seller/orders/${String(orderId)}/resend-dispatch`)),
+    call(
+      axiosInstance.post(`/seller/orders/${String(orderId)}/resend-dispatch`),
+    ).finally(invalidateSellerOrdersCache),
 
   getEarnings: () => call(axiosInstance.get("/seller/earnings")),
 

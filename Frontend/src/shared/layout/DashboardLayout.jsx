@@ -15,7 +15,7 @@ import SellerEarningsContext, { defaultEarnings } from '@/modules/seller/context
 import { getOrderSocket, onSellerOrderNew, onOrderStatusUpdate, onOrderCancelled } from '@/core/services/orderSocket';
 import alertSound from '@/modules/Food/assets/audio/alert.mp3';
 
-const POLL_INTERVAL_MS = 15000;
+const POLL_INTERVAL_MS = 20000; // Increased from 15s to reduce server load
 
 const resolveAudioSource = (source, cacheKey = 'seller-alert') => {
     if (!source) return source;
@@ -97,13 +97,22 @@ const DashboardLayout = ({ children, navItems, title }) => {
             setOrdersLoading(false);
             return;
         }
+
+        const isOrdersPage = location.pathname.includes('/seller/orders');
+        if (isOrdersPage) {
+            setOrdersLoading(false);
+            return undefined;
+        }
+
         setOrdersLoading(true);
 
-        const fetchOrders = async () => {
+        const fetchOrders = async (forceRefresh = false) => {
+            // Skip poll when tab is backgrounded — saves ~40% server requests for multi-tab users
+            if (document.hidden) return;
             if (fetchOrdersRef.isFetching) return;
             fetchOrdersRef.isFetching = true;
             try {
-                const res = await sellerApi.getOrders();
+                const res = await sellerApi.getOrders({ page: 1, limit: 20 }, { forceRefresh });
                 if (!res?.data?.success) return;
 
                 const payload = res.data.result || {};
@@ -150,7 +159,12 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 const audio = new Audio(resolveAudioSource(alertSound));
                 audio.play().catch(() => {});
             } catch (error) {
-                console.error("Polling Error:", error);
+                const isTimeout =
+                    error?.code === 'ECONNABORTED' ||
+                    String(error?.message || '').includes('timeout');
+                if (!isTimeout) {
+                    console.error("Polling Error:", error);
+                }
             } finally {
                 setOrdersLoading(false);
                 fetchOrdersRef.isFetching = false;
@@ -160,9 +174,10 @@ const DashboardLayout = ({ children, navItems, title }) => {
         fetchOrdersRef.current = fetchOrders;
         fetchOrdersRef.isFetching = false;
         fetchOrders();
+
         const pollInterval = setInterval(fetchOrders, POLL_INTERVAL_MS);
         return () => clearInterval(pollInterval);
-    }, [role]);
+    }, [role, location.pathname]);
 
     useEffect(() => {
         if (role !== 'seller') return undefined;
@@ -170,7 +185,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
         getOrderSocket(getToken);
 
         const offNew = onSellerOrderNew(getToken, () => {
-            if (fetchOrdersRef.current) fetchOrdersRef.current();
+            if (fetchOrdersRef.current) fetchOrdersRef.current(true);
         });
 
         const offStatus = onOrderStatusUpdate(getToken, (payload) => {
@@ -220,7 +235,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             }
             
             // Also refresh orders to update list
-            if (fetchOrdersRef.current) fetchOrdersRef.current();
+            if (fetchOrdersRef.current) fetchOrdersRef.current(true);
         });
 
         return () => {
@@ -270,7 +285,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
     }, [role, location.pathname]);
 
     const refreshOrders = () => {
-        if (fetchOrdersRef.current) fetchOrdersRef.current();
+        if (fetchOrdersRef.current) fetchOrdersRef.current(true);
     };
     const refreshEarnings = () => {
         earningsFetchedRef.current = false;

@@ -170,7 +170,9 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       }
     }
     fetchBadges()
-    const timer = setInterval(fetchBadges, 60000)
+    const timer = setInterval(() => {
+      if (!document.hidden) fetchBadges(); // Skip when tab is not visible
+    }, 90000) // Increased from 60s
     return () => clearInterval(timer)
   }, [])
 

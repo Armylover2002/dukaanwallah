@@ -170,7 +170,7 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
       return;
     }
     try {
-      const response = await orderAPI.getOrders({ limit: 10, page: 1 });
+      const response = await orderAPI.getOrders({ limit: 10, page: 1, activeOnly: true });
       let nextOrders = [];
 
       if (response?.data?.success && response?.data?.data?.orders) {
@@ -203,8 +203,11 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
 
   useEffect(() => {
     if (!hasCustomerAuth) return;
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 30000);
+    const pollWithVisibility = () => {
+      if (!document.hidden) fetchOrders();
+    };
+    pollWithVisibility();
+    const interval = setInterval(pollWithVisibility, 45000); // Increased from 30s
     return () => clearInterval(interval);
   }, [fetchOrders, hasCustomerAuth]);
 

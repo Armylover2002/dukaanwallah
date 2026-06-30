@@ -114,5 +114,11 @@ const sellerOrderSchema = new mongoose.Schema(
 sellerOrderSchema.index({ sellerId: 1, createdAt: -1 });
 sellerOrderSchema.index({ sellerId: 1, orderType: 1, createdAt: -1 });
 sellerOrderSchema.index({ sellerId: 1, orderId: 1 }, { unique: true });
+// Critical: used by getSellerOrdersController to find existing seller orders by parentOrderId
+sellerOrderSchema.index({ parentOrderId: 1, sellerId: 1 });
+// Used for pending order checks in DashboardLayout polling
+sellerOrderSchema.index({ sellerId: 1, workflowStatus: 1, createdAt: -1 });
+sellerOrderSchema.index({ sellerId: 1, status: 1, createdAt: -1 });
+sellerOrderSchema.index({ orderId: 1 });
 
 export const SellerOrder = mongoose.model('SellerOrder', sellerOrderSchema, 'quick_seller_orders');

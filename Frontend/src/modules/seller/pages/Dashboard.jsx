@@ -62,8 +62,13 @@ const Dashboard = () => {
         if (statsRes.data.success) setStatsData(statsRes.data.result);
       } catch (error) {
         if (!cancelled) {
-          console.error("Dashboard Fetch Error:", error);
-          toast.error("Failed to load dashboard data");
+          const isTimeout =
+            error?.code === "ECONNABORTED" ||
+            String(error?.message || "").includes("timeout");
+          if (!isTimeout) {
+            console.error("Dashboard Fetch Error:", error);
+            toast.error("Failed to load dashboard data");
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);

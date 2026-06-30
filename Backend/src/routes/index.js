@@ -28,6 +28,7 @@ import commonSettingsRoutes from '../modules/common/routes/settings.routes.js';
 import { getGlobalSettings as getPublicSettings } from '../modules/common/controllers/settings.controller.js';
 import onboardingFeeRoutes from '../modules/common/routes/onboardingFee.routes.js';
 import whatsappRoutes from '../modules/whatsapp/routes/whatsapp.routes.js';
+import { cacheResponse } from '../middleware/cache.js';
 
 const router = express.Router();
 
@@ -59,8 +60,8 @@ router.use('/v1/common/settings', commonSettingsRoutes);
 router.use('/v1/common/onboarding-fees', onboardingFeeRoutes);
 router.use('/v1/common/whatsapp', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), whatsappRoutes);
 
-// Backward compatibility for public settings
-router.get('/v1/food/admin/business-settings/public', getPublicSettings);
+// Backward compatibility for public settings — cached 5 min (changes rarely)
+router.get('/v1/food/admin/business-settings/public', cacheResponse(300, 'biz_settings'), getPublicSettings);
 
 router.use('/v1/food/admin', authMiddleware, requireRoles('ADMIN', 'EMPLOYEE'), restaurantAdminRoutes);
 router.use('/v1/food/user', authMiddleware, requireRoles('USER'), userRoutes);

@@ -241,26 +241,55 @@ const resolveParentQuickOrder = (
   return query;
 };
 
+const SELLER_ORDERS_BACKFILL_LIMIT = 50;
+const SELLER_ORDERS_BACKFILL_COOLDOWN_MS = 60 * 1000;
+const sellerOrdersBackfillPromises = new Map();
+const sellerOrdersBackfillCooldown = new Map();
+
+const parentOrdersQueryForSeller = (sellerKey) => ({
+  orderType: { $in: ["mixed", "quick"] },
+  items: { $elemMatch: { type: "quick", sourceId: sellerKey } },
+  orderStatus: { $ne: "scheduled" },
+  $or: [
+    {
+      "payment.method": {
+        $nin: ["razorpay", "razorpay_qr", "RAZORPAY", "Razorpay"],
+      },
+    },
+    {
+      "payment.status": {
+        $in: ["paid", "authorized", "captured", "settled", "PAID"],
+      },
+    },
+  ],
+});
+
 const backfillSellerOrdersFromParentOrders = async (sellerId) => {
   const sellerKey = String(sellerId || "").trim();
   if (!sellerKey) return;
 
-  const [existingSellerOrders, mixedOrders] = await Promise.all([
-    SellerOrder.find({ sellerId }).select("orderId").lean(),
-    QuickOrder.find({
-      orderType: { $in: ["mixed", "quick"] },
-      items: { $elemMatch: { type: "quick", sourceId: sellerKey } },
-      orderStatus: { $ne: "scheduled" },
-      $or: [
-        { "payment.method": { $nin: ["razorpay", "razorpay_qr", "RAZORPAY", "Razorpay"] } },
-        { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "PAID"] } }
-      ]
+  const mixedOrders = await QuickOrder.find(parentOrdersQueryForSeller(sellerKey))
+    .select("_id orderId orderType items pricing deliveryAddress payment userId")
+    .sort({ createdAt: -1 })
+    .limit(SELLER_ORDERS_BACKFILL_LIMIT)
+    .maxTimeMS(15000)
+    .lean();
+
+  if (!mixedOrders.length) return;
+
+  const candidateOrderIds = mixedOrders
+    .map((order) => String(order.orderId || "").trim())
+    .filter(Boolean);
+
+  const existingSellerOrders = candidateOrderIds.length
+    ? await SellerOrder.find({
+      sellerId,
+      orderId: { $in: candidateOrderIds },
     })
-      .select("_id orderId orderType items pricing deliveryAddress payment")
-      .sort({ createdAt: -1 })
-      .limit(500)
-      .lean(),
-  ]);
+      .select("orderId")
+      .maxTimeMS(10000)
+      .lean()
+    : [];
 
   const existingOrderIds = new Set(
     existingSellerOrders
@@ -280,15 +309,109 @@ const backfillSellerOrdersFromParentOrders = async (sellerId) => {
 
   if (!missingDocs.length) return;
 
-  await Promise.all(
-    missingDocs.map((doc) =>
-      SellerOrder.findOneAndUpdate(
-        { sellerId: doc.sellerId, orderId: doc.orderId },
-        { $set: doc },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < missingDocs.length; i += BATCH_SIZE) {
+    const batch = missingDocs.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      batch.map((doc) =>
+        SellerOrder.findOneAndUpdate(
+          { sellerId: doc.sellerId, orderId: doc.orderId },
+          { $set: doc },
+          { upsert: true, new: true, setDefaultsOnInsert: true },
+        ),
       ),
-    ),
-  );
+    );
+  }
+};
+
+const runSellerOrdersBackfillOnce = (sellerId) => {
+  const sellerKey = String(sellerId || "").trim();
+  if (!sellerKey) return Promise.resolve();
+
+  const inFlight = sellerOrdersBackfillPromises.get(sellerKey);
+  if (inFlight) return inFlight;
+
+  const lastRun = sellerOrdersBackfillCooldown.get(sellerKey) || 0;
+  if (Date.now() - lastRun < SELLER_ORDERS_BACKFILL_COOLDOWN_MS) {
+    return Promise.resolve();
+  }
+
+  const promise = backfillSellerOrdersFromParentOrders(sellerId)
+    .catch((err) => {
+      logger.warn(
+        `[SellerOrders] Backfill failed for seller ${sellerKey}: ${err.message}`,
+      );
+    })
+    .finally(() => {
+      sellerOrdersBackfillPromises.delete(sellerKey);
+      sellerOrdersBackfillCooldown.set(sellerKey, Date.now());
+    });
+
+  sellerOrdersBackfillPromises.set(sellerKey, promise);
+  return promise;
+};
+
+const fetchSellerOrdersFallbackFromParent = async (
+  sellerId,
+  { limit, skip, statusFilter, workflowFilter } = {},
+) => {
+  const sellerKey = String(sellerId || "").trim();
+  if (!sellerKey) return { items: [], total: 0 };
+
+  const parentQuery = parentOrdersQueryForSeller(sellerKey);
+
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 20));
+  const safeSkip = Math.max(0, Number(skip) || 0);
+
+  const [parentOrders, total] = await Promise.all([
+    QuickOrder.find(parentQuery)
+      .select(
+        "_id orderId orderType items pricing deliveryAddress payment userId orderStatus deliveryState updatedAt",
+      )
+      .sort({ createdAt: -1 })
+      .skip(safeSkip)
+      .limit(safeLimit)
+      .maxTimeMS(8000)
+      .lean(),
+    QuickOrder.countDocuments(parentQuery).maxTimeMS(8000),
+  ]);
+
+  if (!parentOrders.length) return { items: [], total: 0 };
+
+  const built = (
+    await Promise.all(
+      parentOrders.map((order) => buildSellerOrderFromParentOrder(order, sellerId)),
+    )
+  ).filter(Boolean);
+
+  let items = built;
+  if (statusFilter) {
+    items = items.filter(
+      (order) => String(order.status || "").toLowerCase() === statusFilter,
+    );
+  }
+  if (workflowFilter) {
+    items = items.filter(
+      (order) =>
+        String(order.workflowStatus || "").toUpperCase() === workflowFilter,
+    );
+  }
+
+  return { items, total: statusFilter || workflowFilter ? items.length : total };
+};
+
+const statsRangeStartDate = (range) => {
+  const now = new Date();
+  if (range === "monthly") {
+    return new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  }
+  if (range === "weekly") {
+    return new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+  }
+  const start = new Date(now);
+  start.setDate(now.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
+  return start;
 };
 
 const listNearbyOnlineDeliveryPartnersByCoords = async (
@@ -616,7 +739,7 @@ const reconcileSellerDeliveredOrders = async (sellerId) => {
   }
 };
 
-const parseProductPayload = (req, existingProduct = null) => {
+const parseProductPayload = async (req, existingProduct = null) => {
   const mainUpload = arr(req.files?.mainImage)[0];
   const galleryUploads = arr(req.files?.galleryImages);
 
@@ -646,6 +769,17 @@ const parseProductPayload = (req, existingProduct = null) => {
     weight: req.body?.weight,
   });
   const firstVariant = variants[0] || {};
+
+  const mainImageUrl = mainUpload 
+    ? await uploadImageBuffer(mainUpload.buffer, 'quick/products')
+    : "";
+
+  let galleryImageUrls = [];
+  if (galleryUploads.length > 0) {
+    galleryImageUrls = await Promise.all(
+      galleryUploads.map(file => uploadImageBuffer(file.buffer, 'quick/products'))
+    );
+  }
 
   return {
     name: str(req.body?.name) || existingProduct?.name || "Untitled Product",
@@ -680,19 +814,19 @@ const parseProductPayload = (req, existingProduct = null) => {
     weight: str(req.body?.weight) || existingProduct?.weight || "",
     tags: parseTags(req.body?.tags ?? existingProduct?.tags),
     mainImage:
-      toDataUrl(mainUpload) ||
+      mainImageUrl ||
       str(req.body?.mainImage) ||
       existingProduct?.mainImage ||
       "",
     image:
-      toDataUrl(mainUpload) ||
+      mainImageUrl ||
       str(req.body?.mainImage) ||
       existingProduct?.mainImage ||
       existingProduct?.image ||
       "",
     galleryImages:
-      galleryUploads.length > 0
-        ? galleryUploads.map(toDataUrl).filter(Boolean)
+      galleryImageUrls.length > 0
+        ? galleryImageUrls.filter(Boolean)
         : bodyGallery.length > 0
           ? bodyGallery
           : arr(existingProduct?.galleryImages),
@@ -1102,7 +1236,7 @@ export const lookupProductBySkuController = async (req, res) => {
 export const createSellerProductController = async (req, res) => {
   try {
     const sellerId = sellerScope(req);
-    const basePayload = parseProductPayload(req);
+    const basePayload = await parseProductPayload(req);
     const categoryIds = await resolveSellerCategoryIds({
       headerId: req.body?.headerId,
       categoryId: req.body?.categoryId,
@@ -1154,7 +1288,7 @@ export const updateSellerProductController = async (req, res) => {
       subcategoryId: req.body?.subcategoryId || existing.subcategoryId,
     });
 
-    const payload = parseProductPayload(req, existing);
+    const payload = await parseProductPayload(req, existing);
 
     Object.assign(existing, {
       ...payload,
@@ -1691,170 +1825,203 @@ export const markAllSellerNotificationsReadController = async (req, res) => {
   }
 };
 
+const mergeParentStatusIntoSellerOrder = (sellerOrder, parentOrder) => {
+  if (!sellerOrder) return null;
+  const parentStatus = String(parentOrder?.orderStatus || "").toLowerCase();
+  let status = sellerOrder.status;
+  let workflowStatus = sellerOrder.workflowStatus;
+
+  if (parentStatus === "delivered" && status !== "delivered") {
+    status = "delivered";
+    workflowStatus = "DELIVERED";
+  } else if (parentStatus.startsWith("cancel") && status !== "cancelled") {
+    status = "cancelled";
+    workflowStatus = "CANCELLED";
+  }
+
+  return { ...sellerOrder, status, workflowStatus };
+};
+
+const enrichSellerOrdersForResponse = async (sellerOrders) => {
+  if (!sellerOrders.length) return [];
+
+  const parentIds = sellerOrders
+    .map((item) => item.parentOrderId)
+    .filter(Boolean);
+  const orderIds = sellerOrders
+    .map((item) => String(item.orderId || "").trim())
+    .filter(Boolean);
+
+  const parentLookup = [];
+  if (parentIds.length) {
+    parentLookup.push({ _id: { $in: parentIds } });
+  }
+  if (orderIds.length) {
+    parentLookup.push({ orderId: { $in: orderIds } });
+  }
+
+  const parentOrders = parentLookup.length
+    ? await QuickOrder.find({
+      orderType: { $in: ["quick", "mixed"] },
+      $or: parentLookup,
+    })
+      .select(
+        "_id orderId orderType orderStatus dispatch deliveryState updatedAt",
+      )
+      .maxTimeMS(10000)
+      .lean()
+    : [];
+
+  const quickOrderById = new Map(
+    parentOrders.map((order) => [String(order.orderId), order]),
+  );
+  const quickOrderByParentId = new Map(
+    parentOrders.map((order) => [String(order._id), order]),
+  );
+
+  const deliveryPartnerIds = parentOrders
+    .map((order) => order?.dispatch?.deliveryPartnerId)
+    .filter(Boolean);
+
+  const deliveryPartners = deliveryPartnerIds.length
+    ? await FoodDeliveryPartner.find({ _id: { $in: deliveryPartnerIds } })
+      .select("_id name phone vehicleType vehicleNumber")
+      .lean()
+    : [];
+
+  const deliveryPartnerMap = new Map(
+    deliveryPartners.map((partner) => [String(partner._id), partner]),
+  );
+
+  return sellerOrders.map((item) => {
+    const quickOrder =
+      quickOrderById.get(String(item.orderId)) ||
+      (item.parentOrderId
+        ? quickOrderByParentId.get(String(item.parentOrderId))
+        : null);
+    const merged = mergeParentStatusIntoSellerOrder(item, quickOrder);
+    const acceptedPartner = quickOrder?.dispatch?.deliveryPartnerId
+      ? deliveryPartnerMap.get(String(quickOrder.dispatch.deliveryPartnerId))
+      : null;
+
+    const subtotal = num(merged.pricing?.subtotal);
+    const commission = num(merged.pricing?.commission);
+    const receivable =
+      num(merged.pricing?.receivable) || Math.max(0, subtotal - commission);
+
+    let riderPhone = "";
+    if (acceptedPartner) {
+      const orderStatus = String(quickOrder?.orderStatus || "").toLowerCase();
+      const deliveryStatus = String(
+        quickOrder?.deliveryState?.status || "",
+      ).toLowerCase();
+      const reachedPickup =
+        deliveryStatus === "reached_pickup" ||
+        deliveryStatus === "picked_up" ||
+        ["picked_up", "reached_drop", "delivered"].includes(orderStatus);
+      const photoUploaded = !!quickOrder?.deliveryState?.billImageUrl;
+
+      riderPhone =
+        reachedPickup && photoUploaded
+          ? acceptedPartner.phone || ""
+          : "Hidden until photo upload";
+    }
+
+    return {
+      ...merged,
+      customer: {
+        name: merged.customer?.name || "Customer",
+      },
+      pricing: {
+        ...merged.pricing,
+        receivable,
+      },
+      orderType: merged.orderType || quickOrder?.orderType || "quick",
+      dispatchStatus: quickOrder?.dispatch?.status || "unassigned",
+      deliveryPartner: acceptedPartner
+        ? {
+          _id: acceptedPartner._id,
+          name: acceptedPartner.name || "Delivery Partner",
+          phone: riderPhone,
+          vehicleType: acceptedPartner.vehicleType || "",
+          vehicleNumber: acceptedPartner.vehicleNumber || "",
+        }
+        : null,
+    };
+  });
+};
+
 export const getSellerOrdersController = async (req, res) => {
   try {
     const sellerId = sellerScope(req);
-    const sellerKey = String(sellerId);
 
     const page = Math.max(1, num(req.query?.page, 1));
     const limit = Math.max(1, Math.min(100, num(req.query?.limit, 50)));
     const skip = (page - 1) * limit;
 
-    const parentQuery = {
-      items: { $elemMatch: { sourceId: sellerKey, type: "quick" } },
-      orderStatus: { $ne: "scheduled" },
-      $or: [
-        { "payment.method": { $nin: ["razorpay", "razorpay_qr", "RAZORPAY", "Razorpay"] } },
-        { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "PAID"] } }
-      ]
-    };
+    const sellerQuery = { sellerId };
 
     if (req.query?.startDate || req.query?.endDate) {
-      parentQuery.createdAt = {};
+      sellerQuery.createdAt = {};
       if (req.query?.startDate) {
-        parentQuery.createdAt.$gte = new Date(`${req.query.startDate}T00:00:00.000Z`);
+        sellerQuery.createdAt.$gte = new Date(
+          `${req.query.startDate}T00:00:00.000Z`,
+        );
       }
       if (req.query?.endDate) {
-        parentQuery.createdAt.$lte = new Date(`${req.query.endDate}T23:59:59.999Z`);
+        sellerQuery.createdAt.$lte = new Date(
+          `${req.query.endDate}T23:59:59.999Z`,
+        );
       }
     }
 
-    const [parentOrders, total] = await Promise.all([
-      QuickOrder.find(parentQuery)
-        .populate("userId", "name phone email")
+    const statusFilter = str(req.query?.status).toLowerCase();
+    if (statusFilter) {
+      sellerQuery.status = statusFilter;
+    }
+
+    const workflowFilter = str(req.query?.workflowStatus).toUpperCase();
+    if (workflowFilter) {
+      sellerQuery.workflowStatus = workflowFilter;
+    }
+
+    let [sellerOrders, total] = await Promise.all([
+      SellerOrder.find(sellerQuery)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
+        .maxTimeMS(10000)
         .lean(),
-      QuickOrder.countDocuments(parentQuery),
+      SellerOrder.countDocuments(sellerQuery).maxTimeMS(10000),
     ]);
 
-    if (!parentOrders.length) {
-      return res.json({
-        success: true,
-        result: { items: [], total: 0, page, limit, totalPages: 0 },
-      });
+    const canTryFallback =
+      !sellerOrders.length &&
+      page === 1 &&
+      !req.query?.startDate &&
+      !req.query?.endDate;
+
+    if (canTryFallback) {
+      runSellerOrdersBackfillOnce(sellerId);
+      try {
+        const fallback = await fetchSellerOrdersFallbackFromParent(sellerId, {
+          limit,
+          skip,
+          statusFilter,
+          workflowFilter,
+        });
+        if (fallback.items.length) {
+          sellerOrders = fallback.items;
+          total = fallback.total;
+        }
+      } catch (fallbackErr) {
+        logger.warn(
+          `[SellerOrders] Fallback read failed for seller ${sellerId}: ${fallbackErr.message}`,
+        );
+      }
     }
 
-    const parentIds = parentOrders.map((p) => p._id);
-    const existingSellerOrders = await SellerOrder.find({
-      parentOrderId: { $in: parentIds },
-      sellerId,
-    }).lean();
-
-    const existingMap = new Map(
-      existingSellerOrders.map((so) => [String(so.parentOrderId), so]),
-    );
-
-    const items = await Promise.all(
-      parentOrders.map(async (po) => {
-        let so = existingMap.get(String(po._id));
-        const parentStatus = String(po?.orderStatus || "").toLowerCase();
-
-        if (!so) {
-          const doc = await buildSellerOrderFromParentOrder(po, sellerId);
-          if (doc) {
-            so = await SellerOrder.findOneAndUpdate(
-              { parentOrderId: po._id, sellerId },
-              { $set: doc },
-              { upsert: true, new: true, setDefaultsOnInsert: true },
-            ).lean();
-          }
-        } else if (parentStatus === "delivered" && so.status !== "delivered") {
-          so = await SellerOrder.findOneAndUpdate(
-            { _id: so._id },
-            {
-              $set: {
-                status: "delivered",
-                workflowStatus: "DELIVERED",
-                deliveredAt:
-                  po.deliveryState?.deliveredAt || po.updatedAt || new Date(),
-              },
-            },
-            { new: true },
-          ).lean();
-        } else if (
-          parentStatus.startsWith("cancel") &&
-          so.status !== "cancelled"
-        ) {
-          so = await SellerOrder.findOneAndUpdate(
-            { _id: so._id },
-            { $set: { status: "cancelled", workflowStatus: "CANCELLED" } },
-            { new: true },
-          ).lean();
-        }
-        return so;
-      }),
-    );
-
-    const filteredItems = items.filter(Boolean);
-
-    const quickOrderMap = new Map(
-      parentOrders.map((order) => [String(order.orderId), order]),
-    );
-
-    const deliveryPartnerIds = parentOrders
-      .map((order) => order?.dispatch?.deliveryPartnerId)
-      .filter(Boolean);
-
-    const deliveryPartners = deliveryPartnerIds.length
-      ? await FoodDeliveryPartner.find({ _id: { $in: deliveryPartnerIds } })
-        .select("_id name phone vehicleType vehicleNumber")
-        .lean()
-      : [];
-
-    const deliveryPartnerMap = new Map(
-      deliveryPartners.map((partner) => [String(partner._id), partner]),
-    );
-
-    const enrichedItems = filteredItems.map((item) => {
-      const quickOrder = quickOrderMap.get(String(item.orderId));
-      const acceptedPartner = quickOrder?.dispatch?.deliveryPartnerId
-        ? deliveryPartnerMap.get(String(quickOrder.dispatch.deliveryPartnerId))
-        : null;
-
-      const subtotal = num(item.pricing?.subtotal);
-      const commission = num(item.pricing?.commission);
-      const receivable =
-        num(item.pricing?.receivable) || Math.max(0, subtotal - commission);
-
-      let riderPhone = "";
-      if (acceptedPartner) {
-        const orderStatus = String(quickOrder?.orderStatus || "").toLowerCase();
-        const deliveryStatus = String(quickOrder?.deliveryState?.status || "").toLowerCase();
-        const reachedPickup =
-          deliveryStatus === "reached_pickup" ||
-          deliveryStatus === "picked_up" ||
-          ["picked_up", "reached_drop", "delivered"].includes(orderStatus);
-        const photoUploaded = !!quickOrder?.deliveryState?.billImageUrl;
-
-        riderPhone = (reachedPickup && photoUploaded)
-          ? (acceptedPartner.phone || "")
-          : "Hidden until photo upload";
-      }
-
-      return {
-        ...item,
-        customer: {
-          name: item.customer?.name || "Customer",
-        },
-        pricing: {
-          ...item.pricing,
-          receivable,
-        },
-        orderType: item.orderType || quickOrder?.orderType || "quick",
-        dispatchStatus: quickOrder?.dispatch?.status || "unassigned",
-        deliveryPartner: acceptedPartner
-          ? {
-            _id: acceptedPartner._id,
-            name: acceptedPartner.name || "Delivery Partner",
-            phone: riderPhone,
-            vehicleType: acceptedPartner.vehicleType || "",
-            vehicleNumber: acceptedPartner.vehicleNumber || "",
-          }
-          : null,
-      };
-    });
+    const enrichedItems = await enrichSellerOrdersForResponse(sellerOrders);
 
     return res.json({
       success: true,
@@ -1863,7 +2030,7 @@ export const getSellerOrdersController = async (req, res) => {
         page,
         limit,
         total,
-        totalPages: Math.max(1, Math.ceil(total / limit)),
+        totalPages: total ? Math.ceil(total / limit) : 0,
       },
     });
   } catch (error) {
@@ -2349,11 +2516,33 @@ export const getSellerStatsController = async (req, res) => {
   try {
     const sellerId = sellerScope(req);
     const range = str(req.query?.range, "daily").toLowerCase();
+    const rangeStart = statsRangeStartDate(range);
+    const orderQuery = { sellerId, createdAt: { $gte: rangeStart } };
+
+    console.time(`sellerStats-[${sellerId}]-Total`);
+    console.time(`sellerStats-[${sellerId}]-Queries`);
+
     const [orders, products, transactions] = await Promise.all([
-      SellerOrder.find({ sellerId }).sort({ createdAt: -1 }).lean(),
-      populateProductQuery(SellerProduct.find({ sellerId })).lean(),
-      SellerTransaction.find({ sellerId }).sort({ createdAt: -1 }).lean(),
+      SellerOrder.find(orderQuery)
+        .select("status pricing items createdAt")
+        .sort({ createdAt: -1 })
+        .maxTimeMS(10000)
+        .lean(),
+      populateProductQuery(
+        SellerProduct.find({ sellerId }).select("categoryId subcategoryId headerId"),
+      )
+        .limit(300)
+        .maxTimeMS(10000)
+        .lean(),
+      SellerTransaction.find({ sellerId, createdAt: { $gte: rangeStart } })
+        .select("type amount createdAt")
+        .sort({ createdAt: -1 })
+        .maxTimeMS(10000)
+        .lean(),
     ]);
+
+    console.timeEnd(`sellerStats-[${sellerId}]-Queries`);
+    console.time(`sellerStats-[${sellerId}]-Processing`);
 
     const deliveredOrders = orders.filter((o) => o.status === "delivered");
 

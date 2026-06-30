@@ -2762,12 +2762,85 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 
 // Stale tryAutoAssign and processDispatchTimeout removed (now imported from order-dispatch.service.js)
 
+const resolveQcSellerIdFromOrder = (order) => {
+  if (order?.orderType !== "quick" && order?.orderType !== "mixed") return null;
+  return (
+    order.restaurantId ||
+    order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+    order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId ||
+    null
+  );
+};
+
+const batchResolveOrderVenues = async (orders, {
+  sellerSelect = "shopName area city ownerPhone name phone",
+  restaurantSelect = "restaurantName area city ownerPhone name phone",
+} = {}) => {
+  if (!Array.isArray(orders) || !orders.length) return orders;
+
+  const sellerIds = new Set();
+  const restaurantIds = new Set();
+
+  for (const order of orders) {
+    const qcSellerId = resolveQcSellerIdFromOrder(order);
+    if (qcSellerId) {
+      sellerIds.add(String(qcSellerId));
+    } else if (order?.restaurantId) {
+      restaurantIds.add(String(order.restaurantId?._id || order.restaurantId));
+    }
+  }
+
+  const [sellers, restaurants] = await Promise.all([
+    sellerIds.size
+      ? Seller.find({ _id: { $in: [...sellerIds] } }).select(sellerSelect).lean()
+      : [],
+    restaurantIds.size
+      ? FoodRestaurant.find({ _id: { $in: [...restaurantIds] } }).select(restaurantSelect).lean()
+      : [],
+  ]);
+
+  const sellerMap = new Map(sellers.map((seller) => [String(seller._id), seller]));
+  const restaurantMap = new Map(
+    restaurants.map((restaurant) => [String(restaurant._id), restaurant]),
+  );
+
+  for (const order of orders) {
+    const qcSellerId = resolveQcSellerIdFromOrder(order);
+    if (qcSellerId) {
+      order.restaurantId = sellerMap.get(String(qcSellerId)) || null;
+    } else if (order?.restaurantId) {
+      const key = String(order.restaurantId?._id || order.restaurantId);
+      order.restaurantId = restaurantMap.get(key) || order.restaurantId;
+    }
+  }
+
+  return orders;
+};
+
 // ----- User: list, get, cancel -----
 export async function listOrdersUser(userId, query) {
   const { page, limit, skip } = buildPaginationOptions(query);
   const filter = { userId: new mongoose.Types.ObjectId(userId) };
+
+  const activeOnly =
+    query?.activeOnly === true ||
+    query?.activeOnly === "true" ||
+    query?.activeOnly === "1";
+  if (activeOnly) {
+    filter.orderStatus = {
+      $nin: [
+        "delivered",
+        "cancelled",
+        "cancelled_by_user",
+        "cancelled_by_restaurant",
+        "cancelled_by_admin",
+      ],
+    };
+  }
+
   const [docs, total] = await Promise.all([
     FoodOrder.find(filter)
+      .select("-dispatchPlan.routePolyline")
       .populate(
         "restaurantId",
         "restaurantName profileImage area city location rating totalRatings",
@@ -3592,28 +3665,14 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
 
   const orders = await FoodOrder.find(filter)
     .sort({ createdAt: -1 })
+    .limit(Math.min(300, skip + limit + 100))
     .populate("userId", "name phone email")
     .lean();
 
-  for (const order of orders) {
-    const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
-      ? (order.restaurantId ||
-         order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
-         order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
-      : null;
-
-    if (qcSellerId) {
-      const seller = await Seller.findById(qcSellerId)
-        .select("shopName name phone location addressLine1 area city state profileImage")
-        .lean();
-      order.restaurantId = seller;
-    } else if (order.restaurantId) {
-      const restaurant = await FoodRestaurant.findById(order.restaurantId)
-        .select("restaurantName name address phone ownerPhone location profileImage")
-        .lean();
-      order.restaurantId = restaurant;
-    }
-  }
+  await batchResolveOrderVenues(orders, {
+    sellerSelect: "shopName name phone location addressLine1 area city state profileImage",
+    restaurantSelect: "restaurantName name address phone ownerPhone location profileImage",
+  });
 
   const docs = [];
   for (const order of orders) {
@@ -4668,25 +4727,7 @@ export async function listOrdersAdmin(query) {
     FoodOrder.countDocuments(filter),
   ]);
 
-  for (const order of docs) {
-    const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
-      ? (order.restaurantId ||
-         order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
-         order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
-      : null;
-
-    if (qcSellerId) {
-      const seller = await Seller.findById(qcSellerId)
-        .select("shopName area city ownerPhone name phone")
-        .lean();
-      order.restaurantId = seller;
-    } else if (order.restaurantId) {
-      const restaurant = await FoodRestaurant.findById(order.restaurantId)
-        .select("restaurantName area city ownerPhone name phone")
-        .lean();
-      order.restaurantId = restaurant;
-    }
-  }
+  await batchResolveOrderVenues(docs);
 
   const paginated = buildPaginatedResult({ docs, total, page, limit });
   return { ...paginated, orders: paginated.data };

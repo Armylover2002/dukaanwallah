@@ -125,6 +125,7 @@ import {
 import { authMiddleware, checkPermission } from "../../../core/auth/auth.middleware.js";
 import returnRoutes from '../returns/routes/quickReturn.routes.js';
 import { requireRoles } from "../../../core/roles/role.middleware.js";
+import { cacheResponse } from "../../../middleware/cache.js";
 import { verifyAccessToken } from "../../../core/auth/token.util.js";
 
 const optionalAuth = (req, res, next) => {
@@ -152,24 +153,25 @@ router.get("/health", (_req, res) =>
 );
 
 // ─── Performance: Single bootstrap call for homepage ──────────────────────────────
-router.get("/bootstrap", getBootstrapData);
+// cacheResponse TTLs: bootstrap=120s, categories/zones/billing=300s, products/offers/coupons/experience=120s
+router.get("/bootstrap", cacheResponse(120, 'qc_bootstrap'), getBootstrapData);
 
-router.get("/home", getHomeData);
+router.get("/home", cacheResponse(120, 'qc_home'), getHomeData);
 // Lean dedicated endpoints (replaces heavy getHomeData bridges)
-router.get("/experience", getExperienceSectionsLean);
-router.get("/experience/hero", getHeroConfigLean);
-router.get("/offer-sections", getOfferSectionsLean);
-router.get("/offers", getOffers);
-router.get("/coupons", getCoupons);
+router.get("/experience", cacheResponse(120, 'qc_experience'), getExperienceSectionsLean);
+router.get("/experience/hero", cacheResponse(120, 'qc_hero'), getHeroConfigLean);
+router.get("/offer-sections", cacheResponse(120, 'qc_offer_sections'), getOfferSectionsLean);
+router.get("/offers", cacheResponse(120, 'qc_offers'), getOffers);
+router.get("/coupons", cacheResponse(120, 'qc_coupons'), getCoupons);
 router.post("/coupons/apply", applyCoupon);
-router.get("/categories", getCategories);
-router.get("/products", getProducts);
-router.get("/products/:productId/reviews", getProductReviews);
+router.get("/categories", cacheResponse(300, 'qc_categories'), getCategories);
+router.get("/products", cacheResponse(120, 'qc_products'), getProducts);
+router.get("/products/:productId/reviews", cacheResponse(60, 'qc_product_reviews'), getProductReviews);
 router.post("/products/reviews", optionalAuth, submitProductReview);
-router.get("/products/:productId", getProductById);
-router.get("/zones/public", listPublicZones);
-router.get("/billing/settings", getPublicBillingSettings);
-router.get("/stores/:storeId", getStoreDetails);
+router.get("/products/:productId", cacheResponse(120, 'qc_product_detail'), getProductById);
+router.get("/zones/public", cacheResponse(300, 'qc_zones'), listPublicZones);
+router.get("/billing/settings", cacheResponse(300, 'qc_billing'), getPublicBillingSettings);
+router.get("/stores/:storeId", cacheResponse(120, 'qc_store'), getStoreDetails);
 
 // Location endpoints
 router.get("/location/geocode", geocodeAddress);

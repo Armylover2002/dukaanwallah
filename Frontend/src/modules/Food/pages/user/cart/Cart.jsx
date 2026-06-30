@@ -1021,11 +1021,10 @@ export default function Cart() {
 
     fetchFeeSettings()
     window.addEventListener("focus", handleFocus)
-    const intervalId = setInterval(fetchFeeSettings, 30000)
+    // Fee settings rarely change — no polling needed, on-focus refresh is sufficient
 
     return () => {
       window.removeEventListener("focus", handleFocus)
-      clearInterval(intervalId)
     }
   }, [])
 

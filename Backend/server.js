@@ -13,6 +13,7 @@ import { expireQuickCoupons } from './src/modules/quick-commerce/services/conten
 import { logger } from './src/utils/logger.js';
 import { initializeFirebaseRealtime } from './src/config/firebase.js';
 import { ensureQuickCommerceSeedData } from './src/modules/quick-commerce/services/seed.service.js';
+import mongoose from 'mongoose';
 
 const SHUTDOWN_TIMEOUT_MS = 10000;
 let server = null;
@@ -87,10 +88,23 @@ const startServer = async () => {
 
         await ensureQuickCommerceSeedData();
 
-        // 6. Start the HTTP server
+        // 6. Start the HTTP server (indexes build in background — do not block requests)
         server = httpServer.listen(config.port, config.host, () => {
             logger.info(`Server running in ${config.nodeEnv} mode on ${config.host}:${config.port}`);
             console.log(`🌐 [URL] http://localhost:${config.port}`);
+        });
+
+        setImmediate(async () => {
+            try {
+                logger.info('Building MongoDB indexes programmatically...');
+                const models = mongoose.modelNames();
+                await Promise.all(
+                    models.map((modelName) => mongoose.model(modelName).createIndexes()),
+                );
+                logger.info('MongoDB indexes built successfully.');
+            } catch (idxErr) {
+                logger.error(`Error building indexes: ${idxErr.message}`);
+            }
         });
 
         const runExpire = async () => {

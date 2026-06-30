@@ -38,9 +38,8 @@ import { DatePicker } from "@/components/ui/date-picker";
 import {
   joinOrderRoom,
   onOrderStatusUpdate,
+  onSellerOrderNew,
 } from "@/core/services/orderSocket";
-
-const AUTO_REFRESH_INTERVAL_MS = 30000;
 
 const resolveSellerReceivable = (order) => {
   const receivable = Number(order?.pricing?.receivable);
@@ -350,6 +349,9 @@ const Orders = () => {
   const [total, setTotal] = useState(0);
   const hasMountedRef = useRef(false);
   const statusHandlerRef = useRef(null);
+  const fetchInFlightRef = useRef(false);
+  const joinedRoomsRef = useRef(new Set());
+  const fetchOrdersRef = useRef(null);
 
   const getToken = () =>
     localStorage.getItem("auth_seller") ||
@@ -434,25 +436,19 @@ const Orders = () => {
       });
     });
     statusHandlerRef.current = off;
+
+    const offNew = onSellerOrderNew(getToken, () => {
+      fetchOrdersRef.current?.(page, false, true);
+    });
+
     return () => {
       if (typeof statusHandlerRef.current === "function")
         statusHandlerRef.current();
       statusHandlerRef.current = null;
+      offNew?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Auto-refresh fallback (like Admin)
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      if (hasMountedRef.current) {
-        fetchOrders(page, false);
-      }
-    }, AUTO_REFRESH_INTERVAL_MS);
-
-    return () => window.clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, startDate, endDate]);
 
   // Reactive load: fetch orders when page or filters change
   useEffect(() => {
@@ -462,9 +458,13 @@ const Orders = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, startDate, endDate]);
 
-
-
-  const fetchOrders = async (requestedPage = 1, showPageLoader = false) => {
+  const fetchOrders = async (
+    requestedPage = 1,
+    showPageLoader = false,
+    forceRefresh = false,
+  ) => {
+    if (fetchInFlightRef.current) return;
+    fetchInFlightRef.current = true;
     try {
       if (showPageLoader) {
         setLoading(true);
@@ -473,7 +473,7 @@ const Orders = () => {
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      const response = await sellerApi.getOrders(params);
+      const response = await sellerApi.getOrders(params, { forceRefresh });
 
       // Backend returns handleResponse(..., { items, page, limit, total, totalPages })
       const payload = response.data.result || response.data.data || {};
@@ -545,9 +545,11 @@ const Orders = () => {
 
       setOrders(formattedOrders);
 
-      // Join tracking rooms for real-time updates
       formattedOrders.forEach((o) => {
-        if (o.id) joinOrderRoom(o.id, getToken);
+        if (o.id && !joinedRoomsRef.current.has(o.id)) {
+          joinedRoomsRef.current.add(o.id);
+          joinOrderRoom(o.id, getToken);
+        }
       });
       if (typeof payload.total === "number") {
         setTotal(payload.total);
@@ -557,14 +559,24 @@ const Orders = () => {
         setTotal(rawOrders.length);
       }
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
-      showToast("Failed to fetch orders", "error");
+      const isTimeout =
+        error?.code === "ECONNABORTED" ||
+        String(error?.message || "").includes("timeout");
+      if (!isTimeout) {
+        console.error("Failed to fetch orders:", error);
+        showToast("Failed to fetch orders", "error");
+      } else if (showPageLoader) {
+        showToast("Orders are taking longer than usual. Please wait…", "error");
+      }
     } finally {
+      fetchInFlightRef.current = false;
       if (showPageLoader) {
         setLoading(false);
       }
     }
   };
+
+  fetchOrdersRef.current = fetchOrders;
 
   const tabs = [
     "All",
@@ -704,7 +716,7 @@ const Orders = () => {
       });
 
       showToast(`Order status updated to ${nextTabLabel}`, "success");
-      fetchOrders(page, false);
+      fetchOrders(page, false, true);
     } catch (error) {
       console.error("Failed to update status:", error);
       showToast("Failed to update status", "error");
@@ -730,7 +742,7 @@ const Orders = () => {
           : "Driver notification sent again",
         "success",
       );
-      fetchOrders(page, false);
+      fetchOrders(page, false, true);
     } catch (error) {
       console.error("Failed to resend dispatch:", error);
       showToast(
@@ -1148,7 +1160,7 @@ const Orders = () => {
               onPageSizeChange={(newSize) => {
                 setPageSize(newSize);
                 setPage(1);
-                fetchOrders(1, false);
+                fetchOrders(1, false, true);
               }}
               loading={loading}
             />
@@ -1618,7 +1630,7 @@ const Orders = () => {
                       showToast(`Order #${cancellingOrder.id} has been cancelled`, "success");
                       setIsCancelModalOpen(false);
                       setIsDetailsModalOpen(false);
-                      fetchOrders(page, false);
+                      fetchOrders(page, false, true);
                     } catch (error) {
                       showToast(error.response?.data?.message || "Failed to cancel order", "error");
                     }
