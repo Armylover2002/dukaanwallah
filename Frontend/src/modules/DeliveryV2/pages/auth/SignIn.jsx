@@ -38,6 +38,7 @@ export default function DeliverySignIn() {
     countryCode: "+91",
   })
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('delivery'))
+  const [adminEmail, setAdminEmail] = useState(() => getCachedSettings()?.email || "admin@appzeto.com")
 
   // Pre-fill form from sessionStorage if data exists (e.g., when coming back from OTP)
   useEffect(() => {
@@ -69,6 +70,10 @@ export default function DeliverySignIn() {
       if (deliveryLogo) {
         setLogoUrl(deliveryLogo)
       }
+      const cached = getCachedSettings()
+      if (cached?.email) {
+        setAdminEmail(cached.email)
+      }
     }
 
     const cached = getCachedSettings()
@@ -90,6 +95,9 @@ export default function DeliverySignIn() {
       const deliveryLogo = getAppLogo("delivery")
       if (deliveryLogo) {
         setLogoUrl(deliveryLogo)
+      }
+      if (settings.email) {
+        setAdminEmail(settings.email)
       }
     }
 
@@ -270,6 +278,14 @@ export default function DeliverySignIn() {
                 {error}
               </p>
             )}
+
+            {/* Contact Support */}
+            <p className="text-xs text-center text-gray-500 px-4 font-medium uppercase tracking-widest leading-relaxed mt-4">
+              Having trouble? Contact support at:{" "}
+              <a href={`mailto:${adminEmail}`} className="text-primary-orange hover:underline font-bold lowercase">
+                {adminEmail}
+              </a>
+            </p>
           </div>
         </div>
       </div>

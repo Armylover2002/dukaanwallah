@@ -732,81 +732,13 @@ export default function SellerOnboarding() {
             </div>
           </div>
         )}
-        <div className="grid gap-8 lg:grid-cols-[1.05fr_1.4fr]">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-[34px] bg-orange-500 p-5 md:p-8 text-white shadow-[0_35px_90px_rgba(234,88,12,0.22)]"
-          >
-            <div className="flex flex-wrap justify-between items-start gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">
-                <ShieldCheck className="h-4 w-4" />
-                Seller Onboarding
-              </div>
-              <button
-                type="button"
-                onClick={() => logout()}
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] cursor-pointer"
-              >
-                Logout
-              </button>
+        <div className="max-w-3xl mx-auto w-full">
+          <div className="flex justify-center items-center mb-8 px-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-50 text-orange-600 px-5 py-3 text-sm md:text-base font-black uppercase tracking-[0.2em] md:tracking-[0.3em] shadow-sm">
+              <ShieldCheck className="h-5 w-5" />
+              Seller Onboarding
             </div>
-            <h1 className="mt-8 text-3xl md:text-4xl font-black leading-tight">
-              Set up your store once and send it straight for approval.
-            </h1>
-            <p className="mt-4 max-w-lg text-sm font-medium leading-7 text-white/78">
-              We&apos;ll save your banking, compliance, and shop details together,
-              then raise a real joining request in quick-commerce admin.
-            </p>
-
-            <div className="mt-10 space-y-4">
-              {[
-                {
-                  icon: Store,
-                  title: "Store Identity",
-                  text: "Owner, shop, location, and operational details.",
-                },
-                {
-                  icon: CreditCard,
-                  title: "Bank & UPI",
-                  text: "Settlement-ready bank account and QR image.",
-                },
-                {
-                  icon: FileBadge2,
-                  title: "Compliance",
-                  text: "PAN, GST, FSSAI, and shop license details.",
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-3xl border border-white/12 bg-white/10 p-5 backdrop-blur-sm"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-2xl bg-white/12 p-3">
-                      <item.icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-black">{item.title}</p>
-                      <p className="mt-1 text-xs font-medium leading-6 text-white/72">
-                        {item.text}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 rounded-3xl border border-white/12 bg-white/10 p-5">
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-white/60">
-                Progress Signal
-              </p>
-              <p className="mt-2 text-2xl font-black">{completionText}</p>
-              <p className="mt-2 text-xs font-medium text-white/70">
-                Add the missing core details and submit. Admin will see the
-                request inside quick-commerce.
-              </p>
-            </div>
-          </motion.div>
+          </div>
 
           <motion.form
             initial={{ opacity: 0, y: 18 }}
