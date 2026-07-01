@@ -285,5 +285,7 @@ sellerSchema.index({ phoneDigits: 1 }, { unique: true, sparse: true });
 sellerSchema.index({ phoneLast10: 1 });
 sellerSchema.index({ email: 1 }, { unique: true, sparse: true });
 sellerSchema.index({ location: "2dsphere" });
+sellerSchema.index({ name: 1 });
+sellerSchema.index({ shopName: 1 });
 
 export const Seller = mongoose.model('Seller', sellerSchema, 'quick_sellers');

@@ -27,6 +27,8 @@ import { FoodAddon } from '../../restaurant/models/foodAddon.model.js';
 import { FoodSupportTicket } from '../../user/models/supportTicket.model.js';
 import { FoodRestaurantSupportTicket } from '../../restaurant/models/supportTicket.model.js';
 import { FoodOrder } from '../../orders/models/order.model.js';
+import { Seller } from '../../../quick-commerce/seller/models/seller.model.js';
+import { SellerProduct } from '../../../quick-commerce/seller/models/sellerProduct.model.js';
 import { FoodTransaction } from '../../orders/models/foodTransaction.model.js';
 import { FoodRestaurantWithdrawal } from '../../restaurant/models/foodRestaurantWithdrawal.model.js';
 import { sendPromotionalOfferToUsers } from '../../../whatsapp/services/whatsapp.service.js';
@@ -229,7 +231,7 @@ export async function globalSearch(query = '') {
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = { $regex: escaped, $options: 'i' };
 
-    const [orders, users, restaurants, items, categories, addons] = await Promise.all([
+    const [orders, users, restaurants, items, categories, addons, sellers, sellerProducts] = await Promise.all([
         FoodOrder.find({
             orderType: 'food',
             $or: [{ orderId: regex }, { orderStatus: regex }]
@@ -263,6 +265,18 @@ export async function globalSearch(query = '') {
         FoodAddon.find({ name: regex })
             .limit(3)
             .select('name price')
+            .lean(),
+        Seller.find({
+            $or: [{ name: regex }, { shopName: regex }]
+        })
+            .limit(5)
+            .select('name shopName status')
+            .lean(),
+        SellerProduct.find({
+            $or: [{ name: regex }]
+        })
+            .limit(5)
+            .select('name price sellerId')
             .lean()
     ]);
 
@@ -313,7 +327,23 @@ export async function globalSearch(query = '') {
         type: 'Addon',
         title: a.name,
         description: `Price: ₹${a.price}`,
-        path: `/admin/food/addons`
+        path: `/admin/food/addons?addonId=${a._id}`
+    }));
+
+    sellers.forEach(s => results.push({
+        id: s._id,
+        type: 'Seller',
+        title: s.name || s.shopName,
+        description: `Shop: ${s.shopName || ''} (${s.status || 'Active'})`,
+        path: `/admin/quick-commerce/sellers?sellerId=${s._id}`
+    }));
+
+    sellerProducts.forEach(sp => results.push({
+        id: sp._id,
+        type: 'SellerProduct',
+        title: sp.name,
+        description: `Price: ₹${sp.price || 0}`,
+        path: `/admin/quick-commerce/products?productId=${sp._id}`
     }));
 
     return results;

@@ -119,6 +119,7 @@ sellerProductSchema.index({ sellerId: 1, slug: 1 }, { unique: true });
 sellerProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true, sparse: true });
 sellerProductSchema.index({ sellerId: 1, stock: 1, status: 1 });
 sellerProductSchema.index({ sellerId: 1, categoryId: 1, subcategoryId: 1 });
+sellerProductSchema.index({ name: 1 });
 
 export const SellerProduct = mongoose.model(
   "SellerProduct",

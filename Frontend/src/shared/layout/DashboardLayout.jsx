@@ -157,7 +157,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 newOrderAlertRef.current = newOrder;
 
                 const audio = new Audio(resolveAudioSource(alertSound));
-                audio.play().catch(() => {});
+                audio.play().catch(() => { });
             } catch (error) {
                 const isTimeout =
                     error?.code === 'ECONNABORTED' ||
@@ -229,12 +229,12 @@ const DashboardLayout = ({ children, navItems, title }) => {
         const offCancel = onOrderCancelled(getToken, (payload) => {
             const orderId = String(payload?.orderId || '').trim();
             if (!orderId) return;
-            
+
             if (newOrderAlertRef.current && String(newOrderAlertRef.current.orderId) === orderId) {
                 setNewOrderAlert(null);
                 toast.error(`Order #${orderId} has been cancelled.`);
             }
-            
+
             // Also refresh orders to update list
             if (fetchOrdersRef.current) fetchOrdersRef.current(true);
         });
@@ -350,6 +350,18 @@ const DashboardLayout = ({ children, navItems, title }) => {
         return () => clearInterval(timer);
     }, [newOrderAlert]);
 
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (newOrderAlert) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "unset";
+        }
+        return () => {
+            document.body.style.overflow = "unset";
+        };
+    }, [newOrderAlert]);
+
     const handleAcceptOrder = async (orderId) => {
         try {
             await sellerApi.updateOrderStatus(orderId, { status: 'confirmed' });
@@ -419,17 +431,59 @@ const DashboardLayout = ({ children, navItems, title }) => {
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100"
+                            className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
                         >
                             <div className="flex flex-col items-center text-center">
-                                <div className="h-20 w-20 bg-orange-500/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                                <div className="h-20 w-20 bg-orange-500/10 rounded-full flex items-center justify-center mb-6 animate-bounce shrink-0">
                                     <BellRing className="h-10 w-10 text-orange-500" />
                                 </div>
 
-                                <h2 className="text-2xl font-black text-slate-900 mb-2">New Order Received!</h2>
-                                <p className="text-slate-600 font-medium mb-6">
+                                <h2 className="text-2xl font-black text-slate-900 mb-2 shrink-0">New Order Received!</h2>
+                                <p className="text-slate-600 font-medium mb-6 shrink-0">
                                     You have a new order <span className="text-orange-500 font-bold">#{newOrderAlert.orderId}</span> for <span className="text-slate-900 font-bold">Rs {resolveSellerReceivable(newOrderAlert).toFixed(2)}</span>
                                 </p>
+
+                                {/* Ordered Items Details */}
+                                {newOrderAlert.items && newOrderAlert.items.length > 0 && (
+                                    <div className="w-full text-left mb-6 bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-inner overflow-hidden">
+                                        <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-3 shrink-0">
+                                            Ordered Items ({newOrderAlert.items.length})
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {newOrderAlert.items.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between items-start gap-2">
+                                                    <div className="flex gap-3 items-center">
+                                                        {item.image ? (
+                                                            <img
+                                                                src={item.image}
+                                                                alt={item.name}
+                                                                className="h-10 w-10 object-cover rounded-xl bg-white shadow-sm border border-slate-100"
+                                                            />
+                                                        ) : (
+                                                            <div className="h-10 w-10 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 text-slate-400 text-[10px]">
+                                                                No img
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <p className="text-xs font-bold text-slate-900 line-clamp-1">{item.name}</p>
+                                                            <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                                                                Qty: {item.quantity || item.qty} × Rs {Number(item.price).toFixed(2)}
+                                                            </p>
+                                                            {item.variantName && (
+                                                                <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                                                                    Variant: {item.variantName}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs font-black text-slate-900 shrink-0">
+                                                        Rs {(Number(item.price) * Number(item.quantity || item.qty)).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Timer Bar — width from real server deadline */}
                                 <div className="w-full bg-slate-100 h-2 rounded-full mb-8 overflow-hidden">

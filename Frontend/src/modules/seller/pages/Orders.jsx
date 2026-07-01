@@ -72,7 +72,8 @@ const OrderMobileCard = React.memo(({
   setCancelReasonPreset,
   setCancelReason,
   setIsCancelModalOpen,
-  formatMoney
+  formatMoney,
+  resendingOrderId
 }) => {
   return (
     <motion.div
@@ -111,10 +112,10 @@ const OrderMobileCard = React.memo(({
             </p>
           </div>
           <p className="text-[11px] font-bold mt-2 text-slate-600">
-            {order.deliveryPartner
-              ? `${order.dispatchStatus === "accepted" ? "Rider accepted" : "Rider notified"}: ${order.deliveryPartner.name} ${order.deliveryPartner.phone === "Hidden until photo upload" ? "(🔒 Phone Hidden)" : ""}`
+            {order.deliveryPartner && order.dispatchStatus === "accepted"
+              ? `Rider accepted: ${order.deliveryPartner.name} ${order.deliveryPartner.phone === "Hidden until photo upload" ? "(🔒 Phone Hidden)" : ""}`
               : order.dispatchStatus === "assigned"
-                ? "Closest rider notified, waiting for acceptance"
+                ? "Waiting for acceptance"
                 : "No rider accepted yet"}
           </p>
           <p className="text-sm font-black text-slate-900 mt-2">
@@ -134,8 +135,15 @@ const OrderMobileCard = React.memo(({
           </button>
           {canResendDispatch(order) && (
             <button
-              onClick={() => handleResendDispatch(order.id)}
-              className="px-2.5 py-1.5 rounded-lg bg-orange-50 text-orange-700 text-[10px] font-black uppercase tracking-wider">
+              disabled={resendingOrderId === order.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleResendDispatch(order.id);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+              {resendingOrderId === order.id ? (
+                <span className="w-3 h-3 border-2 border-orange-700 border-t-transparent rounded-full animate-spin inline-block"></span>
+              ) : null}
               Resend Rider
             </button>
           )}
@@ -183,7 +191,8 @@ const OrderRow = React.memo(({
   setCancelReasonPreset,
   setCancelReason,
   setIsCancelModalOpen,
-  formatMoney
+  formatMoney,
+  resendingOrderId
 }) => {
   return (
     <motion.tr
@@ -229,7 +238,7 @@ const OrderRow = React.memo(({
         </div>
       </td>
       <td className="px-4 lg:px-6 py-3 lg:py-4">
-        {order.deliveryPartner ? (
+        {order.deliveryPartner && order.dispatchStatus === "accepted" ? (
           <div className="flex flex-col">
             <span className="text-xs font-bold text-emerald-700">
               {order.deliveryPartner.name}
@@ -237,10 +246,7 @@ const OrderRow = React.memo(({
             <span className="text-xs font-semibold text-slate-600">
               {order.deliveryPartner.phone === "Hidden until photo upload"
                 ? "🔒 Phone Hidden"
-                : (order.deliveryPartner.phone ||
-                  (order.dispatchStatus === "accepted"
-                    ? "Accepted"
-                    : "Notified"))}
+                : (order.deliveryPartner.phone || "Accepted")}
             </span>
           </div>
         ) : (
@@ -277,10 +283,15 @@ const OrderRow = React.memo(({
         <div className="flex items-center justify-end space-x-1.5 flex-wrap">
           {canResendDispatch(order) && (
             <button
-              onClick={() =>
-                handleResendDispatch(order.id)
-              }
-              className="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-all text-[10px] font-black uppercase tracking-wider">
+              disabled={resendingOrderId === order.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleResendDispatch(order.id);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-all text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+              {resendingOrderId === order.id ? (
+                <span className="w-3 h-3 border-2 border-orange-700 border-t-transparent rounded-full animate-spin inline-block"></span>
+              ) : null}
               Resend Rider
             </button>
           )}
@@ -332,6 +343,7 @@ const Orders = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isQuickViewModalOpen, setIsQuickViewModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [resendingOrderId, setResendingOrderId] = useState(null);
 
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [cancelReasonPreset, setCancelReasonPreset] = useState("Out of stock");
@@ -725,6 +737,7 @@ const Orders = () => {
 
   const handleResendDispatch = useCallback(async (orderId) => {
     try {
+      setResendingOrderId(orderId);
       const response = await sellerApi.resendOrderDispatch(orderId);
       const partner = response?.data?.result?.notifiedPartner;
       setSelectedOrder((prev) =>
@@ -750,6 +763,8 @@ const Orders = () => {
         "Failed to resend driver notification",
         "error",
       );
+    } finally {
+      setResendingOrderId(null);
     }
   }, [page]);
 
@@ -1061,6 +1076,7 @@ const Orders = () => {
                           setCancelReason={setCancelReason}
                           setIsCancelModalOpen={setIsCancelModalOpen}
                           formatMoney={formatMoney}
+                          resendingOrderId={resendingOrderId}
                         />
                       ))}
                   </AnimatePresence>
@@ -1110,6 +1126,7 @@ const Orders = () => {
                             setCancelReason={setCancelReason}
                             setIsCancelModalOpen={setIsCancelModalOpen}
                             formatMoney={formatMoney}
+                            resendingOrderId={resendingOrderId}
                           />
                         ))}
                     </AnimatePresence>
@@ -1358,7 +1375,7 @@ const Orders = () => {
                             Driver Status
                           </h4>
                           <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
-                            {selectedOrder.deliveryPartner ? (
+                            {selectedOrder.deliveryPartner && selectedOrder.dispatchStatus === "accepted" ? (
                               <>
                                 <p className="text-xs font-bold text-slate-800">
                                   {selectedOrder.deliveryPartner.name}
@@ -1371,10 +1388,7 @@ const Orders = () => {
                                 ) : (
                                   <div className="flex items-center gap-2 mt-1">
                                     <p className="text-xs font-semibold text-slate-700">
-                                      {selectedOrder.deliveryPartner.phone ||
-                                        (selectedOrder.dispatchStatus === "accepted"
-                                          ? "Accepted rider"
-                                          : "Notified rider")}
+                                      {selectedOrder.deliveryPartner.phone || "Accepted rider"}
                                     </p>
                                     {selectedOrder.deliveryPartner.phone && (
                                       <a
@@ -1396,11 +1410,16 @@ const Orders = () => {
                                 )}
                               </>
                             ) : (
-                              <p className="text-xs font-bold text-slate-600">
-                                {selectedOrder.dispatchStatus === "assigned"
-                                  ? "Closest rider notified. Waiting for acceptance."
-                                  : "No rider has accepted yet."}
-                              </p>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-slate-700">
+                                  {selectedOrder.dispatchStatus === "assigned"
+                                    ? "Waiting for acceptance"
+                                    : "No rider accepted yet"}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                  {selectedOrder.dispatchStatus?.replaceAll("_", " ")}
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
