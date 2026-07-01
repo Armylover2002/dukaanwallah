@@ -40,14 +40,7 @@ const ProductModal = ({ product, onClose, onAdd }) => {
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="absolute bottom-[-20px] right-4 z-10 flex gap-2">
-               <button className="p-2.5 bg-white text-gray-700 rounded-full shadow-md hover:bg-gray-50 transition border border-gray-100 outline-none flex items-center justify-center">
-                 <Bookmark className="w-5 h-5" />
-               </button>
-               <button className="p-2.5 bg-white text-gray-700 rounded-full shadow-md hover:bg-gray-50 transition border border-gray-100 outline-none flex items-center justify-center">
-                 <Share2 className="w-5 h-5" />
-               </button>
-            </div>
+
             <img
               src={product.image || product.imageUrl || "https://via.placeholder.com/400"}
               alt={product.name}
@@ -272,15 +265,6 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
                     <span className="text-sm font-bold text-[#1c1c1e]">
                       ₹{product.price || "199"}
                     </span>
-                    <button 
-                      className="bg-orange-50 text-[#ff6b00] font-bold text-[10px] px-4 py-1.5 rounded-[6px] transition-colors hover:bg-orange-100 border-0 outline-none"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedProduct(product);
-                      }}
-                    >
-                      ADD
-                    </button>
                   </div>
                 </div>
               </div>
