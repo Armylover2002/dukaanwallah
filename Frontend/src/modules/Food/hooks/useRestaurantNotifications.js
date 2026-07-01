@@ -619,7 +619,29 @@ export const useRestaurantNotifications = () => {
     // Listen for order status updates
     socketRef.current.on('order_status_update', (data) => {
       debugLog('?? Order status update:', data);
-      // You can handle status updates here if needed
+      
+      const status = String(data?.orderStatus || '').toLowerCase();
+      if (status === 'cancelled' || status === 'rejected') {
+        const deletedIds = [
+          String(data?.orderId || '').trim(),
+          String(data?.orderMongoId || '').trim(),
+        ].filter(Boolean);
+        
+        const activeIds = [
+          String(activeOrderRef.current?.orderId || '').trim(),
+          String(activeOrderRef.current?.orderMongoId || '').trim(),
+          // Use the latest state value if possible or rely on activeOrderRef
+          String(newOrder?.orderId || '').trim(),
+          String(newOrder?.orderMongoId || '').trim(),
+        ].filter(Boolean);
+
+        const matchesActiveOrder = deletedIds.some((id) => activeIds.includes(id));
+        if (matchesActiveOrder) {
+          stopAlertLoop();
+          activeOrderRef.current = null;
+          setNewOrder(null);
+        }
+      }
     });
 
     socketRef.current.on('order_deleted', (data) => {

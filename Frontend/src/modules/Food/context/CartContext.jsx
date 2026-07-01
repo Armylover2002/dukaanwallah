@@ -203,15 +203,19 @@ export function CartProvider({ children }) {
   }, [cart])
 
   const addToCart = useCallback((item, sourcePosition = null) => {
+    const normalizedIncomingArr = normalizeCartData([item]);
+    if (!normalizedIncomingArr.length) return { ok: false, error: 'Invalid item' };
+    const normalizedIncoming = normalizedIncomingArr[0];
+
     if (normalizedCart.length > 0) {
       const currentOrderType = getItemOrderType(normalizedCart[0])
-      const nextOrderType = getItemOrderType(item)
+      const nextOrderType = getItemOrderType(normalizedIncoming)
 
       if (currentOrderType === "food" && nextOrderType === "food") {
         const firstItemRestaurantId = normalizedCart[0]?.restaurantId
         const firstItemRestaurantName = normalizedCart[0]?.restaurant
-        const newItemRestaurantId = item?.restaurantId
-        const newItemRestaurantName = item?.restaurant
+        const newItemRestaurantId = normalizedIncoming?.restaurantId
+        const newItemRestaurantName = normalizedIncoming?.restaurant
         const normalizeName = (name) => (name ? String(name).trim().toLowerCase() : '')
 
         const firstRestaurantNameNormalized = normalizeName(firstItemRestaurantName)
@@ -235,7 +239,7 @@ export function CartProvider({ children }) {
       }
     }
 
-    if (!item?.restaurantId && !item?.restaurant) {
+    if (!normalizedIncoming?.restaurantId && !normalizedIncoming?.restaurant) {
       return {
         ok: false,
         error: 'Item is missing restaurant information. Please refresh the page.',
@@ -246,13 +250,13 @@ export function CartProvider({ children }) {
     setCart((prev) => {
       const safePrev = normalizeCartData(prev)
       const existingOrderType = getItemOrderType(safePrev[0])
-      const incomingOrderType = getItemOrderType(item)
+      const incomingOrderType = getItemOrderType(normalizedIncoming)
 
       if (safePrev.length > 0 && existingOrderType === "food" && incomingOrderType === "food") {
         const firstItemRestaurantId = safePrev[0]?.restaurantId;
         const firstItemRestaurantName = safePrev[0]?.restaurant;
-        const newItemRestaurantId = item?.restaurantId;
-        const newItemRestaurantName = item?.restaurant;
+        const newItemRestaurantId = normalizedIncoming?.restaurantId;
+        const newItemRestaurantName = normalizedIncoming?.restaurant;
         
         const normalizeName = (name) => name ? name.trim().toLowerCase() : '';
         const firstRestaurantNameNormalized = normalizeName(firstItemRestaurantName);
@@ -271,26 +275,26 @@ export function CartProvider({ children }) {
         }
       }
       
-      const existing = safePrev.find((i) => i.id === item.id)
+      const existing = safePrev.find((i) => i.id === normalizedIncoming.id)
       if (existing) {
         if (sourcePosition) {
-          setLastAddEvent({ product: { id: item.id, name: item.name, imageUrl: item.image || item.imageUrl }, sourcePosition })
+          setLastAddEvent({ product: { id: normalizedIncoming.id, name: normalizedIncoming.name, imageUrl: normalizedIncoming.image || normalizedIncoming.imageUrl }, sourcePosition })
           setTimeout(() => setLastAddEvent(null), 1500)
         }
-        return safePrev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)
+        return safePrev.map((i) => i.id === normalizedIncoming.id ? { ...i, quantity: i.quantity + normalizedIncoming.quantity } : i)
       }
       
-      if (!item.restaurantId && !item.restaurant) {
-        debugError('❌ Cannot add item: Missing restaurant information!', item);
+      if (!normalizedIncoming.restaurantId && !normalizedIncoming.restaurant) {
+        debugError('❌ Cannot add item: Missing restaurant information!', normalizedIncoming);
         return safePrev;
       }
       
       if (sourcePosition) {
-        setLastAddEvent({ product: { id: item.id, name: item.name, imageUrl: item.image || item.imageUrl }, sourcePosition })
+        setLastAddEvent({ product: { id: normalizedIncoming.id, name: normalizedIncoming.name, imageUrl: normalizedIncoming.image || normalizedIncoming.imageUrl }, sourcePosition })
         setTimeout(() => setLastAddEvent(null), 1500)
       }
       
-      return [...safePrev, { ...item, quantity: 1 }]
+      return [...safePrev, normalizedIncoming]
     })
 
     return { ok: true }

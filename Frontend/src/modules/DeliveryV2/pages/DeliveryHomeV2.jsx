@@ -286,23 +286,32 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
   const mapRef = useRef(null);
   const isSimModeRef = useRef(isSimMode);
 
+  const lastGpsToastTime = useRef(0);
+
   const handleGeolocationError = useCallback((error) => {
     const hasKnownRiderLocation = Boolean(useDeliveryStore.getState().riderLocation);
+    const now = Date.now();
+    const canShowToast = now - lastGpsToastTime.current > 15000; // Debounce 15 seconds
 
     if (!error) {
-      if (!hasKnownRiderLocation) {
+      if (!hasKnownRiderLocation && canShowToast) {
         toast.error('GPS Needed!');
+        lastGpsToastTime.current = now;
       }
       return;
     }
 
     if (error.code === error.PERMISSION_DENIED) {
-      toast.error('Location permission denied. Please allow location access.');
+      if (canShowToast) {
+        toast.error('Location permission denied. Please allow location access.');
+        lastGpsToastTime.current = now;
+      }
       return;
     }
 
-    if (!hasKnownRiderLocation) {
+    if (!hasKnownRiderLocation && canShowToast) {
       toast.error('GPS Needed!');
+      lastGpsToastTime.current = now;
     }
   }, []);
 

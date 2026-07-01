@@ -3335,6 +3335,33 @@ export async function updateOrderStatusRestaurant(
       } catch (err) {
         logger.warn(`updateOrderStatusRestaurant transaction sync failed: ${err?.message || err}`);
       }
+
+      // Real-time: remove from delivery partner screens if cancelled
+      try {
+        const io = getIO();
+        if (io) {
+          const cancelPayload = {
+            orderId: order.orderId,
+            orderMongoId: order._id?.toString?.(),
+            orderStatus: orderStatus
+          };
+          if (assignedRiderId) {
+            io.to(rooms.delivery(assignedRiderId)).emit("order_cancelled", cancelPayload);
+          } else {
+            const { partners } = await listNearbyOnlineDeliveryPartners(
+              order.restaurantId,
+              { maxKm: 15, limit: 25 }
+            );
+            if (partners && partners.length > 0) {
+              for (const p of partners) {
+                io.to(rooms.delivery(p.partnerId)).emit("order_cancelled", cancelPayload);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn(`Failed to broadcast order cancellation to delivery partners: ${err?.message || err}`);
+      }
     }
 
     await notifyOwnersSafely(

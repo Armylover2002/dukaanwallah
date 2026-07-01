@@ -1200,6 +1200,22 @@ export default function OrdersMain() {
     }
   }, [newOrder]);
 
+  // Close popup if newOrder is cleared remotely (e.g. order cancelled by user)
+  useEffect(() => {
+    if (!newOrder && showNewOrderPopupRef.current) {
+      // Small delay to prevent race conditions with manual accepts/rejects
+      const timeoutId = setTimeout(() => {
+        if (!newOrderRef.current) {
+          setShowNewOrderPopup(false);
+          setPopupOrder(null);
+          requestOrdersRefresh();
+          toast.info("Order request was cancelled by the user");
+        }
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [newOrder]);
+
   // Keep refs in sync to avoid stale state inside one-time event handlers.
   useEffect(() => {
     showNewOrderPopupRef.current = showNewOrderPopup;
@@ -2297,7 +2313,7 @@ export default function OrdersMain() {
                 </div>
 
                 {/* Content */}
-                <div className="px-4 pt-4 pb-4 flex-1 overflow-y-auto min-h-0">
+                <div className="px-4 pt-4 pb-4 flex-1 overflow-y-auto min-h-0" data-lenis-prevent="true">
                   {/* Scheduled Indicator */}
                   {currentPopupOrder?.scheduledAt && (
                     <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3">
@@ -2414,6 +2430,18 @@ export default function OrdersMain() {
                       )}
                     </AnimatePresence>
                   </div>
+
+                  {/* Restaurant Instructions */}
+                  {(popupOrder || newOrder)?.note && (
+                    <div className="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <p className="text-xs font-bold text-orange-800 uppercase tracking-wider mb-1">
+                        Restaurant Instructions
+                      </p>
+                      <p className="text-sm text-orange-900 font-medium">
+                        {(popupOrder || newOrder)?.note}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Cutlery preference */}
                   <div
