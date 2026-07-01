@@ -343,12 +343,16 @@ export default function UserOrderDetails() {
       yPos += restaurantAddressLines.length * 7 + 5
 
       // Items table
-      const tableData = items.map(item => [
-        item.variantName ? `${item.name || 'Item'} (${item.variantName})` : (item.name || 'Item'),
+      const tableData = items.map(item => {
+        const varName = item.variantName || item.variant?.name || item.selectedVariant?.name;
+        const priceToUse = item.selectedVariant?.price || item.variant?.price || item.price || 0;
+        return [
+          varName ? `${item.name || 'Item'} (${varName})` : (item.name || 'Item'),
         String(item.quantity || item.qty || 1),
-        `Rs. ${Number(item.price || 0).toFixed(2)}`,
-        `Rs. ${Number((item.price || 0) * (item.quantity || item.qty || 1)).toFixed(2)}`
-      ])
+        `Rs. ${Number(priceToUse).toFixed(2)}`,
+        `Rs. ${Number((priceToUse) * (item.quantity || item.qty || 1)).toFixed(2)}`
+        ]
+      })
 
       autoTable(doc, {
         startY: yPos,
@@ -550,8 +554,21 @@ export default function UserOrderDetails() {
 
           <div className="border-t border-dashed border-gray-200 my-3" />
 
+          {/* Restaurant Instructions */}
+          {order?.note && (
+            <div className="bg-orange-50/80 rounded-xl p-4 border border-orange-100 flex gap-3 mb-4">
+              <FileText className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs text-orange-600 font-bold uppercase tracking-wider mb-1">Restaurant Instructions</p>
+                <p className="text-sm text-gray-800 leading-relaxed font-medium capitalize">{order.note}</p>
+              </div>
+            </div>
+          )}
+
           {/* Items */}
-          {items.map((item, idx) => (
+          {items.map((item, idx) => {
+            const varName = item.variantName || item.variant?.name || item.selectedVariant?.name;
+            return (
             <div key={idx} className="flex justify-between items-start mt-2">
               <div className="flex items-center gap-2">
                 <div
@@ -564,14 +581,14 @@ export default function UserOrderDetails() {
                   />
                 </div>
                 <span className="text-sm text-gray-700 font-medium">
-                  {item.quantity || item.qty || 1} x {item.name}{item.variantName ? ` (${item.variantName})` : ""}
+                  {item.quantity || item.qty || 1} x {item.name}{varName ? ` (${varName})` : ""}
                 </span>
               </div>
               <span className="text-sm text-gray-800 font-medium">
-                ₹{(item.price || 0).toFixed(2)}
+                ₹{((item.selectedVariant?.price || item.variant?.price || item.price) || 0).toFixed(2)}
               </span>
             </div>
-          ))}
+          )})}
         </div>
 
         {/* Bill Summary Card */}

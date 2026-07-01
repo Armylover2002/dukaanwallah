@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
+import { WifiOff } from 'lucide-react'
 import { loadBusinessSettings, setAppType } from "@common/utils/businessSettings"
 import BottomNavigation from "./BottomNavigation"
 import { getUnreadDeliveryNotificationCount } from "@food/utils/deliveryNotifications"
@@ -17,6 +18,18 @@ export default function DeliveryLayout({
     getUnreadDeliveryNotificationCount()
   )
   const [approvalStatus, setApprovalStatus] = useState("loading")
+  const [isInternetOnline, setIsInternetOnline] = useState(navigator.onLine)
+
+  useEffect(() => {
+    const handleOnline = () => setIsInternetOnline(true)
+    const handleOffline = () => setIsInternetOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   useEffect(() => {
     // Initialize delivery app settings and favicon
@@ -87,6 +100,17 @@ export default function DeliveryLayout({
 
   return (
     <>
+      {!isInternetOnline && (
+        <div className="fixed inset-0 z-[999] bg-white flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
+            <WifiOff className="w-12 h-12 text-red-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">No Internet Connection</h1>
+          <p className="text-gray-500 max-w-sm">
+            Please check your network settings and reconnect to continue receiving delivery requests.
+          </p>
+        </div>
+      )}
       <main>
         {children}
       </main>

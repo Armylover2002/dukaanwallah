@@ -12,7 +12,22 @@ import { isMixedOrder, normalizePickupPoints } from '@/modules/DeliveryV2/utils/
  */
 export const NewOrderModal = ({ order, onAccept, onReject, onMinimize }) => {
   const { riderLocation } = useDeliveryStore();
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(() => {
+    if (!order) return 30;
+    const orderId = order.orderId || order._id || 'unknown';
+    const storageKey = `delivery_timer_${orderId}`;
+    const storedTime = localStorage.getItem(storageKey);
+    const now = Date.now();
+    if (storedTime) {
+      const elapsed = Math.floor((now - parseInt(storedTime, 10)) / 1000);
+      const remaining = Math.max(0, 30 - elapsed);
+      return remaining;
+    } else {
+      localStorage.setItem(storageKey, now.toString());
+      return 30;
+    }
+  });
+
   const pickupPoints = normalizePickupPoints(order);
   const primaryPickup = pickupPoints[0] || null;
   const mixedOrder = isMixedOrder(order);
@@ -25,6 +40,14 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize }) => {
     const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, onReject]);
+
+  // Clean up storage key when order is handled
+  useEffect(() => {
+    return () => {
+      // We don't remove it on unmount because they might navigate back.
+      // It's a small leak but keys are uniquely tied to recent orders.
+    };
+  }, []);
 
   const { distanceKm, etaMins } = useMemo(() => {
     if (!order) return { distanceKm: null, etaMins: null };

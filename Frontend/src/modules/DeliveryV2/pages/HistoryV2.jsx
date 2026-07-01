@@ -227,6 +227,10 @@ export const HistoryV2 = () => {
                    const payout = Number(trip.deliveryEarning || trip.amount || trip.earningAmount || 0);
                    const collection = Number(trip.codCollectedAmount || trip.orderTotal || 0);
                    const isCOD = (trip.paymentMethod || '').toLowerCase() === 'cash' || (trip.paymentMethod || '').toLowerCase() === 'cod';
+                   const tripDateStr = trip.createdAt || trip.date || trip.updatedAt || trip.deliveredAt || trip.completedAt;
+                   const displayDateTime = tripDateStr ? new Date(tripDateStr).toLocaleString('en-US', {
+                     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+                   }) : (trip.time || '--:--');
 
                    return (
                       <div key={trip.orderId || idx} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm active:scale-[0.99] transition-all">
@@ -249,8 +253,8 @@ export const HistoryV2 = () => {
 
                          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-50">
                              <div>
-                                <p className="text-[11px] font-medium text-gray-400 mb-1">Time</p>
-                                <p className="text-sm font-bold text-gray-950">{trip.time || '--:--'}</p>
+                                <p className="text-[11px] font-medium text-gray-400 mb-1">Date & Time</p>
+                                <p className="text-sm font-bold text-gray-950">{displayDateTime}</p>
                              </div>
                              <div className="text-center">
                                 <p className="text-[11px] font-medium text-gray-400 mb-1">COD</p>
@@ -312,7 +316,11 @@ export const HistoryV2 = () => {
                             <div>
                                <p className="text-lg font-bold text-gray-950 mb-0.5">₹{Number(tx.amount || 0).toFixed(2)}</p>
                                <p className="text-sm font-medium text-gray-600 line-clamp-1">{tx.description || 'Bonus Payout'}</p>
-                               <p className="text-[10px] text-gray-400 font-medium mt-1">{new Date(tx.createdAt || tx.date).toLocaleDateString()}</p>
+                               <p className="text-[10px] text-gray-400 font-medium mt-1">
+                                 {new Date(tx.createdAt || tx.date).toLocaleString('en-US', {
+                                   month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+                                 })}
+                               </p>
                             </div>
                             <span className="bg-green-100 text-[#10B981] text-[10px] font-bold px-3 py-1 rounded-full uppercase">DELIVERED</span>
                          </div>

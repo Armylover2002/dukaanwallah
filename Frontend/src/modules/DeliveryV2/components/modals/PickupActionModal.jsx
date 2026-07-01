@@ -298,12 +298,20 @@ export const PickupActionModal = ({
 
           {showItems && (
             <div className="overflow-hidden space-y-2 px-1">
-              {items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 border-b border-gray-50 last:border-0">
-                  <span className="text-gray-700 text-sm font-bold">{item.name || 'Item Name'}</span>
-                  <span className="text-green-600 font-bold bg-green-50 px-2.5 py-1 rounded-lg text-xs">x{item.quantity || 1}</span>
-                </div>
-              ))}
+              {items.map((item, idx) => {
+                const variantName = item.variant?.name || item.selectedVariant?.name || item.variantName || '';
+                return (
+                  <div key={idx} className="flex justify-between items-center p-3 border-b border-gray-50 last:border-0">
+                    <div className="flex flex-col">
+                      <span className="text-gray-700 text-sm font-bold">{item.name || 'Item Name'}</span>
+                      {variantName && (
+                        <span className="text-gray-500 text-xs mt-0.5">{variantName}</span>
+                      )}
+                    </div>
+                    <span className="text-green-600 font-bold bg-green-50 px-2.5 py-1 rounded-lg text-xs">x{item.quantity || 1}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

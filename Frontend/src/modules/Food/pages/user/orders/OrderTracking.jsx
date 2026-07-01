@@ -375,7 +375,7 @@ function transformOrderForTracking(apiOrder, previousOrder = null, explicitResta
     restaurantLocation: { coordinates: restaurantCoords },
     pickupSources,
     items: apiOrder?.items?.map(item => ({
-      name: item.name, variantName: item.variantName || '',
+      name: item.name, variantName: item.variantName || item.variant?.name || item.selectedVariant?.name || '',
       quantity: item.quantity, price: item.price,
     })) || previousOrder?.items || [],
     total: apiOrder?.pricing?.total || previousOrder?.total || 0,
@@ -1252,14 +1252,14 @@ export default function OrderTracking() {
 
   const handleUpdateInstructions = useCallback(async () => {
     if (isQuickOrder || typeof orderAPI.updateOrderInstructions !== "function") {
-      toast.error("Delivery instructions update is not available for this order yet");
+      toast.error("Restaurant instructions update is not available for this order yet");
       return;
     }
     setIsUpdatingInstructions(true);
     try {
       const response = await orderAPI.updateOrderInstructions(resolvedLookupId || orderId, deliveryInstructions);
       if (response.data?.success) {
-        toast.success("Delivery instructions updated");
+        toast.success("Restaurant instructions updated");
         setIsInstructionsModalOpen(false);
         const updated = response.data.data?.order;
         if (updated) setOrder((prev) => transformOrderForTracking(updated, prev));
@@ -1613,7 +1613,7 @@ export default function OrderTracking() {
               <div className="bg-blue-50/50 dark:bg-blue-900/20 p-3 mx-4 mb-4 rounded-lg flex items-start gap-2 border border-blue-100 dark:border-blue-800">
                 <MessageSquare className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-0.5">Instruction for Rider</p>
+                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-0.5">Instruction for Restaurant</p>
                   <p className="text-xs text-gray-700 dark:text-gray-200 leading-relaxed font-medium">"{order.note}"</p>
                 </div>
               </div>
@@ -1917,7 +1917,7 @@ export default function OrderTracking() {
               <div className="bg-red-50/50 rounded-xl p-4 border border-orange-100 flex gap-3">
                 <MessageSquare className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs text-orange-600 font-bold uppercase tracking-wider mb-1">Delivery Instructions</p>
+                  <p className="text-xs text-orange-600 font-bold uppercase tracking-wider mb-1">Restaurant Instructions</p>
                   <p className="text-sm text-gray-800 leading-relaxed font-medium capitalize">{order.note}</p>
                 </div>
               </div>
@@ -1987,7 +1987,7 @@ export default function OrderTracking() {
       <Dialog open={isInstructionsModalOpen} onOpenChange={setIsInstructionsModalOpen}>
         <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white max-h-[90vh] overflow-y-auto z-[200]">
           <DialogHeader className="mb-2">
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">Delivery Instructions</DialogTitle>
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">Restaurant Instructions</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-gray-500">Add instructions for the delivery partner to help them find your address or know where to leave your order.</p>
