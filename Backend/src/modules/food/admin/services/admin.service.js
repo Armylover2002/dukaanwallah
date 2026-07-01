@@ -231,7 +231,15 @@ export async function globalSearch(query = '') {
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = { $regex: escaped, $options: 'i' };
 
-    const [orders, users, restaurants, items, categories, addons, sellers, sellerProducts] = await Promise.all([
+    // Create a robust phone regex that strips country code and formatting for better matching
+    const numericTerm = term.replace(/\D/g, '');
+    let phoneRegex = regex;
+    if (numericTerm.length >= 7) {
+        const localPhone = numericTerm.length > 10 ? numericTerm.slice(-10) : numericTerm;
+        phoneRegex = { $regex: localPhone, $options: 'i' };
+    }
+
+    const [orders, users, deliveryPartners, restaurants, items, categories, addons, sellers, sellerProducts] = await Promise.all([
         FoodOrder.find({
             orderType: 'food',
             $or: [{ orderId: regex }, { orderStatus: regex }]
@@ -240,17 +248,23 @@ export async function globalSearch(query = '') {
             .select('orderId orderStatus createdAt')
             .lean(),
         FoodUser.find({
-            $or: [{ name: regex }, { email: regex }, { phone: regex }],
+            $or: [{ name: regex }, { email: regex }, { phone: phoneRegex }],
             role: 'USER'
         })
             .limit(5)
             .select('name email phone')
             .lean(),
-        FoodRestaurant.find({
-            $or: [{ restaurantName: regex }, { ownerName: regex }, { city: regex }]
+        FoodDeliveryPartner.find({
+            $or: [{ name: regex }, { email: regex }, { phone: phoneRegex }]
         })
             .limit(5)
-            .select('restaurantName city area status')
+            .select('name email phone')
+            .lean(),
+        FoodRestaurant.find({
+            $or: [{ restaurantName: regex }, { ownerName: regex }, { city: regex }, { ownerPhone: phoneRegex }, { primaryContactNumber: phoneRegex }]
+        })
+            .limit(5)
+            .select('restaurantName city area status ownerPhone primaryContactNumber')
             .lean(),
         FoodItem.find({
             $or: [{ name: regex }, { description: regex }]
@@ -267,10 +281,10 @@ export async function globalSearch(query = '') {
             .select('name price')
             .lean(),
         Seller.find({
-            $or: [{ name: regex }, { shopName: regex }]
+            $or: [{ name: regex }, { shopName: regex }, { phone: phoneRegex }]
         })
             .limit(5)
-            .select('name shopName status')
+            .select('name shopName status phone')
             .lean(),
         SellerProduct.find({
             $or: [{ name: regex }]
@@ -296,6 +310,14 @@ export async function globalSearch(query = '') {
         title: u.name || 'Unnamed',
         description: `${u.email || u.phone || ''}`,
         path: `/admin/food/customers?userId=${u._id}`
+    }));
+
+    deliveryPartners.forEach(d => results.push({
+        id: d._id,
+        type: 'Delivery Boy',
+        title: d.name || 'Unnamed',
+        description: `${d.email || d.phone || ''}`,
+        path: `/admin/food/delivery-partners/list?partnerId=${d._id}`
     }));
 
     restaurants.forEach(r => results.push({
@@ -1374,12 +1396,6 @@ export async function getCustomerById(id) {
 
 export async function updateCustomerStatus(id, isActive) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const customerObjectId = new mongoose.Types.ObjectId(id);
-    const hasFoodOrders = await FoodOrder.exists({
-        userId: customerObjectId,
-        orderType: { $in: FOOD_CUSTOMER_ORDER_TYPES },
-    });
-    if (!hasFoodOrders) return null;
 
     const updatedDoc = await FoodUser.findByIdAndUpdate(
         id,
@@ -1396,12 +1412,6 @@ export async function updateCustomerStatus(id, isActive) {
 
 export async function updateCustomerCodAccess(id, isCodAllowed) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const customerObjectId = new mongoose.Types.ObjectId(id);
-    const hasFoodOrders = await FoodOrder.exists({
-        userId: customerObjectId,
-        orderType: { $in: FOOD_CUSTOMER_ORDER_TYPES },
-    });
-    if (!hasFoodOrders) return null;
 
     const updatedDoc = await FoodUser.findByIdAndUpdate(
         id,
@@ -1426,17 +1436,9 @@ export async function bulkUpdateCustomersCodAccess(ids = [], isCodAllowed) {
     }
 
     const objectIds = normalizedIds.map((id) => new mongoose.Types.ObjectId(id));
-    const eligibleIds = await FoodOrder.distinct('userId', {
-        userId: { $in: objectIds },
-        orderType: { $in: FOOD_CUSTOMER_ORDER_TYPES },
-    });
-
-    if (!eligibleIds.length) {
-        return { matched: 0, modified: 0 };
-    }
 
     const result = await FoodUser.updateMany(
-        { _id: { $in: eligibleIds } },
+        { _id: { $in: objectIds } },
         { $set: { isCodAllowed: Boolean(isCodAllowed) } }
     );
 
@@ -3619,26 +3621,34 @@ export async function getAllOffers(_query = {}) {
 export async function createAdminOffer(body) {
     const existing = await FoodOffer.findOne({ couponCode: body.couponCode }).lean();
     if (existing) {
-        throw new ValidationError('Coupon code already exists');
+        throw new ValidationError('Coupon already exists.');
     }
 
-    const doc = await FoodOffer.create({
-        couponCode: body.couponCode,
-        discountType: body.discountType,
-        discountValue: body.discountValue,
-        customerScope: body.customerScope,
-        restaurantScope: body.restaurantScope,
-        restaurantId: body.restaurantScope === 'selected' ? body.restaurantId : undefined,
-        minOrderValue: body.minOrderValue ?? 0,
-        maxDiscount: body.maxDiscount ?? null,
-        usageLimit: body.usageLimit ?? null,
-        perUserLimit: body.perUserLimit ?? null,
-        startDate: body.startDate,
-        isFirstOrderOnly: body.isFirstOrderOnly ?? false,
-        endDate: body.endDate,
-        status: body.endDate && new Date(body.endDate).getTime() <= Date.now() ? 'inactive' : 'active',
-        showInCart: true
-    });
+    let doc;
+    try {
+        doc = await FoodOffer.create({
+            couponCode: body.couponCode,
+            discountType: body.discountType,
+            discountValue: body.discountValue,
+            customerScope: body.customerScope,
+            restaurantScope: body.restaurantScope,
+            restaurantId: body.restaurantScope === 'selected' ? body.restaurantId : undefined,
+            minOrderValue: body.minOrderValue ?? 0,
+            maxDiscount: body.maxDiscount ?? null,
+            usageLimit: body.usageLimit ?? null,
+            perUserLimit: body.perUserLimit ?? null,
+            startDate: body.startDate,
+            isFirstOrderOnly: body.isFirstOrderOnly ?? false,
+            endDate: body.endDate,
+            status: body.endDate && new Date(body.endDate).getTime() <= Date.now() ? 'inactive' : 'active',
+            showInCart: true
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            throw new ValidationError('Coupon already exists.');
+        }
+        throw error;
+    }
 
     if (doc.restaurantScope === 'selected' && doc.restaurantId) {
         try {

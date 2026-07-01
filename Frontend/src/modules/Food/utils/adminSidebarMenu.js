@@ -85,7 +85,6 @@ export const adminSidebarMenu = [
         icon: "FileText",
         subItems: [
           { label: "All", path: "/admin/food/orders/all", permissionKey: "all" },
-          { label: "Scheduled", path: "/admin/food/orders/scheduled", permissionKey: "scheduled" },
           { label: "Pending", path: "/admin/food/orders/pending", permissionKey: "pending" },
           { label: "Accepted", path: "/admin/food/orders/accepted", permissionKey: "accepted" },
           { label: "Processing", path: "/admin/food/orders/processing", permissionKey: "processing" },

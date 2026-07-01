@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import {
   BadgeCheck,
   Download,
+  Eye,
   Globe,
   Loader2,
   Pencil,
@@ -113,6 +114,7 @@ export default function Category() {
   const [showPendingOnly, setShowPendingOnly] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
+  const [viewingCategory, setViewingCategory] = useState(null)
   const [zones, setZones] = useState([])
   const [zonesLoading, setZonesLoading] = useState(false)
   const [formData, setFormData] = useState(defaultFormData)
@@ -558,7 +560,7 @@ export default function Category() {
                   const zoneText = zoneLabel(category?.zoneId)
 
                   return (
-                    <tr key={category.id} className="align-top hover:bg-slate-50/80">
+                    <tr key={category.id} className="align-middle hover:bg-slate-50/80">
                       <td className="px-5 py-5">
                         <div className="flex items-start gap-3">
                           <div className="h-11 w-11 overflow-hidden rounded-2xl bg-slate-100">
@@ -629,33 +631,14 @@ export default function Category() {
                       </td>
                       <td className="px-5 py-5">
                         <div className="flex flex-col items-end gap-2">
-                          <div className="flex flex-wrap justify-end gap-2">
-                            {canEdit && approvalStatus !== "approved" && (
-                              <button
-                                onClick={() => handleApprove(category.id)}
-                                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
-                              >
-                                Approve
-                              </button>
-                            )}
-                            {canEdit && isRestaurantCategory && approvalStatus !== "rejected" && (
-                              <button
-                                onClick={() => handleReject(category)}
-                                className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
-                              >
-                                Reject
-                              </button>
-                            )}
-                            {canEdit && isRestaurantCategory && !category?.isGlobal && approvalStatus === "approved" && (
-                              <button
-                                onClick={() => handleMakeGlobal(category)}
-                                className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
-                              >
-                                Make Global
-                              </button>
-                            )}
-                          </div>
                           <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => setViewingCategory(category)}
+                              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
                             {canEdit && (
                               <button
                                 onClick={() => handleEdit(category)}
@@ -688,7 +671,8 @@ export default function Category() {
 
       {typeof window !== "undefined" &&
         createPortal(
-          <AnimatePresence>
+          <>
+            <AnimatePresence>
             {isModalOpen && (
               <div className="fixed inset-0 z-[200]">
                 <div className="absolute inset-0 bg-black/50" onClick={resetModal} />
@@ -834,7 +818,121 @@ export default function Category() {
                 </div>
               </div>
             )}
-          </AnimatePresence>,
+          </AnimatePresence>
+          <AnimatePresence>
+            {viewingCategory && (
+              <div className="fixed inset-0 z-[200]">
+                <div className="absolute inset-0 bg-black/50" onClick={() => setViewingCategory(null)} />
+                <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-xl max-h-[min(720px,calc(100vh-32px))]"
+                  >
+                    <div className="flex items-center justify-between border-b px-6 py-4">
+                      <h2 className="text-xl font-bold text-slate-900">Category Details</h2>
+                      <button onClick={() => setViewingCategory(null)} className="rounded-lg p-1 hover:bg-slate-100">
+                        <X className="h-5 w-5 text-slate-500" />
+                      </button>
+                    </div>
+
+                    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="h-16 w-16 overflow-hidden rounded-2xl bg-slate-100 flex-shrink-0">
+                          {viewingCategory?.image ? (
+                            <img src={viewingCategory.image} alt={viewingCategory.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xl font-bold text-slate-500">
+                              {String(viewingCategory?.name || "C").slice(0, 1).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-slate-900">{viewingCategory?.name}</h3>
+                          <p className="text-sm text-slate-500">{viewingCategory?.type || "No type"}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex justify-between border-b border-slate-100 pb-3">
+                          <span className="text-sm font-medium text-slate-500">Status</span>
+                          <span className="text-sm font-semibold text-slate-900">{viewingCategory?.status ? "Active" : "Inactive"}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-3">
+                          <span className="text-sm font-medium text-slate-500">Diet Scope</span>
+                          <span className="text-sm font-semibold text-slate-900">{viewingCategory?.foodTypeScope || "Both"}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-3">
+                          <span className="text-sm font-medium text-slate-500">Zone</span>
+                          <span className="text-sm font-semibold text-slate-900">{zoneLabel(viewingCategory?.zoneId)}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-3">
+                          <span className="text-sm font-medium text-slate-500">Owner</span>
+                          <span className="text-sm font-semibold text-slate-900">{viewingCategory?.createdByRestaurant?.name || viewingCategory?.restaurant?.name || "Admin"}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-3">
+                          <span className="text-sm font-medium text-slate-500">Visibility</span>
+                          <span className="text-sm font-semibold text-slate-900">{viewingCategory?.isGlobal ? "Global" : "Private"}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-3">
+                          <span className="text-sm font-medium text-slate-500">Approval</span>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${approvalBadgeClass(viewingCategory?.approvalStatus)}`}>
+                            {String(viewingCategory?.approvalStatus || "pending").charAt(0).toUpperCase() + String(viewingCategory?.approvalStatus || "pending").slice(1)}
+                          </span>
+                        </div>
+                        {viewingCategory?.rejectionReason && (
+                          <div className="rounded-lg bg-rose-50 p-3">
+                            <span className="text-sm font-medium text-rose-800">Rejection Reason:</span>
+                            <p className="mt-1 text-sm text-rose-600">{viewingCategory.rejectionReason}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {canEdit && (viewingCategory?.approvalStatus !== "approved" || (Boolean(viewingCategory?.createdByRestaurantId || viewingCategory?.restaurantId) && !viewingCategory?.isGlobal && viewingCategory?.approvalStatus === "approved")) && (
+                      <div className="border-t border-slate-100 px-6 py-4 flex gap-3 justify-end bg-slate-50">
+                        {viewingCategory?.approvalStatus !== "approved" && Boolean(viewingCategory?.createdByRestaurantId || viewingCategory?.restaurantId) && viewingCategory?.approvalStatus !== "rejected" && (
+                          <button
+                            onClick={() => {
+                              handleReject(viewingCategory)
+                              setViewingCategory(null)
+                            }}
+                            className="rounded-xl px-4 py-2 text-sm font-medium text-rose-600 bg-white border border-rose-200 hover:bg-rose-50"
+                          >
+                            Reject
+                          </button>
+                        )}
+                        {viewingCategory?.approvalStatus !== "approved" && (
+                          <button
+                            onClick={() => {
+                              handleApprove(viewingCategory.id)
+                              setViewingCategory(null)
+                            }}
+                            className="rounded-xl px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {Boolean(viewingCategory?.createdByRestaurantId || viewingCategory?.restaurantId) && !viewingCategory?.isGlobal && viewingCategory?.approvalStatus === "approved" && (
+                          <button
+                            onClick={() => {
+                              handleMakeGlobal(viewingCategory)
+                              setViewingCategory(null)
+                            }}
+                            className="rounded-xl px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700"
+                          >
+                            Make Global
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                </div>
+              </div>
+            )}
+          </AnimatePresence>
+          </>,
           document.body,
         )}
     </div>

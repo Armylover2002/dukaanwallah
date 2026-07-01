@@ -76,8 +76,8 @@ export default function RefundModal({ isOpen, onOpenChange, order, onConfirm, is
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md flex flex-col max-h-[90vh] p-4 sm:p-6">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
             <Wallet className="w-5 h-5 text-purple-600" />
             {isWalletPayment ? "Wallet Refund" : "Refund"}
@@ -92,7 +92,7 @@ export default function RefundModal({ isOpen, onOpenChange, order, onConfirm, is
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-2 px-1 sm:px-2 overflow-y-auto flex-1 custom-scrollbar">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Refund Amount (INR)</label>
             <div className="relative">
@@ -177,7 +177,7 @@ export default function RefundModal({ isOpen, onOpenChange, order, onConfirm, is
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 flex-shrink-0 mt-4">
           <Button
             variant="outline"
             onClick={handleClose}

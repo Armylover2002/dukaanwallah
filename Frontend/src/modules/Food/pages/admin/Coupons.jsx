@@ -101,13 +101,11 @@ export default function Coupons() {
     if (f.minOrderValue !== "" && Number(f.minOrderValue) < 0) e.minOrderValue = "Min order cannot be negative"
     if (f.usageLimit !== "" && Number(f.usageLimit) < 1) e.usageLimit = "Usage limit must be at least 1"
     if (f.perUserLimit !== "" && Number(f.perUserLimit) < 1) e.perUserLimit = "Per user limit must be at least 1"
-    const start = f.startDate ? new Date(`${f.startDate}T00:00:00`) : null
-    const end = f.endDate ? new Date(`${f.endDate}T00:00:00`) : null
-    const now = new Date()
-    if (end && end < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+    const todayStr = todayYMD()
+    if (f.endDate && f.endDate < todayStr) {
       e.endDate = "End date cannot be in the past"
     }
-    if (start && end && start > end) {
+    if (f.startDate && f.endDate && f.startDate > f.endDate) {
       e.startDate = "Start date must be before end date"
       e.endDate = "End date must be after start date"
     }
@@ -134,6 +132,12 @@ export default function Coupons() {
       }
     }
     const next = { ...formData, [field]: value }
+    
+    // Auto-select "First Order Only" when "First Time User" is selected
+    if (field === "customerScope" && value === "first-time") {
+      next.isFirstOrderOnly = true
+    }
+
     // Date constraints
     if (field === "startDate" && next.endDate) {
       // Ensure startDate <= endDate

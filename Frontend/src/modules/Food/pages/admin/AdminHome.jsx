@@ -412,7 +412,7 @@ export default function AdminHome() {
                 </p>
               </CardHeader>
               <CardContent className="min-w-0 pt-4">
-                <div className="h-80 w-full min-w-0">
+                <div className="h-80 w-full min-w-0 select-none outline-none focus:outline-none [&_*]:focus:outline-none [&_*]:outline-none" style={{ WebkitTapHighlightColor: 'transparent', userSelect: 'none', outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <AreaChart data={monthlyData}>
                       <defs>
@@ -462,7 +462,7 @@ export default function AdminHome() {
                 </span>
               </CardHeader>
               <CardContent className="min-w-0 pt-4">
-                <div className="h-72 w-full min-w-0">
+                <div className="h-72 w-full min-w-0 select-none outline-none focus:outline-none [&_*]:focus:outline-none [&_*]:outline-none" style={{ WebkitTapHighlightColor: 'transparent', userSelect: 'none', outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <PieChart>
                       <Pie
@@ -522,7 +522,7 @@ export default function AdminHome() {
                 <span className="text-xs text-neutral-500">Summary: {ordersTotal} Orders</span>
               </CardHeader>
               <CardContent className="min-w-0 pt-4">
-                <div className="h-64 w-full min-w-0">
+                <div className="h-64 w-full min-w-0 select-none outline-none focus:outline-none [&_*]:focus:outline-none [&_*]:outline-none" style={{ WebkitTapHighlightColor: 'transparent', userSelect: 'none', outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={monthlyData.slice(-6)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -595,7 +595,8 @@ export default function AdminHome() {
                     return (
                       <div
                         key={idx}
-                        className={`flex items-start gap-3 rounded-xl border border-neutral-200 ${getBg(item.type)} px-3 py-3 hover:border-neutral-300 transition-all`}
+                        onClick={() => navigate('/admin/food/orders/all')}
+                        className={`flex items-start gap-3 rounded-xl border border-neutral-200 ${getBg(item.type)} px-3 py-3 hover:border-neutral-300 transition-all cursor-pointer`}
                       >
                         <div className="mt-0.5">{getIcon(item.type)}</div>
                         <div className="flex-1 min-w-0">
