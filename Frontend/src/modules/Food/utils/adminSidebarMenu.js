@@ -255,6 +255,7 @@ export const adminSidebarMenu = [
       { type: "link", label: "Landing Page Management", permissionKey: "landing_page", path: "/admin/food/hero-banner-management", icon: "Image" },
     ],
   },
+  /*
   {
     type: "section",
     label: "DINING MANAGEMENT",
@@ -264,6 +265,7 @@ export const adminSidebarMenu = [
       { type: "link", label: "Dining List", permissionKey: "list", path: "/admin/food/dining-list", icon: "FileText" },
     ],
   },
+  */
   {
     type: "section",
     label: "STAFF MANAGEMENT",

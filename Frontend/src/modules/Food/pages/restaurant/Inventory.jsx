@@ -1378,6 +1378,18 @@ export default function Inventory() {
     }
   }, [activeFilterOptions, selectedFilter])
 
+  // Prevent background scrolling when filter modal is open
+  useEffect(() => {
+    if (filterOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [filterOpen]);
+
   const filterMenuItems = (items = [], filterValue = "all") => {
     if (filterValue === "all") return items
     if (filterValue === "in-stock") return items.filter((item) => item.inStock)
@@ -2453,11 +2465,11 @@ export default function Inventory() {
               onClick={() => setFilterOpen(false)}
             />
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
+              initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+              animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+              exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-50"
+              className="fixed top-1/2 left-1/2 w-[92%] sm:w-[80%] md:w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6">

@@ -343,3 +343,19 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
 
     return updated;
 }
+
+export async function deleteRestaurantFood(restaurantId, foodId) {
+    if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
+        throw new ValidationError('Invalid restaurant id');
+    }
+    if (!foodId || !mongoose.Types.ObjectId.isValid(String(foodId))) {
+        throw new ValidationError('Invalid food id');
+    }
+
+    const deleted = await FoodItem.findOneAndDelete({ _id: foodId, restaurantId }).lean();
+    if (!deleted) {
+        throw new ValidationError('Food item not found or unauthorized');
+    }
+
+    return deleted;
+}

@@ -1199,10 +1199,10 @@ export const restaurantAPI = {
       contextModule: "restaurant",
     }),
   /** Public Offers for users (global/selected restaurant) */
-  getPublicOffers: () => getPublicOffersOnce(),
+  getPublicOffers: (params = {}) => publicGetOnce("/food/restaurant/offers", { params }),
   /** Backward-compat helper used by Cart: returns coupons array for an item by adapting public offers */
   getCouponsByItemIdPublic: (restaurantId, _itemId) =>
-    getPublicOffersOnce({ restaurantId }).then((res) => {
+    publicGetOnce("/food/restaurant/offers", { params: { restaurantId } }).then((res) => {
       const list = res?.data?.data?.allOffers || res?.data?.allOffers || [];
       const now = Date.now();
       const coupons = list
@@ -1322,6 +1322,10 @@ export const restaurantAPI = {
     }),
   updateFood: (id, body) =>
     apiClient.patch(`/food/restaurant/foods/${String(id)}`, body ?? {}, {
+      contextModule: "restaurant",
+    }),
+  deleteFood: (id) =>
+    apiClient.delete(`/food/restaurant/foods/${String(id)}`, {
       contextModule: "restaurant",
     }),
   /** Orders (restaurant dashboard) */

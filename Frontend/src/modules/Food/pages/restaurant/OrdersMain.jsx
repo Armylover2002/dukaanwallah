@@ -1959,6 +1959,18 @@ export default function OrdersMain() {
     setIsSheetOpen(true);
   }, []);
 
+  // Prevent background scrolling when order modal is open
+  useEffect(() => {
+    if (isSheetOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isSheetOpen]);
+
   const renderContent = () => {
     switch (activeFilter) {
       case "all":

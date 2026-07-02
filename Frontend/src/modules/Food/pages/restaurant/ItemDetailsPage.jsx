@@ -111,6 +111,7 @@ export default function ItemDetailsPage() {
   const [categories, setCategories] = useState([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingItem, setLoadingItem] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [isPureVegRestaurant, setIsPureVegRestaurant] = useState(false)
 
@@ -216,7 +217,7 @@ export default function ItemDetailsPage() {
   const maxNameLength = 70
   const maxDescriptionLength = 1000
   const descriptionLength = itemDescription.length
-  const minDescriptionLength = 5
+  const minDescriptionLength = 10
   const nameLength = itemName.length
   const currentApprovalStatus = String(itemData?.approvalStatus || "").toLowerCase()
   const currentRejectionReason = String(itemData?.rejectionReason || "").trim()
@@ -726,6 +727,11 @@ export default function ItemDetailsPage() {
       return
     }
 
+    if (itemDescription.trim().length < minDescriptionLength) {
+      toast.error(`Description must be at least ${minDescriptionLength} characters`)
+      return
+    }
+
     if (!images || images.length === 0 || !images.some(img => img)) {
       toast.error("Please upload at least one image for the item")
       return
@@ -970,10 +976,19 @@ export default function ItemDetailsPage() {
     setVariants((prev) => prev.filter((variant) => variant.localId !== localId))
   }
 
-  const handleDelete = () => {
-    // Delete logic here
-    debugLog("Deleting item:", id)
-    goBack()
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this item?")) return
+    try {
+      setIsSubmitting(true)
+      await restaurantAPI.deleteFood(id)
+      toast.success("Item deleted successfully")
+      goBack()
+    } catch (error) {
+      debugLog("Failed to delete item:", error)
+      toast.error(error?.response?.data?.message || "Failed to delete item")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (loadingItem) {
@@ -1258,7 +1273,7 @@ export default function ItemDetailsPage() {
             </div>
             <div className="flex items-center justify-between mt-1">
               <span className={`text-xs ${descriptionLength < minDescriptionLength ? "text-red-500" : "text-gray-500"}`}>
-                {descriptionLength < minDescriptionLength ? "Min 5 characters required" : ""}
+                {descriptionLength < minDescriptionLength ? `Min ${minDescriptionLength} characters required` : ""}
               </span>
               <span className="text-xs text-gray-500">
                 {descriptionLength} / {maxDescriptionLength}

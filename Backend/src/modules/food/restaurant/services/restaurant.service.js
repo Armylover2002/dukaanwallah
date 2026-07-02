@@ -1958,42 +1958,62 @@ export const getApprovedRestaurantByIdOrSlug = async (idOrSlug) => {
     const value = String(idOrSlug || '').trim();
     if (!value) return null;
 
+    let doc = null;
+
     // ObjectId path
     if (/^[0-9a-fA-F]{24}$/.test(value)) {
-        const doc = await FoodRestaurant.findOne({ _id: value, status: 'approved' }).lean();
-        if (!doc) return null;
-        return {
-            ...doc,
-            rating: normalizeRatingValue(doc.rating),
-            totalRatings: normalizeTotalRatingsValue(doc.totalRatings)
-        };
-    }
-
+        doc = await FoodRestaurant.findOne({ _id: value, status: 'approved' }).lean();
+    } 
     // Public restaurant code path, e.g. REST000003
-    if (/^REST\d{6}$/i.test(value)) {
-        const doc = await FoodRestaurant.findOne({
+    else if (/^REST\d{6}$/i.test(value)) {
+        doc = await FoodRestaurant.findOne({
             restaurantId: value.toUpperCase(),
             status: 'approved',
         }).lean();
-        if (!doc) return null;
-        return {
-            ...doc,
-            rating: normalizeRatingValue(doc.rating),
-            totalRatings: normalizeTotalRatingsValue(doc.totalRatings)
-        };
+    } 
+    // Slug path: use normalized field for index-friendly exact match.
+    else {
+        const restaurantNameNormalized = normalizeName(value);
+        if (restaurantNameNormalized) {
+            doc = await FoodRestaurant.findOne({
+                status: 'approved',
+                restaurantNameNormalized
+            }).lean();
+        }
     }
 
-    // Slug path: use normalized field for index-friendly exact match.
-    const restaurantNameNormalized = normalizeName(value);
-    if (!restaurantNameNormalized) return null;
-
-    const doc = await FoodRestaurant.findOne({
-        status: 'approved',
-        restaurantNameNormalized
-    }).lean();
     if (!doc) return null;
+
+    // Dynamically fetch active offers for this restaurant
+    const now = new Date();
+    const offerFilter = {
+        status: 'active',
+        $and: [
+            { $or: [{ startDate: { $exists: false } }, { startDate: null }, { startDate: { $lte: now } }] },
+            { $or: [{ endDate: { $exists: false } }, { endDate: null }, { endDate: { $gt: now } }] }
+        ],
+        $or: [
+            { restaurantScope: 'all' },
+            { restaurantId: doc._id }
+        ]
+    };
+
+    const activeOffers = await FoodOffer.find(offerFilter).sort({ createdAt: -1 }).lean();
+    const formattedOffers = activeOffers.map(o => {
+        const title = o.discountType === 'percentage' 
+            ? `${Number(o.discountValue) || 0}% OFF` 
+            : `Flat ₹${Number(o.discountValue) || 0} OFF`;
+        return {
+            ...o,
+            title,
+            id: String(o._id),
+            offerId: String(o._id),
+        };
+    });
+
     return {
         ...doc,
+        offers: formattedOffers,
         rating: normalizeRatingValue(doc.rating),
         totalRatings: normalizeTotalRatingsValue(doc.totalRatings)
     };

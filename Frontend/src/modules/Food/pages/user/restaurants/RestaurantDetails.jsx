@@ -1924,10 +1924,9 @@ function RestaurantDetailsContent() {
 
   // Highlight offers/texts for the blue offer line
   const highlightOffers = [
-    "Upto 50% OFF",
     restaurant?.offerText || "",
     ...(Array.isArray(restaurant?.offers) ? restaurant.offers.map((offer) => offer?.title || "") : []),
-  ]
+  ].filter(Boolean)
 
   // Auto-rotate images every 3 seconds
   useEffect(() => {
@@ -1944,6 +1943,7 @@ function RestaurantDetailsContent() {
 
   // Auto-rotate highlight offer text every 2 seconds
   useEffect(() => {
+    if (highlightOffers.length === 0) return
     const interval = setInterval(() => {
       setHighlightIndex((prev) => (prev + 1) % highlightOffers.length)
     }, 2000)
@@ -2126,44 +2126,49 @@ function RestaurantDetailsContent() {
           </div>
 
           {/* Offer Card */}
-          <div className="max-w-7xl mx-auto mt-4 bg-white dark:bg-[#1a1a1a] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 dark:border-gray-800 p-4 relative overflow-hidden">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                  <Percent className="h-6 w-6 text-[#FE5502]" />
+          {Array.isArray(restaurant?.offers) && restaurant.offers.length > 0 && highlightOffers.length > 0 && (
+            <div 
+              onClick={() => navigate(`/food/user/profile/coupons?restaurantId=${restaurant?.id || restaurant?._id || slug}&from=food`)}
+              className="max-w-7xl mx-auto mt-4 bg-white dark:bg-[#1a1a1a] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 dark:border-gray-800 p-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <Percent className="h-6 w-6 text-[#FE5502]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+                      {highlightOffers[highlightIndex] || "Special Offer"}
+                    </h3>
+                    <p className="text-[11px] font-medium text-gray-400">
+                      Tap to view all offers
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">
-                    {highlightOffers[highlightIndex] || "Special Offer"}
-                  </h3>
-                  <p className="text-[11px] font-medium text-gray-400">
-                    Tap to view all offers
-                  </p>
+
+                {/* Redundant rating on offer card (as per screenshot) */}
+                <div className="flex flex-col items-end gap-1 opacity-60 scale-90 origin-right">
+                  <div className="bg-[#008d48] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 font-bold text-xs">
+                    <Star className="h-3 w-3 fill-white" />
+                    <span>{restaurant?.rating || 4.5}</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap">
+                    {(restaurant.reviews || 0).toLocaleString()}+ ratings
+                  </span>
                 </div>
               </div>
 
-              {/* Redundant rating on offer card (as per screenshot) */}
-              <div className="flex flex-col items-end gap-1 opacity-60 scale-90 origin-right">
-                <div className="bg-[#008d48] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 font-bold text-xs">
-                  <Star className="h-3 w-3 fill-white" />
-                  <span>{restaurant?.rating || 4.5}</span>
-                </div>
-                <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap">
-                  {(restaurant.reviews || 0).toLocaleString()}+ ratings
-                </span>
+              {/* Pagination Dots */}
+              <div className="flex items-center gap-1 mt-3 px-1">
+                {highlightOffers.slice(0, 2).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 w-1.5 rounded-full transition-colors ${i === highlightIndex % 2 ? 'bg-[#FE5502]' : 'bg-gray-200'}`}
+                  />
+                ))}
               </div>
             </div>
-
-            {/* Pagination Dots */}
-            <div className="flex items-center gap-1 mt-3 px-1">
-              {highlightOffers.slice(0, 2).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 w-1.5 rounded-full transition-colors ${i === highlightIndex % 2 ? 'bg-[#FE5502]' : 'bg-gray-200'}`}
-                />
-              ))}
-            </div>
-          </div>
+          )}
 
           {isRestaurantOffline && (
             <div className="max-w-7xl mx-auto mt-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">

@@ -142,7 +142,7 @@ export default function CreateCouponsPage() {
     <div className="min-h-screen bg-slate-50 pb-24">
       <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={goBack} className="rounded-full p-1 hover:bg-slate-100">
+          <button onClick={() => navigate(-1)} className="rounded-full p-1 hover:bg-slate-100">
             <ArrowLeft className="h-5 w-5 text-slate-700" />
           </button>
           <div>

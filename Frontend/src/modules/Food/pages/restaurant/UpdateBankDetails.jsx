@@ -173,10 +173,9 @@ export default function UpdateBankDetails() {
   }
 
   const inputClass = (key) =>
-    `w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-base transition-colors ${
-      errors[key]
-        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-        : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+    `w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-base transition-colors ${errors[key]
+      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+      : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
     }`
 
   return (
@@ -208,9 +207,10 @@ export default function UpdateBankDetails() {
               <input
                 type="text"
                 value={form.accountHolderName}
-                onChange={(e) => setForm((p) => ({ ...p, accountHolderName: e.target.value }))}
+                onChange={(e) => setForm((p) => ({ ...p, accountHolderName: e.target.value.replace(/[^A-Za-z\s.]/g, "").toUpperCase() }))}
                 className={inputClass("accountHolderName")}
                 placeholder="Enter account holder name"
+                maxLength={30}
               />
               {errors.accountHolderName ? (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
@@ -301,7 +301,7 @@ export default function UpdateBankDetails() {
                   </div>
                 )}
 
-                <div 
+                <div
                   onClick={handleQrClick}
                   className="inline-flex mt-3 items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium cursor-pointer hover:bg-gray-50"
                 >
@@ -338,7 +338,7 @@ export default function UpdateBankDetails() {
           </form>
         )}
       </div>
-      
+
       <ImageSourcePicker
         isOpen={isQrPickerOpen}
         onClose={() => setIsQrPickerOpen(false)}
