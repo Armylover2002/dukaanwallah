@@ -1729,3 +1729,14 @@ export const settleSellerCODVerificationController = async (req, res, next) => {
   }
 };
 
+import { getSellerOrderTransactions as getSellerOrderTransactionsService } from '../admin/services/transactions.service.js';
+
+export const getSellerOrderTransactions = async (req, res, next) => {
+  try {
+    const data = await getSellerOrderTransactionsService(req.query);
+    res.status(200).json({ success: true, message: "Seller transactions fetched", data });
+  } catch (error) {
+    next(error);
+  }
+};
+

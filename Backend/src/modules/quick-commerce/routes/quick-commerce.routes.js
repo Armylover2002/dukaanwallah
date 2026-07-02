@@ -472,6 +472,9 @@ router.put('/admin/coupons/:couponId', ...adminOrEmployee, checkPermission('quic
 router.delete('/admin/coupons/:couponId', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'delete'), deleteCoupon);
 router.patch('/admin/coupons/:couponId/toggle-status', ...adminOrEmployee, checkPermission('quick::core_management::promotions_management::coupons', 'edit'), toggleCouponStatus);
 
+import { getSellerOrderTransactions } from '../controllers/admin.controller.js';
+router.get('/admin/seller-order-transactions', ...adminOrEmployee, checkPermission('quick::core_management::wallet', 'view'), getSellerOrderTransactions);
+
 router.use('/', returnRoutes);
 
 export default router;

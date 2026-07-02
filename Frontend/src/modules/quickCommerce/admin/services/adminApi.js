@@ -456,5 +456,6 @@ export const adminApi = {
   getAvailableReturnPartners: () => axiosInstance.get('/quick-commerce/admin/returns/available-partners'),
   getReturnSettings: () => axiosInstance.get('/quick-commerce/admin/return-settings'),
   updateReturnSettings: (data) => axiosInstance.put('/quick-commerce/admin/return-settings', data),
+  getSellerOrderTransactions: (params) => axiosInstance.get('/quick-commerce/admin/seller-order-transactions', { params }),
 };
 
