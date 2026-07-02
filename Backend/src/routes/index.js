@@ -29,6 +29,7 @@ import { getGlobalSettings as getPublicSettings } from '../modules/common/contro
 import onboardingFeeRoutes from '../modules/common/routes/onboardingFee.routes.js';
 import whatsappRoutes from '../modules/whatsapp/routes/whatsapp.routes.js';
 import { cacheResponse } from '../middleware/cache.js';
+import chatbotRoutes from '../modules/chatbot/routes/chatbot.routes.js';
 
 const router = express.Router();
 
@@ -73,7 +74,7 @@ router.use('/v1/fcm-tokens', fcmRoutes);
 router.use('/fcm-tokens', fcmRoutes);
 router.use('/v1/quick-commerce', quickCommerceRoutes);
 router.use('/v1/seller', sellerRoutes);
-
+router.use('/v1/chat', chatbotRoutes);
 
 // router.get('/v1/env/public', getPublicEnvController);
 // router.get('/env/public', getPublicEnvController);

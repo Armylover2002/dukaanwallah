@@ -7,6 +7,7 @@ import MobileFooterMessage from './MobileFooterMessage';
 import { useProductDetail } from '../../context/ProductDetailContext';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
+import ChatbotWidget from '@/components/Chatbot/ChatbotWidget';
 
 // Static sets for O(1) lookups instead of Array.includes (O(n)) on every render
 const HIDE_BOTTOM_NAV_SET = new Set(['/cart', '/checkout', '/search', '/chat']);
@@ -72,6 +73,7 @@ const CustomerLayout = ({
 
             {showCart && <MiniCart />}
             <ProductDetailSheet />
+            <ChatbotWidget />
 
             <div className="hidden md:block">
                 <Footer />

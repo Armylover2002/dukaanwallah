@@ -14,6 +14,7 @@ import BottomNavigation from "./BottomNavigation"
 import DesktopNavbar from "./DesktopNavbar"
 import QuickBottomNav from "@/modules/quickCommerce/user/components/layout/BottomNav"
 import { useUserNotifications } from "../../hooks/useUserNotifications"
+import ChatbotWidget from '@/components/Chatbot/ChatbotWidget'
 
 // Create SearchOverlay context with default value
 const SearchOverlayContext = createContext({
@@ -163,6 +164,7 @@ export default function UserLayout({ children }) {
           <OrdersProvider>
               <SearchOverlayProvider>
                 <LocationSelectorProvider>
+                  <ChatbotWidget />
                   {/* <Navbar /> */}
                   {/* Desktop Navbar - Hidden on mobile, visible on medium+ screens */}
                   <div className="hidden md:block">
