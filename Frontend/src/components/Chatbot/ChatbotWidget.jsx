@@ -1,7 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMessageSquare, FiX, FiSend, FiChevronDown } from 'react-icons/fi';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
+
+// Auth/onboarding paths where the chatbot should NOT appear
+const AUTH_ROUTE_PATTERNS = [
+    /\/(login|signin|sign-in)(\/?$|\/)/i,
+    /\/(register|signup|sign-up)(\/?$|\/)/i,
+    /\/otp(\/?$|\/)/i,
+    /\/auth(\/?$|\/)/i,
+    /\/welcome(\/?$|\/)/i,
+    /\/onboarding(\/?$|\/)/i,
+    /\/pending(\/?$|\/)/i,
+    /\/verification(\/?$|\/)/i,
+    /\/forgot-password(\/?$|\/)/i,
+    /\/reset-password(\/?$|\/)/i,
+];
+
+const isAuthPath = (pathname) =>
+    AUTH_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
 
 // Assuming the API is at VITE_API_URL or relative /api
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -16,6 +34,8 @@ const getActiveUserId = (module) => {
             userStr = localStorage.getItem('restaurant_user');
         } else if (module === 'seller') {
             userStr = localStorage.getItem('seller_user') || localStorage.getItem('seller');
+        } else if (module === 'delivery') {
+            userStr = localStorage.getItem('delivery_user');
         } else {
             userStr = localStorage.getItem('user_user') || localStorage.getItem('user');
         }
@@ -37,6 +57,7 @@ const getActiveUserId = (module) => {
 };
 
 const ChatbotWidget = ({ userId, module = 'user' }) => {
+    const location = useLocation();
     const activeUserId = userId || getActiveUserId(module);
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
@@ -198,6 +219,8 @@ const ChatbotWidget = ({ userId, module = 'user' }) => {
         // Option objects have { text, nextNodeId, action }
         handleSendMessage(option.text, option.nextNodeId, option.action);
     };
+    // Do not render the chatbot on auth/login/onboarding pages (all panels)
+    if (isAuthPath(location.pathname)) return null;
 
     return (
         <>

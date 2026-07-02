@@ -741,6 +741,184 @@ const SELLER_NODES = {
 };
 
 // =====================================================================
+// DELIVERY NODES
+// =====================================================================
+const DELIVERY_NODES = {
+    root: {
+        nodeId: 'root',
+        message: "Hello! 👋 Welcome to the Dukaanwallah Delivery Partner Support. How can I help you today?",
+        options: [
+            { text: '📦 Order & Delivery Help', nextNodeId: 'order_help', action: null },
+            { text: '💰 Earnings & Pocket', nextNodeId: 'earnings_help', action: null },
+            { text: '📲 App & Account Issues', nextNodeId: 'app_issues', action: null },
+            { text: '🚐 Emergency / SOS', nextNodeId: 'emergency', action: null },
+            { text: '🧑‍💼 Talk to Support', nextNodeId: 'agent', action: 'FETCH_AGENT_CONTACT' },
+        ],
+        keywords: ['hi', 'hello', 'hey', 'start', 'help', 'menu', 'back', 'main'],
+        isTerminal: false,
+    },
+    order_help: {
+        nodeId: 'order_help',
+        message: '📦 Order & Delivery Help: What do you need help with?',
+        options: [
+            { text: '📍 Cannot find customer location', nextNodeId: 'find_location', action: null },
+            { text: '📞 Customer not picking up', nextNodeId: 'no_response', action: null },
+            { text: '❌ Order cancellation', nextNodeId: 'order_cancel', action: null },
+            { text: '🔄 Return pickup help', nextNodeId: 'return_pickup', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['order', 'delivery', 'pickup', 'drop', 'customer', 'location'],
+        isTerminal: false,
+    },
+    find_location: {
+        nodeId: 'find_location',
+        message: '📍 If you cannot find the customer location:\n\n1. Use the **Map** icon on the order screen for live navigation.\n2. Call the customer directly from the app.\n3. If still unreachable after 5 mins, mark the order as \'Cannot Locate\' in the app.',
+        options: [
+            { text: '📦 More Order Help', nextNodeId: 'order_help', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['location', 'address', 'cannot find', 'wrong address', 'navigate'],
+        isTerminal: true,
+    },
+    no_response: {
+        nodeId: 'no_response',
+        message: '📞 If the customer is not picking up:\n\n1. Try calling 2-3 times from the app.\n2. Wait at least **5 minutes** at the delivery location.\n3. If still no response, mark as \'Customer Unreachable\' and the system will auto-handle the order.',
+        options: [
+            { text: '📦 More Order Help', nextNodeId: 'order_help', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['not answering', 'no response', 'customer unreachable', 'not picking up'],
+        isTerminal: true,
+    },
+    order_cancel: {
+        nodeId: 'order_cancel',
+        message: '❌ If an order needs to be cancelled:\n\nOnly cancel if there is a genuine reason (e.g. restaurant closed, item not available). Repeated cancellations can affect your **performance score** and earnings.\n\nTo cancel, use the \'Cancel Order\' option within the active order screen.',
+        options: [
+            { text: '📦 More Order Help', nextNodeId: 'order_help', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['cancel', 'cancellation', 'cancel order', 'reject'],
+        isTerminal: true,
+    },
+    return_pickup: {
+        nodeId: 'return_pickup',
+        message: '🔄 For return pickups:\n\n1. Go to the **Return Pickups** tab in your app.\n2. Accept the return request and navigate to the customer.\n3. Verify the item and collect it.\n4. Drop it at the designated seller or warehouse location shown in the app.',
+        options: [
+            { text: '📦 More Order Help', nextNodeId: 'order_help', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['return', 'pickup return', 'reverse delivery', 'collect from customer'],
+        isTerminal: true,
+    },
+    earnings_help: {
+        nodeId: 'earnings_help',
+        message: '💰 Earnings & Pocket: What do you need help with?',
+        options: [
+            { text: '📊 View My Earnings', nextNodeId: 'view_earnings', action: null },
+            { text: '🏦 Payout / Withdrawal', nextNodeId: 'payout', action: null },
+            { text: '💸 Cash Limit / COD', nextNodeId: 'cash_limit', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['earnings', 'money', 'payout', 'pocket', 'balance', 'cash', 'salary'],
+        isTerminal: false,
+    },
+    view_earnings: {
+        nodeId: 'view_earnings',
+        message: '📊 Your earnings are shown in the **Pocket** tab.\n\nYou can see:\n\u2022 Per-delivery earnings\n• Incentives & bonuses\n• Deductions (if any)\n• Total payable amount',
+        options: [
+            { text: '💰 More Earnings Help', nextNodeId: 'earnings_help', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['see earnings', 'earning report', 'my balance', 'pocket balance'],
+        isTerminal: true,
+    },
+    payout: {
+        nodeId: 'payout',
+        message: '🏦 Payouts are processed weekly every **Wednesday**.\n\nMake sure your bank account details are updated in **Profile → Bank Details**.\n\nYou can also request a manual payout from the **Pocket → Payout** screen.',
+        options: [
+            { text: '💰 More Earnings Help', nextNodeId: 'earnings_help', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['payout', 'withdrawal', 'bank transfer', 'when do i get paid', 'settlement'],
+        isTerminal: true,
+    },
+    cash_limit: {
+        nodeId: 'cash_limit',
+        message: '💸 Your **Cash Limit** is the maximum COD (Cash on Delivery) amount you can hold at one time.\n\nOnce you hit your limit, you must deposit the cash at the nearest collection point before accepting more COD orders.\n\nView your current limit in **Pocket → Cash Limit**.',
+        options: [
+            { text: '💰 More Earnings Help', nextNodeId: 'earnings_help', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['cash limit', 'cod', 'cash on delivery', 'deposit cash', 'limit exceeded'],
+        isTerminal: true,
+    },
+    app_issues: {
+        nodeId: 'app_issues',
+        message: '📲 App & Account Issues: What do you need help with?',
+        options: [
+            { text: '🔐 Login Problems', nextNodeId: 'login_issues', action: null },
+            { text: '📳 App Not Working', nextNodeId: 'app_crash', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['app', 'login', 'account', 'crash', 'not working', 'otp'],
+        isTerminal: false,
+    },
+    login_issues: {
+        nodeId: 'login_issues',
+        message: '🔐 If you are having trouble logging in:\n\n1. Make sure you are using the correct registered mobile number.\n2. Check if you have received the OTP SMS.\n3. If OTP is not coming, try after 60 seconds and request again.\n4. If your account is blocked, contact our support team.',
+        options: [
+            { text: '📲 More App Help', nextNodeId: 'app_issues', action: null },
+            { text: '🧑‍💼 Talk to Support', nextNodeId: 'agent', action: 'FETCH_AGENT_CONTACT' },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['login', 'otp', 'cannot login', 'blocked', 'sign in'],
+        isTerminal: true,
+    },
+    app_crash: {
+        nodeId: 'app_crash',
+        message: '📳 If the app is not working correctly:\n\n1. Force-close and reopen the app.\n2. Check your internet connection.\n3. Clear app cache from your phone settings.\n4. If the problem persists, contact support with a screenshot.',
+        options: [
+            { text: '📲 More App Help', nextNodeId: 'app_issues', action: null },
+            { text: '🧑‍💼 Talk to Support', nextNodeId: 'agent', action: 'FETCH_AGENT_CONTACT' },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['app crash', 'not working', 'bug', 'error', 'slow app'],
+        isTerminal: true,
+    },
+    emergency: {
+        nodeId: 'emergency',
+        message: '🚐 **Emergency / SOS**\n\nIf you are in an emergency situation, please:\n\n🔴 **Call 112** (Police / Ambulance / Fire) immediately.\n\nFor delivery-related emergencies (accident, robbery, etc.), please also contact our support team right away so we can assist you.',
+        options: [
+            { text: '🧑‍💼 Talk to Support', nextNodeId: 'agent', action: 'FETCH_AGENT_CONTACT' },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['emergency', 'sos', 'accident', 'help', 'danger', 'robbery', 'urgent'],
+        isTerminal: true,
+    },
+    agent: {
+        nodeId: 'agent',
+        message: '🧑‍💼 Please hold on while we fetch our delivery partner support contact details...',
+        options: [
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['agent', 'human', 'support', 'speak', 'talk', 'call', 'contact'],
+        isTerminal: true,
+    },
+    fallback: {
+        nodeId: 'fallback',
+        message: "🤔 Sorry, I didn't quite understand that. Please choose one of the options below:",
+        options: [
+            { text: '📦 Order & Delivery Help', nextNodeId: 'order_help', action: null },
+            { text: '💰 Earnings & Pocket', nextNodeId: 'earnings_help', action: null },
+            { text: '🚐 Emergency / SOS', nextNodeId: 'emergency', action: null },
+            { text: '🧑‍💼 Talk to Support', nextNodeId: 'agent', action: 'FETCH_AGENT_CONTACT' },
+        ],
+        keywords: [],
+        isTerminal: false,
+    },
+};
+
+// =====================================================================
 // HELPERS
 // =====================================================================
 
@@ -748,6 +926,7 @@ const SELLER_NODES = {
 const getNodesMap = (module) => {
     if (module === 'restaurant') return RESTAURANT_NODES;
     if (module === 'seller') return SELLER_NODES;
+    if (module === 'delivery') return DELIVERY_NODES;
     return USER_NODES;
 };
 

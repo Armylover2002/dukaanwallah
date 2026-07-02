@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthPageGuard } from '@core/guards/RouteGuard';
 import Loader from "@food/components/Loader";
+import ChatbotWidget from '@/components/Chatbot/ChatbotWidget';
 import {
   loadBusinessSettings,
   getCachedSettings,
@@ -105,6 +106,7 @@ const DeliveryV2Router = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/food/delivery" replace />} />
       </Routes>
+      <ChatbotWidget module="delivery" />
     </Suspense>
   );
 };
