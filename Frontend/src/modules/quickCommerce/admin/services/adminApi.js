@@ -334,7 +334,7 @@ export const adminApi = {
   updateOrderStatus: () => emptyResponse({ updated: false, unsupported: true }),
 
   getUsers: (params) => axiosInstance.get('/quick-commerce/admin/customers', { params }),
-  getUserById: () => emptyResponse({}),
+  getUserById: (id) => axiosInstance.get(`/quick-commerce/admin/customers/${id}`),
   approveSeller: (sellerId, data = {}) => axiosInstance.put(`/quick-commerce/admin/seller-requests/${sellerId}/approve`, data),
   getAdminWalletData: () => emptyResponse({}),
   getReports: () => emptyResponse([]),

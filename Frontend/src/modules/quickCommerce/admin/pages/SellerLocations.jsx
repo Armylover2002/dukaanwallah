@@ -103,6 +103,11 @@ const SellerLocations = () => {
 
     const handleRefresh = () => {
         setIsRefreshing(true);
+        // Reset all filters and view states
+        setSearchTerm('');
+        setSelectedSeller(null);
+        setFilterOptions({ category: 'all', minRadius: 0 });
+        setMapView('coverage');
         setTimeout(() => setIsRefreshing(false), 1200);
     };
 
@@ -295,8 +300,11 @@ const SellerLocations = () => {
                 {/* Right Area: Interactive Map */}
                 <Card className="flex-1 border-none shadow-2xl ring-1 ring-slate-200 rounded-2xl overflow-hidden bg-slate-100 relative group">
                     {/* Map Placeholder with Rich Styling */}
-                    <div className="absolute inset-0 grayscale-[0.3] contrast-[1.1] opacity-40 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=2000')]" />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-slate-200/50 via-transparent to-primary/5" />
+                    <div 
+                        className="absolute inset-0 grayscale-[0.3] contrast-[1.1] opacity-40 bg-cover bg-center bg-no-repeat" 
+                        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=2000')" }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-slate-200/50 via-transparent to-primary/5" onClick={() => setSelectedSeller(null)} />
 
                     {/* Real Iframe Content (Placeholder logic) */}
                     <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
@@ -316,7 +324,7 @@ const SellerLocations = () => {
                                     {/* Service Area Circle */}
                                     <div
                                         className={cn(
-                                            "rounded-full border-2 transition-all duration-700 flex items-center justify-center relative",
+                                            "rounded-full border-2 transition-all duration-700 flex items-center justify-center relative pointer-events-none",
                                             selectedSeller?.id === s.id
                                                 ? "bg-primary/20 border-primary/40 shadow-[0_0_50px_rgba(var(--primary),0.3)] animate-pulse"
                                                 : mapView === 'density'
@@ -332,7 +340,7 @@ const SellerLocations = () => {
                                         <div
                                             onClick={(e) => { e.stopPropagation(); setSelectedSeller(s); }}
                                             className={cn(
-                                                "h-8 w-8 rounded-2xl flex items-center justify-center cursor-pointer shadow-2xl transition-all hover:scale-125 hover:-translate-y-1 relative z-10",
+                                                "h-8 w-8 rounded-2xl flex items-center justify-center cursor-pointer shadow-2xl transition-all hover:scale-125 hover:-translate-y-1 relative z-10 pointer-events-auto",
                                                 selectedSeller?.id === s.id ? "bg-primary text-white scale-125" : "bg-white text-slate-900"
                                             )}
                                         >

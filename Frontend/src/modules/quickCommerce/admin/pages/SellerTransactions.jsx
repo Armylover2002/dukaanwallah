@@ -128,11 +128,48 @@ const SellerTransactions = () => {
     }, [transactions, searchTerm, filterStatus, filterType, selectedSeller]);
 
     const handleExport = () => {
+        if (!filteredTransactions || filteredTransactions.length === 0) {
+            toast.error("No data available to export");
+            return;
+        }
+        
         setIsExporting(true);
-        setTimeout(() => {
+        try {
+            const headers = ['Transaction ID', 'Date', 'Shop', 'Type', 'Order ID', 'Amount', 'Commission', 'Tax', 'Net Payable', 'Status', 'Payment Method'];
+            const rows = filteredTransactions.map(txn => [
+                `"${txn.id}"`,
+                `"${txn.date}"`,
+                `"${(txn.seller || '').replace(/"/g, '""')}"`,
+                `"${txn.type}"`,
+                `"${txn.orderId || ''}"`,
+                txn.amount,
+                txn.commissionAmount || 0,
+                txn.taxAmount || 0,
+                txn.netPayable || 0,
+                `"${txn.status}"`,
+                `"${txn.paymentMethod}"`
+            ]);
+            
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(r => r.join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `seller_transactions_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success('Financial ledger exported successfully.');
+        } catch (error) {
+            toast.error("Failed to export ledger");
+        } finally {
             setIsExporting(false);
-            alert('Financial ledger exported successfully.');
-        }, 1500);
+        }
     };
 
     if (loading) {

@@ -81,7 +81,7 @@ const CustomerManagement = () => {
 
     useEffect(() => {
         const timeout = window.setTimeout(() => {
-            fetchCustomers(1);
+            fetchCustomers(1, { background: true });
         }, 250);
 
         return () => window.clearTimeout(timeout);
@@ -97,18 +97,23 @@ const CustomerManagement = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, pageSize, searchTerm]);
 
-    const stats = useMemo(() => {
-        const safeCustomers = Array.isArray(customers) ? customers : [];
-        return {
-            total: total,
-            active: safeCustomers.filter(c => c.status === 'active').length,
-            newToday: safeCustomers.filter(c => {
-                const today = new Date().toISOString().split('T')[0];
-                const joined = new Date(c.joinedDate).toISOString().split('T')[0];
-                return joined === today;
-            }).length
-        };
-    }, [customers, total]);
+    const [stats, setStats] = useState({ total: 0, active: 0, newToday: 0 });
+
+    useEffect(() => {
+        if (!searchTerm) {
+            const safeCustomers = Array.isArray(customers) ? customers : [];
+            setStats({
+                total: total,
+                active: safeCustomers.filter(c => c.status === 'active').length,
+                newToday: safeCustomers.filter(c => {
+                    if (!c.joinedDate) return false;
+                    const today = new Date().toISOString().split('T')[0];
+                    const joined = new Date(c.joinedDate).toISOString().split('T')[0];
+                    return joined === today;
+                }).length
+            });
+        }
+    }, [customers, total, searchTerm]);
 
     const filteredCustomers = useMemo(() => {
         const safeCustomers = Array.isArray(customers) ? customers : [];
@@ -122,11 +127,45 @@ const CustomerManagement = () => {
     }, [customers, searchTerm, filterStatus]);
 
     const handleExport = () => {
+        if (!filteredCustomers || filteredCustomers.length === 0) {
+            toast.error("No data available to export");
+            return;
+        }
+        
         setIsExporting(true);
-        setTimeout(() => {
-            setIsExporting(false);
+        try {
+            const headers = ['Customer ID', 'Name', 'Email', 'Phone', 'Status', 'Total Orders', 'Total Spent', 'Joined Date'];
+            const rows = filteredCustomers.map(cust => [
+                `"${cust.id || ''}"`,
+                `"${(cust.name || '').replace(/"/g, '""')}"`,
+                `"${cust.email || ''}"`,
+                `"${cust.phone || ''}"`,
+                `"${cust.status || ''}"`,
+                cust.totalOrders || 0,
+                cust.totalSpent || 0,
+                `"${cust.joinedDate || ''}"`
+            ]);
+            
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(r => r.join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `customers_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
             toast.success('Customer database exported successfully!');
-        }, 1500);
+        } catch (error) {
+            toast.error("Failed to export customers");
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const getTimeAgo = (date) => {
@@ -194,14 +233,16 @@ const CustomerManagement = () => {
             {/* Filter & Search Bar */}
             <Card className="ds-card-compact">
                 <div className="flex flex-col lg:flex-row gap-3">
-                    <div className="flex-1 relative group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 ds-icon-sm text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <div className="flex-1 flex items-center relative group bg-white ring-1 ring-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-primary/20 transition-all h-10 overflow-hidden">
+                        <div className="pl-3 pr-2 flex items-center justify-center">
+                            <Search className="ds-icon-sm text-gray-400 group-focus-within:text-primary transition-colors" />
+                        </div>
                         <input
                             type="text"
                             placeholder="Search by name, email or phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="ds-input pl-9"
+                            className="w-full h-full pr-4 py-2 bg-transparent text-xs outline-none"
                         />
                     </div>
 
@@ -320,9 +361,7 @@ const CustomerManagement = () => {
                                                 >
                                                     <Eye className="ds-icon-sm" />
                                                 </button>
-                                                <button className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-900 hover:text-white transition-all">
-                                                    <MoreVertical className="ds-icon-sm" />
-                                                </button>
+
                                             </div>
                                         </td>
                                     </tr>

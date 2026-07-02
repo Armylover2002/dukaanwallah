@@ -69,7 +69,7 @@ export const quickAdminSidebarMenu = [
       { type: "link", label: "Money Requests", permissionKey: "withdrawals", path: "/admin/quick-commerce/withdrawals", icon: "CreditCard" },
       { type: "link", label: "Seller Payments", permissionKey: "seller_payments", path: "/admin/quick-commerce/seller-transactions", icon: "Receipt" },
       { type: "link", label: "Customers", permissionKey: "customers", path: "/admin/quick-commerce/customers", icon: "Users" },
-      { type: "link", label: "FAQs", permissionKey: "faqs", path: "/admin/quick-commerce/faqs", icon: "MessageSquare" },
+      // { type: "link", label: "FAQs", permissionKey: "faqs", path: "/admin/quick-commerce/faqs", icon: "MessageSquare" },
       { type: "link", label: "Return Orders", permissionKey: "return_orders", path: "/admin/quick-commerce/return-orders", icon: "RotateCcw" },
       {
         type: "expandable",

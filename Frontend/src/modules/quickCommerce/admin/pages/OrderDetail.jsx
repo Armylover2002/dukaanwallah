@@ -156,14 +156,45 @@ export default function OrderDetail() {
 
     const handleExportIntelligence = () => {
         if (!order) return;
-        const blob = new Blob([JSON.stringify(order, null, 2)], { type: 'application/json;charset=utf-8' });
+
+        const headers = [
+            'Order ID', 'Date', 'Customer Name', 'Customer Phone', 'Shop Name', 
+            'Status', 'Item Name', 'Item ID', 'Unit Price', 'Quantity', 
+            'Total Price', 'Subtotal', 'Delivery Fee', 'Platform Fee', 'Tax', 'Total Payable'
+        ];
+
+        const rows = (order.items || []).map(item => [
+            orderDisplayId,
+            (formatDateTime(order.createdAt) || '').replace(/,/g, ''),
+            order.customer?.name || 'Unknown',
+            order.customer?.phone || 'NA',
+            order.seller?.shopName || 'Unknown',
+            currentStatus,
+            (item.name || 'Item').replace(/"/g, '""'),
+            item.productId || item.product?._id || 'NA',
+            item.price || 0,
+            item.quantity || 0,
+            (Number(item.price || 0) * Number(item.quantity || 0)),
+            order.pricing?.subtotal || 0,
+            order.pricing?.deliveryFee || 0,
+            order.pricing?.platformFee || 0,
+            order.pricing?.tax || 0,
+            order.pricing?.total || 0
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const downloadUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = downloadUrl;
-        link.download = `quick-order-${orderDisplayId}.json`;
+        link.download = `quick-order-${orderDisplayId}.csv`;
         link.click();
         URL.revokeObjectURL(downloadUrl);
-        showToast('Order intelligence exported', 'success');
+        showToast('Order intelligence exported to CSV', 'success');
     };
 
     const handlePrintInvoice = () => {

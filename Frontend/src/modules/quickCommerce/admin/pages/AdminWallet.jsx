@@ -205,8 +205,31 @@ const AdminWallet = () => {
     const handleExport = async () => {
         try {
             setIsExporting(true);
-            const res = await adminApi.exportFinanceStatement();
-            const blob = new Blob([res.data], { type: "text/csv;charset=utf-8;" });
+            if (!filteredTransactions || filteredTransactions.length === 0) {
+                toast.error("No data available to export");
+                return;
+            }
+            
+            const headers = ['Transaction ID', 'Date', 'Time', 'Type', 'From', 'To', 'Amount', 'Status', 'Payment Method', 'Notes'];
+            const rows = filteredTransactions.map(txn => [
+                `"${txn.id}"`,
+                `"${txn.date}"`,
+                `"${txn.time}"`,
+                `"${txn.type}"`,
+                `"${txn.sender}"`,
+                `"${txn.recipient}"`,
+                txn.amount,
+                `"${txn.status}"`,
+                `"${txn.method}"`,
+                `"${(txn.notes || '').replace(/"/g, '""')}"`
+            ]);
+            
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(r => r.join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
@@ -441,7 +464,9 @@ const AdminWallet = () => {
                                                             </div>
                                                             <div>
                                                                 <p className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">{txn.type.replace('_', ' ').toUpperCase()}</p>
-                                                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{txn.id} • {txn.date}</p>
+                                                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
+                                                                    {txn.id.length > 10 ? `#...${txn.id.slice(-6)}` : txn.id} • {txn.date}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -498,7 +523,7 @@ const AdminWallet = () => {
                             <div className="px-6 py-3 border-t border-slate-100">
                                 <Pagination
                                     page={txnPage}
-                                    totalPages={Math.ceil(txnTotal / txnPageSize) || 1}
+                                    totalPages={filteredTransactions.length === 0 ? txnPage : (Math.ceil(txnTotal / txnPageSize) || 1)}
                                     total={txnTotal}
                                     pageSize={txnPageSize}
                                     onPageChange={(p) => { setTxnPage(p); fetchData(p); }}
@@ -632,7 +657,9 @@ const AdminWallet = () => {
                             </div>
                             <div className="col-span-2 space-y-1">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reference ID</p>
-                                <p className="text-sm font-mono font-bold text-slate-900">{selectedTransaction.id}</p>
+                                <p className="text-sm font-mono font-bold text-slate-900">
+                                    {selectedTransaction.id.length > 10 ? `#...${selectedTransaction.id.slice(-6)}` : selectedTransaction.id}
+                                </p>
                             </div>
                             <div className="col-span-2 space-y-1">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Method</p>

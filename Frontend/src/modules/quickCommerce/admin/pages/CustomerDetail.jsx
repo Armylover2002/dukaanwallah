@@ -84,7 +84,6 @@ const CustomerDetail = () => {
         setIsRefreshing(true);
         setTimeout(() => {
             setIsRefreshing(false);
-            showToast('Customer data synchronized with main server', 'success');
         }, 1000);
     };
 
@@ -162,7 +161,6 @@ const CustomerDetail = () => {
                     <div>
                         <div className="flex items-center gap-2">
                             <h1 className="ds-h1">Customer Profile</h1>
-                            <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest">{customer.id}</Badge>
                         </div>
                         <p className="ds-description mt-1">Full profile and shopping history for this customer.</p>
                     </div>
@@ -203,7 +201,7 @@ const CustomerDetail = () => {
                             <div>
                                 <h3 className="text-3xl font-black text-slate-900">{customer.name}</h3>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                    Customer since {new Date(customer.joinedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    Customer since {customer.joinedDate ? new Date(customer.joinedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown'}
                                 </p>
                             </div>
 

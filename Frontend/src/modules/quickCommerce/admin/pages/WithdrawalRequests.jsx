@@ -188,6 +188,51 @@ const WithdrawalRequests = () => {
         }
     };
 
+    const handleRefresh = () => {
+        setSearchTerm('');
+        setFilterStatus('all');
+        setActiveTab('sellers');
+        setSellerPage(1);
+        setDeliveryPage(1);
+        fetchData(1, 1);
+    };
+
+    const handleExportAll = () => {
+        if (currentData.length === 0) {
+            toast.error("No data to export");
+            return;
+        }
+        try {
+            const headers = ['Requester Name', 'Phone', 'Date', 'Transaction ID', 'Amount', 'Status'];
+            const rows = currentData.map(req => [
+                `"${(req.user?.shopName || req.user?.name || "Unknown").replace(/"/g, '""')}"`,
+                `"${(req.user?.phone || '').replace(/"/g, '""')}"`,
+                `"${new Date(req.createdAt).toLocaleDateString()}"`,
+                `"${req.reference || req._id}"`,
+                Math.abs(req.amount),
+                `"${req.status}"`
+            ]);
+            
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(r => r.join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `withdrawals_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success("Export successful");
+        } catch (error) {
+            toast.error("Failed to export data");
+        }
+    };
+
     return (
         <div className="ds-section-spacing animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header Section */}
@@ -201,12 +246,15 @@ const WithdrawalRequests = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => fetchData(sellerPage, deliveryPage)}
+                        onClick={handleRefresh}
                         className="p-2.5 bg-white ring-1 ring-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
                     >
                         <RotateCw className={cn("h-4 w-4", loading && "animate-spin")} />
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2.5 bg-white ring-1 ring-slate-200 text-slate-600 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm">
+                    <button 
+                        onClick={handleExportAll}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white ring-1 ring-slate-200 text-slate-600 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm"
+                    >
                         <Download className="h-4 w-4" />
                         EXPORT ALL
                     </button>

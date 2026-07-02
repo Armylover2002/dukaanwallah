@@ -274,6 +274,7 @@ export async function getQuickCommerceFinancePayouts({
 
     const [items, total] = await Promise.all([
       SellerTransaction.find({ type: "Withdrawal", ...statusFilter })
+        .populate("sellerId", "name shopName phone phoneLast10 email")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(safeLimit)
@@ -286,7 +287,8 @@ export async function getQuickCommerceFinancePayouts({
         _id: t._id,
         id: t._id,
         ownerType: "SELLER",
-        sellerId: t.sellerId,
+        sellerId: t.sellerId?._id || t.sellerId,
+        beneficiary: t.sellerId || {},
         amount: Math.abs(num(t.amount)),
         status: t.status,
         reference: t.reference || "",
