@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { UserPlus, User, Eye, EyeOff, Upload, ChevronDown } from "lucide-react"
+import { UserPlus, User, Eye, EyeOff, Upload, ChevronDown, ChevronLeft } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useNavigate, useParams, useLocation } from "react-router-dom"
 import axiosInstance from "@food/api"
@@ -239,11 +239,20 @@ export default function AddEmployee() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-              <UserPlus className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                title="Go Back"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                <UserPlus className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900">{isEditMode ? 'Update Employee' : 'Add New Employee'}</h1>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">{isEditMode ? 'Update Employee' : 'Add New Employee'}</h1>
           </div>
         </div>
 
@@ -340,7 +349,7 @@ export default function AddEmployee() {
                       Phone
                     </label>
                     <div className="flex items-center gap-2">
-                      <div className="relative">
+                      <div className="relative shrink-0">
                         <select
                           value={formData.phoneCode}
                           onChange={(e) => handleInputChange("phoneCode", e.target.value)}
@@ -357,7 +366,7 @@ export default function AddEmployee() {
                         placeholder="Phone number"
                         inputMode="numeric"
                         maxLength={10}
-                        className={`flex-1 px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.phone ? "border-red-500" : "border-slate-300"}`}
+                        className={`flex-1 min-w-0 px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${errors.phone ? "border-red-500" : "border-slate-300"}`}
                       />
                     </div>
                     {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}

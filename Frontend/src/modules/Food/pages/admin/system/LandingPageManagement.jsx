@@ -299,9 +299,9 @@ export default function LandingPageManagement() {
       const response = await api.post('/food/hero-banners/multiple', formData, config)
 
       if (response.data.success) {
-        const uploadedBanners = response.data.data?.banners || []
+        const uploadedBanners = Array.isArray(response.data.data) ? response.data.data : (response.data.data?.banners || [])
         const errors = response.data.data?.errors || []
-        const successCount = uploadedBanners.length
+        const successCount = uploadedBanners.length > 0 ? uploadedBanners.length : (errors.length === 0 ? files.length : 0)
         const failCount = errors.length
 
         await fetchBanners()

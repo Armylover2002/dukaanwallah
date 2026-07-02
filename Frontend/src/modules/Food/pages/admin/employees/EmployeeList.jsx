@@ -151,10 +151,48 @@ export default function EmployeeList() {
 
   const handleExport = (format) => {
     if (filteredEmployees.length === 0) {
-      alert("No data to export")
+      toast.error("No data to export")
       return
     }
-    debugLog(`Exporting as ${format}`, filteredEmployees)
+    
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(filteredEmployees, null, 2)], { type: 'application/json;charset=utf-8' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `employees.json`;
+      link.click();
+      URL.revokeObjectURL(downloadUrl);
+      toast.success('Exported as JSON');
+    } else if (format === 'csv' || format === 'excel') {
+      const headers = ['Employee ID', 'Name', 'Email', 'Phone', 'Role', 'Status', 'Work Type', 'Created At'];
+      const rows = filteredEmployees.map(emp => [
+          emp.employeeId || 'NA',
+          (emp.name || '').replace(/"/g, '""'),
+          (emp.email || '').replace(/"/g, '""'),
+          emp.phone || '',
+          emp.role || '',
+          emp.isActive ? 'Active' : 'Inactive',
+          emp.workType || 'Office',
+          new Date(emp.createdAt).toLocaleDateString()
+      ]);
+      const csvContent = [
+          headers.join(','),
+          ...rows.map(r => r.map(field => `"${field}"`).join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `employees.csv`;
+      link.click();
+      URL.revokeObjectURL(downloadUrl);
+      toast.success(`Exported as ${format.toUpperCase()}`);
+    } else if (format === 'pdf') {
+      window.print();
+      toast.success('Print dialog opened for PDF export');
+    }
   }
 
   const toggleColumn = (columnKey) => {

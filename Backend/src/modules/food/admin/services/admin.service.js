@@ -5223,7 +5223,7 @@ export async function getSidebarBadges() {
             FoodEarningAddonHistory.countDocuments({ status: 'pending' }),
             FoodSafetyEmergencyReport.countDocuments({ status: 'pending' }),
             FoodDeliveryEmergencyHelp.countDocuments({ status: 'pending' }),
-            FoodSupportTicket.countDocuments({ status: 'open', restaurantId: { $exists: true } }),
+            FoodSupportTicket.countDocuments({ status: 'open', type: 'order' }),
             QuickReturnOrder.countDocuments({ status: 'pending_review' })
         ]);
 

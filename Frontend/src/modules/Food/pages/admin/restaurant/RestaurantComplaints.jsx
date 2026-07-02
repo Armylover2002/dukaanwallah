@@ -27,10 +27,9 @@ const debugError = (...args) => {}
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Status' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'in_progress', label: 'In Progress' },
+  { value: 'open', label: 'Open' },
+  { value: 'in-progress', label: 'In Progress' },
   { value: 'resolved', label: 'Resolved' },
-  { value: 'rejected', label: 'Rejected' },
 ]
 
 const COMPLAINT_TYPE_OPTIONS = [
@@ -94,10 +93,9 @@ export default function RestaurantComplaints() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     total: 0,
-    pending: 0,
-    in_progress: 0,
-    resolved: 0,
-    rejected: 0
+    open: 0,
+    'in-progress': 0,
+    resolved: 0
   })
   const [filters, setFilters] = useState({
     status: 'all',
@@ -155,7 +153,11 @@ export default function RestaurantComplaints() {
       return
     }
     setEditingComplaint(complaint)
-    setUpdateData({ status: complaint.status, adminResponse: complaint.adminResponse || '' })
+    let validStatus = complaint.status;
+    if (validStatus === 'pending') validStatus = 'open';
+    if (validStatus === 'in_progress') validStatus = 'in-progress';
+    if (validStatus === 'rejected') validStatus = 'resolved';
+    setUpdateData({ status: validStatus, adminResponse: complaint.adminResponse || '' })
   }
 
   const handleUpdateComplaint = async () => {
@@ -179,14 +181,12 @@ export default function RestaurantComplaints() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'pending':
+      case 'open':
         return <Clock className="w-4 h-4 text-yellow-600" />
-      case 'in_progress':
+      case 'in-progress':
         return <AlertCircle className="w-4 h-4 text-blue-600" />
       case 'resolved':
         return <CheckCircle className="w-4 h-4 text-green-600" />
-      case 'rejected':
-        return <XCircle className="w-4 h-4 text-red-600" />
       default:
         return <FileText className="w-4 h-4 text-gray-600" />
     }
@@ -194,14 +194,12 @@ export default function RestaurantComplaints() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
+      case 'open':
         return 'bg-yellow-100 text-yellow-800'
-      case 'in_progress':
+      case 'in-progress':
         return 'bg-blue-100 text-blue-800'
       case 'resolved':
         return 'bg-green-100 text-green-800'
-      case 'rejected':
-        return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -296,7 +294,11 @@ export default function RestaurantComplaints() {
                     </div>
                   </div>
                   {canEdit && (
-                    <button onClick={() => handleOpenModal(complaint)} className="p-2 rounded-md hover:bg-gray-200">
+                    <button
+                      onClick={() => handleOpenModal(complaint)}
+                      className="p-1.5 hover:bg-gray-100 rounded-md transition-colors"
+                      title="Update Complaint"
+                    >
                       <Edit className="w-4 h-4 text-gray-600" />
                     </button>
                   )}
@@ -356,8 +358,8 @@ export default function RestaurantComplaints() {
 
       {/* Update Modal */}
       <Dialog open={!!editingComplaint} onOpenChange={(open) => !open && setEditingComplaint(null)}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[600px] w-[95vw] max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader className="pr-6 text-left">
             <DialogTitle>Update Complaint</DialogTitle>
             <DialogDescription>
               Update the status and provide a response for this complaint.
@@ -373,7 +375,7 @@ export default function RestaurantComplaints() {
                   setUpdateData({ ...updateData, status: val })
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>

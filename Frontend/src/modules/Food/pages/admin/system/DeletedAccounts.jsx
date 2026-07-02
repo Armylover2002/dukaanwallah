@@ -75,7 +75,7 @@ export default function DeletedAccounts() {
   }
 
   return (
-    <div className="p-4 lg:p-6 bg-slate-50 min-h-screen font-['Outfit']">
+    <div className="p-4 lg:p-6 bg-slate-50 min-h-screen">
       <div className="w-full mx-auto max-w-7xl">
         {/* Page Title */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

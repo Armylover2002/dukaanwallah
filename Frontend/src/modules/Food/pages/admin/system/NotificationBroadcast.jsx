@@ -196,6 +196,7 @@ export default function NotificationBroadcast() {
 
   const handleDelete = async (id) => {
     if (!id) return;
+    if (!window.confirm("Are you sure you want to delete this broadcast?")) return;
     try {
       await adminAPI.deleteBroadcastNotification(id);
       window.dispatchEvent(new Event("adminBroadcastUpdated"));

@@ -10,7 +10,9 @@ import {
     Camera,
     LogOut,
     Key,
-    X
+    X,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -33,6 +35,16 @@ const AdminProfile = () => {
         newPassword: '',
         confirmPassword: ''
     });
+
+    const [showPassword, setShowPassword] = useState({
+        current: false,
+        new: false,
+        confirm: false
+    });
+
+    const togglePasswordVisibility = (field) => {
+        setShowPassword(prev => ({ ...prev, [field]: !prev[field] }));
+    };
 
     useEffect(() => {
         fetchProfile();
@@ -244,12 +256,19 @@ const AdminProfile = () => {
                                     <div className="relative group">
                                         <Key className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                         <input
-                                            type="password"
+                                            type={showPassword.current ? "text" : "password"}
                                             value={security.currentPassword}
                                             onChange={(e) => setSecurity({ ...security, currentPassword: e.target.value })}
-                                            className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all block"
+                                            className="w-full pl-12 pr-12 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all block"
                                             required
                                         />
+                                        <button 
+                                            type="button"
+                                            onClick={() => togglePasswordVisibility('current')}
+                                            className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                        >
+                                            {showPassword.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -258,12 +277,19 @@ const AdminProfile = () => {
                                         <div className="relative group">
                                             <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
                                             <input
-                                                type="password"
+                                                type={showPassword.new ? "text" : "password"}
                                                 value={security.newPassword}
                                                 onChange={(e) => setSecurity({ ...security, newPassword: e.target.value })}
-                                                className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all block"
+                                                className="w-full pl-12 pr-12 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all block"
                                                 required
                                             />
+                                            <button 
+                                                type="button"
+                                                onClick={() => togglePasswordVisibility('new')}
+                                                className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                            >
+                                                {showPassword.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
                                         </div>
                                     </div>
                                     <div className="space-y-3">
@@ -271,12 +297,19 @@ const AdminProfile = () => {
                                         <div className="relative group">
                                             <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
                                             <input
-                                                type="password"
+                                                type={showPassword.confirm ? "text" : "password"}
                                                 value={security.confirmPassword}
                                                 onChange={(e) => setSecurity({ ...security, confirmPassword: e.target.value })}
-                                                className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all block"
+                                                className="w-full pl-12 pr-12 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all block"
                                                 required
                                             />
+                                            <button 
+                                                type="button"
+                                                onClick={() => togglePasswordVisibility('confirm')}
+                                                className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                            >
+                                                {showPassword.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
