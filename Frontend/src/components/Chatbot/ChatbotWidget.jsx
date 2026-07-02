@@ -14,6 +14,8 @@ const getActiveUserId = (module) => {
         let userStr = null;
         if (module === 'restaurant') {
             userStr = localStorage.getItem('restaurant_user');
+        } else if (module === 'seller') {
+            userStr = localStorage.getItem('seller_user') || localStorage.getItem('seller');
         } else {
             userStr = localStorage.getItem('user_user') || localStorage.getItem('user');
         }

@@ -37,6 +37,8 @@ const PendingApproval = React.lazy(() => import("../pages/PendingApproval"));
 const Coupons = React.lazy(() => import("../pages/Coupons"));
 const CODDepositRequests = React.lazy(() => import("../pages/CODDepositRequests"));
 
+import ChatbotWidget from '@/components/Chatbot/ChatbotWidget';
+
 const BASE_NAV_ITEMS = [
   { label: "Dashboard", path: "/seller", icon: HiOutlineSquares2X2, end: true },
   { label: "Products", path: "/seller/products", icon: HiOutlineCube },
@@ -117,6 +119,7 @@ function SellerWorkspace() {
         <Route path="profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/seller" replace />} />
       </Routes>
+      <ChatbotWidget module="seller" />
     </DashboardLayout>
   );
 }

@@ -555,12 +555,199 @@ const handleAction = async (action, userId) => {
 };
 
 // =====================================================================
+// SELLER NODES
+// =====================================================================
+const SELLER_NODES = {
+    root: {
+        nodeId: 'root',
+        message: "Hello! 👋 Welcome to the Dukaanwallah Seller Assistant. How can I help you today?",
+        options: [
+            { text: '📦 Order Issues', nextNodeId: 'order_issues', action: null },
+            { text: '🛍️ Product Management', nextNodeId: 'product_mgmt', action: null },
+            { text: '💰 Earnings & Payouts', nextNodeId: 'earnings_menu', action: null },
+            { text: '🔄 Returns & Refunds', nextNodeId: 'returns_menu', action: null },
+            { text: '🧑‍💼 Talk to Agent', nextNodeId: 'agent', action: 'FETCH_AGENT_CONTACT' },
+        ],
+        keywords: ['hi', 'hello', 'hey', 'start', 'help', 'menu', 'back', 'main'],
+        isTerminal: false,
+    },
+    order_issues: {
+        nodeId: 'order_issues',
+        message: '📦 Order Issues: What do you need help with?',
+        options: [
+            { text: '📋 View My Orders', nextNodeId: 'view_orders', action: null },
+            { text: '🚚 Shipping & Dispatch', nextNodeId: 'shipping', action: null },
+            { text: '❌ Cancellation Policy', nextNodeId: 'cancellation', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['order', 'orders', 'dispatch', 'ship', 'cancel'],
+        isTerminal: false,
+    },
+    view_orders: {
+        nodeId: 'view_orders',
+        message: '📋 You can view all your orders in the **Orders** tab in your Seller Panel.\n\nFrom there you can manage pending, active, and completed orders.',
+        options: [
+            { text: '📦 More Order Help', nextNodeId: 'order_issues', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['see orders', 'my orders', 'order list'],
+        isTerminal: true,
+    },
+    shipping: {
+        nodeId: 'shipping',
+        message: '🚚 After accepting an order, pack the items and hand over to the delivery partner.\n\nThe delivery partner will be assigned automatically. You can track dispatch from the **Tracking** tab.',
+        options: [
+            { text: '📦 More Order Help', nextNodeId: 'order_issues', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['ship', 'dispatch', 'delivery partner', 'rider', 'tracking'],
+        isTerminal: true,
+    },
+    cancellation: {
+        nodeId: 'cancellation',
+        message: '❌ Orders cancelled by you may impact your seller rating.\n\nOnly cancel if the item is genuinely unavailable. For repeated cancellations, your account may be reviewed.',
+        options: [
+            { text: '📦 More Order Help', nextNodeId: 'order_issues', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['cancel order', 'cancellation', 'reject order'],
+        isTerminal: true,
+    },
+    product_mgmt: {
+        nodeId: 'product_mgmt',
+        message: '🛍️ Product Management: What do you need help with?',
+        options: [
+            { text: '➕ Add New Product', nextNodeId: 'add_product', action: null },
+            { text: '✏️ Edit Existing Product', nextNodeId: 'edit_product', action: null },
+            { text: '📦 Manage Stock', nextNodeId: 'manage_stock', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['product', 'item', 'listing', 'catalog', 'stock', 'inventory'],
+        isTerminal: false,
+    },
+    add_product: {
+        nodeId: 'add_product',
+        message: '➕ To add a new product, go to **Products → Add New Product** in your seller panel.\n\nFill in the name, description, category, price, and upload at least one image.',
+        options: [
+            { text: '🛍️ More Product Help', nextNodeId: 'product_mgmt', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['add product', 'new listing', 'create product'],
+        isTerminal: true,
+    },
+    edit_product: {
+        nodeId: 'edit_product',
+        message: '✏️ To edit a product, go to **Products**, find the item you want to change, and click **Edit**.\n\nYou can update the name, price, images, description and availability.',
+        options: [
+            { text: '🛍️ More Product Help', nextNodeId: 'product_mgmt', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['edit product', 'update item', 'change price', 'modify listing'],
+        isTerminal: true,
+    },
+    manage_stock: {
+        nodeId: 'manage_stock',
+        message: '📦 You can manage stock levels from the **Stock / Inventory** tab.\n\nAdjust quantities to avoid overselling. Low stock warnings will appear automatically.',
+        options: [
+            { text: '🛍️ More Product Help', nextNodeId: 'product_mgmt', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['stock', 'inventory', 'quantity', 'low stock', 'out of stock'],
+        isTerminal: true,
+    },
+    earnings_menu: {
+        nodeId: 'earnings_menu',
+        message: '💰 Earnings & Payouts: What do you need help with?',
+        options: [
+            { text: '📊 View Earnings', nextNodeId: 'view_earnings', action: null },
+            { text: '🏦 Withdrawal Process', nextNodeId: 'withdrawal', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['earnings', 'money', 'payout', 'withdrawal', 'income', 'balance'],
+        isTerminal: false,
+    },
+    view_earnings: {
+        nodeId: 'view_earnings',
+        message: '📊 You can view your earnings breakdown in the **Earnings** tab.\n\nIt shows your total earnings, platform fee deductions, and net amount for each period.',
+        options: [
+            { text: '💰 More Earnings Help', nextNodeId: 'earnings_menu', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['see earnings', 'earning report', 'income report'],
+        isTerminal: true,
+    },
+    withdrawal: {
+        nodeId: 'withdrawal',
+        message: '🏦 To request a withdrawal, go to **Earnings → Withdrawals** and click **Request Withdrawal**.\n\nWithdrawals are processed within 3–5 business days to your registered bank account.',
+        options: [
+            { text: '💰 More Earnings Help', nextNodeId: 'earnings_menu', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['withdraw', 'withdrawal', 'bank transfer', 'get money', 'payout request'],
+        isTerminal: true,
+    },
+    returns_menu: {
+        nodeId: 'returns_menu',
+        message: '🔄 Returns & Refunds: What do you need help with?',
+        options: [
+            { text: '📋 View Return Requests', nextNodeId: 'view_returns', action: null },
+            { text: '✅ How to Approve Returns', nextNodeId: 'approve_returns', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['return', 'refund', 'qc', 'quality', 'rejection'],
+        isTerminal: false,
+    },
+    view_returns: {
+        nodeId: 'view_returns',
+        message: '📋 All return requests can be viewed in the **QC Returns** tab.\n\nYou can see the reason, attached images from the customer, and take action.',
+        options: [
+            { text: '🔄 More Returns Help', nextNodeId: 'returns_menu', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['view returns', 'return list', 'return requests'],
+        isTerminal: true,
+    },
+    approve_returns: {
+        nodeId: 'approve_returns',
+        message: '✅ To approve a return, open the return in **QC Returns** and click **Approve**.\n\nThe customer will be refunded automatically and your inventory will be updated.',
+        options: [
+            { text: '🔄 More Returns Help', nextNodeId: 'returns_menu', action: null },
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['approve return', 'accept return', 'process refund'],
+        isTerminal: true,
+    },
+    agent: {
+        nodeId: 'agent',
+        message: '🧑‍💼 Please hold on while we fetch our seller support contact details...',
+        options: [
+            { text: '🏠 Main Menu', nextNodeId: 'root', action: null },
+        ],
+        keywords: ['agent', 'human', 'support', 'speak', 'talk', 'call', 'contact'],
+        isTerminal: true,
+    },
+    fallback: {
+        nodeId: 'fallback',
+        message: "🤔 Sorry, I didn't quite understand that. Please choose one of the options below:",
+        options: [
+            { text: '📦 Order Issues', nextNodeId: 'order_issues', action: null },
+            { text: '🛍️ Product Management', nextNodeId: 'product_mgmt', action: null },
+            { text: '💰 Earnings & Payouts', nextNodeId: 'earnings_menu', action: null },
+            { text: '🧑‍💼 Talk to Agent', nextNodeId: 'agent', action: 'FETCH_AGENT_CONTACT' },
+        ],
+        keywords: [],
+        isTerminal: false,
+    },
+};
+
+// =====================================================================
 // HELPERS
 // =====================================================================
 
 // Get correct tree map based on module
 const getNodesMap = (module) => {
     if (module === 'restaurant') return RESTAURANT_NODES;
+    if (module === 'seller') return SELLER_NODES;
     return USER_NODES;
 };
 
