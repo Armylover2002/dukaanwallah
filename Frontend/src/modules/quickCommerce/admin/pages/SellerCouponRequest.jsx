@@ -191,7 +191,7 @@ export default function SellerCouponRequest() {
                 {selectedRequest.sellerName || "Unknown Seller"}
               </p>
               <p className="text-xs text-slate-500 mt-0.5">
-                ID: {selectedRequest.sellerId || "—"}
+                ID: {selectedRequest.sellerId ? "#..." + selectedRequest.sellerId.toString().slice(-6) : "?"}
               </p>
             </div>
           </div>
@@ -453,7 +453,7 @@ export default function SellerCouponRequest() {
                             {request.sellerName || "Unknown Seller"}
                           </p>
                           <p className="text-xs text-slate-400 mt-0.5">
-                            ID: {request.sellerId || "—"}
+                            ID: {request.sellerId ? "#..." + request.sellerId.toString().slice(-6) : "?"}
                           </p>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

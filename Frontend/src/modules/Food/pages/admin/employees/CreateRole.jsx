@@ -331,7 +331,7 @@ export default function CreateRole() {
                     onCheckedChange={(checked) => {
                       handleSectionSelectAll(node, checked === true || checked === "indeterminate");
                     }}
-                    className="w-4.5 h-4.5 border-2 border-neutral-800 transition-all duration-200"
+                    className="w-4 h-4 shrink-0 border-2 border-neutral-800 transition-all duration-200"
                   />
                 </div>
               )}
@@ -356,18 +356,18 @@ export default function CreateRole() {
                     </span>
                   ) : (
                     hasChildren ? (
-                      <div className="w-4.5 h-4.5" />
+                      <div className="w-4 h-4 shrink-0" />
                     ) : isAllowed ? (
                       <Checkbox 
                         checked={permissions[action]}
                         onCheckedChange={(checked) => handlePermissionChange(node, action, checked)}
                         className={cn(
-                          "w-4.5 h-4.5 border-2 border-neutral-800 transition-all duration-200",
+                          "w-4 h-4 shrink-0 border-2 border-neutral-800 transition-all duration-200",
                           permissions[action] && "scale-110 shadow-sm"
                         )}
                       />
                     ) : (
-                      <div className="w-4.5 h-4.5 flex items-center justify-center opacity-30" title={`'${actionIcons[action].label}' not applicable`}>
+                      <div className="w-4 h-4 shrink-0 flex items-center justify-center opacity-30" title={`'${actionIcons[action].label}' not applicable`}>
                         <div className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
                       </div>
                     )
@@ -564,7 +564,7 @@ export default function CreateRole() {
                       handleSectionSelectAll(rootNode, checked === true || checked === "indeterminate");
                     }
                   }}
-                  className="w-4.5 h-4.5 border-2 border-neutral-800 transition-all duration-200"
+                  className="w-4 h-4 shrink-0 border-2 border-neutral-800 transition-all duration-200"
                 />
                 <label htmlFor="toggle-food-module" className="text-xs font-bold text-neutral-700 cursor-pointer select-none flex items-center gap-1.5">
                   🍔 Food Section
@@ -580,7 +580,7 @@ export default function CreateRole() {
                       handleSectionSelectAll(rootNode, checked === true || checked === "indeterminate");
                     }
                   }}
-                  className="w-4.5 h-4.5 border-2 border-neutral-800 transition-all duration-200"
+                  className="w-4 h-4 shrink-0 border-2 border-neutral-800 transition-all duration-200"
                 />
                 <label htmlFor="toggle-quick-module" className="text-xs font-bold text-neutral-700 cursor-pointer select-none flex items-center gap-1.5">
                   ⚡ Quick Commerce Section

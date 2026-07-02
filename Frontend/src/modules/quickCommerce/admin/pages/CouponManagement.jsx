@@ -180,7 +180,22 @@ const CouponManagement = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 1. Validate numbers are not negative
+        // 1. Validate strings and textual fields
+        const code = formData.code?.trim() || "";
+        if (code.length < 3 || code.length > 10) {
+            showToast('Promo Code must be between 3 and 10 characters', 'error');
+            return;
+        }
+        if (!formData.title || formData.title.trim().length < 3) {
+            showToast('Campaign Title must be at least 3 characters', 'error');
+            return;
+        }
+        if (!formData.description || formData.description.trim().length < 5) {
+            showToast('Description must be at least 5 characters', 'error');
+            return;
+        }
+
+        // 2. Validate numbers and bounds
         const discountValue = Number(formData.discountValue);
         const minOrderValue = formData.minOrderValue ? Number(formData.minOrderValue) : 0;
         const maxDiscount = formData.maxDiscount ? Number(formData.maxDiscount) : undefined;
@@ -189,6 +204,10 @@ const CouponManagement = () => {
 
         if (Number.isNaN(discountValue) || discountValue <= 0) {
             showToast('Discount value must be greater than 0', 'error');
+            return;
+        }
+        if (formData.discountType === 'percentage' && discountValue > 100) {
+            showToast('Percentage discount cannot exceed 100%', 'error');
             return;
         }
         if (minOrderValue < 0) {
@@ -208,7 +227,7 @@ const CouponManagement = () => {
             return;
         }
 
-        // 2. Validate dates: End Date > Start Date
+        // 3. Validate dates: End Date > Start Date
         if (!formData.validFrom || !formData.validTill) {
             showToast('Start Date and End Date are required', 'error');
             return;
@@ -528,12 +547,26 @@ const CouponManagement = () => {
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Promo Code</label>
                             <input
                                 required
+                                maxLength={10}
                                 value={formData.code}
                                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                                 placeholder="E.G. SUMMER50"
                                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-black uppercase tracking-widest outline-none ring-1 ring-transparent focus:ring-primary/20"
                             />
                         </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Campaign Title</label>
+                            <input
+                                required
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                placeholder="E.G. Summer Sale 2026"
+                                className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-black outline-none ring-1 ring-transparent focus:ring-primary/20"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Discount Kind</label>
                             <select
@@ -546,25 +579,21 @@ const CouponManagement = () => {
                                 <option value="free_delivery">Free Delivery</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coupon Strategy</label>
-                        <select
-                            value={formData.couponType}
-                            onChange={(e) => setFormData({ ...formData, couponType: e.target.value })}
-                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-black outline-none"
-                        >
-                            <option value="generic">Generic Discount</option>
-                            <option value="bulk_order">Bulk Order Discount</option>
-                            <option value="min_order_value">Minimum Order Value Coupon</option>
-                            <option value="free_delivery">Free Delivery Coupon</option>
-                            <option value="category_based">Category-Based Coupon</option>
-                            <option value="monthly_volume">Monthly Volume Coupon</option>
-                        </select>
-                        <p className="text-[10px] text-slate-400">
-                            Choose the logic: bulk order, MOV, free delivery, specific categories, or monthly volume buyers.
-                        </p>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coupon Strategy</label>
+                            <select
+                                value={formData.couponType}
+                                onChange={(e) => setFormData({ ...formData, couponType: e.target.value })}
+                                className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-xs font-black outline-none"
+                            >
+                                <option value="generic">Generic Discount</option>
+                                <option value="bulk_order">Bulk Order Discount</option>
+                                <option value="min_order_value">Minimum Order Value Coupon</option>
+                                <option value="free_delivery">Free Delivery Coupon</option>
+                                <option value="category_based">Category-Based Coupon</option>
+                                <option value="monthly_volume">Monthly Volume Coupon</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">

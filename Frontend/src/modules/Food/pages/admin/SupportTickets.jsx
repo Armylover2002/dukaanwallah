@@ -172,8 +172,9 @@ export default function SupportTickets() {
                     <td className="px-4 py-3">
                       <select
                         value={t.status}
+                        disabled={t.status === 'resolved' || t.status === 'closed'}
                         onChange={(e) => update(t._id, { status: e.target.value })}
-                        className="border rounded px-2 py-1 text-xs bg-white"
+                        className="border rounded px-2 py-1 text-xs bg-white disabled:bg-slate-50 disabled:text-slate-500"
                       >
                         <option value="open">Open</option>
                         <option value="in-progress">In Progress</option>
@@ -183,8 +184,9 @@ export default function SupportTickets() {
                     <td className="px-4 py-3 text-sm">{new Date(t.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <input
-                        className="border rounded px-2 py-1 text-sm w-64"
+                        className="border rounded px-2 py-1 text-sm w-64 disabled:bg-slate-50 disabled:text-slate-500"
                         value={editing[t._id] ?? t.adminResponse ?? ""}
+                        disabled={t.status === 'resolved' || t.status === 'closed'}
                         onChange={(e) => setEditing((p) => ({ ...p, [t._id]: e.target.value }))}
                         placeholder="Write response"
                       />

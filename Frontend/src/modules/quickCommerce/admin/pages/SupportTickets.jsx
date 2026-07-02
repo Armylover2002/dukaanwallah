@@ -213,7 +213,7 @@ export default function SupportTickets() {
                       <td className="px-4 py-3">
                         <select
                           value={ticket.status}
-                          disabled={!canEdit}
+                          disabled={!canEdit || ticket.status === 'resolved' || ticket.status === 'closed'}
                           onChange={(e) => updateTicket(ticket._id, { status: e.target.value })}
                           className="border border-slate-200 rounded px-2 py-1 text-xs bg-white disabled:bg-slate-50 disabled:text-slate-500"
                         >
@@ -228,7 +228,7 @@ export default function SupportTickets() {
                       <td className="px-4 py-3">
                         <input
                           value={drafts[ticket._id] ?? ticket.adminResponse ?? ""}
-                          disabled={!canEdit}
+                          disabled={!canEdit || ticket.status === 'resolved' || ticket.status === 'closed'}
                           onChange={(e) => setDrafts((prev) => ({ ...prev, [ticket._id]: e.target.value }))}
                           placeholder={canEdit ? "Write response" : "No permission to reply"}
                           className="border border-slate-200 rounded px-2 py-1 text-sm w-64 bg-white disabled:bg-slate-50 disabled:placeholder-slate-400"
