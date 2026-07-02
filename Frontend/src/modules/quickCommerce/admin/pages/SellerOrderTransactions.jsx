@@ -153,7 +153,7 @@ const SellerOrderTransactions = () => {
                         </button>
                     </form>
                 </div>
-                
+
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-gray-50 text-gray-600 border-b border-gray-200">
@@ -164,7 +164,7 @@ const SellerOrderTransactions = () => {
                                 <th className="px-4 py-3 font-medium">Customer Name</th>
                                 <th className="px-4 py-3 font-medium">Total Item Amount</th>
                                 <th className="px-4 py-3 font-medium">Coupon Discount</th>
-                                <th className="px-4 py-3 font-medium">VAT/Tax</th>
+                                <th className="px-4 py-3 font-medium">GST/Tax</th>
                                 <th className="px-4 py-3 font-medium">Delivery Charge</th>
                                 <th className="px-4 py-3 font-medium">Platform Fee</th>
                                 <th className="px-4 py-3 font-medium">Order Amount</th>
@@ -211,10 +211,10 @@ const SellerOrderTransactions = () => {
                 {/* Pagination */}
                 {total > 0 && (
                     <div className="p-4 border-t border-gray-200">
-                        <Pagination 
-                            currentPage={page} 
-                            totalPages={Math.ceil(total / pageSize)} 
-                            onPageChange={setPage} 
+                        <Pagination
+                            currentPage={page}
+                            totalPages={Math.ceil(total / pageSize)}
+                            onPageChange={setPage}
                         />
                     </div>
                 )}

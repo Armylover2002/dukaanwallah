@@ -496,7 +496,11 @@ const SellerTransactions = () => {
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-[10px] font-bold text-emerald-600/60 uppercase">Settlement Target</span>
-                                                <span className="text-xs font-black text-emerald-900">{selectedTxn.bankDetails}</span>
+                                                <span className="text-xs font-black text-emerald-900">
+                                                    {typeof selectedTxn.bankDetails === 'object' && selectedTxn.bankDetails
+                                                        ? `${selectedTxn.bankDetails.bankName || ''} ${selectedTxn.bankDetails.accountHolderName ? '• ' + selectedTxn.bankDetails.accountHolderName : ''} ${selectedTxn.bankDetails.accountNumberLast4 ? '•••• ' + selectedTxn.bankDetails.accountNumberLast4 : ''}`.trim() || 'N/A'
+                                                        : (selectedTxn.bankDetails || 'N/A')}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -562,7 +566,9 @@ const SellerTransactions = () => {
 
                                             row('Payment:', selectedTxn.paymentMethod || 'N/A');
                                             if (selectedTxn.referenceId) row('Reference:', selectedTxn.referenceId);
-                                            row('Bank:', selectedTxn.bankDetails || 'N/A');
+                                            row('Bank:', typeof selectedTxn.bankDetails === 'object' && selectedTxn.bankDetails
+                                                ? `${selectedTxn.bankDetails.bankName || ''} ${selectedTxn.bankDetails.accountHolderName ? '/ ' + selectedTxn.bankDetails.accountHolderName : ''} ${selectedTxn.bankDetails.accountNumberLast4 ? '/ ***' + selectedTxn.bankDetails.accountNumberLast4 : ''}`.trim() || 'N/A'
+                                                : (selectedTxn.bankDetails || 'N/A'));
 
                                             // Footer
                                             y = doc.internal.pageSize.getHeight() - 20;

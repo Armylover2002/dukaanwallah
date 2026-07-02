@@ -393,7 +393,7 @@ export const adminApi = {
     axiosInstance.get('/quick-commerce/admin/withdrawals/sellers', { params }),
   getDeliveryWithdrawals: (params = {}) =>
     axiosInstance.get('/quick-commerce/admin/withdrawals/delivery', { params }),
-  getSellerTransactions: () => emptyResponse({ items: [], total: 0 }),
+  getSellerTransactions: (params = {}) => axiosInstance.get('/quick-commerce/admin/withdrawals/sellers', { params }),
   updateWithdrawalStatus: (id, body = {}) =>
     axiosInstance.patch(`/quick-commerce/admin/withdrawals/${String(id)}`, body),
   getDeliveryCashBalances: (params = {}) =>
