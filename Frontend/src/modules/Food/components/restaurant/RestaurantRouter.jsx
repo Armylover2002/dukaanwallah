@@ -1,10 +1,11 @@
 import { Suspense, lazy, useEffect } from "react"
-import { Routes, Route, Navigate } from "react-router-dom"
+import { Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { loadBusinessSettings, setAppType } from "@common/utils/businessSettings"
 import ProtectedRoute from "@food/components/ProtectedRoute"
 import { AuthPageGuard } from "@core/guards/RouteGuard"
 import Loader from "@food/components/Loader"
 import ErrorBoundary from "@food/components/ErrorBoundary"
+import ChatbotWidget from "../../../../components/Chatbot/ChatbotWidget"
 
 // Lazy Loading Components
 const AllOrdersPage = lazy(() => import("@food/pages/restaurant/AllOrdersPage"))
@@ -57,6 +58,9 @@ const ForgotPassword = lazy(() => import("@food/pages/restaurant/auth/ForgotPass
 const VerificationPending = lazy(() => import("@food/pages/restaurant/auth/VerificationPending"))
 
 export default function RestaurantRouter() {
+  const location = useLocation();
+  const isAuthRoute = ['welcome', 'login', 'auth/sign-in', 'otp', 'signup', 'forgot-password', 'pending-verification'].some(path => location.pathname.includes(path));
+
   useEffect(() => {
     // Initialize restaurant app settings and favicon
     setAppType('restaurant')
@@ -66,6 +70,7 @@ export default function RestaurantRouter() {
   return (
     <ErrorBoundary>
       <Suspense fallback={<Loader />}>
+      {!isAuthRoute && <ChatbotWidget module="restaurant" />}
       <Routes>
         {/* Auth Routes — redirect to dashboard if already logged in */}
         <Route path="welcome" element={<AuthPageGuard module="restaurant" home="/food/restaurant"><Welcome /></AuthPageGuard>} />

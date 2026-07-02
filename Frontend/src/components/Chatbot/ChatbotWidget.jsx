@@ -7,11 +7,17 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Resolve the active user ID:
-// 1. Prefer the real logged-in user's MongoDB _id from localStorage
+// 1. Prefer the real logged-in user's MongoDB _id from localStorage based on module
 // 2. Fall back to a persistent guest hex-id
-const getActiveUserId = () => {
+const getActiveUserId = (module) => {
     try {
-        const userStr = localStorage.getItem('user_user') || localStorage.getItem('user');
+        let userStr = null;
+        if (module === 'restaurant') {
+            userStr = localStorage.getItem('restaurant_user');
+        } else {
+            userStr = localStorage.getItem('user_user') || localStorage.getItem('user');
+        }
+        
         if (userStr) {
             const user = JSON.parse(userStr);
             const id = user?._id || user?.id;
@@ -28,14 +34,36 @@ const getActiveUserId = () => {
     return guestId;
 };
 
-const ChatbotWidget = ({ userId }) => {
-    const activeUserId = userId || getActiveUserId();
+const ChatbotWidget = ({ userId, module = 'user' }) => {
+    const activeUserId = userId || getActiveUserId(module);
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [options, setOptions] = useState([]);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
+    const [dragConstraints, setDragConstraints] = useState({ left: -800, right: 0, top: -800, bottom: 0 });
+
+    // Calculate drag constraints dynamically based on window size and position
+    useEffect(() => {
+        const updateConstraints = () => {
+            if (typeof window !== 'undefined') {
+                const isUserPanel = module === 'user';
+                // Button is 56x56 (w-14 h-14). 
+                // If user panel: Position is left-6 (24px), bottom-24 (96px).
+                // If restaurant: Position is right-6 (24px), bottom-24 (96px).
+                setDragConstraints({
+                    left: isUserPanel ? 0 : -(window.innerWidth - 56 - 24),
+                    right: isUserPanel ? (window.innerWidth - 56 - 24) : 0,
+                    top: -(window.innerHeight - 56 - 96),
+                    bottom: 72 // Allows dragging it 72px down to the corner if they really want to (96-24=72)
+                });
+            }
+        };
+        updateConstraints();
+        window.addEventListener('resize', updateConstraints);
+        return () => window.removeEventListener('resize', updateConstraints);
+    }, []);
 
     // Auto-scroll to bottom
     const scrollToBottom = () => {
@@ -50,15 +78,55 @@ const ChatbotWidget = ({ userId }) => {
 
     // Prevent background scrolling when chatbot is open
     useEffect(() => {
+        const preventDefault = (e) => {
+            const chatbotModal = document.getElementById('chatbot-modal-content');
+            // If the event target is inside the chatbot, allow it
+            if (chatbotModal && chatbotModal.contains(e.target)) {
+                // Stop it from reaching other window listeners, but don't preventDefault so native scroll works
+                e.stopImmediatePropagation();
+                return;
+            }
+            // Otherwise, block it completely (stops Lenis and native scrolling)
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        };
+
         if (isOpen) {
             document.body.style.overflow = 'hidden';
+            // Add non-passive event listeners to window to intercept scroll events before Lenis gets them
+            window.addEventListener('wheel', preventDefault, { passive: false, capture: true });
+            window.addEventListener('touchmove', preventDefault, { passive: false, capture: true });
+
+            let style = document.getElementById('chatbot-scroll-lock');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'chatbot-scroll-lock';
+                style.innerHTML = `
+                    body, 
+                    .overflow-y-auto:not(#chatbot-messages), 
+                    .overflow-x-auto:not(#chatbot-messages), 
+                    .overflow-auto:not(#chatbot-messages) {
+                        overflow: hidden !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
         } else {
             document.body.style.overflow = 'unset';
+            window.removeEventListener('wheel', preventDefault, { capture: true });
+            window.removeEventListener('touchmove', preventDefault, { capture: true });
+
+            const style = document.getElementById('chatbot-scroll-lock');
+            if (style) style.remove();
         }
         
-        // Cleanup on unmount
         return () => {
             document.body.style.overflow = 'unset';
+            window.removeEventListener('wheel', preventDefault, { capture: true });
+            window.removeEventListener('touchmove', preventDefault, { capture: true });
+
+            const style = document.getElementById('chatbot-scroll-lock');
+            if (style) style.remove();
         };
     }, [isOpen]);
 
@@ -72,7 +140,7 @@ const ChatbotWidget = ({ userId }) => {
     const fetchSession = async () => {
         try {
             setIsLoading(true);
-            const res = await axios.get(`${API_URL}/v1/chat/session/${activeUserId}`);
+            const res = await axios.get(`${API_URL}/v1/chat/session/${activeUserId}?module=${module}`);
             if (res.data.success) {
                 setMessages(res.data.data.messages);
                 setOptions(res.data.data.currentOptions);
@@ -102,7 +170,8 @@ const ChatbotWidget = ({ userId }) => {
                 userId: activeUserId,
                 message: text,
                 nodeId,
-                action
+                action,
+                module: module
             });
 
             if (res.data.success) {
@@ -133,14 +202,28 @@ const ChatbotWidget = ({ userId }) => {
             {/* The Chat Window (Centered) */}
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8, y: 50 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, y: 50 }}
-                        transition={{ duration: 0.3, ease: 'easeOut' }}
-                        className="fixed inset-0 m-auto z-[100] bg-white rounded-2xl shadow-2xl w-[350px] h-[550px] flex flex-col overflow-hidden border border-gray-100"
-                    >
-                        {/* Header */}
+                    <>
+                        {/* Backdrop to prevent interaction and scrolling of the background */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsOpen(false)}
+                            className="fixed inset-0 z-[95] bg-black/20 backdrop-blur-sm"
+                            style={{ touchAction: 'none' }}
+                            onWheel={(e) => e.stopPropagation()}
+                            onTouchMove={(e) => e.stopPropagation()}
+                        />
+                        <motion.div
+                            id="chatbot-modal-content"
+                            data-lenis-prevent="true"
+                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="fixed inset-0 m-auto z-[100] bg-white rounded-2xl shadow-2xl w-[350px] h-[550px] flex flex-col overflow-hidden border border-gray-100"
+                        >
+                            {/* Header */}
                         <div className="bg-primary text-white p-4 flex justify-between items-center">
                             <div>
                                 <h3 className="font-semibold text-lg">Dukaanwallah Help</h3>
@@ -155,7 +238,7 @@ const ChatbotWidget = ({ userId }) => {
                         </div>
 
                         {/* Messages Area */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                        <div id="chatbot-messages" data-lenis-prevent="true" className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                             {messages.map((msg, idx) => (
                                 <motion.div
                                     key={idx}
@@ -227,18 +310,19 @@ const ChatbotWidget = ({ userId }) => {
                             </button>
                         </div>
                     </motion.div>
+                    </>
                 )}
             </AnimatePresence>
 
             {/* Toggle Button (Bottom Right, Draggable) */}
             <motion.button
                 drag
-                dragMomentum={false}
-                dragConstraints={{ left: -800, right: 0, top: -800, bottom: 0 }}
+                dragElastic={0.2}
+                dragConstraints={dragConstraints}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-6 right-6 z-[90] w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow cursor-move"
+                className={`fixed bottom-24 z-[510] w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow cursor-move ${module === 'user' ? 'left-6' : 'right-6'}`}
             >
                 {isOpen ? <FiX size={24} /> : <FiMessageSquare size={24} />}
             </motion.button>

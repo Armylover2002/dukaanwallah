@@ -13,6 +13,11 @@ const chatSessionSchema = new mongoose.Schema(
             required: true,
             index: true
         },
+        module: {
+            type: String,
+            enum: ['user', 'restaurant', 'admin', 'delivery'],
+            default: 'user'
+        },
         userType: {
             type: String,
             enum: ['FoodUser', 'Seller', 'DeliveryPartner'],

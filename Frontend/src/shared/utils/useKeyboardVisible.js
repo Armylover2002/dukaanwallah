@@ -23,20 +23,36 @@ const useKeyboardVisible = () => {
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
     useEffect(() => {
-        // Snapshot the full page height when the component first mounts.
-        // We use this as our "keyboard closed" baseline.
-        const baseHeight = window.visualViewport
+        let baseHeight = window.visualViewport
             ? window.visualViewport.height
             : window.innerHeight;
-
-        const THRESHOLD = 0.85; // < 85 % of base → keyboard is open
 
         const checkViewport = () => {
             const current = window.visualViewport
                 ? window.visualViewport.height
                 : window.innerHeight;
-            setIsKeyboardVisible(current < baseHeight * THRESHOLD);
+            
+            // Dynamically update base height if the viewport gets larger (e.g., URL bar hides)
+            if (current > baseHeight) {
+                baseHeight = current;
+            }
+
+            // Keyboards typically take up at least 200px. Small changes (~50-100px) are usually URL bars.
+            // If the height drops by more than 150px, we assume the keyboard is open.
+            setIsKeyboardVisible(baseHeight - current > 150);
         };
+
+        const handleOrientationChange = () => {
+            // Give the browser time to update the layout, then reset baseHeight
+            setTimeout(() => {
+                baseHeight = window.visualViewport
+                    ? window.visualViewport.height
+                    : window.innerHeight;
+                checkViewport();
+            }, 300);
+        };
+
+        window.addEventListener('orientationchange', handleOrientationChange);
 
         // focusin / focusout give us an instant signal, useful on iOS where the
         // visualViewport fires slightly after the keyboard animation starts.
@@ -72,6 +88,7 @@ const useKeyboardVisible = () => {
                 window.visualViewport.removeEventListener('resize', checkViewport);
             }
             window.removeEventListener('resize', checkViewport);
+            window.removeEventListener('orientationchange', handleOrientationChange);
             document.removeEventListener('focusin', handleFocusIn);
             document.removeEventListener('focusout', handleFocusOut);
         };
