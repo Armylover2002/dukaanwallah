@@ -1,4 +1,10 @@
 import { X } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@food/components/ui/dialog"
 
 // Stable empty defaults — prevent new [] reference per render
 const EMPTY_ARRAY = []
@@ -15,25 +21,14 @@ export default function FilterPanel({
   hidePaymentStatus = false,
   hideDeliveryType = false
 }) {
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div 
-        className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900">Filter Orders</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-slate-600" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] bg-white p-0 overflow-hidden flex flex-col">
+        <DialogHeader className="px-6 py-4 border-b border-slate-200">
+          <DialogTitle className="text-xl font-bold text-slate-900">Filter Orders</DialogTitle>
+        </DialogHeader>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Order Status Filter - Only shown if statuses are provided */}
           {statuses.length > 0 && (
             <div>
@@ -179,7 +174,7 @@ export default function FilterPanel({
           )}
         </div>
 
-        <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center justify-end gap-3">
+        <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center justify-end gap-3 mt-auto">
           <button
             onClick={onReset}
             className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all"
@@ -193,7 +188,7 @@ export default function FilterPanel({
             Apply Filters
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

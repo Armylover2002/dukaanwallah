@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { useSearchParams } from "react-router-dom"
-import { Search, Trash2, Loader2, Eye, Pencil, Plus, Save, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Trash2, Loader2, Eye, Pencil, Plus, Save, ChevronDown, ChevronLeft, ChevronRight, Download, Utensils, Store, FileText } from "lucide-react"
 import { adminAPI, uploadAPI } from "@food/api"
 import { toast } from "sonner"
 import { useAuth } from "@core/context/AuthContext"
@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/componen
 import { Popover, PopoverContent, PopoverTrigger } from "@food/components/ui/popover"
 import { getFoodDisplayPrice, getFoodVariants } from "@food/utils/foodVariants"
 import ApprovalAuditCard from "@food/components/admin/ApprovalAuditCard"
+import { jsPDF } from "jspdf"
+import "jspdf-autotable"
+import * as XLSX from "xlsx"
+
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -546,55 +550,95 @@ export default function FoodsList() {
     setShowDetailModal(true)
   }
 
+  const exportCSV = () => {
+    if (filteredFoods.length === 0) {
+      toast.error("No data to export")
+      return
+    }
+    const data = filteredFoods.map((f, i) => ({
+      SL: i + 1,
+      Name: f.name,
+      Restaurant: f.restaurantName || "-",
+      Category: f.categoryName || "-",
+      Price: f.basePrice ?? f.price ?? "-",
+      FoodType: f.foodType || "-",
+      Status: f.approvalStatus || "-"
+    }))
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Foods")
+    XLSX.writeFile(wb, "foods_list.csv")
+  }
+
+  const exportPDF = () => {
+    if (filteredFoods.length === 0) {
+      toast.error("No data to export")
+      return
+    }
+    const doc = new jsPDF()
+    doc.text("Food List", 14, 15)
+    
+    const tableColumn = ["SL", "Name", "Restaurant", "Category", "Price", "Type", "Status"]
+    const tableRows = []
+
+    filteredFoods.forEach((f, i) => {
+      const foodData = [
+        i + 1,
+        f.name,
+        f.restaurantName || "-",
+        f.categoryName || "-",
+        f.basePrice ?? f.price ?? "-",
+        f.foodType || "-",
+        f.approvalStatus || "-"
+      ]
+      tableRows.push(foodData)
+    })
+
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+    })
+    doc.save("foods_list.pdf")
+  }
+
   return (
     <div className="p-4 lg:p-6 bg-slate-50 min-h-screen">
       {/* Header Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-            <div className="grid grid-cols-2 gap-0.5">
-              <div className="w-2 h-2 bg-white rounded-sm"></div>
-              <div className="w-2 h-2 bg-white rounded-sm"></div>
-              <div className="w-2 h-2 bg-white rounded-sm"></div>
-              <div className="w-2 h-2 bg-white rounded-sm"></div>
-            </div>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+        
+        {/* Top Row */}
+        <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
+          <div className="w-10 h-10 rounded-lg bg-[#b04a03] text-white flex items-center justify-center">
+            <Utensils className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Food</h1>
+          <h1 className="text-xl font-bold text-slate-900">Food List</h1>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+            {filteredFoods.length}
+          </span>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-slate-900">Food List</h2>
-            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
-              {filteredFoods.length}
-            </span>
+        {/* Second Row - Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Ex : Foods"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#b04a03]/50 focus:border-[#b04a03]"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           </div>
-
-          <div className="flex items-center gap-3 flex-wrap">
-            {canCreate && (
-              <button
-                type="button"
-                onClick={openAddFoodModal}
-                className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Food</span>
-              </button>
-            )}
-            <div className="relative flex-1 sm:flex-initial min-w-[200px]">
-              <input
-                type="text"
-                placeholder="Ex : Foods"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-slate-500 pointer-events-none">
+              <Store className="w-4 h-4" />
             </div>
             <select
               value={selectedRestaurant}
               onChange={(e) => setSelectedRestaurant(e.target.value)}
-              className="px-4 py-2.5 min-w-[220px] text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+              className="w-full pl-10 pr-10 py-2 text-sm rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#b04a03]/50 focus:border-[#b04a03] appearance-none"
             >
               <option value="all">All Restaurants</option>
               {restaurantOptions.map((restaurant) => (
@@ -603,6 +647,42 @@ export default function FoodsList() {
                 </option>
               ))}
             </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Third Row - Actions */}
+        <div className="flex flex-col md:flex-row items-center gap-3 pt-3">
+          {canCreate && (
+            <button
+              type="button"
+              onClick={openAddFoodModal}
+              className="flex-1 w-full flex items-center justify-center gap-2 py-2 rounded-md bg-[#b04a03] text-white text-sm font-semibold hover:bg-[#913d02] transition-colors"
+            >
+              <div className="bg-white text-[#b04a03] rounded-full p-[1px]">
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+              Add Food
+            </button>
+          )}
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={exportCSV}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              <Download className="w-4 h-4 text-slate-500" />
+              <span>CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={exportPDF}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              <FileText className="w-4 h-4 text-slate-500" />
+              <span>PDF</span>
+            </button>
           </div>
         </div>
       </div>
@@ -901,55 +981,28 @@ export default function FoodsList() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white text-left flex items-center justify-between"
-                    >
-                      <span className={foodForm.categoryName ? "text-slate-900" : "text-slate-400"}>
-                        {foodForm.categoryName || "Select category"}
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-slate-500" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
-                    <input
-                      type="text"
-                      value={categorySearch}
-                      onChange={(e) => setCategorySearch(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm bg-white mb-2"
-                      placeholder="Search category..."
-                      autoFocus
-                    />
-                    <div className="max-h-56 overflow-y-auto">
-                      {categoryOptions
-                        .filter((c) => {
-                          const q = String(categorySearch || "").trim().toLowerCase()
-                          if (!q) return true
-                          return String(c.name || "").toLowerCase().includes(q)
-                        })
-                        .map((c) => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => {
-                              setFoodForm((prev) => ({ ...prev, categoryId: c.id, categoryName: c.name }))
-                              setCategoryPopoverOpen(false)
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-slate-100 ${
-                              String(foodForm.categoryName || "") === String(c.name) ? "bg-slate-100 font-medium" : ""
-                            }`}
-                          >
-                            {c.name}
-                          </button>
-                        ))}
-                      {categoryOptions.length === 0 && (
-                        <div className="px-3 py-2 text-sm text-slate-500">No categories found</div>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <div className="relative">
+                  <select
+                    value={foodForm.categoryId || (categoryOptions.find(c => c.name === foodForm.categoryName)?.id) || ""}
+                    onChange={(e) => {
+                      const selectedCat = categoryOptions.find(c => c.id === e.target.value);
+                      setFoodForm(prev => ({ 
+                        ...prev, 
+                        categoryId: e.target.value, 
+                        categoryName: selectedCat ? selectedCat.name : "" 
+                      }))
+                    }}
+                    className="w-full px-3 py-2.5 pr-10 border border-slate-300 rounded-lg text-sm bg-white appearance-none"
+                  >
+                    <option value="">Select category</option>
+                    {categoryOptions.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Food Name</label>

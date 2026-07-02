@@ -508,11 +508,11 @@ export default function EarningAddonHistory() {
 
       {/* Credit Dialog */}
       <Dialog open={isCreditDialogOpen} onOpenChange={setIsCreditDialogOpen}>
-        <DialogContent className="max-w-lg bg-gradient-to-br from-white via-slate-50 to-white p-0 border-0 shadow-2xl">
+        <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] flex flex-col bg-gradient-to-br from-white via-slate-50 to-white p-0 border-0 shadow-2xl rounded-lg sm:rounded-xl">
           {/* Header with gradient */}
-          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-5 rounded-t-lg">
+          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 sm:px-6 py-4 sm:py-5 rounded-t-lg sm:rounded-t-xl flex-shrink-0">
             <DialogHeader className="mb-0">
-              <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                 <Wallet className="w-5 h-5" />
                 Credit Earning to Wallet
               </DialogTitle>
@@ -520,7 +520,7 @@ export default function EarningAddonHistory() {
           </div>
 
           {selectedHistory && (
-            <div className="px-6 py-6 space-y-6">
+            <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto">
               {/* Information Cards */}
               <div className="space-y-3">
                 {/* Deliveryman Info */}
@@ -584,20 +584,20 @@ export default function EarningAddonHistory() {
               </div>
 
               {/* Action Buttons */}
-              <DialogFooter className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+              <DialogFooter className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-200 mt-auto">
                 <button
                   onClick={() => {
                     setIsCreditDialogOpen(false)
                     setSelectedHistory(null)
                     setCreditNotes("")
                   }}
-                  className="px-5 py-2.5 text-sm font-semibold rounded-xl border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all"
+                  className="w-full sm:w-auto px-5 py-2.5 text-sm font-semibold rounded-xl border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCredit}
-                  className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-2"
+                  className="w-full sm:w-auto px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2"
                 >
                   <Wallet className="w-4 h-4" />
                   Credit to Wallet
@@ -610,14 +610,14 @@ export default function EarningAddonHistory() {
 
       {/* Settings Dialog */}
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent className="max-w-md bg-white">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] flex flex-col bg-white rounded-lg sm:rounded-xl">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5" />
               Table Settings
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto">
             <div>
               <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                 <Columns className="w-4 h-4" />
@@ -643,16 +643,16 @@ export default function EarningAddonHistory() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-200 mt-auto flex-shrink-0">
               <button
                 onClick={resetColumns}
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                className="w-full sm:w-auto px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
               >
                 Reset
               </button>
               <button
                 onClick={() => setIsSettingsOpen(false)}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
+                className="w-full sm:w-auto px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
               >
                 Apply
               </button>

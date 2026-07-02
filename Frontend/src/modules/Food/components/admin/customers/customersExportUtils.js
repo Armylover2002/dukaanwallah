@@ -16,7 +16,7 @@ export const exportCustomersToCSV = (customers, filename = "customers") => {
     customer.email || "N/A",
     customer.phone || "N/A",
     customer.totalOrder || 0,
-    `$${(customer.totalOrderAmount || 0).toFixed(2)}`,
+    `₹${(customer.totalOrderAmount || 0).toFixed(2)}`,
     customer.joiningDate || "N/A",
     customer.status ? "Active" : "Inactive"
   ])
@@ -146,7 +146,7 @@ export const exportCustomersToPDF = (customers, filename = "customers") => {
           customer.email || "N/A",
           customer.phone || "N/A",
           customer.totalOrder || 0,
-          `$${(customer.totalOrderAmount || 0).toFixed(2)}`,
+          `Rs. ${(customer.totalOrderAmount || 0).toFixed(2)}`,
           customer.joiningDate || "N/A",
           customer.status ? "Active" : "Inactive"
         ])

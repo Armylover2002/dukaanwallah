@@ -1,4 +1,11 @@
-import { X, Clock, CheckCircle, XCircle, User, Phone, Package, MapPin } from "lucide-react"
+import { Clock, CheckCircle, XCircle, User, Phone, Package, MapPin } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@food/components/ui/dialog"
 
 const getStatusColor = (status) => {
   const colors = {
@@ -28,31 +35,16 @@ export default function ViewOrderDetectDeliveryDialog({ isOpen, onOpenChange, or
   const StatusIcon = getStatusIcon(order.status)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={() => onOpenChange(false)}
-      />
-      
-      {/* Dialog */}
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] bg-white p-0 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Order Details</h2>
-            <p className="text-sm text-slate-500 mt-1">Order ID: #{order.orderId}</p>
-          </div>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-5 h-5 text-slate-600" />
-          </button>
-        </div>
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-200">
+          <DialogTitle className="text-2xl font-bold text-slate-900">Order Details</DialogTitle>
+          <DialogDescription className="text-sm text-slate-500 mt-1">Order ID: #{order.orderId}</DialogDescription>
+        </DialogHeader>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
           {/* Order Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* User Information */}
@@ -134,7 +126,6 @@ export default function ViewOrderDetectDeliveryDialog({ isOpen, onOpenChange, or
               {/* Status items */}
               <div className="space-y-4">
                 {order.statusHistory && order.statusHistory.map((historyItem, index) => {
-                  const isLast = index === order.statusHistory.length - 1
                   const HistoryIcon = getStatusIcon(historyItem.status)
                   
                   return (
@@ -184,7 +175,7 @@ export default function ViewOrderDetectDeliveryDialog({ isOpen, onOpenChange, or
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
+        <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 bg-slate-50">
           <button
             onClick={() => onOpenChange(false)}
             className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all"
@@ -192,8 +183,8 @@ export default function ViewOrderDetectDeliveryDialog({ isOpen, onOpenChange, or
             Close
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

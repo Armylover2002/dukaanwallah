@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import { toast } from "sonner"
 import { exportToExcel, exportToPDF } from "./ordersExportUtils"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -81,6 +82,17 @@ export function useGenericTableManagement(data, title, searchFields = []) {
 
   const handlePrintOrder = async (order) => {
     try {
+      const targetOrder = order.originalOrder || order
+      
+      const hasItems = targetOrder.items && Array.isArray(targetOrder.items) && targetOrder.items.length > 0
+      const totalAmount = targetOrder.totalAmount ?? targetOrder.total ?? targetOrder.pricing?.total
+      const hasAmount = totalAmount !== undefined && totalAmount !== null
+      
+      if (!hasItems && !hasAmount) {
+        toast.error("Invoice data is unavailable or empty for this order.")
+        return
+      }
+
       // Dynamic import of jsPDF and autoTable for instant PDF download
       const { default: jsPDF } = await import('jspdf')
       const { default: autoTable } = await import('jspdf-autotable')
@@ -99,18 +111,20 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       // Order ID
       doc.setFontSize(12)
       doc.setTextColor(100, 100, 100)
-      const orderId = order.orderId || order.id || order.subscriptionId || 'N/A'
+      const orderId = targetOrder.orderId || targetOrder.id || targetOrder.subscriptionId || 'N/A'
       doc.text(`Order ID: ${orderId}`, 105, 28, { align: 'center' })
       
       // Date
       doc.setFontSize(10)
-      const orderDate = order.date && order.time ? `${order.date}, ${order.time}` : (order.date || new Date().toLocaleDateString())
+      const orderDate = targetOrder.date && targetOrder.time ? `${targetOrder.date}, ${targetOrder.time}` : (targetOrder.date || new Date().toLocaleDateString())
       doc.text(`Date: ${orderDate}`, 105, 34, { align: 'center' })
       
       let startY = 45
       
       // Customer Information
-      if (order.customerName || order.customerPhone) {
+      const customerName = targetOrder.customerName || targetOrder.userName
+      const customerPhone = targetOrder.customerPhone || targetOrder.userNumber
+      if (customerName || customerPhone) {
         doc.setFontSize(12)
         doc.setTextColor(30, 30, 30)
         doc.text('Customer Information', 14, startY)
@@ -118,19 +132,20 @@ export function useGenericTableManagement(data, title, searchFields = []) {
         
         doc.setFontSize(10)
         doc.setTextColor(60, 60, 60)
-        if (order.customerName) {
-          doc.text(`Name: ${order.customerName}`, 14, startY)
+        if (customerName) {
+          doc.text(`Name: ${customerName}`, 14, startY)
           startY += 6
         }
-        if (order.customerPhone) {
-          doc.text(`Phone: ${order.customerPhone}`, 14, startY)
+        if (customerPhone) {
+          doc.text(`Phone: ${customerPhone}`, 14, startY)
           startY += 6
         }
         startY += 5
       }
       
       // Restaurant Information
-      if (order.restaurant) {
+      const restaurantName = targetOrder.restaurant || targetOrder.restaurantName
+      if (restaurantName) {
         doc.setFontSize(12)
         doc.setTextColor(30, 30, 30)
         doc.text('Restaurant', 14, startY)
@@ -138,17 +153,17 @@ export function useGenericTableManagement(data, title, searchFields = []) {
         
         doc.setFontSize(10)
         doc.setTextColor(60, 60, 60)
-        doc.text(order.restaurant, 14, startY)
+        doc.text(restaurantName, 14, startY)
         startY += 10
       }
       
       // Order Items Table
-      if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-        const tableData = order.items.map((item) => [
+      if (hasItems) {
+        const tableData = targetOrder.items.map((item) => [
           item.quantity || 1,
           item.name || item.itemName || item.title || 'Unknown Item',
-          `?${(item.price || 0).toFixed(2)}`,
-          `?${((item.quantity || 1) * (item.price || 0)).toFixed(2)}`
+          `Rs. ${(item.price || 0).toFixed(2)}`,
+          `Rs. ${((item.quantity || 1) * (item.price || 0)).toFixed(2)}`
         ])
         
         autoTable(doc, {
@@ -187,28 +202,30 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       }
       
       // Total Amount
-      if (order.totalAmount) {
+      if (hasAmount) {
         doc.setFontSize(14)
         doc.setTextColor(30, 30, 30)
         doc.setFont(undefined, 'bold')
-        const totalAmount = typeof order.totalAmount === 'number' ? order.totalAmount.toFixed(2) : order.totalAmount
-        doc.text(`Total Amount: ?${totalAmount}`, 14, startY)
+        const formattedTotal = typeof totalAmount === 'number' ? totalAmount.toFixed(2) : totalAmount
+        doc.text(`Total Amount: Rs. ${formattedTotal}`, 14, startY)
         startY += 8
       }
       
       // Payment Status
-      if (order.paymentStatus) {
+      const paymentStatus = targetOrder.paymentStatus || targetOrder.payment?.status
+      if (paymentStatus) {
         doc.setFontSize(10)
         doc.setTextColor(100, 100, 100)
         doc.setFont(undefined, 'normal')
-        doc.text(`Payment Status: ${order.paymentStatus}`, 14, startY)
+        doc.text(`Payment Status: ${paymentStatus}`, 14, startY)
         startY += 6
       }
       
       // Order Status
-      if (order.orderStatus) {
+      const orderStatus = targetOrder.orderStatus || targetOrder.status
+      if (orderStatus) {
         doc.setFontSize(10)
-        doc.text(`Order Status: ${order.orderStatus}`, 14, startY)
+        doc.text(`Order Status: ${orderStatus}`, 14, startY)
       }
       
       // Save the PDF instantly
@@ -216,7 +233,7 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       doc.save(filename)
     } catch (error) {
       debugError("Error generating PDF invoice:", error)
-      alert("Failed to download PDF invoice. Please try again.")
+      toast.error("Failed to download PDF invoice. Please try again.")
     }
   }
 

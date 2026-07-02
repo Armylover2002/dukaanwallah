@@ -346,7 +346,21 @@ export const ProfileDetailsV2 = () => {
     setIsUpdatingBankDetails(true)
     try {
       // Validation
-      const { accountNumber, ifscCode, panNumber, upiId } = bankDetails
+      const { accountNumber, ifscCode, panNumber, upiId, accountHolderName, bankName } = bankDetails
+
+      if (accountHolderName) {
+        if (accountHolderName.trim().length > 50) return toast.error("Account Holder Name cannot exceed 50 characters")
+        if (!/^[a-zA-Z\s\.\-\&]+$/.test(accountHolderName.trim())) return toast.error("Account Holder Name must contain only valid letters")
+      }
+
+      if (bankName) {
+        if (bankName.trim().length > 50) return toast.error("Bank Name cannot exceed 50 characters")
+        if (!/^[a-zA-Z\s\.\-\&]+$/.test(bankName.trim())) return toast.error("Bank Name must contain only valid text")
+      }
+
+      if (!upiId || !upiId.trim()) {
+        return toast.error("UPI ID is a mandatory field")
+      }
 
       if (accountNumber && !/^\d{9,18}$/.test(accountNumber.trim())) {
         return toast.error("Invalid Account Number (9-18 digits)")
@@ -833,10 +847,10 @@ export const ProfileDetailsV2 = () => {
         <div className="space-y-5 pb-10">
           <div className="grid gap-4">
              {[
-               { label: "Account Holder", key: "accountHolderName", icon: User, maxLength: 60 },
+               { label: "Account Holder", key: "accountHolderName", icon: User, maxLength: 60, isTextOnly: true },
                { label: "Account Number", key: "accountNumber", icon: Banknote, maxLength: 18, isNumeric: true },
                { label: "IFSC Code", key: "ifscCode", icon: Shield, format: (v) => v.toUpperCase(), maxLength: 11 },
-               { label: "Bank Name", key: "bankName", icon: MapPin, maxLength: 60 },
+               { label: "Bank Name", key: "bankName", icon: MapPin, maxLength: 60, isTextOnly: true },
                { label: "PAN Number", key: "panNumber", icon: FileText, format: (v) => v.toUpperCase(), maxLength: 10 },
                { label: "UPI ID", key: "upiId", icon: Smartphone, maxLength: 60 }
              ].map((field) => (
@@ -850,6 +864,7 @@ export const ProfileDetailsV2 = () => {
                     onChange={(e) => {
                         let val = e.target.value;
                         if (field.isNumeric) val = val.replace(/\D/g, "");
+                        if (field.isTextOnly) val = val.replace(/\d/g, "");
                         if (field.maxLength && val.length > field.maxLength) return;
                         if (field.format) val = field.format(val);
                         setBankDetails({...bankDetails, [field.key]: val})

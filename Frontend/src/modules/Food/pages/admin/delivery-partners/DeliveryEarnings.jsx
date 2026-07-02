@@ -143,7 +143,7 @@ export default function DeliveryEarnings() {
 
     switch (format) {
       case "csv":
-        const csvContent = [
+        const csvContent = "\uFEFF" + [
           headers.map(h => h.label).join(","),
           ...data.map(row => headers.map(h => `"${row[h.key] || ''}"`).join(","))
         ].join("\n")

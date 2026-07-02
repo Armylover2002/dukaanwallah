@@ -24,8 +24,8 @@ const cuisinesOptions = [
 ]
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PHONE_REGEX = /^\d{10}$/
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+const PHONE_REGEX = /^[6-9]\d{9}$/
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const FSSAI_REGEX = /^\d{14}$/
 const ACCOUNT_NUMBER_REGEX = /^\d{9,18}$/
@@ -508,9 +508,7 @@ export default function AddRestaurant() {
     }
 
     if (validationErrors.length > 0) {
-      validationErrors.forEach((error) => {
-        toast.error(error)
-      })
+      toast.error(validationErrors[0])
       return
     }
 
@@ -1203,56 +1201,74 @@ export default function AddRestaurant() {
         <div className="space-y-3">
           <Label className="text-xs text-gray-700">Outlet timings*</Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs text-gray-700 mb-1 block">Opening time</Label>
-              <Input
-                type="time"
-                value={step2.openingTime || ""}
-                onChange={(e) => {
-                  const nextOpening = e.target.value
-                  const closingMinutes = timeStringToMinutes(step2.closingTime)
-                  const openingMinutes = timeStringToMinutes(nextOpening)
-                  if (openingMinutes !== null && closingMinutes !== null) {
-                    if (openingMinutes === closingMinutes) {
-                      toast.error("Opening time and closing time cannot be same")
-                      return
-                    }
-                    if (closingMinutes < openingMinutes) {
-                      toast.error("Closing time cannot be less than opening time")
-                      return
-                    }
-                  }
-                  setStep2({ ...step2, openingTime: nextOpening })
-                }}
-                autoComplete="off"
-                className="bg-white text-sm"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-700 mb-1 block">Closing time</Label>
-              <Input
-                type="time"
-                value={step2.closingTime || ""}
-                onChange={(e) => {
-                  const nextClosing = e.target.value
-                  const openingMinutes = timeStringToMinutes(step2.openingTime)
-                  const closingMinutes = timeStringToMinutes(nextClosing)
-                  if (openingMinutes !== null && closingMinutes !== null) {
-                    if (openingMinutes === closingMinutes) {
-                      toast.error("Opening time and closing time cannot be same")
-                      return
-                    }
-                    if (closingMinutes < openingMinutes) {
-                      toast.error("Closing time cannot be less than opening time")
-                      return
-                    }
-                  }
-                  setStep2({ ...step2, closingTime: nextClosing })
-                }}
-                autoComplete="off"
-                className="bg-white text-sm"
-              />
-            </div>
+            {(() => {
+              const value = step2.openingTime;
+              let h = '12', m = '00', ampm = 'AM';
+              if (value) {
+                const [hh, mm] = value.split(':');
+                const hInt = parseInt(hh, 10);
+                ampm = hInt >= 12 ? 'PM' : 'AM';
+                h = String(hInt % 12 || 12).padStart(2, '0');
+                m = mm;
+              }
+              const updateTime = (newH, newM, newAmpm) => {
+                let hInt = parseInt(newH, 10);
+                if (newAmpm === 'PM' && hInt !== 12) hInt += 12;
+                if (newAmpm === 'AM' && hInt === 12) hInt = 0;
+                setStep2({ ...step2, openingTime: `${String(hInt).padStart(2, '0')}:${newM}` });
+              };
+              return (
+                <div>
+                  <Label className="text-xs text-gray-700 mb-1 block">Opening time</Label>
+                  <div className="flex items-center gap-1">
+                    <select value={h} onChange={(e) => updateTime(e.target.value, m, ampm)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
+                      {Array.from({length: 12}).map((_, i) => (<option key={i+1} value={String(i+1).padStart(2, '0')}>{String(i+1).padStart(2, '0')}</option>))}
+                    </select>
+                    <span>:</span>
+                    <select value={m} onChange={(e) => updateTime(h, e.target.value, ampm)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
+                      {Array.from({length: 60}).map((_, i) => (<option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2, '0')}</option>))}
+                    </select>
+                    <select value={ampm} onChange={(e) => updateTime(h, m, e.target.value)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
+                      <option value="AM">AM</option><option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
+              )
+            })()}
+            {(() => {
+              const value = step2.closingTime;
+              let h = '12', m = '00', ampm = 'AM';
+              if (value) {
+                const [hh, mm] = value.split(':');
+                const hInt = parseInt(hh, 10);
+                ampm = hInt >= 12 ? 'PM' : 'AM';
+                h = String(hInt % 12 || 12).padStart(2, '0');
+                m = mm;
+              }
+              const updateTime = (newH, newM, newAmpm) => {
+                let hInt = parseInt(newH, 10);
+                if (newAmpm === 'PM' && hInt !== 12) hInt += 12;
+                if (newAmpm === 'AM' && hInt === 12) hInt = 0;
+                setStep2({ ...step2, closingTime: `${String(hInt).padStart(2, '0')}:${newM}` });
+              };
+              return (
+                <div>
+                  <Label className="text-xs text-gray-700 mb-1 block">Closing time</Label>
+                  <div className="flex items-center gap-1">
+                    <select value={h} onChange={(e) => updateTime(e.target.value, m, ampm)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
+                      {Array.from({length: 12}).map((_, i) => (<option key={i+1} value={String(i+1).padStart(2, '0')}>{String(i+1).padStart(2, '0')}</option>))}
+                    </select>
+                    <span>:</span>
+                    <select value={m} onChange={(e) => updateTime(h, e.target.value, ampm)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
+                      {Array.from({length: 60}).map((_, i) => (<option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2, '0')}</option>))}
+                    </select>
+                    <select value={ampm} onChange={(e) => updateTime(h, m, e.target.value)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
+                      <option value="AM">AM</option><option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
 

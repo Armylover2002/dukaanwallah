@@ -1,4 +1,4 @@
-const debugLog = (...args) => {}
+ï»¿const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
@@ -311,15 +311,15 @@ const formatBonusForExport = (transaction) => {
   // First priority: use raw amount value if available
   if (transaction.amount !== undefined && transaction.amount !== null && !isNaN(transaction.amount)) {
     const amount = parseFloat(transaction.amount)
-    return `?${amount.toFixed(2)}`
+    return `Rs. ${amount.toFixed(2)}`
   }
   
   // Second priority: clean and extract from bonus string
   if (transaction.bonus) {
     // Remove all superscript/special characters and unwanted text
     let cleaned = transaction.bonus.toString()
-      .replace(/¹/g, '') // Remove superscript 1
-      .replace(/[¹²³45678?°]/g, '') // Remove all superscript numbers
+      .replace(/Â¹/g, '') // Remove superscript 1
+      .replace(/[Â¹Â²Â³45678?Â°]/g, '') // Remove all superscript numbers
       .replace(/[\u2070-\u207F\u2080-\u208F]/g, '') // Remove all superscript Unicode ranges
       .replace(/[^\d.-]/g, '') // Keep only digits, dots, and minus signs
       .trim()
@@ -329,12 +329,12 @@ const formatBonusForExport = (transaction) => {
     if (numericMatch) {
       const amount = parseFloat(numericMatch[0])
       if (!isNaN(amount)) {
-        return `?${amount.toFixed(2)}`
+        return `Rs. ${amount.toFixed(2)}`
       }
     }
   }
   
-  return '?0.00'
+  return 'Rs. 0.00'
 }
 
 export const exportBonusToExcel = (transactions, filename = "deliveryman_bonus") => {
@@ -426,7 +426,7 @@ export const exportBonusToPDF = (transactions, filename = "deliveryman_bonus") =
         // Prepare table data - ensure bonus is properly formatted
         const tableData = transactions.map((transaction) => {
           // ALWAYS use raw amount value - don't rely on formatted bonus string
-          let bonusAmount = '?0.00'
+          let bonusAmount = 'Rs. 0.00'
           
           // First priority: Use raw numeric amount from transaction.amount
           if (transaction.amount !== undefined && transaction.amount !== null) {
@@ -434,7 +434,7 @@ export const exportBonusToPDF = (transactions, filename = "deliveryman_bonus") =
               ? parseFloat(transaction.amount.replace(/[^\d.-]/g, ''))
               : parseFloat(transaction.amount)
             if (!isNaN(numAmount)) {
-              bonusAmount = `?${numAmount.toFixed(2)}`
+              bonusAmount = `Rs. ${numAmount.toFixed(2)}`
             }
           } 
           // Second priority: Extract number from bonus string and rebuild
@@ -443,7 +443,7 @@ export const exportBonusToPDF = (transactions, filename = "deliveryman_bonus") =
             const numericPart = String(transaction.bonus).replace(/[^\d.-]/g, '')
             const numAmount = parseFloat(numericPart)
             if (!isNaN(numAmount) && numAmount > 0) {
-              bonusAmount = `?${numAmount.toFixed(2)}`
+              bonusAmount = `Rs. ${numAmount.toFixed(2)}`
             }
           }
           

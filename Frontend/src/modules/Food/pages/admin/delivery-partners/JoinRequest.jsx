@@ -24,6 +24,7 @@ export default function JoinRequest() {
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [viewDetails, setViewDetails] = useState(null)
   const [processing, setProcessing] = useState(false)
+  const [fetchingDetails, setFetchingDetails] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
   const [filters, setFilters] = useState({
     zone: "",
@@ -195,7 +196,7 @@ export default function JoinRequest() {
 
   const handleView = async (request) => {
     try {
-      setLoading(true)
+      setFetchingDetails(true)
       const response = await adminAPI.getDeliveryPartnerById(request._id)
       
       if (response.data && response.data.success) {
@@ -208,13 +209,13 @@ export default function JoinRequest() {
       debugError("Error fetching details:", err)
       toast.error(err.response?.data?.message || "Failed to load details")
     } finally {
-      setLoading(false)
+      setFetchingDetails(false)
     }
   }
 
   const handleViewDocs = async (request) => {
     try {
-      setLoading(true)
+      setFetchingDetails(true)
       const response = await adminAPI.getDeliveryPartnerById(request._id)
       
       if (response.data && response.data.success) {
@@ -227,7 +228,7 @@ export default function JoinRequest() {
       debugError("Error fetching documents:", err)
       toast.error(err.response?.data?.message || "Failed to load documents")
     } finally {
-      setLoading(false)
+      setFetchingDetails(false)
     }
   }
 

@@ -459,13 +459,18 @@ export default function EarningAddon() {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleToggleStatus(addon._id, addon.status)}
-                                className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                                title={addon.status === 'active' ? 'Deactivate' : 'Activate'}
+                                disabled={addon.status === 'expired'}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  addon.status === 'expired' 
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : 'hover:bg-slate-100'
+                                }`}
+                                title={addon.status === 'expired' ? 'Cannot activate expired offer' : (addon.status === 'active' ? 'Deactivate' : 'Activate')}
                               >
                                 {addon.status === 'active' ? (
                                   <ToggleRight className="w-5 h-5 text-green-500" />
                                 ) : (
-                                  <ToggleLeft className="w-5 h-5 text-gray-400" />
+                                  <ToggleLeft className={`w-5 h-5 ${addon.status === 'expired' ? 'text-gray-300' : 'text-gray-400'}`} />
                                 )}
                               </button>
                               <button
