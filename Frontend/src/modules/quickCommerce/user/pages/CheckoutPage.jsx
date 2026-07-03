@@ -11,7 +11,7 @@ import { useLocation as useAppLocation } from "../context/LocationContext";
 import {
   MapPin, Clock, CreditCard, Banknote, ChevronRight, ChevronLeft,
   Share2, Gift, ShoppingBag, ChevronDown, ChevronUp, Heart, Truck,
-  Tag, Sparkles, Plus, Minus, Search, X, Clipboard, Check, Contact2, Copy
+  Tag, Sparkles, Plus, Minus, Search, X, Clipboard, Check, Contact2, Copy, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -372,6 +372,7 @@ const CheckoutPage = () => {
   const [manualCode, setManualCode] = useState(storedCheckoutState.manualCode || "");
   const [showShareModal, setShowShareModal] = useState(false);
   const [customTip, setCustomTip] = useState("");
+  const [deliveryInstruction, setDeliveryInstruction] = useState(storedCheckoutState.deliveryInstruction || "");
 
   const sharedProfileName = useMemo(
     () => String(userProfile?.name || user?.name || "").trim(),
@@ -781,6 +782,7 @@ const CheckoutPage = () => {
         platformFee,
         deliveryFee,
         timeSlot: selectedTimeSlot,
+        note: deliveryInstruction,
       };
 
       let response;
@@ -1077,9 +1079,9 @@ const CheckoutPage = () => {
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
-      window.localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ selectedTimeSlot, selectedPayment, selectedTip, selectedCoupon, manualCode, currentAddress, recipientData, savedRecipient, showRecipientForm }));
+      window.localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({ selectedTimeSlot, selectedPayment, selectedTip, selectedCoupon, manualCode, currentAddress, recipientData, savedRecipient, showRecipientForm, deliveryInstruction }));
     } catch { /* ignore */ }
-  }, [currentAddress, manualCode, recipientData, savedRecipient, selectedCoupon, selectedPayment, selectedTimeSlot, selectedTip, showRecipientForm]);
+  }, [currentAddress, manualCode, recipientData, savedRecipient, selectedCoupon, selectedPayment, selectedTimeSlot, selectedTip, showRecipientForm, deliveryInstruction]);
 
   useEffect(() => {
     if (cart.length === 0) { setPricingPreview(null); return; }
@@ -1160,7 +1162,7 @@ const CheckoutPage = () => {
   // ── Main render ──────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8] pb-32 font-sans">
+    <div className="min-h-screen bg-[#f5f1e8] pb-24 font-sans">
       {/* Header */}
       <div className="bg-gradient-to-br from-[#0a5f17] via-[#0b721b] to-[#084a12] pt-6 pb-12 md:pb-24 relative z-10 shadow-lg md:rounded-b-[4rem] rounded-b-[2rem] overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[100px] -mr-32 -mt-64 pointer-events-none" />
@@ -1236,6 +1238,20 @@ const CheckoutPage = () => {
               </div>
             </motion.div>
 
+            {/* Delivery Instructions */}
+            <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare size={18} className="text-[#0c831f]" />
+                <h3 className="font-black text-slate-800 dark:text-white">Delivery Instructions</h3>
+              </div>
+              <textarea
+                value={deliveryInstruction}
+                onChange={(e) => setDeliveryInstruction(e.target.value)}
+                placeholder="E.g. Ring the doorbell, leave at the front desk..."
+                className="w-full h-24 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#0c831f] transition-colors resize-none"
+              />
+            </motion.div>
+
             {/* Cart Items — memoized CartItem */}
             <motion.div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
               {cart.map((item) => (
@@ -1277,7 +1293,7 @@ const CheckoutPage = () => {
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-8 pb-32 lg:pb-8">
+          <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-8 lg:pb-8">
             {/* Coupons — memoized CouponRow */}
             <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
               <div className="flex items-center justify-between mb-4">
@@ -1300,7 +1316,7 @@ const CheckoutPage = () => {
               </div>
             </motion.div>
 
-            {/* Tip */}
+            {/* Tip section disabled
             <motion.div className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-4 border border-pink-100 dark:border-white/5">
               <div className="flex items-center gap-2 mb-3">
                 <Heart size={18} className="text-pink-500 fill-pink-500" />
@@ -1322,6 +1338,7 @@ const CheckoutPage = () => {
                 {customTip && <button onClick={() => { setCustomTip(""); setSelectedTip(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X size={14} /></button>}
               </div>
             </motion.div>
+            */}
 
             {/* Payment Methods — memoized PaymentMethodButton */}
             <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">

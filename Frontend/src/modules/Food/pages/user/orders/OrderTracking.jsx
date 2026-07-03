@@ -167,23 +167,23 @@ const SectionItem = React.memo(function SectionItem({
   return (
     <motion.button
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors text-left border-b border-dashed border-gray-200 last:border-0"
+      className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left border-b border-dashed border-gray-200 dark:border-white/10 last:border-0"
       whileTap={SECTION_TAP}
     >
-      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
         {iconNode ? (
           <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center [&_svg]:w-full [&_svg]:h-full [&_svg]:block">
             {iconNode}
           </div>
         ) : (
-          <Icon className="w-5 h-5 text-gray-600 flex-shrink-0" />
+          <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400 flex-shrink-0" />
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 truncate">{title}</p>
-        {subtitle && <p className="text-sm text-gray-500 truncate">{subtitle}</p>}
+        <p className="font-medium text-gray-900 dark:text-white truncate">{title}</p>
+        {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{subtitle}</p>}
       </div>
-      {rightContent || (showArrow && <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />)}
+      {rightContent || (showArrow && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />)}
     </motion.button>
   );
 });
@@ -1555,11 +1555,11 @@ export default function OrderTracking() {
         )}
 
         {/* Status Card */}
-        <motion.div className="bg-white rounded-xl p-4 shadow-sm" {...MOTION_SLIDE_UP(0.3)}>
+        <motion.div className="bg-white dark:bg-[#121212] rounded-xl p-4 shadow-sm border border-transparent dark:border-white/10" {...MOTION_SLIDE_UP(0.3)}>
           <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm border border-gray-100 ${currentStatus.iconType === 'rider' ? 'bg-blue-50' :
-              currentStatus.iconType === 'cancelled' ? 'bg-red-50' :
-                currentStatus.iconType === 'delivered' ? 'bg-green-50' : 'bg-red-50'
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm border border-gray-100 dark:border-white/10 ${currentStatus.iconType === 'rider' ? 'bg-blue-50 dark:bg-blue-900/20' :
+              currentStatus.iconType === 'cancelled' ? 'bg-red-50 dark:bg-red-900/20' :
+                currentStatus.iconType === 'delivered' ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'
               }`}>
               {currentStatus.iconType === 'rider' ? (
                 <div dangerouslySetInnerHTML={{ __html: RIDER_BIKE_SVG.replace(/width="\d+"/, 'width="100%"').replace(/height="\d+"/, 'height="100%"') }} style={RIDER_SVG_STYLE} />
@@ -1572,8 +1572,8 @@ export default function OrderTracking() {
               )}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-gray-900 leading-tight">{currentStatus.title}</p>
-              <p className="text-sm text-gray-500 mt-1 leading-snug">{currentStatus.subtitle}</p>
+              <p className="font-semibold text-gray-900 dark:text-white leading-tight">{currentStatus.title}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-snug">{currentStatus.subtitle}</p>
             </div>
           </div>
         </motion.div>
@@ -1622,25 +1622,25 @@ export default function OrderTracking() {
 
         {!isDeliveredOrder && (
           <motion.button
-            className="w-full bg-white rounded-xl p-4 shadow-sm flex items-center gap-3"
+            className="w-full bg-white dark:bg-[#121212] rounded-xl p-4 shadow-sm border border-transparent dark:border-white/10 flex items-center gap-3"
             {...MOTION_SLIDE_UP(0.6)}
             whileTap={{ scale: 0.99 }}
             onClick={() => setShowSafetyModal(true)}
           >
-            <Shield className="w-6 h-6 text-gray-600" />
-            <span className="flex-1 text-left font-medium text-gray-900">Learn about delivery partner safety</span>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <Shield className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+            <span className="flex-1 text-left font-medium text-gray-900 dark:text-white">Learn about delivery partner safety</span>
+            <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </motion.button>
         )}
 
         {!isDeliveredOrder && (
-          <motion.div className="bg-yellow-50 rounded-xl p-4 text-center" {...MOTION_SLIDE_UP(0.65)}>
-            <p className="text-yellow-800 font-medium">All your delivery details in one place 🚀</p>
+          <motion.div className="bg-yellow-50 dark:bg-yellow-900/20 dark:border dark:border-yellow-700/30 rounded-xl p-4 text-center" {...MOTION_SLIDE_UP(0.65)}>
+            <p className="text-yellow-800 dark:text-yellow-300 font-medium">All your delivery details in one place 🚀</p>
           </motion.div>
         )}
 
         {/* Contact & Address */}
-        <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden" {...MOTION_SLIDE_UP(0.7)}>
+        <motion.div className="bg-white dark:bg-[#121212] rounded-xl shadow-sm border border-transparent dark:border-white/10 overflow-hidden" {...MOTION_SLIDE_UP(0.7)}>
           <SectionItem
             icon={User}
             title={order?.userName || order?.userId?.fullName || order?.userId?.name || profile?.fullName || profile?.name || 'Customer'}
@@ -1648,25 +1648,25 @@ export default function OrderTracking() {
             showArrow={false}
           />
           <SectionItem iconNode={customerPinNode} title="Delivery at Location" subtitle={deliveryAddressSubtitle} showArrow={false} />
-          {/* {!isDeliveredOrder && (
+          {!isDeliveredOrder && (
             <SectionItem
               icon={MessageSquare}
               title={order?.note ? "Edit delivery instructions" : "Add delivery instructions"}
               subtitle={order?.note ? order.note.substring(0, 35) + (order.note.length > 35 ? "..." : "") : ""}
               onClick={openInstructionsModal}
             />
-          )} */}
+          )}
         </motion.div>
 
         {/* Pickup Sources */}
-        <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden" {...MOTION_SLIDE_UP(0.75)}>
-          <div className="p-4 border-b border-dashed border-gray-200">
+        <motion.div className="bg-white dark:bg-[#121212] rounded-xl shadow-sm border border-transparent dark:border-white/10 overflow-hidden" {...MOTION_SLIDE_UP(0.75)}>
+          <div className="p-4 border-b border-dashed border-gray-200 dark:border-white/10">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
                   {order?.orderType === 'mixed' ? 'Pickup Points' : (isQuickOrder ? 'Store' : 'Restaurant')}
                 </p>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   {order?.orderType === 'mixed' ? 'Restaurant and store details for this mixed order' : 'Pickup details for your order'}
                 </p>
               </div>
@@ -1684,19 +1684,19 @@ export default function OrderTracking() {
             <div className="mt-4 space-y-3">
               {pickupSources.map((source, index) => {
                 const isQuick = source.pickupType === 'quick';
-                const badgeClasses = isQuick ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-red-50 text-orange-700 border-orange-200';
+                const badgeClasses = isQuick ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20' : 'bg-red-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20';
                 return (
-                  <div key={source.id || `${source.pickupType}-${index}`} className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4">
+                  <div key={source.id || `${source.pickupType}-${index}`} className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5 p-4">
                     <div className="flex items-start gap-3">
-                      <div className={`inline-flex h-12 w-12 items-center justify-center rounded-full ${isQuick ? 'bg-sky-100' : 'bg-red-100'} flex-shrink-0`}>
+                      <div className={`inline-flex h-12 w-12 items-center justify-center rounded-full ${isQuick ? 'bg-sky-100 dark:bg-sky-500/20' : 'bg-red-100 dark:bg-red-500/20'} flex-shrink-0`}>
                         <div dangerouslySetInnerHTML={{ __html: SAFE_RESTAURANT_PIN }} className="w-7 h-7 [&_svg]:w-full [&_svg]:h-full [&_svg]:block" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${badgeClasses}`}>
                           {pickupSources.length > 1 ? `${source.label} ${index + 1}` : source.label}
                         </span>
-                        <p className="mt-2 font-semibold text-gray-900">{source.name}</p>
-                        <p className="mt-1 text-sm text-gray-500">{source.address || 'Address not available'}</p>
+                        <p className="mt-2 font-semibold text-gray-900 dark:text-white">{source.name}</p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{source.address || 'Address not available'}</p>
                       </div>
                       {source.phone && pickupSources.length > 1 ? (
                         <motion.button className={`w-10 h-10 rounded-full flex items-center justify-center ${isQuick ? 'bg-sky-50' : 'bg-red-50'}`} onClick={(e) => handleCallPickupSource(source.phone, e)} whileTap={{ scale: 0.9 }}>
@@ -1732,12 +1732,12 @@ export default function OrderTracking() {
         </motion.div>
 
         {!isAdminAccepted && !isDeliveredOrder && orderStatus !== 'cancelled' && (
-          <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden" {...MOTION_SLIDE_UP(0.8)}>
+          <motion.div className="bg-white dark:bg-[#121212] rounded-xl shadow-sm border border-transparent dark:border-white/10 overflow-hidden" {...MOTION_SLIDE_UP(0.8)}>
             <SectionItem icon={CircleSlash} title="Cancel order" subtitle="" onClick={handleCancelOrder} />
           </motion.div>
         )}
 
-        <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden" {...MOTION_SLIDE_UP(0.82)}>
+        <motion.div className="bg-white dark:bg-[#121212] rounded-xl shadow-sm border border-transparent dark:border-white/10 overflow-hidden" {...MOTION_SLIDE_UP(0.82)}>
           <SectionItem icon={Download} title="Download invoice" subtitle="Get a dynamic PDF invoice for this order" onClick={handleDownloadInvoice} />
         </motion.div>
 
@@ -2012,12 +2012,12 @@ export default function OrderTracking() {
 
       {/* Delivery Instructions Dialog */}
       <Dialog open={isInstructionsModalOpen} onOpenChange={setIsInstructionsModalOpen}>
-        <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white max-h-[90vh] overflow-y-auto z-[200]">
+        <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white dark:bg-[#121212] max-h-[90vh] overflow-y-auto z-[200]">
           <DialogHeader className="mb-2">
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">Restaurant Instructions</DialogTitle>
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">Delivery Instructions</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-gray-500">Add instructions for the delivery partner to help them find your address or know where to leave your order.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Add instructions for the delivery partner to help them find your address or know where to leave your order.</p>
             <Textarea value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} placeholder="E.g. Ring the doorbell, leave at the front desk..." className="min-h-[120px] resize-none border-gray-200 focus:ring-orange-500 rounded-xl bg-gray-50 text-base" />
             <Button onClick={handleUpdateInstructions} disabled={isUpdatingInstructions} className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold h-12 rounded-xl border-none">
               {isUpdatingInstructions ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Save Instructions"}

@@ -1,4 +1,4 @@
-import { BrowserRouter, HashRouter } from 'react-router-dom'
+import { BrowserRouter, HashRouter, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { Toaster as HotToaster } from 'react-hot-toast'
 import { StrictMode } from 'react'
@@ -24,31 +24,50 @@ function shouldUseHashRouter() {
   )
 }
 
+const RouteAwareThemeProvider = ({ children }) => {
+  const location = useLocation();
+  const pathname = location.pathname || '';
+  
+  const isNonUserPanel = pathname.startsWith('/admin') || 
+                         pathname.startsWith('/seller') || 
+                         pathname.startsWith('/food/restaurant') || 
+                         pathname.startsWith('/food/delivery') ||
+                         pathname.startsWith('/restaurant') ||
+                         pathname.startsWith('/delivery');
+
+  return (
+    <ThemeProvider 
+      attribute="class" 
+      defaultTheme="light" 
+      storageKey="appTheme"
+      enableSystem={false}
+      forcedTheme={isNonUserPanel ? 'light' : undefined}
+    >
+      {children}
+    </ThemeProvider>
+  );
+};
+
 export function AppProviders({ children }) {
   const Router = shouldUseHashRouter() ? HashRouter : BrowserRouter
 
   return (
     <StrictMode>
-      <ThemeProvider 
-        attribute="class" 
-        defaultTheme="light" 
-        storageKey="appTheme"
-        enableSystem={false}
-      >
-        <AuthProvider>
-          <SettingsProvider>
-            <ToastProvider>
-              <ReduxProvider store={store}>
-                <Router>
+      <AuthProvider>
+        <SettingsProvider>
+          <ToastProvider>
+            <ReduxProvider store={store}>
+              <Router>
+                <RouteAwareThemeProvider>
                   {children}
                   <Toaster position="top-center" richColors offset="80px" />
                   <HotToaster position="top-center" reverseOrder={false} />
-                </Router>
-              </ReduxProvider>
-            </ToastProvider>
-          </SettingsProvider>
-        </AuthProvider>
-      </ThemeProvider>
+                </RouteAwareThemeProvider>
+              </Router>
+            </ReduxProvider>
+          </ToastProvider>
+        </SettingsProvider>
+      </AuthProvider>
     </StrictMode>
   )
 }

@@ -370,10 +370,8 @@ export default function RestaurantComplaints() {
               <label className="text-sm font-medium">Status</label>
               <Select
                 value={updateData.status}
-                onValueChange={(val) => {
-                  if (!canEdit) return
-                  setUpdateData({ ...updateData, status: val })
-                }}
+                onValueChange={(val) => setUpdateData(prev => ({ ...prev, status: val }))}
+                disabled={!canEdit}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select status" />
