@@ -446,7 +446,7 @@ export default function OrdersTable({
                         return isCancelled && (isOnlinePayment || isWalletPayment);
                       })() && (
                         <>
-                          {order.refundStatus === 'processed' || order.refundStatus === 'initiated' ? (
+                          {order.refundStatus === 'processed' || order.refundStatus === 'initiated' || order.paymentStatus?.toLowerCase() === 'refunded' ? (
                             <span className={`px-3 py-1.5 rounded-md text-xs font-medium ${
                               order.paymentType === "Wallet" || order.payment?.method === "wallet"
                                 ? "bg-purple-100 text-purple-700"

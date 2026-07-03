@@ -919,12 +919,10 @@ const ReturnOrders = () => {
             )}
 
             {/* Re-trigger Refund Button — for stuck orders */}
-            {['delivered_to_seller', 'refund_processed'].includes(selectedReturn.status) && (
+            {selectedReturn.status === 'delivered_to_seller' && (
               <div className="p-6 border-t border-slate-100 bg-amber-50">
                 <div className="mb-3 text-xs text-amber-700 font-semibold">
-                  {selectedReturn.status === 'refund_processed' && !selectedReturn.refundTransactionId
-                    ? '⚠️ This order is marked as refunded but may not have been credited due to a previous system error.'
-                    : 'Re-trigger refund and payout if the customer or rider did not receive their credit.'}
+                  Re-trigger refund and payout if the customer or rider did not receive their credit.
                 </div>
                 <button
                   onClick={handleRetriggerRefund}
