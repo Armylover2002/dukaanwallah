@@ -533,6 +533,203 @@ export default function Feedback() {
           </div>
         )}
       </div>
+
+      {/* Date Range Selector Modal */}
+      <AnimatePresence>
+        {isDateSelectorOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsDateSelectorOpen(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl shadow-2xl z-50 max-h-[85vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-900">Select Date Range</h2>
+                <button onClick={() => setIsDateSelectorOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+                {[
+                  { id: "today", label: "Today" },
+                  { id: "yesterday", label: "Yesterday" },
+                  { id: "thisWeek", label: "This Week" },
+                  { id: "lastWeek", label: "Last Week" },
+                  { id: "thisMonth", label: "This Month" },
+                  { id: "lastMonth", label: "Last Month" },
+                  { id: "last5days", label: "Last 5 Days" },
+                  { id: "custom", label: "Custom Range" }
+                ].map(range => (
+                  <label key={range.id} className="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100 last:border-0">
+                    <span className="text-sm font-medium text-gray-900">{range.label}</span>
+                    <input
+                      type="radio"
+                      name="dateRange"
+                      checked={selectedDateRange === range.id}
+                      onChange={() => handleDateRangeSelect(range.id)}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Date Range Modal */}
+      <AnimatePresence>
+        {isCustomDateOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsCustomDateOpen(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl shadow-2xl z-50 flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-900">Custom Range</h2>
+                <button onClick={() => setIsCustomDateOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+              <div className="p-4 bg-gray-50 flex justify-center">
+                <DateRangeCalendar 
+                  selected={customDateRange} 
+                  onSelect={setCustomDateRange} 
+                />
+              </div>
+              <div className="px-4 py-4 border-t border-gray-200 space-y-2">
+                <button
+                  onClick={handleCustomDateApply}
+                  disabled={!customDateRange.start || !customDateRange.end}
+                  className="w-full py-3 rounded-xl font-bold text-white bg-[#FE5502] disabled:opacity-50"
+                >
+                  Apply
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Complaints Filter Modal */}
+      <AnimatePresence>
+        {isComplaintsFilterOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsComplaintsFilterOpen(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl shadow-2xl z-50 max-h-[85vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-900">Filter Complaints</h2>
+                <button onClick={() => setIsComplaintsFilterOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+                {[
+                  { id: "quality", label: "Quality Issue" },
+                  { id: "packaging", label: "Packaging Issue" },
+                  { id: "missing", label: "Missing Item" },
+                  { id: "wrong", label: "Wrong Item" },
+                  { id: "spoilage", label: "Spoilage/Stale" },
+                  { id: "other", label: "Other" }
+                ].map(issue => (
+                  <label key={issue.id} className="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100 last:border-0">
+                    <span className="text-sm font-medium text-gray-900">{issue.label}</span>
+                    <input
+                      type="radio"
+                      name="complaintIssue"
+                      checked={complaintsFilterValues.issueType.includes(issue.id)}
+                      onChange={() => setComplaintsFilterValues(prev => ({ ...prev, issueType: [issue.id] }))}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="px-4 py-4 border-t border-gray-200 space-y-2">
+                {complaintsFilterValues.issueType.length > 0 && (
+                  <button onClick={handleComplaintsFilterReset} className="w-full py-2 rounded-xl font-medium text-sm bg-gray-100 text-gray-700">
+                    Clear filters
+                  </button>
+                )}
+                <button onClick={handleComplaintsFilterApply} className="w-full py-3 rounded-xl font-bold text-white bg-black">
+                  Apply Filters
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Reviews Filter Modal */}
+      <AnimatePresence>
+        {isFilterOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsFilterOpen(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl shadow-2xl z-50 max-h-[85vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-900">Sort Reviews</h2>
+                <button onClick={() => setIsFilterOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+                {[
+                  { id: "newest", label: "Newest first" },
+                  { id: "oldest", label: "Oldest first" },
+                  { id: "bestRated", label: "Best rated" },
+                  { id: "worstRated", label: "Worst rated" }
+                ].map(sortOption => (
+                  <label key={sortOption.id} className="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100 last:border-0">
+                    <span className="text-sm font-medium text-gray-900">{sortOption.label}</span>
+                    <input
+                      type="radio"
+                      name="reviewSort"
+                      checked={filterValues.sortBy === sortOption.id}
+                      onChange={() => setFilterValues(prev => ({ ...prev, sortBy: sortOption.id }))}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="px-4 py-4 border-t border-gray-200 space-y-2">
+                <button onClick={handleFilterReset} className="w-full py-2 rounded-xl font-medium text-sm bg-gray-100 text-gray-700">
+                  Reset
+                </button>
+                <button onClick={handleFilterApply} className="w-full py-3 rounded-xl font-bold text-white bg-black">
+                  Apply Sort
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <BottomNavOrders />
     </div>
   )
