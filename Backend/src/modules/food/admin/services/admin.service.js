@@ -2203,7 +2203,7 @@ export async function getRestaurantReviews(query = {}) {
         customerId: doc.userId?._id || 'N/A',
         review: doc.ratings?.restaurant?.comment || '',
         rating: doc.ratings?.restaurant?.rating || 0,
-        submittedAt: doc.createdAt
+        submittedAt: doc.ratings?.restaurant?.ratedAt || doc.createdAt
     }));
 
     return { reviews, total, page, limit };
@@ -4660,7 +4660,7 @@ export async function getDeliverymanReviews(query = {}) {
         customerPhone: doc.userId?.phone || 'N/A',
         review: doc.ratings?.deliveryPartner?.comment || '',
         rating: doc.ratings?.deliveryPartner?.rating || 0,
-        submittedAt: doc.createdAt,
+        submittedAt: doc.ratings?.deliveryPartner?.ratedAt || doc.createdAt,
         deliveredAt: doc.deliveryState?.deliveredAt
     }));
 

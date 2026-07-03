@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { useParams, Link, useSearchParams, useLocation } from "react-router-dom"
+import { useParams, Link, useSearchParams, useLocation, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import {
@@ -560,6 +560,7 @@ export default function OrderTracking() {
   const { orderId } = useParams();
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const confirmed = searchParams.get("confirmed") === "true";
   const prefetchedOrder = location.state?.prefetchedOrder || location.state?.order || null;
   const isQuickOrder = String(location.state?.orderType || "").toLowerCase() === "quick" || /^QC/i.test(String(orderId || ""));
@@ -1417,10 +1418,10 @@ export default function OrderTracking() {
   // ── Early returns (after all hooks) ─────────────────────────────────────────
   if (loading) {
     return (
-      <AnimatedPage className="min-h-screen bg-gray-50 p-4">
+      <AnimatedPage className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] p-4">
         <div className="max-w-lg mx-auto text-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading order details...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-gray-600 dark:text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading order details...</p>
         </div>
       </AnimatedPage>
     );
@@ -1428,11 +1429,11 @@ export default function OrderTracking() {
 
   if (error || !order) {
     return (
-      <AnimatedPage className="min-h-screen bg-gray-50 p-4">
+      <AnimatedPage className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] p-4">
         <div className="max-w-lg mx-auto text-center py-20">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4">Order Not Found</h1>
-          <p className="text-gray-600 mb-6">{error || "The order you're looking for doesn't exist."}</p>
-          <Link to={backPath}><Button>Back to Orders</Button></Link>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 dark:text-white">Order Not Found</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error || "The order you're looking for doesn't exist."}</p>
+          <Button onClick={() => navigate(-1)}>Back to Orders</Button>
         </div>
       </AnimatedPage>
     );
@@ -1447,11 +1448,11 @@ export default function OrderTracking() {
           <motion.div {...MOTION_FADE} className="fixed inset-0 z-50 bg-white dark:bg-[#1a1a1a] flex flex-col items-center justify-center">
             <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, type: "spring" }} className="text-center px-8">
               <AnimatedCheckmark delay={0.3} />
-              <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="text-2xl font-bold text-gray-900 mt-6">Order Confirmed!</motion.h1>
-              <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }} className="text-gray-600 mt-2">Your order has been placed successfully</motion.p>
+              <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="text-2xl font-bold text-gray-900 dark:text-white mt-6">Order Confirmed!</motion.h1>
+              <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }} className="text-gray-600 dark:text-gray-400 mt-2">Your order has been placed successfully</motion.p>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }} className="mt-8">
                 <div className="w-8 h-8 border-2 border-[#FE5502] border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-sm text-gray-500 mt-3">Loading order details...</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">Loading order details...</p>
               </motion.div>
             </motion.div>
           </motion.div>
@@ -1461,11 +1462,9 @@ export default function OrderTracking() {
       {/* Green / Red Header */}
       <motion.div className={`${currentStatus.color} text-white sticky top-0 z-40`} {...MOTION_FADE}>
         <div className="flex items-center justify-between px-4 py-3">
-          <Link to={backPath}>
-            <motion.button className="w-10 h-10 flex items-center justify-center" whileTap={{ scale: 0.9 }}>
-              <ArrowLeft className="w-6 h-6" />
-            </motion.button>
-          </Link>
+          <motion.button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center" whileTap={{ scale: 0.9 }}>
+            <ArrowLeft className="w-6 h-6" />
+          </motion.button>
           <h2 className="font-semibold text-lg">{order.restaurant}</h2>
           <motion.button className="w-10 h-10 flex items-center justify-center cursor-pointer" whileTap={{ scale: 0.9 }} onClick={handleShare}>
             <Share2 className="w-5 h-5" />
@@ -1741,6 +1740,34 @@ export default function OrderTracking() {
         <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden" {...MOTION_SLIDE_UP(0.82)}>
           <SectionItem icon={Download} title="Download invoice" subtitle="Get a dynamic PDF invoice for this order" onClick={handleDownloadInvoice} />
         </motion.div>
+
+        {isDeliveredOrder && (() => {
+          const hasRestaurantRating = Number.isFinite(Number(order?.ratings?.restaurant?.rating));
+          const hasDeliveryPartner = !!order?.deliveryPartnerId;
+          const hasDeliveryRating = Number.isFinite(Number(order?.ratings?.deliveryPartner?.rating));
+          const isFullyRated = hasRestaurantRating && (!hasDeliveryPartner || hasDeliveryRating);
+          
+          if (!isFullyRated) {
+            return (
+              <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden mt-3" {...MOTION_SLIDE_UP(0.83)}>
+                <SectionItem
+                  icon={Star}
+                  title="Leave a Review"
+                  subtitle="Rate your experience with this order"
+                  onClick={() => {
+                    setRatingModal({ open: true, order });
+                    setSelectedRestaurantRating(null);
+                    setSelectedDeliveryRating(null);
+                    setRestaurantFeedbackText("");
+                    setDeliveryFeedbackText("");
+                  }}
+                />
+              </motion.div>
+            );
+          }
+          return null;
+        })()}
+
 
         {isQuickOrder && isDeliveredOrder && returnEligibility?.eligible && (
           <motion.div className="bg-white rounded-xl shadow-sm overflow-hidden mt-3" {...MOTION_SLIDE_UP(0.83)}>
