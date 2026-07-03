@@ -76,9 +76,19 @@ export const PickupActionModal = ({
   const restaurantName = isQuickOrder
     ? order?.storeName || order?.sellerName || order?.seller?.shopName || order?.seller?.name || 'Seller store'
     : order?.restaurantName || order?.restaurant_name || order?.restaurantId?.restaurantName || order?.restaurantId?.name || 'Restaurant';
-  const restaurantAddress = isQuickOrder
-    ? order?.storeAddress || order?.sellerAddress || order?.seller?.location?.address || order?.seller?.location?.formattedAddress || 'Address not available'
-    : order?.restaurantAddress || order?.restaurant_address || order?.restaurantLocation?.address || 'Address not available';
+  const restaurantAddressRaw = isQuickOrder
+    ? order?.sellerAddress || order?.storeAddress || order?.restaurantAddress || order?.restaurantLocation?.address || order?.seller?.location?.address || order?.seller?.location?.formattedAddress || order?.seller?.address || order?.restaurantId?.location?.address || order?.restaurantId?.address || 'Address not available'
+    : order?.restaurantAddress || order?.restaurant_address || order?.restaurantLocation?.address || order?.restaurantId?.address || 'Address not available';
+
+  const isCoordinates = (str) => {
+    if (Array.isArray(str)) return true;
+    if (typeof str === 'string' && str.includes(',') && !/[a-zA-Z]/.test(str)) return true;
+    return false;
+  };
+  
+  const restaurantAddress = isCoordinates(restaurantAddressRaw) 
+    ? (isQuickOrder ? order?.sellerAddress || order?.restaurantAddress || order?.seller?.address || order?.restaurantId?.address || 'Address not available' : order?.restaurantId?.address || 'Address not available')
+    : restaurantAddressRaw;
   const restaurantPhone = isQuickOrder
     ? order?.storePhone || order?.sellerPhone || order?.seller?.phone || ''
     : order?.restaurantPhone || order?.restaurant_phone || order?.restaurantId?.phone || '';
@@ -193,6 +203,21 @@ export const PickupActionModal = ({
             );
           })}
         </div>
+
+        {/* Delivery Instructions */}
+        {order?.note && (
+          <div className="flex items-start gap-3 w-full bg-orange-50/50 rounded-xl p-3 shadow-sm border border-orange-100 mb-4">
+            <div className="w-6 flex flex-col items-center justify-center shrink-0">
+              <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              </div>
+            </div>
+            <div>
+              <p className="text-orange-600 text-[10px] font-bold uppercase tracking-wider mb-0.5">Delivery Instructions</p>
+              <p className="text-gray-900 text-xs font-bold capitalize">"{order.note}"</p>
+            </div>
+          </div>
+        )}
 
         {/* Action Sliders */}
         <div className="space-y-4">

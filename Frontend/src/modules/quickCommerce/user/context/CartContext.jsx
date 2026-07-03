@@ -300,7 +300,7 @@ const useStandaloneQuickCart = (isBridged = false) => {
     if (!id) return;
 
     const existingItem = cart.find((item) => getProductId(item) === id);
-    const stock = Number(product.stock ?? (existingItem ? existingItem.stock : 0) ?? 0);
+    const stock = Number(product.stock ?? (existingItem ? existingItem.stock : Infinity) ?? Infinity);
     const currentQty = existingItem ? existingItem.quantity : 0;
     const targetQty = currentQty + 1;
 
@@ -384,7 +384,7 @@ const useStandaloneQuickCart = (isBridged = false) => {
     if (!resolvedProductId) return;
     const currentItem = cart.find((item) => getProductId(item) === resolvedProductId);
     if (!currentItem) return;
-    const stock = Number(currentItem.stock ?? 0);
+    const stock = Number(currentItem.stock ?? Infinity);
     const newQty = Math.max(0, currentItem.quantity + delta);
 
     if (delta > 0 && newQty > stock) {
@@ -521,7 +521,7 @@ export const CartProvider = ({ children }) => {
       const existingItem = quickItemsFromFoodCart.find(
         (item) => getProductId(item) === normalizedProduct.id,
       );
-      const stock = Number(product.stock ?? (existingItem ? existingItem.stock : 0) ?? 0);
+      const stock = Number(product.stock ?? (existingItem ? existingItem.stock : Infinity) ?? Infinity);
       const currentQty = existingItem ? Number(existingItem.quantity || 0) : 0;
       const targetQty = currentQty + 1;
 
@@ -582,7 +582,7 @@ export const CartProvider = ({ children }) => {
       if (!resolvedProductId) return;
       const currentItem = foodCart.getCartItem(resolvedProductId);
       if (!currentItem) return;
-      const stock = Number(currentItem.stock ?? 0);
+      const stock = Number(currentItem.stock ?? Infinity);
       const nextQuantity = Math.max(0, (currentItem.quantity || 0) + delta);
 
       if (delta > 0 && nextQuantity > stock) {

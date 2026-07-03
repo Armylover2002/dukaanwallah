@@ -363,6 +363,7 @@ export const placeOrder = async (req, res) => {
         razorpay: razorpayData,
       },
       orderStatus: initialOrderStatus,
+      note: String(req.body?.note || req.body?.deliveryNote || req.body?.deliveryInstruction || '').trim(),
       riderEarning: riderEarning || 0,
       platformProfit: Math.max(
         0,

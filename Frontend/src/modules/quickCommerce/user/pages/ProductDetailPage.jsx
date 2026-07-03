@@ -220,8 +220,8 @@ const ProductDetailPage = () => {
     if (!selectedVariant) return baseProduct;
     return {
       ...baseProduct,
-      price: selectedVariant.price ?? baseProduct.price,
-      originalPrice: selectedVariant.originalPrice ?? baseProduct.originalPrice,
+      price: selectedVariant.price || baseProduct.price,
+      originalPrice: selectedVariant.originalPrice || baseProduct.originalPrice,
       name: `${baseProduct.name} - ${selectedVariant.name}`,
       variant: selectedVariant
     };

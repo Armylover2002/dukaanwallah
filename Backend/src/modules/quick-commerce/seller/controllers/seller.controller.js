@@ -2164,13 +2164,20 @@ export const resendSellerOrderDispatchController = async (req, res) => {
     await quickOrder.save();
 
     const io = getIO();
+    const sellerAddressText =
+      seller?.location?.address ||
+      seller?.location?.formattedAddress ||
+      seller?.address ||
+      "";
     const deliveryPayload = {
       ...buildDeliverySocketPayload(quickOrder, seller),
       orderId: quickOrder.orderId,
       orderMongoId: quickOrder._id?.toString?.(),
       restaurantName:
         seller?.shopName || seller?.name || "Quick Commerce Seller",
+      restaurantAddress: sellerAddressText,
       restaurantPhone: seller?.phone || "",
+      sellerAddress: sellerAddressText,
       dispatch: quickOrder.dispatch,
       sourceType: "quick",
     };

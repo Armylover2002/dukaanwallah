@@ -375,10 +375,10 @@ const ProductDetailSheet = () => {
     const storeName = selectedProduct.storeName || selectedProduct.restaurantName || 'Fresh Mart';
     const currentPrice =
         selectedVariant
-            ? (selectedVariant.salePrice || selectedVariant.price)
+            ? (selectedVariant.salePrice || selectedVariant.price || selectedProduct.price)
             : selectedProduct.price;
     const strikePrice =
-        selectedVariant ? selectedVariant.price : selectedProduct.originalPrice;
+        selectedVariant ? (selectedVariant.originalPrice || selectedVariant.price || selectedProduct.originalPrice) : selectedProduct.originalPrice;
     const hasDiscount = activeDiscount !== null && activeDiscount > 0;
 
     const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);

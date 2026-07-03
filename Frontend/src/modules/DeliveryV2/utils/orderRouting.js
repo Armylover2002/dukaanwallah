@@ -1,9 +1,15 @@
+const isCoordinates = (str) => {
+  if (Array.isArray(str)) return true;
+  if (typeof str === 'string' && str.includes(',') && !/[a-zA-Z]/.test(str)) return true;
+  return false;
+};
+
 const formatCoordinateAddress = (location) => {
   if (!location) return "";
   const lat = Number(location.lat);
   const lng = Number(location.lng);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "";
-  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  return `Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 };
 
 export const normalizeLocationPoint = (value) => {
@@ -43,13 +49,14 @@ export const normalizePickupPoints = (order) => {
           point?.name ||
           (pickupType === "quick" ? "Seller store" : "Restaurant"),
       ).trim();
-      const address = String(
+      const addressRaw = String(
         point?.address ||
           point?.formattedAddress ||
           point?.location?.address ||
           point?.location?.formattedAddress ||
           "",
       ).trim();
+      const address = isCoordinates(addressRaw) ? "" : addressRaw;
       return {
         id: point?.legId || `${pickupType || "pickup"}:${point?.sourceId || index}`,
         pickupType,
@@ -79,14 +86,17 @@ export const normalizePickupPoints = (order) => {
           ? order?.storeName || order?.sellerName || "Seller store"
           : order?.restaurantName || order?.restaurantId?.restaurantName || "Restaurant"),
     ).trim();
-    const address = String(
+    const addressRaw = String(
       order?.dispatchLeg?.address ||
         order?.pickupAddress ||
         (pickupType === "quick"
-          ? order?.storeAddress || order?.sellerAddress
-          : order?.restaurantAddress || order?.restaurantLocation?.address) ||
+          ? order?.sellerAddress || order?.storeAddress || order?.sellerAddress || order?.restaurantAddress || order?.restaurantLocation?.address || order?.seller?.address || order?.restaurantId?.location?.address || order?.restaurantId?.address
+          : order?.restaurantAddress || order?.restaurantLocation?.address || order?.restaurantId?.address) ||
         "",
     ).trim();
+    const address = isCoordinates(addressRaw) 
+      ? (pickupType === "quick" ? (order?.sellerAddress || order?.restaurantAddress || order?.seller?.address || "") : (order?.restaurantId?.address || "")) 
+      : addressRaw;
 
     return [
       {
@@ -121,15 +131,23 @@ export const normalizePickupPoints = (order) => {
           "Seller store"
       : order?.restaurantName || order?.restaurantId?.restaurantName || order?.restaurantId?.name || "Restaurant",
   ).trim();
-  const fallbackAddress = String(
+  const fallbackAddressRaw = String(
     fallbackPickupType === "quick"
-      ? order?.storeAddress ||
-          order?.sellerAddress ||
+      ? order?.sellerAddress ||
+          order?.storeAddress ||
+          order?.restaurantAddress ||
+          order?.restaurantLocation?.address ||
           order?.seller?.location?.address ||
           order?.seller?.location?.formattedAddress ||
+          order?.seller?.address ||
+          order?.restaurantId?.location?.address ||
+          order?.restaurantId?.address ||
           ""
-      : order?.restaurantAddress || order?.restaurantLocation?.address || ""
+      : order?.restaurantAddress || order?.restaurantLocation?.address || order?.restaurantId?.address || ""
   ).trim();
+  const fallbackAddress = isCoordinates(fallbackAddressRaw) 
+    ? (fallbackPickupType === "quick" ? (order?.sellerAddress || order?.restaurantAddress || order?.seller?.address || "") : (order?.restaurantId?.address || ""))
+    : fallbackAddressRaw;
   const fallbackPhone = String(
     fallbackPickupType === "quick"
       ? order?.storePhone || order?.sellerPhone || order?.seller?.phone || ""
