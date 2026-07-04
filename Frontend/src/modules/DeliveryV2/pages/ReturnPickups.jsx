@@ -8,6 +8,7 @@ import {
 import { deliveryAPI } from '@food/api';
 import axiosInstance from '@core/api/axios';
 import { toast } from 'sonner';
+import { openCamera } from '@food/utils/imageUploadUtils';
 import { useDeliveryStore } from '../store/useDeliveryStore';
 import { GoogleMap, useJsApiLoader, DirectionsService, DirectionsRenderer, Marker } from '@react-google-maps/api';
 
@@ -433,18 +434,20 @@ export default function ReturnPickups() {
                           )}
                         </div>
                       ) : (
-                        <label className="border-2 border-dashed border-gray-200 hover:border-[#ff8100] rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-gray-50/50 hover:bg-orange-50/5 transition-all group">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            onChange={(e) => handleImageUpload(id, e.target.files[0])}
-                            className="hidden"
-                          />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openCamera({
+                              onSelectFile: (file) => handleImageUpload(id, file),
+                              fileNamePrefix: `return-pickup-${id}`,
+                            });
+                          }}
+                          className="w-full border-2 border-dashed border-gray-200 hover:border-[#ff8100] rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-gray-50/50 hover:bg-orange-50/5 transition-all group"
+                        >
                           <UploadCloud className="h-8 w-8 text-gray-300 group-hover:text-[#ff8100] transition-colors mb-2" />
                           <span className="text-xs font-bold text-gray-600 group-hover:text-gray-800 transition-colors">Upload Pickup Photo proof</span>
                           <span className="text-[9px] text-gray-400 font-semibold mt-1">Photo of the item collected</span>
-                        </label>
+                        </button>
                       )}
 
                       <button
