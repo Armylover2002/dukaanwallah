@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import toast2 from "react-hot-toast";
 import { sellerApi } from "../services/sellerApi";
-
+import { openGallery } from "@food/utils/imageUploadUtils";
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -267,9 +267,8 @@ const AddProduct = () => {
     }
   };
 
-  const handleImageUpload = (e, type) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+  const handleImageUpload = (file, type) => {
+    if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (type === "main") {
@@ -1075,14 +1074,9 @@ const AddProduct = () => {
                   Main Cover Photo
                 </label>
                 <div className="flex flex-col md:flex-row items-start gap-6">
-                  <div className="w-48 aspect-square rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer overflow-hidden relative">
-                    <input
-                      ref={mainImageInputRef}
-                      type="file"
-                      accept="image/png, image/jpeg, image/webp"
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                      onChange={(e) => handleImageUpload(e, "main")}
-                    />
+                  <div
+                    onClick={() => openGallery({ onSelectFile: (f) => handleImageUpload(f, "main"), fileNamePrefix: "main-cover" })}
+                    className="w-48 aspect-square rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer overflow-hidden relative">
                     {formData.mainImage ? (
                       <img
                         src={formData.mainImage}
@@ -1107,7 +1101,7 @@ const AddProduct = () => {
                     </p>
                     <button
                       type="button"
-                      onClick={() => mainImageInputRef.current?.click()}
+                      onClick={() => openGallery({ onSelectFile: (f) => handleImageUpload(f, "main"), fileNamePrefix: "main-cover" })}
                       className="text-[10px] font-black text-orange-500 uppercase tracking-wider hover:underline">
                       Pick from Library
                     </button>
@@ -1124,6 +1118,7 @@ const AddProduct = () => {
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
+                      onClick={() => !formData.galleryImages[i - 1] && openGallery({ onSelectFile: (f) => handleImageUpload(f, "gallery"), fileNamePrefix: "gallery" })}
                       className="aspect-square rounded-md border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer relative overflow-hidden">
                       {formData.galleryImages[i - 1] ? (
                         <img
@@ -1132,12 +1127,6 @@ const AddProduct = () => {
                         />
                       ) : (
                         <>
-                          <input
-                            type="file"
-                            accept="image/png, image/jpeg, image/webp"
-                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                            onChange={(e) => handleImageUpload(e, "gallery")}
-                          />
                           <HiOutlinePlus className="h-5 w-5 text-slate-200 group-hover:text-orange-500 transition-colors" />
                           <p className="text-[8px] font-bold text-slate-600 mt-1 uppercase tracking-widest group-hover:text-orange-500">
                             Add

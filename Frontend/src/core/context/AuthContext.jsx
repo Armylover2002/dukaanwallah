@@ -41,6 +41,17 @@ export const AuthProvider = ({ children }) => {
         return 'customer';
     };
 
+    // In HashRouter (native webview), the path is in window.location.hash (e.g. #/seller/dashboard)
+    // In BrowserRouter (web), the path is in window.location.pathname
+    const getEffectivePath = () => {
+        const hash = String(window.location?.hash || '');
+        if (hash.startsWith('#/')) {
+            const hashPath = hash.slice(1); // strip leading '#'
+            return hashPath.split('?')[0]; // strip query string
+        }
+        return String(window.location?.pathname || '');
+    };
+
     const getSafeToken = (key) => {
         const val = localStorage.getItem(ROLE_STORAGE_KEYS[key]);
         const fallbackVal =
@@ -55,7 +66,7 @@ export const AuthProvider = ({ children }) => {
         return normalizedVal;
     };
 
-    const [currentPath, setCurrentPath] = useState(window.location.pathname);
+    const [currentPath, setCurrentPath] = useState(getEffectivePath);
 
     const [authData, setAuthData] = useState({
         customer: getSafeToken('customer'),
@@ -82,7 +93,7 @@ export const AuthProvider = ({ children }) => {
         };
 
         const handlePathChange = () => {
-            setCurrentPath(window.location.pathname);
+            setCurrentPath(getEffectivePath());
         };
 
         // Custom events sent from login pages
@@ -93,7 +104,6 @@ export const AuthProvider = ({ children }) => {
         window.addEventListener('deliveryAuthChanged', syncAuthData);
         window.addEventListener('sellerAuthChanged', syncAuthData);
 
-        // Track navigation changes reactively
         window.addEventListener('popstate', handlePathChange);
         window.addEventListener('hashchange', handlePathChange);
 
