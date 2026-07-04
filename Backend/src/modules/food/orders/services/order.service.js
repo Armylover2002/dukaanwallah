@@ -2774,7 +2774,7 @@ const resolveQcSellerIdFromOrder = (order) => {
 
 const batchResolveOrderVenues = async (orders, {
   sellerSelect = "shopName area city ownerPhone name phone",
-  restaurantSelect = "restaurantName area city ownerPhone name phone",
+  restaurantSelect = "restaurantName area city ownerPhone primaryContactNumber name phone",
 } = {}) => {
   if (!Array.isArray(orders) || !orders.length) return orders;
 
@@ -2810,7 +2810,13 @@ const batchResolveOrderVenues = async (orders, {
       order.restaurantId = sellerMap.get(String(qcSellerId)) || null;
     } else if (order?.restaurantId) {
       const key = String(order.restaurantId?._id || order.restaurantId);
-      order.restaurantId = restaurantMap.get(key) || order.restaurantId;
+      const restaurant = restaurantMap.get(key);
+      if (restaurant) {
+        restaurant.phone = restaurant.primaryContactNumber || restaurant.ownerPhone || restaurant.phone;
+        order.restaurantId = restaurant;
+      } else {
+        order.restaurantId = order.restaurantId;
+      }
     }
   }
 
@@ -2889,8 +2895,11 @@ export async function getOrderById(
     order.restaurantId = seller;
   } else if (order.restaurantId) {
     const restaurant = await FoodRestaurant.findById(order.restaurantId)
-      .select("restaurantName name profileImage area city location rating totalRatings phone")
+      .select("restaurantName name profileImage area city location rating totalRatings ownerPhone primaryContactNumber")
       .lean();
+    if (restaurant) {
+      restaurant.phone = restaurant.primaryContactNumber || restaurant.ownerPhone;
+    }
     order.restaurantId = restaurant;
   }
 

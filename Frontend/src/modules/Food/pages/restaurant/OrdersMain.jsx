@@ -2288,7 +2288,7 @@ export default function OrdersMain() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}>
               <motion.div
-                className="w-[95%] max-w-md max-h-[calc(100vh-2rem)] bg-white rounded-[2rem] shadow-2xl overflow-hidden p-1 flex flex-col"
+                className="w-[95%] max-w-md max-h-[calc(100dvh-2rem)] bg-white rounded-[2rem] shadow-2xl overflow-hidden p-1 flex flex-col"
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
