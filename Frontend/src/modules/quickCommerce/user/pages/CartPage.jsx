@@ -139,9 +139,9 @@ const CartItem = React.memo(({ item, onRemove, onUpdateQuantity, showToast }) =>
   const handleImgError = useCallback((e) => { e.currentTarget.src = FALLBACK_IMAGE; }, []);
 
   return (
-    <article className="rounded-[24px] bg-white p-4 shadow-sm">
+    <article className="rounded-[24px] bg-white dark:bg-card p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
       <div className="flex gap-4">
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-50">
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800/50">
           <img
             src={imageUrl}
             alt={item.name}
@@ -154,12 +154,12 @@ const CartItem = React.memo(({ item, onRemove, onUpdateQuantity, showToast }) =>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="line-clamp-2 text-base font-semibold text-slate-900">{item.name}</h2>
-              <p className="mt-1 text-xs font-medium text-slate-500">{item.weight || item.unit || '1 unit'}</p>
+              <h2 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">{item.name}</h2>
+              <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{item.weight || item.unit || '1 unit'}</p>
             </div>
             <button
               onClick={handleRemove}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-500"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/20"
             >
               <Trash2 size={16} />
             </button>
@@ -167,26 +167,26 @@ const CartItem = React.memo(({ item, onRemove, onUpdateQuantity, showToast }) =>
 
           <div className="mt-4 flex items-end justify-between gap-3">
             <div>
-              <p className="text-lg font-bold text-slate-900">₹{itemTotal}</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">₹{itemTotal}</p>
               {item.quantity > 1 && (
-                <p className="text-xs text-slate-400">₹{item.price} each</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">₹{item.price} each</p>
               )}
             </div>
 
-            <div className="inline-flex items-center gap-3 rounded-full bg-slate-100 px-2 py-1">
+            <div className="inline-flex items-center gap-3 rounded-full bg-slate-100 dark:bg-slate-800/80 px-2 py-1">
               <button
                 onClick={handleDecr}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm"
               >
                 <Minus size={14} strokeWidth={3} />
               </button>
-              <span className="min-w-[18px] text-center text-sm font-bold text-slate-900">
+              <span className="min-w-[18px] text-center text-sm font-bold text-slate-900 dark:text-white">
                 {item.quantity}
               </span>
               <button
                 onClick={handleIncr}
                 disabled={item.quantity >= stock}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Plus size={14} strokeWidth={3} />
               </button>
@@ -505,7 +505,7 @@ const CartPage = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="fixed inset-0 z-[100] bg-[#f7f7f7] px-4 py-6 overflow-hidden flex flex-col">
+      <div className="fixed inset-0 z-[100] bg-[#f7f7f7] dark:bg-slate-950 px-4 py-6 overflow-hidden flex flex-col">
         <div className="mx-auto max-w-md w-full h-full flex flex-col">
           <div className="mb-5 flex items-center gap-3 shrink-0">
             <button
@@ -575,12 +575,12 @@ const CartPage = () => {
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={closeClearConfirm}
             />
-            <div className="relative z-10 w-full max-w-sm rounded-[28px] bg-white p-6 shadow-2xl">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 mx-auto">
-                <Trash2 size={22} className="text-rose-500" />
+            <div className="relative z-10 w-full max-w-sm rounded-[28px] bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-100 dark:border-white/10">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-500/10 mx-auto">
+                <Trash2 size={22} className="text-rose-500 dark:text-rose-400" />
               </div>
-              <h3 className="text-center text-lg font-bold text-slate-900">Clear your cart?</h3>
-              <p className="mt-2 text-center text-sm text-slate-500">
+              <h3 className="text-center text-lg font-bold text-slate-900 dark:text-white">Clear your cart?</h3>
+              <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
                 All {itemCount} item{itemCount === 1 ? '' : 's'} will be removed. This can&apos;t be undone.
               </p>
               <div className="mt-6 flex gap-3">
@@ -691,12 +691,12 @@ const CartPage = () => {
                     if (matched) handleSelectAddress(matched);
                   }}
                   className={`mt-4 rounded-2xl border-2 p-4 cursor-pointer transition-all ${savedAddresses.find((addr) => addr.label === (activeTab === "Work" ? "Office" : activeTab))?.address === currentLocation?.name
-                    ? "border-[#FE5502] bg-[#FFF2EB]/10"
-                    : "border-slate-100 hover:border-slate-200"
+                    ? "border-[#FE5502] bg-[#FFF2EB]/10 dark:bg-[#FE5502]/5"
+                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"
                     }`}
                 >
                   <div className="flex items-center justify-between">
-                    <h3 className="font-extrabold text-slate-900 text-sm">
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
                       {activeTab}
                     </h3>
                     {savedAddresses.find((addr) => addr.label === (activeTab === "Work" ? "Office" : activeTab))?.address === currentLocation?.name && (
@@ -705,7 +705,7 @@ const CartPage = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                     {savedAddresses.find((addr) => addr.label === (activeTab === "Work" ? "Office" : activeTab))?.address}
                   </p>
                 </div>
@@ -737,18 +737,18 @@ const CartPage = () => {
         </div>
 
         {/* Bill Details */}
-        <section className="mt-4 rounded-[24px] bg-white p-5 shadow-sm">
+        <section className="mt-4 rounded-[24px] bg-white dark:bg-slate-900 p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Bill details</p>
-              <h2 className="mt-1 text-lg font-bold text-slate-900">Price breakdown</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Bill details</p>
+              <h2 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">Price breakdown</h2>
             </div>
-            <span className="rounded-full bg-[#f0fdf4] px-3 py-1 text-xs font-bold text-[#0c831f]">
+            <span className="rounded-full bg-[#f0fdf4] dark:bg-emerald-900/30 px-3 py-1 text-xs font-bold text-[#0c831f] dark:text-emerald-400">
               {itemCount} item{itemCount === 1 ? '' : 's'}
             </span>
           </div>
 
-          <div className="mt-5 space-y-3 text-sm text-slate-600">
+          <div className="mt-5 space-y-3 text-sm text-slate-600 dark:text-slate-400">
             {[
               ['Items total', cartTotal],
               ['Delivery fee', deliveryFee],

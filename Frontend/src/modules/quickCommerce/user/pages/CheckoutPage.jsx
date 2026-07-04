@@ -292,16 +292,16 @@ const PaymentMethodButton = React.memo(function PaymentMethodButton({ method, is
   return (
     <button
       onClick={() => onSelect(method.id)}
-      className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected ? "border-[#0c831f] bg-green-50" : "border-slate-200 bg-white hover:border-slate-300"
+      className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected ? "border-[#0c831f] bg-green-50 dark:bg-emerald-500/10" : "border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
         }`}>
-      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${isSelected ? "bg-green-100" : "bg-slate-100"}`}>
-        <Icon size={18} className={isSelected ? "text-[#0c831f]" : "text-slate-600"} />
+      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${isSelected ? "bg-green-100 dark:bg-emerald-500/20" : "bg-slate-100 dark:bg-slate-700"}`}>
+        <Icon size={18} className={isSelected ? "text-[#0c831f]" : "text-slate-600 dark:text-slate-400"} />
       </div>
       <div className="flex-1 text-left">
-        <p className={`font-bold text-sm ${isSelected ? "text-[#0c831f]" : "text-slate-800"}`}>{method.label}</p>
-        <p className="text-xs text-slate-500">{method.sublabel}</p>
+        <p className={`font-bold text-sm ${isSelected ? "text-[#0c831f]" : "text-slate-800 dark:text-white"}`}>{method.label}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{method.sublabel}</p>
       </div>
-      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-[#0c831f]" : "border-slate-300"}`}>
+      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-[#0c831f]" : "border-slate-300 dark:border-slate-600"}`}>
         {isSelected && <div className="h-3 w-3 rounded-full bg-[#0c831f]" />}
       </div>
     </button>
@@ -1119,28 +1119,28 @@ const CheckoutPage = () => {
 
   if (loading && cart.length === 0 && !showSuccess) {
     return (
-      <div className="min-h-screen bg-white dark:bg-background flex flex-col items-center justify-center p-6 text-center transition-colors">
+      <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center transition-colors">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-[#0c831f]" />
-        <h2 className="mt-5 text-2xl font-black text-slate-800">Loading checkout</h2>
-        <p className="mt-2 text-sm font-medium text-slate-500">Restoring your cart before checkout...</p>
+        <h2 className="mt-5 text-2xl font-black text-slate-800 dark:text-white">Loading checkout</h2>
+        <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">Restoring your cart before checkout...</p>
       </div>
     );
   }
 
   if (cart.length === 0 && !showSuccess) {
     return (
-      <div className="min-h-screen bg-white dark:bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans transition-colors duration-500">
+      <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans transition-colors duration-500">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-green-50/50 via-transparent to-transparent pointer-events-none" />
         <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute -top-20 -right-20 w-80 h-80 bg-green-100/30 rounded-full blur-3xl pointer-events-none" />
         <motion.div animate={{ scale: [1, 1.5, 1], rotate: [0, -45, 0], opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-40 -left-20 w-60 h-60 bg-yellow-100/40 rounded-full blur-3xl pointer-events-none" />
         <motion.div className="relative z-10 flex flex-col items-center text-center max-w-sm mx-auto">
           <div className="relative w-56 h-56 md:w-64 md:h-64 mb-8 flex items-center justify-center">
-            <motion.div animate={{ y: [-8, 8, -8] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="relative z-10 rounded-[2rem] bg-white/90 dark:bg-card/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-emerald-100 dark:border-white/5 transition-colors">
+            <motion.div animate={{ y: [-8, 8, -8] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="relative z-10 rounded-[2rem] bg-white/90 dark:bg-card p-6 shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-emerald-100 dark:border-white/5 transition-colors">
               <Lottie animationData={emptyBoxAnimation} loop className="h-36 w-36 md:h-44 md:w-44" />
             </motion.div>
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute inset-0 border-2 border-dashed border-slate-200 rounded-full" />
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute inset-0 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-full" />
           </div>
-          <h2 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">Your Cart is Empty</h2>
+          <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-3 tracking-tight">Your Cart is Empty</h2>
           <p className="text-slate-500 mb-8 leading-relaxed font-medium">It feels lighter than air! <br />Explore our aisles and fill it with goodies.</p>
           <Link to={categoriesPath} className="group relative inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#0c831f] to-[#10b981] text-white font-bold rounded-2xl overflow-hidden shadow-xl shadow-green-600/20 transition-all hover:scale-[1.02] active:scale-95 w-full sm:w-auto">
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -1162,7 +1162,7 @@ const CheckoutPage = () => {
   // ── Main render ──────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8] pb-24 font-sans">
+    <div className="min-h-screen bg-[#f5f1e8] dark:bg-slate-950 pb-24 font-sans transition-colors">
       {/* Header */}
       <div className="bg-gradient-to-br from-[#0a5f17] via-[#0b721b] to-[#084a12] pt-6 pb-12 md:pb-24 relative z-10 shadow-lg md:rounded-b-[4rem] rounded-b-[2rem] overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[100px] -mr-32 -mt-64 pointer-events-none" />
@@ -1200,7 +1200,7 @@ const CheckoutPage = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-black text-slate-800 text-lg">
+                      <span className="font-black text-slate-800 dark:text-white text-lg">
                         Delivery Address
                       </span>
                       {currentAddress.type && (
@@ -1209,10 +1209,10 @@ const CheckoutPage = () => {
                         </span>
                       )}
                     </div>
-                    <p className="font-semibold text-slate-700 text-sm mt-1">
+                    <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm mt-1">
                       {displayName} • {displayPhone}
                     </p>
-                    <p className="text-slate-500 text-xs mt-1 leading-relaxed line-clamp-2">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-relaxed line-clamp-2">
                       {displayAddress || "No delivery address selected. Please add one."}
                     </p>
                   </div>
@@ -1232,8 +1232,8 @@ const CheckoutPage = () => {
                   <Clock size={24} className="text-[#0c831f]" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-800 text-lg">Delivery in 12-15 mins</h3>
-                  <p className="text-sm text-slate-500">Shipment of {cartCount} items</p>
+                  <h3 className="font-black text-slate-800 dark:text-white text-lg">Delivery in 12-15 mins</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Shipment of {cartCount} items</p>
                 </div>
               </div>
             </motion.div>
@@ -1253,7 +1253,7 @@ const CheckoutPage = () => {
             </motion.div>
 
             {/* Cart Items — memoized CartItem */}
-            <motion.div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
+            <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors space-y-4">
               {cart.map((item) => (
                 <CartItem
                   key={item.id}
@@ -1268,7 +1268,7 @@ const CheckoutPage = () => {
             {/* Wishlist */}
             {wishlist.filter((item) => item.name).length > 0 && (
               <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
-                <h3 className="font-black text-slate-800 text-lg mb-4">Your wishlist</h3>
+                <h3 className="font-black text-slate-800 dark:text-white text-lg mb-4">Your wishlist</h3>
                 <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
                   {wishlist.filter((item) => item.name).map((item) => (
                     <div key={item.id} className="flex-shrink-0 w-[140px] snap-start">
@@ -1281,7 +1281,7 @@ const CheckoutPage = () => {
 
             {/* Recommendations */}
             <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
-              <h3 className="font-black text-slate-800 text-lg mb-4">You might also like</h3>
+              <h3 className="font-black text-slate-800 dark:text-white text-lg mb-4">You might also like</h3>
               <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
                 {RECOMMENDED_PRODUCTS.map((product) => (
                   <div key={product.id} className="flex-shrink-0 w-[140px] snap-start">
@@ -1299,7 +1299,7 @@ const CheckoutPage = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Tag size={20} className="text-orange-500" />
-                  <h3 className="font-black text-slate-800">Available Coupons</h3>
+                  <h3 className="font-black text-slate-800 dark:text-white">Available Coupons</h3>
                 </div>
                 <button onClick={() => setIsCouponModalOpen(true)} className="text-[#0c831f] text-sm font-bold hover:underline">See All</button>
               </div>
@@ -1342,7 +1342,7 @@ const CheckoutPage = () => {
 
             {/* Payment Methods — memoized PaymentMethodButton */}
             <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
-              <h3 className="font-black text-slate-800 mb-4">Payment Method</h3>
+              <h3 className="font-black text-slate-800 dark:text-white mb-4">Payment Method</h3>
               <div className="space-y-2">
                 {paymentMethods.map((method) => (
                   <PaymentMethodButton key={method.id} method={method} isSelected={selectedPayment === method.id} onSelect={setSelectedPayment} />
@@ -1356,19 +1356,19 @@ const CheckoutPage = () => {
                 <div className="h-10 w-10 rounded-2xl bg-green-50 dark:bg-emerald-500/10 flex items-center justify-center">
                   <Clipboard size={20} className="text-[#0c831f]" />
                 </div>
-                <h3 className="font-[1000] text-slate-800 text-xl tracking-tight uppercase">Order Summary</h3>
+                <h3 className="font-[1000] text-slate-800 dark:text-white text-xl tracking-tight uppercase">Order Summary</h3>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center px-2">
                   <span className="text-slate-500 font-bold text-[13px] uppercase tracking-wider">Item Total</span>
                   <div className="flex items-baseline gap-2">
                     {originalItemsTotal > discountedItemsTotal && <span className="text-sm font-bold text-slate-400 line-through">₹{originalItemsTotal}</span>}
-                    <span className="font-black text-slate-800">₹{discountedItemsTotal}</span>
+                    <span className="font-black text-slate-800 dark:text-white">₹{discountedItemsTotal}</span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center px-2">
-                  <span className="text-slate-500 font-bold text-[13px] uppercase tracking-wider">Delivery Fee</span>
-                  <span className="font-black text-slate-800">₹{deliveryFee}</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider">Delivery Fee</span>
+                  <span className="font-black text-slate-800 dark:text-white">₹{deliveryFee}</span>
                 </div>
                 {pricingPreview && typeof pricingPreview.distanceKmActual === "number" && (
                   <div className="px-2 -mt-3 flex items-center justify-between text-[11px] font-semibold text-slate-400">
@@ -1378,15 +1378,15 @@ const CheckoutPage = () => {
                 )}
 
                 <div className="flex justify-between items-center px-2">
-                  <span className="text-slate-500 font-bold text-[13px] uppercase tracking-wider">Platform fee</span>
-                  <span className="font-black text-slate-800">₹{platformFee}</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider">Platform fee</span>
+                  <span className="font-black text-slate-800 dark:text-white">₹{platformFee}</span>
                 </div>
                 <div className="flex justify-between items-center px-2">
-                  <span className="text-slate-500 font-bold text-[13px] uppercase tracking-wider">GST</span>
-                  <span className="font-black text-slate-800">₹{gstAmount}</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider">GST</span>
+                  <span className="font-black text-slate-800 dark:text-white">₹{gstAmount}</span>
                 </div>
                 {selectedCoupon && (
-                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center px-3 py-2 bg-green-50 rounded-xl border border-green-100">
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center px-3 py-2 bg-green-50 dark:bg-emerald-500/10 rounded-xl border border-green-100 dark:border-emerald-500/20">
                     <span className="text-[#0c831f] font-black text-xs flex items-center gap-2 uppercase tracking-wider">
                       <Tag size={14} />Coupon Reserved ({selectedCoupon.code})
                     </span>
@@ -1402,16 +1402,16 @@ const CheckoutPage = () => {
                   </motion.div>
                 )}
                 {selectedTip > 0 && (
-                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center px-3 py-2 bg-pink-50 rounded-xl border border-pink-100">
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center px-3 py-2 bg-pink-50 dark:bg-pink-500/10 rounded-xl border border-pink-100 dark:border-pink-500/20">
                     <span className="text-pink-600 font-bold text-xs flex items-center gap-2"><Heart size={14} className="fill-pink-500" />Delivery Partner Tip</span>
                     <span className="font-black text-pink-600">+₹{selectedTip}</span>
                   </motion.div>
                 )}
-                <div className="mt-4 pt-6 border-t-2 border-dashed border-slate-100">
+                <div className="mt-4 pt-6 border-t-2 border-dashed border-slate-100 dark:border-white/10">
                   <div className="flex justify-between items-center mb-6">
                     <div className="flex flex-col">
-                      <span className="font-[1000] text-slate-800 text-lg uppercase tracking-tight">To Pay</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Safe & Secure Payment</span>
+                      <span className="font-[1000] text-slate-800 dark:text-white text-lg uppercase tracking-tight">To Pay</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.2em]">Safe & Secure Payment</span>
                     </div>
                     <span className="font-[1000] text-[#0c831f] text-3xl tracking-tighter italic">{isPreviewLoading ? "Calculating..." : `₹${totalAmount}`}</span>
                   </div>
@@ -1423,7 +1423,7 @@ const CheckoutPage = () => {
                     ) : (
                       <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrder} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview} text="Order Now" />
                     )}
-                    <p className="text-center text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-[0.1em]">🔒 SSL encrypted secure checkout</p>
+                    <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-4 uppercase tracking-[0.1em]">🔒 SSL encrypted secure checkout</p>
                   </div>
                 </div>
               </div>

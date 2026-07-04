@@ -127,17 +127,40 @@ export default function Support() {
 
   const fetchOrders = async () => {
     try {
-      const res = isQuickProfile
-        ? await customerApi.getOrders({ limit: 20, page: 1 })
-        : await orderAPI.getOrders({ limit: 10, page: 1 })
-      const list = res?.data?.data?.orders || res?.data?.orders || res?.data?.result || res?.data?.results || []
-      setOrders(Array.isArray(list) ? list : [])
-      if (isQuickProfile) {
-        buildQuickStoresFromOrders(Array.isArray(list) ? list : [])
+      const [quickRes, foodRes] = await Promise.allSettled([
+        customerApi.getOrders({ limit: 20, page: 1 }),
+        orderAPI.getOrders({ limit: 20, page: 1 })
+      ])
+
+      let quickOrders = []
+      let foodOrders = []
+
+      if (quickRes.status === 'fulfilled') {
+        const res = quickRes.value
+        quickOrders = res?.data?.data?.orders || res?.data?.orders || res?.data?.result || res?.data?.results || []
+        if (!Array.isArray(quickOrders)) quickOrders = []
       }
-      return Array.isArray(list) ? list : []
-    } catch {
-      toast.error(isQuickProfile ? "Failed to load quick orders" : "Failed to load orders")
+
+      if (foodRes.status === 'fulfilled') {
+        const res = foodRes.value
+        foodOrders = res?.data?.data?.orders || res?.data?.orders || res?.data?.result || res?.data?.results || []
+        if (!Array.isArray(foodOrders)) foodOrders = []
+      }
+
+      const combinedList = [...quickOrders, ...foodOrders].sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date || 0).getTime()
+        const dateB = new Date(b.createdAt || b.date || 0).getTime()
+        return dateB - dateA
+      })
+
+      setOrders(combinedList)
+      if (isQuickProfile) {
+        buildQuickStoresFromOrders(combinedList)
+      }
+      return combinedList
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to load orders")
       return []
     }
   }
@@ -221,20 +244,21 @@ export default function Support() {
   }
 
   const getOrderLabel = (order) => {
-    if (isQuickProfile) {
+    const isQuickOrder = !!(order?.seller || order?.sellerId || order?.storeName);
+    if (isQuickOrder) {
       const storeName = order?.storeName || order?.seller?.shopName || order?.seller?.name || "Quick order"
       const dateValue = order?.createdAt || order?.date
       const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString() : "No date"
       const amount = order?.pricing?.total ?? order?.total ?? 0
       const orderNumber = order?.orderId || order?.orderNumber || String(order?._id || order?.id || "").slice(-6)
-      return `${storeName} - ${dateLabel} - Rs${amount} - ${orderNumber}`
+      return `${storeName} (Quick) - ${dateLabel} - Rs${amount} - ${orderNumber}`
     }
 
     const restaurantName = order?.restaurantName || order?.restaurant?.restaurantName || "Restaurant"
     const dateValue = order?.createdAt || order?.date
     const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString() : "No date"
     const amount = order?.pricing?.total ?? order?.total ?? 0
-    return `${restaurantName} - ${dateLabel} - Rs${amount}`
+    return `${restaurantName} (Food) - ${dateLabel} - Rs${amount}`
   }
 
   const getStoreLabel = (store) => {
@@ -246,7 +270,7 @@ export default function Support() {
   const OrderList = () => {
     if (orders.length === 0) {
       return (
-        <p className="text-sm text-slate-500">{isQuickProfile ? "No quick orders found" : "No recent orders found"}</p>
+        <p className="text-sm text-slate-500">No orders found</p>
       )
     }
 
