@@ -1430,7 +1430,7 @@ export default function OrdersMain() {
       window.removeEventListener("touchend", handlePointerEnd);
       window.removeEventListener("touchcancel", handlePointerEnd);
     };
-  }, [isAcceptingOrder]);
+  }, [isAcceptingOrder, prepTime, popupOrder, newOrder]);
 
   // Format countdown time
   const formatTime = (seconds) => {
@@ -3196,7 +3196,7 @@ function PreparingOrders({
           // 'confirmed' orders should only appear in popup notification, not in preparing list
           // After accepting, order status changes to 'preparing' and then appears here
           const preparingOrders = response.data.data.orders.filter(
-            (order) => order.status === "preparing",
+            (order) => order.status === "preparing" && !markedReadyOrdersRef.current.has(order._id) && !markedReadyOrdersRef.current.has(order.orderId),
           );
 
           const transformedOrders = preparingOrders.map((order) => {
@@ -3373,6 +3373,7 @@ function PreparingOrders({
 
     try {
       setMarkingReadyOrderIds((prev) => ({ ...prev, [orderKey]: true }));
+      markedReadyOrdersRef.current.add(orderKey);
       await restaurantAPI.markOrderReady(orderKey);
       setOrders((prev) =>
         prev.filter((order) => (order.mongoId || order.orderId) !== orderKey),
@@ -3395,6 +3396,7 @@ function PreparingOrders({
         toast.success(`Order ${orderId} is already ready`);
         onStatusChanged?.();
       } else {
+        markedReadyOrdersRef.current.delete(orderKey);
         toast.error(message);
       }
     } finally {
