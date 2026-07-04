@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import SellerOrdersContext from '@/modules/seller/context/SellerOrdersContext';
 import SellerEarningsContext, { defaultEarnings } from '@/modules/seller/context/SellerEarningsContext';
-import { getOrderSocket, onSellerOrderNew, onOrderStatusUpdate, onOrderCancelled } from '@/core/services/orderSocket';
+import { getOrderSocket, onSellerOrderNew, onOrderStatusUpdate, onOrderCancelled, onPlayNotificationSound } from '@/core/services/orderSocket';
 import alertSound from '@/modules/Food/assets/audio/alert.mp3';
 
 const POLL_INTERVAL_MS = 20000; // Increased from 15s to reduce server load
@@ -22,6 +22,27 @@ const resolveAudioSource = (source, cacheKey = 'seller-alert') => {
     if (!import.meta.env.DEV) return source;
     const separator = source.includes('?') ? '&' : '?';
     return `${source}${separator}devcache=${cacheKey}`;
+};
+
+const triggerNativeSound = async (orderData = {}) => {
+    if (typeof window === 'undefined') return false;
+    const bridgePayload = {
+        title: 'New seller order',
+        body: `Order #${orderData?.orderId || ''}`.trim(),
+        orderId: orderData?.orderId || '',
+        orderMongoId: orderData?.sellerOrderId || orderData?._id || '',
+        targetUrl: `/seller/orders`,
+    };
+
+    try {
+        if (window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === 'function') {
+            await window.flutter_inappwebview.callHandler('playNotificationSound', bridgePayload);
+            return true;
+        }
+    } catch {
+        // Fallback
+    }
+    return false;
 };
 
 const resolveSellerReceivable = (order) => {
@@ -156,8 +177,12 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(newOrder.orderId);
                 newOrderAlertRef.current = newOrder;
 
-                const audio = new Audio(resolveAudioSource(alertSound));
-                audio.play().catch(() => { });
+                triggerNativeSound(newOrder).then((usedNative) => {
+                    if (!usedNative) {
+                        const audio = new Audio(resolveAudioSource(alertSound));
+                        audio.play().catch(() => { });
+                    }
+                });
             } catch (error) {
                 const isTimeout =
                     error?.code === 'ECONNABORTED' ||
@@ -239,10 +264,19 @@ const DashboardLayout = ({ children, navItems, title }) => {
             if (fetchOrdersRef.current) fetchOrdersRef.current(true);
         });
 
+        const offSound = onPlayNotificationSound(getToken, async (payload) => {
+            const usedNative = await triggerNativeSound(payload);
+            if (!usedNative) {
+                const audio = new Audio(resolveAudioSource(alertSound));
+                audio.play().catch(() => {});
+            }
+        });
+
         return () => {
             offNew?.();
             offStatus?.();
             offCancel?.();
+            offSound?.();
         };
     }, [role]);
 

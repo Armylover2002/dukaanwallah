@@ -102,6 +102,13 @@ export function onSellerOrderNew(getToken, handler) {
   return () => s.off("order:new", handler);
 }
 
+export function onPlayNotificationSound(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("play_notification_sound", handler);
+  return () => s.off("play_notification_sound", handler);
+}
+
 export function onCustomerOtp(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") return () => {};

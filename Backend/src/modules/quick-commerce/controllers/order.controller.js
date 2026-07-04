@@ -19,6 +19,7 @@ import { createRazorpayOrder, isRazorpayConfigured, getRazorpayKeyId } from '../
 import { autoRefundForCancelledOrder } from '../../../core/payments/autoRefund.service.js';
 import { verifyPayment as verifyFoodPayment } from '../../food/orders/services/order.service.js';
 import { sendWhatsAppTemplate } from '../../whatsapp/services/whatsapp.service.js';
+import { notifyOwnerSafely } from '../../food/orders/services/order.helpers.js';
 
 const approvedProductFilter = {
   $or: [
@@ -155,6 +156,27 @@ const emitQuickSellerOrders = (sellerOrders) => {
 
       io.to(rooms.seller(sellerOrder.sellerId)).emit('new_order', payload);
       io.to(rooms.seller(sellerOrder.sellerId)).emit('order:new', payload);
+      // Trigger notification sound on seller panel (same as restaurant/delivery)
+      io.to(rooms.seller(sellerOrder.sellerId)).emit('play_notification_sound', {
+        orderId: sellerOrder.orderId,
+        sellerOrderId: sellerOrder._id?.toString?.() || '',
+      });
+
+      // FCM Push Notification to seller
+      notifyOwnerSafely(
+        { ownerType: 'SELLER', ownerId: sellerOrder.sellerId },
+        {
+          title: 'New order received!',
+          body: `Order #${sellerOrder.orderId} is waiting for your action.`,
+          data: {
+            type: 'new_seller_order',
+            orderId: sellerOrder.orderId,
+            sellerOrderId: sellerOrder._id?.toString?.() || '',
+            orderType: sellerOrder.orderType || 'quick',
+            link: '/seller/orders',
+          },
+        },
+      ).catch(() => { /* best-effort */ });
     });
   } catch {
     // best-effort realtime update

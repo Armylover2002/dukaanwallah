@@ -123,7 +123,7 @@ export const initSocket = async (server) => {
 
     io.on('connection', (socket) => {
         const userId = socket.user?.userId;
-        const role = socket.user?.role;
+        const role = String(socket.user?.role || '').toUpperCase();
         logger.info(`Socket client connected: ${socket.id} (${role || 'UNKNOWN'}:${userId || '-'})`);
 
         // Auto-join role rooms (lets us emit without a custom join).
