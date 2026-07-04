@@ -1079,7 +1079,7 @@ const AddProduct = () => {
                     <input
                       ref={mainImageInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/png, image/jpeg, image/webp"
                       className="absolute inset-0 opacity-0 cursor-pointer z-10"
                       onChange={(e) => handleImageUpload(e, "main")}
                     />
@@ -1134,7 +1134,7 @@ const AddProduct = () => {
                         <>
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/png, image/jpeg, image/webp"
                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
                             onChange={(e) => handleImageUpload(e, "gallery")}
                           />

@@ -212,10 +212,6 @@ export default function SellerOnboarding() {
       toast.error("Invalid UPI ID. Format: username@bankhandle (e.g. name@okhdfcbank)");
       return false;
     }
-    if (!qrFile) {
-      toast.error("UPI QR image upload is required");
-      return false;
-    }
     return true;
   };
 
@@ -1113,7 +1109,7 @@ export default function SellerOnboarding() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-900">UPI QR image <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-900">UPI QR image</label>
                     <div
                       onClick={() =>
                         openGallery({
