@@ -10,6 +10,7 @@ import { ensureQuickCommerceSeedData } from '../services/seed.service.js';
 import { uploadImageBuffer } from '../../../services/cloudinary.service.js';
 import { uploadDataUrlToCloudinary } from '../../../utils/cloudinaryUpload.js';
 import { getIO, rooms } from '../../../config/socket.js';
+import { isPointInPolygon } from '../../../utils/geo.js';
 import {
   getQuickExperienceSections,
   createQuickExperienceSection,
@@ -1755,6 +1756,23 @@ export const createActiveSeller = async (req, res, next) => {
 
     if (!name || !shopName || !phone || !address) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    if (openingHours && openingHours.includes(' - ')) {
+      const [opening, closing] = openingHours.split(' - ');
+      if (opening >= closing) {
+        return res.status(400).json({ success: false, message: "Closing time must be later than opening time" });
+      }
+    }
+
+    if (zoneId && lat && lng) {
+      const zone = await QuickZone.findById(zoneId);
+      if (zone && zone.coordinates && zone.coordinates.length >= 3) {
+        const inside = isPointInPolygon(Number(lat), Number(lng), zone.coordinates);
+        if (!inside) {
+          return res.status(400).json({ success: false, message: "Selected location is outside the boundaries of the chosen Service Zone" });
+        }
+      }
     }
 
     // Dynamic imports removed; using statically imported Seller and uploadImageBuffer

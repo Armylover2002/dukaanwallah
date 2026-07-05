@@ -1,8 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HiXMark, HiOutlineMapPin } from 'react-icons/hi2';
 import { toast } from 'sonner';
 import { adminApi } from '../services/adminApi';
 import MapPicker from '@shared/components/MapPicker';
+import axiosInstance from '@core/api/axios';
+
+const formatTimeTo12Hour = (time24) => {
+  if (!time24 || !time24.includes(":")) return time24;
+  const [hourStr, minuteStr] = time24.split(":");
+  let hour = parseInt(hourStr, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  const formattedHour = String(hour).padStart(2, "0");
+  return `${formattedHour}:${minuteStr} ${ampm}`;
+};
+
+const timeOptions = Array.from({ length: 48 }, (_, index) => {
+  const hours = String(Math.floor(index / 2)).padStart(2, "0");
+  const minutes = index % 2 === 0 ? "00" : "30";
+  return `${hours}:${minutes}`;
+});
+
+const isPointInPolygon = (lat, lng, polygon) => {
+  if (!Array.isArray(polygon) || polygon.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].longitude || polygon[i].lng;
+    const yi = polygon[i].latitude || polygon[i].lat;
+    const xj = polygon[j].longitude || polygon[j].lng;
+    const yj = polygon[j].latitude || polygon[j].lat;
+    const intersect =
+      yi > lat !== yj > lat &&
+      lng < ((xj - xi) * (lat - yi)) / (yj - yi + 0.0) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+};
 
 const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,10 +62,27 @@ const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
     gstNumber: '',
     gstLegalName: '',
     fssaiNumber: '',
-    shopLicenseNumber: ''
+    shopLicenseNumber: '',
+    zoneId: '',
+    zoneName: '',
+    zoneSource: '',
+    openingTime: '',
+    closingTime: ''
   });
   const [upiQrImage, setUpiQrImage] = useState(null);
   const [shopLicenseImage, setShopLicenseImage] = useState(null);
+  const [zones, setZones] = useState([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      axiosInstance.get("/quick-commerce/admin/zones")
+        .then(res => {
+          const payload = res.data?.result || res.data?.results || res.data?.data || [];
+          setZones(Array.isArray(payload) ? payload : (payload.zones || payload.items || []));
+        })
+        .catch(console.error);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -81,9 +132,25 @@ const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.shopName || !formData.phone || !formData.address) {
+    if (!formData.name || !formData.shopName || !formData.phone || !formData.address || (!formData.zoneId && !formData.zoneName) || !formData.openingTime || !formData.closingTime) {
       toast.error('Please fill all required fields');
       return;
+    }
+
+    if (formData.openingTime >= formData.closingTime) {
+      toast.error('Closing time must be later than opening time');
+      return;
+    }
+
+    if (formData.lat && formData.lng && formData.zoneId) {
+      const selectedZone = zones.find(z => z._id === formData.zoneId);
+      if (selectedZone && selectedZone.coordinates) {
+        const inside = isPointInPolygon(Number(formData.lat), Number(formData.lng), selectedZone.coordinates);
+        if (!inside) {
+          toast.error('Selected location is outside the boundaries of the chosen Service Zone');
+          return;
+        }
+      }
     }
 
     if (formData.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
@@ -137,6 +204,7 @@ const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
       Object.keys(formData).forEach(key => {
         data.append(key, formData[key]);
       });
+      data.append('openingHours', `${formData.openingTime} - ${formData.closingTime}`);
       if (upiQrImage) data.append('upiQrImage', upiQrImage);
       if (shopLicenseImage) data.append('shopLicenseImage', shopLicenseImage);
 
@@ -225,9 +293,50 @@ const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Longitude</label>
                     <input type="text" name="lng" maxLength={20} value={formData.lng} onChange={handleChange} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-slate-900" placeholder="e.g. 77.1025" />
                   </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Service Zone *</label>
+                    <select 
+                      name="zoneId" 
+                      required 
+                      value={formData.zoneId || ''} 
+                      onChange={(e) => {
+                        const selectedZone = zones.find(z => z._id === e.target.value);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          zoneId: e.target.value, 
+                          zoneName: selectedZone?.name || '', 
+                          zoneSource: 'quick' 
+                        }));
+                      }} 
+                      className="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="" disabled>Select a zone</option>
+                      {Array.isArray(zones) && zones.map(zone => (
+                        <option key={zone._id} value={zone._id}>{zone.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Opening Time *</label>
+                    <select name="openingTime" required value={formData.openingTime} onChange={handleChange} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-slate-900">
+                      <option value="" disabled>Select time</option>
+                      {timeOptions.map(time => (
+                        <option key={time} value={time}>{formatTimeTo12Hour(time)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Closing Time *</label>
+                    <select name="closingTime" required value={formData.closingTime} onChange={handleChange} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-slate-900">
+                      <option value="" disabled>Select time</option>
+                      {timeOptions.map(time => (
+                        <option key={time} value={time}>{formatTimeTo12Hour(time)}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="md:col-span-2">
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Business Type / Category</label>
-                    <select name="businessType" value={formData.businessType} onChange={handleChange} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-slate-900">
+                    <select name="businessType" required value={formData.businessType} onChange={handleChange} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-slate-900">
                       <option value="" disabled>Select a category</option>
                       <option value="Grocery">Grocery</option>
                       <option value="Bakery">Bakery</option>
