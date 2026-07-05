@@ -1740,3 +1740,109 @@ export const getSellerOrderTransactions = async (req, res, next) => {
   }
 };
 
+export const createActiveSeller = async (req, res, next) => {
+  try {
+    const {
+      name, shopName, email, phone,
+      zoneId, zoneSource, zoneName,
+      address, lat, lng, radius, businessType,
+      alternatePhone, supportEmail, openingHours,
+      bankName, accountHolderName, accountNumber, ifscCode, accountType, upiId,
+      panNumber, gstRegistered, gstNumber, gstLegalName,
+      fssaiNumber, fssaiExpiry,
+      shopLicenseNumber, shopLicenseExpiry
+    } = req.body;
+
+    if (!name || !shopName || !phone || !address) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // Dynamic imports removed; using statically imported Seller and uploadImageBuffer
+
+    const upiQrFile = req.files?.upiQrImage?.[0];
+    const shopLicenseFile = req.files?.shopLicenseImage?.[0];
+
+    let upiQrImage = '';
+    let shopLicenseImage = '';
+
+    if (upiQrFile) {
+      upiQrImage = await uploadImageBuffer(upiQrFile.buffer, 'quick-commerce/sellers/bank');
+    }
+    if (shopLicenseFile) {
+      shopLicenseImage = await uploadImageBuffer(shopLicenseFile.buffer, 'quick-commerce/sellers/documents');
+    }
+
+    const phoneRaw = String(phone).replace(/\D/g, "").slice(-15);
+    const digits = phoneRaw ? phoneRaw.slice(-10) : "";
+    const existing = await Seller.findOne({ 
+      $or: [
+        { phoneDigits: phoneRaw },
+        { phoneLast10: digits }
+      ]
+    });
+    
+    if (existing) {
+      return res.status(400).json({ success: false, message: "A seller with this phone number already exists." });
+    }
+
+    const location = {
+      type: "Point",
+      coordinates: [Number(lng) || 0, Number(lat) || 0],
+      latitude: Number(lat) || 0,
+      longitude: Number(lng) || 0,
+      formattedAddress: address,
+      address: address
+    };
+
+    const newSeller = await Seller.create({
+      name,
+      shopName,
+      email: email || undefined,
+      phone: phoneRaw,
+      role: 'SELLER',
+      isVerified: true,
+      isActive: true,
+      approved: true,
+      approvalStatus: 'approved',
+      onboardingSubmitted: true,
+      approvedAt: new Date(),
+      location,
+      serviceRadius: Number(radius) || 5,
+      bankInfo: {
+        bankName: bankName || '',
+        accountHolderName: accountHolderName || '',
+        accountNumber: accountNumber || '',
+        ifscCode: ifscCode || '',
+        accountType: accountType || '',
+        upiId: upiId || '',
+        upiQrImage
+      },
+      documents: {
+        panNumber: panNumber || '',
+        gstRegistered: String(gstRegistered) === 'true',
+        gstNumber: gstNumber || '',
+        gstLegalName: gstLegalName || '',
+        fssaiNumber: fssaiNumber || '',
+        fssaiExpiry: fssaiExpiry ? new Date(fssaiExpiry) : null,
+        shopLicenseNumber: shopLicenseNumber || '',
+        shopLicenseImage,
+        shopLicenseExpiry: shopLicenseExpiry ? new Date(shopLicenseExpiry) : null,
+        isDocumentsVerified: true
+      },
+      shopInfo: {
+        businessType: businessType || '',
+        alternatePhone: alternatePhone || '',
+        supportEmail: supportEmail || '',
+        openingHours: openingHours || '',
+        zoneId: mongoose.isValidObjectId(zoneId) ? zoneId : null,
+        zoneSource: zoneSource || '',
+        zoneName: zoneName || ''
+      }
+    });
+
+    res.json({ success: true, message: "Seller created successfully", result: newSeller });
+  } catch (error) {
+    next(error);
+  }
+};
+

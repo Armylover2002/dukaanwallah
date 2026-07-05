@@ -374,6 +374,9 @@ export const adminApi = {
     return response;
   },
   getSellerRequests: (params) => axiosInstance.get('/quick-commerce/admin/seller-requests', { params }),
+  createActiveSeller: (formData) => axiosInstance.post('/quick-commerce/admin/create-active-seller', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   rejectSeller: (sellerId, data = {}) => axiosInstance.put(`/quick-commerce/admin/seller-requests/${sellerId}/reject`, data),
   getTickets: (params = {}) => axiosInstance.get('/quick-commerce/admin/support-tickets', { params }),
   updateTicketStatus: (id, status) =>

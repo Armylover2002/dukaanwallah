@@ -60,8 +60,8 @@ export function AppProviders({ children }) {
               <Router>
                 <RouteAwareThemeProvider>
                   {children}
-                  <Toaster position="top-center" richColors offset="80px" />
-                  <HotToaster position="top-center" reverseOrder={false} />
+                  <Toaster position="top-center" richColors offset="80px" style={{ zIndex: 99999 }} />
+                  <HotToaster position="top-center" reverseOrder={false} containerStyle={{ zIndex: 99999 }} />
                 </RouteAwareThemeProvider>
               </Router>
             </ReduxProvider>

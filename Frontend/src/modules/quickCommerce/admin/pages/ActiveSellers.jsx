@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import { adminApi } from '../services/adminApi';
+import AdminSellerCreateModal from '../components/AdminSellerCreateModal';
 
 const formatDate = (value) => {
   if (!value) return 'N/A';
@@ -32,6 +33,7 @@ const ActiveSellers = () => {
   const [sellers, setSellers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const loadActiveSellers = async () => {
     setIsLoading(true);
@@ -101,15 +103,30 @@ const ActiveSellers = () => {
             Approved quick-commerce sellers who can access the seller dashboard.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={loadActiveSellers}
-          className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.22em] text-white"
-        >
-          <HiOutlineArrowPath className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh List
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.22em] text-white hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-900/20"
+          >
+            Add Seller
+          </button>
+          <button
+            type="button"
+            onClick={loadActiveSellers}
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.22em] text-white"
+          >
+            <HiOutlineArrowPath className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh List
+          </button>
+        </div>
       </div>
+
+      <AdminSellerCreateModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={loadActiveSellers}
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[

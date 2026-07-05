@@ -97,6 +97,7 @@ import {
   assignAdminQuickZoneHubsController,
   getAdminSellerCODVerificationsController,
   settleSellerCODVerificationController,
+  createActiveSeller,
 } from "../controllers/admin.controller.js";
 import {
   getSellerCommissionBootstrap,
@@ -315,6 +316,16 @@ router.patch(
   updateAdminSupportTicketController,
 );
 router.get("/admin/seller-requests", ...adminOrEmployee, checkPermission("quick::core_management::seller_requests", "view"), getAdminSellerRequests);
+router.post(
+  "/admin/create-active-seller",
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::seller_requests", "create"),
+  upload.fields([
+    { name: "upiQrImage", maxCount: 1 },
+    { name: "shopLicenseImage", maxCount: 1 }
+  ]),
+  createActiveSeller
+);
 router.put(
   "/admin/seller-requests/:sellerId/approve",
   ...adminOrEmployee,
