@@ -21,8 +21,8 @@ const AUTH_ROUTE_PATTERNS = [
 const isAuthPath = (pathname) =>
     AUTH_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
 
-// Assuming the API is at VITE_API_URL or relative /api
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Assuming the API is at VITE_API_BASE_URL
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 // Resolve the active user ID:
 // 1. Prefer the real logged-in user's MongoDB _id from localStorage based on module
@@ -163,7 +163,7 @@ const ChatbotWidget = ({ userId, module = 'user' }) => {
     const fetchSession = async () => {
         try {
             setIsLoading(true);
-            const res = await axios.get(`${API_URL}/v1/chat/session/${activeUserId}?module=${module}`);
+            const res = await axios.get(`${API_URL}/chat/session/${activeUserId}?module=${module}`);
             if (res.data.success) {
                 setMessages(res.data.data.messages);
                 setOptions(res.data.data.currentOptions);
@@ -189,7 +189,7 @@ const ChatbotWidget = ({ userId, module = 'user' }) => {
         setOptions([]); // Clear options while loading
 
         try {
-            const res = await axios.post(`${API_URL}/v1/chat/message`, {
+            const res = await axios.post(`${API_URL}/chat/message`, {
                 userId: activeUserId,
                 message: text,
                 nodeId,
