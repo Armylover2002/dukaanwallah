@@ -187,65 +187,71 @@ const ActiveSellers = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="ds-table-header-cell px-6">Seller</th>
-                <th className="ds-table-header-cell px-6">Contact</th>
-                <th className="ds-table-header-cell px-6">Category</th>
-                <th className="ds-table-header-cell px-6">Approved on</th>
-                <th className="ds-table-header-cell px-6 text-right">Actions</th>
+                <th className="ds-table-header-cell px-6 py-3 font-semibold text-slate-500">Seller</th>
+                <th className="ds-table-header-cell px-6 py-3 font-semibold text-slate-500">Contact</th>
+                <th className="ds-table-header-cell px-6 py-3 font-semibold text-slate-500">Category</th>
+                <th className="ds-table-header-cell px-6 py-3 font-semibold text-slate-500">Approved on</th>
+                <th className="ds-table-header-cell px-6 py-3 font-semibold text-slate-500">Status</th>
+                <th className="ds-table-header-cell px-6 py-3 font-semibold text-slate-500 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {!isLoading && filteredSellers.length > 0 ? (
                 filteredSellers.map((seller) => (
                   <tr key={seller._id || seller.id} className="hover:bg-slate-50/30 transition-colors">
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-middle">
                       <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-xl overflow-hidden bg-slate-100 ring-2 ring-slate-100 flex items-center justify-center text-slate-400">
+                        <div className="h-10 w-10 rounded-xl overflow-hidden bg-slate-100 ring-1 ring-slate-200 flex items-center justify-center text-slate-400 shrink-0">
                           <HiOutlineBuildingOffice2 className="h-5 w-5" />
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">{seller.shopName || 'Store'}</p>
-                          <p className="text-[10px] font-bold text-slate-400">{seller.ownerName || 'Seller'}</p>
-                          <p className="mt-1 text-[11px] font-medium text-slate-500">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-900">{seller.shopName || 'Store'}</span>
+                          <span className="text-[11px] font-bold text-slate-500 mt-0.5">{seller.ownerName || 'Seller'}</span>
+                          <span className="mt-1 text-[11px] font-medium text-slate-500 max-w-[200px] truncate" title={seller.location}>
                             {seller.location || 'Location not added yet'}
-                          </p>
+                          </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                          <HiOutlineEnvelope className="h-4 w-4 text-slate-400" />
-                          <span>{seller.email || 'No email'}</span>
+                    <td className="px-6 py-4 align-middle">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-700">
+                          <HiOutlineEnvelope className="h-4 w-4 text-slate-400 shrink-0" />
+                          <span className="truncate max-w-[150px]" title={seller.email}>{seller.email || 'No email'}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                          <HiOutlinePhone className="h-4 w-4 text-slate-400" />
+                        <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-700">
+                          <HiOutlinePhone className="h-4 w-4 text-slate-400 shrink-0" />
                           <span>{seller.phone || 'No phone'}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <Badge variant="secondary" className="text-[10px] font-bold uppercase">
+                    <td className="px-6 py-4 align-middle">
+                      <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border-none">
                         {seller.category || 'General'}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-middle">
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-slate-700">
                           {formatDate(seller.approvedAt || seller.applicationDate)}
                         </span>
-                        <span className="text-[9px] font-medium text-slate-400">
+                        <span className="text-[10px] font-medium text-slate-400 mt-0.5">
                           {seller.serviceRadius ? `${seller.serviceRadius} km radius` : 'Radius not set'}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 align-middle">
+                      <Badge variant={seller.isActive !== false ? 'success' : 'error'} className="text-[10px] font-bold uppercase tracking-wider">
+                        {seller.isActive !== false ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right align-middle">
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/quick-commerce/sellers/active/${seller._id || seller.id}`)}
-                        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-bold text-white shadow-lg"
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 hover:bg-orange-600 px-5 py-2 text-[11px] font-bold text-white shadow-md transition-colors"
                       >
-                        <HiOutlineEye className="h-3.5 w-3.5" />
+                        <HiOutlineEye className="h-4 w-4" />
                         View
                       </button>
                     </td>

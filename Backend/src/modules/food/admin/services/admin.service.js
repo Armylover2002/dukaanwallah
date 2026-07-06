@@ -394,7 +394,7 @@ export async function getRestaurants(query) {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
     const status = query.status;
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
     if (status && ['pending', 'approved', 'rejected'].includes(status)) {
         filter.status = status;
     }
@@ -3902,7 +3902,7 @@ export async function addDeliveryPartner(data) {
 
 export async function getDeliveryPartners(query) {
     const { page = 1, limit = 1000, search } = query;
-    const filter = { status: 'approved' };
+    const filter = { status: 'approved', isDeleted: { $ne: true } };
     if (search && typeof search === 'string' && search.trim()) {
         const term = search.trim();
         filter.$or = [

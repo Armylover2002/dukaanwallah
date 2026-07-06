@@ -1179,7 +1179,7 @@ export const getAdminSellerRequests = async (req, res) => {
   const { status = 'pending', page = 1, limit = 50, search = '' } = req.query || {};
   const currentPage = Math.max(1, parseInt(page, 10) || 1);
   const perPage = Math.max(1, Math.min(parseInt(limit, 10) || 50, 100));
-  const query = {};
+  const query = { isDeleted: { $ne: true } };
 
   if (status === 'pending') query.approvalStatus = 'pending';
   else if (status === 'approved') query.approvalStatus = 'approved';
