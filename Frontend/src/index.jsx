@@ -45,7 +45,7 @@ function resolveNativeInitialRoute() {
 
   const rawPathname = String(window.location?.pathname || '')
   const pathname = rawPathname.replace(/\/index\.html$/i, '') || '/'
-  const storedRoute = String(localStorage.getItem(NATIVE_LAST_ROUTE_KEY) || '').trim()
+  const storedRoute = String(sessionStorage.getItem(NATIVE_LAST_ROUTE_KEY) || '').trim()
 
   if (pathname.startsWith('/food/')) return pathname
 

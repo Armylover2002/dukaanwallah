@@ -148,7 +148,7 @@ const AppRoutes = () => {
 
     const route = `${location.pathname || ''}${location.search || ''}`
     if (route.startsWith('/food/') || route.startsWith('/admin') || route.startsWith('/seller')) {
-      localStorage.setItem(NATIVE_LAST_ROUTE_KEY, route)
+      sessionStorage.setItem(NATIVE_LAST_ROUTE_KEY, route)
     }
   }, [location.pathname, location.search])
 
