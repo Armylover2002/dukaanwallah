@@ -122,10 +122,22 @@ const normalizeRequestedItems = (items) => {
   if (!Array.isArray(items)) return [];
 
   return items
-    .map((item) => ({
-      productId: String(item?.productId || item?.itemId || item?.id || item?._id || '').trim(),
-      quantity: Math.max(1, Number(item?.quantity || 1)),
-    }))
+    .map((item) => {
+      let productId = String(item?.productId || item?.itemId || item?.id || item?._id || '').trim();
+      let variantId = item?.variantId ? String(item.variantId).trim() : null;
+      
+      if (productId.includes('-')) {
+        const parts = productId.split('-');
+        productId = parts[0];
+        if (!variantId) variantId = parts[1];
+      }
+      
+      return {
+        productId,
+        variantId: variantId && mongoose.isValidObjectId(variantId) ? variantId : null,
+        quantity: Math.max(1, Number(item?.quantity || 1)),
+      };
+    })
     .filter((item) => item.productId && mongoose.isValidObjectId(item.productId));
 };
 
@@ -193,8 +205,9 @@ export const placeOrder = async (req, res) => {
 
     const cart = await QuickCart.findOne(idQuery).lean();
     const requestedItems = normalizeRequestedItems(req.body?.items);
+    // Prefer explicitly requested items from checkout to ensure variant exact match, fallback to DB cart
     const sourceItems =
-      Array.isArray(cart?.items) && cart.items.length > 0 ? cart.items : requestedItems;
+      Array.isArray(requestedItems) && requestedItems.length > 0 ? requestedItems : (Array.isArray(cart?.items) && cart.items.length > 0 ? cart.items : []);
 
     if (sourceItems.length === 0) {
       return res.status(400).json({ success: false, message: 'Cart is empty' });
@@ -211,14 +224,22 @@ export const placeOrder = async (req, res) => {
       .map((item) => {
         const product = productMap[String(item.productId)];
         if (!product) return null;
-        const unitPrice =
-          Number(product.salePrice || 0) > 0
-            ? Number(product.salePrice)
-            : Number(product.price || 0);
+        
+        let variant = null;
+        if (item.variantId && Array.isArray(product.variants)) {
+          variant = product.variants.find(v => String(v._id) === String(item.variantId) || String(v.id) === String(item.variantId));
+        }
+
+        const pSalePrice = variant && Number(variant.salePrice || 0) > 0 ? Number(variant.salePrice) : Number(product.salePrice || 0);
+        const pPrice = variant ? Number(variant.price || 0) : Number(product.price || 0);
+        const unitPrice = pSalePrice > 0 ? pSalePrice : pPrice;
+        const itemName = variant ? `${product.name} - ${variant.name}` : product.name;
+
         return {
           productId: product._id,
+          variantId: variant ? variant._id : null,
           sellerId: product.sellerId || null,
-          name: product.name,
+          name: itemName,
           image: product.image || product.mainImage || '',
           price: unitPrice,
           quantity: item.quantity,
@@ -241,14 +262,22 @@ export const placeOrder = async (req, res) => {
         .map((item) => {
           const product = fallbackProductMap[String(item.productId)];
           if (!product) return null;
-          const unitPrice =
-            Number(product.salePrice || 0) > 0
-              ? Number(product.salePrice)
-              : Number(product.price || 0);
+          
+          let variant = null;
+          if (item.variantId && Array.isArray(product.variants)) {
+            variant = product.variants.find(v => String(v._id) === String(item.variantId) || String(v.id) === String(item.variantId));
+          }
+
+          const pSalePrice = variant && Number(variant.salePrice || 0) > 0 ? Number(variant.salePrice) : Number(product.salePrice || 0);
+          const pPrice = variant ? Number(variant.price || 0) : Number(product.price || 0);
+          const unitPrice = pSalePrice > 0 ? pSalePrice : pPrice;
+          const itemName = variant ? `${product.name} - ${variant.name}` : product.name;
+
           return {
             productId: product._id,
+            variantId: variant ? variant._id : null,
             sellerId: product.sellerId || null,
-            name: product.name,
+            name: itemName,
             image: product.image || product.mainImage || '',
             price: unitPrice,
             quantity: item.quantity,

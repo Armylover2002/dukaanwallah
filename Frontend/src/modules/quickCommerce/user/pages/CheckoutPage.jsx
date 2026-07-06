@@ -439,7 +439,16 @@ const CheckoutPage = () => {
 
   const getCheckoutCartItemsForSync = useCallback(
     () => cart
-      .map((item) => ({ productId: getCheckoutProductId(item), quantity: Math.max(1, Number(item.quantity || 1)) }))
+      .map((item) => {
+        let pId = getCheckoutProductId(item);
+        let vId = item.variantId || null;
+        if (pId && pId.includes('-')) {
+          const parts = pId.split('-');
+          pId = parts[0];
+          if (!vId) vId = parts[1];
+        }
+        return { productId: pId, variantId: vId, quantity: Math.max(1, Number(item.quantity || 1)) };
+      })
       .filter((item) => item.productId),
     [cart, getCheckoutProductId],
   );
@@ -1254,9 +1263,9 @@ const CheckoutPage = () => {
 
             {/* Cart Items — memoized CartItem */}
             <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors space-y-4">
-              {cart.map((item) => (
+              {cart.map((item, index) => (
                 <CartItem
-                  key={item.id}
+                  key={`${item.id || item._id}-${index}`}
                   item={item}
                   onMoveToWishlist={handleMoveToWishlist}
                   onUpdateQuantity={updateQuantity}

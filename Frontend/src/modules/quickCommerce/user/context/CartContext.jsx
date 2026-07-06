@@ -60,7 +60,7 @@ const normalizeProductId = (value) => {
 
 const getProductId = (product) =>
   normalizeProductId(
-    product?.productId || product?.itemId || product?.id || product?._id,
+    product?.id || product?._id || product?.productId || product?.itemId,
   );
 
 const getQuickStoreName = (product) =>
@@ -215,8 +215,8 @@ const useStandaloneQuickCart = (isBridged = false) => {
       ...item,
       id: getProductId(item),
       _id: getProductId(item),
-      productId: getProductId(item),
-      itemId: getProductId(item),
+      productId: item.productId || getProductId(item),
+      itemId: item.itemId || item.productId || getProductId(item),
       quantity: Number(item.quantity || 1),
       stock: Number(item.stock ?? 0),
       categoryId: item.categoryId || null,

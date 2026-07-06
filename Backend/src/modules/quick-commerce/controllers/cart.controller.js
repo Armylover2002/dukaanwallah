@@ -204,19 +204,16 @@ export const updateCartItem = async (req, res) => {
   }
 
   const qty = Number(quantity);
-  const cart = await QuickCart.findOne(idQuery);
-
-  if (!cart) {
-    return res.status(404).json({ success: false, message: 'Cart not found' });
-  }
+  let cart = await QuickCart.findOneAndUpdate(
+    idQuery,
+    { $setOnInsert: buildCartInsertDoc(idQuery) },
+    { upsert: true, new: true }
+  );
 
   const itemIndex = cart.items.findIndex((item) => String(item.productId) === String(productId) && String(item.variantId || null) === String(variantId || null));
-  if (itemIndex < 0) {
-    return res.status(404).json({ success: false, message: 'Cart item not found' });
-  }
 
   if (!Number.isFinite(qty) || qty <= 0) {
-    cart.items.splice(itemIndex, 1);
+    if (itemIndex >= 0) cart.items.splice(itemIndex, 1);
   } else {
     const product = await QuickProduct.findOne({ _id: productId, ...approvedProductFilter }).lean();
     if (!product) {
@@ -236,7 +233,12 @@ export const updateCartItem = async (req, res) => {
         message: `Only ${stockLimit} items are available in stock.`,
       });
     }
-    cart.items[itemIndex].quantity = targetQty;
+    
+    if (itemIndex >= 0) {
+      cart.items[itemIndex].quantity = targetQty;
+    } else {
+      cart.items.push({ productId, variantId, quantity: targetQty });
+    }
   }
 
   await cart.save();

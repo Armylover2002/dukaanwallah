@@ -716,9 +716,9 @@ const CartPage = () => {
 
         {/* Cart Items — each item is memoized */}
         <div className="space-y-3">
-          {cart.map((item) => (
+          {cart.map((item, index) => (
             <CartItem
-              key={item.id || item._id}
+              key={`${item.id || item._id}-${index}`}
               item={item}
               onRemove={handleRemove}
               onUpdateQuantity={updateQuantity}
