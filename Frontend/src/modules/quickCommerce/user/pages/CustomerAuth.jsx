@@ -113,7 +113,7 @@ const CustomerAuth = () => {
                 await customerApi.sendSignupOtp({ name: formData.name, phone: formData.phone });
             }
             setShowOtp(true);
-            setTimer(30);
+            setTimer(120);
             toast.success('OTP sent!');
         } catch (error) {
             toast.error('Failed to send OTP');
@@ -426,7 +426,7 @@ const CustomerAuth = () => {
                                                     className={`text-[10px] font-black uppercase tracking-widest ${timer > 0 ? 'text-gray-300' : 'underline'}`}
                                                     style={{ color: timer > 0 ? undefined : activeCategory.theme }}
                                                 >
-                                                    {timer > 0 ? `Resend Code in ${timer}s` : 'Resend Now'}
+                                                    {timer > 0 ? `Resend Code in ${Math.floor(timer / 60).toString().padStart(2, "0")}:${(timer % 60).toString().padStart(2, "0")}` : 'Resend Now'}
                                                 </button>
                                             </div>
                                         </div>

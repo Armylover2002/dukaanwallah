@@ -62,8 +62,8 @@ export default function OTP() {
       // OTP auto-fill removed - user must manually enter OTP
     }
 
-    // Start resend timer (60 seconds)
-    setResendTimer(60)
+    // Start resend timer (120 seconds)
+    setResendTimer(120)
     const timer = setInterval(() => {
       setResendTimer((prev) => {
         if (prev <= 1) {
@@ -383,8 +383,8 @@ export default function OTP() {
       setIsLoading(false)
     }
 
-    // Reset timer to 60 seconds
-    setResendTimer(60)
+    // Reset timer to 120 seconds
+    setResendTimer(120)
     const timer = setInterval(() => {
       setResendTimer((prev) => {
         if (prev <= 1) {
@@ -493,7 +493,7 @@ export default function OTP() {
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Didn't get the OTP?{" "}
                   {resendTimer > 0 ? (
-                    <span className="font-medium text-gray-900 dark:text-white">Retry in {resendTimer}s</span>
+                    <span className="font-medium text-gray-900 dark:text-white">Retry in {Math.floor(resendTimer / 60).toString().padStart(2, "0")}:{(resendTimer % 60).toString().padStart(2, "0")}</span>
                   ) : (
                     <button
                       type="button"

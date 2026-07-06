@@ -26,7 +26,26 @@ export default function SellerAuth() {
   const { settings } = useSettings();
   const [step, setStep] = useState("phone");
   const [isLoading, setIsLoading] = useState(false);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(() => sessionStorage.getItem('sellerLoginPhone') || "");
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    sessionStorage.setItem('sellerLoginPhone', phone);
+  }, [phone]);
+
+  useEffect(() => {
+    if (step !== "otp" || resendTimer <= 0) return;
+    const interval = setInterval(() => {
+      setResendTimer(prev => prev > 0 ? prev - 1 : 0);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [step, resendTimer]);
+
+  const formatResendTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [otpPhone, setOtpPhone] = useState("");
   const [focusedIndex, setFocusedIndex] = useState(null);
@@ -135,11 +154,29 @@ export default function SellerAuth() {
       setOtp(resolvedOtpArray);
 
       setStep("otp");
+      setResendTimer(120);
       setTimeout(() => {
         inputRefs.current[0]?.focus();
       }, 100);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    try {
+      setIsLoading(true);
+      const fullPhone = `${DEFAULT_COUNTRY_CODE} ${phone}`.trim();
+      await sellerApi.requestOtp(fullPhone);
+      toast.success("Verification code resent successfully.");
+      setResendTimer(120);
+      setOtp(["", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to resend OTP");
     } finally {
       setIsLoading(false);
     }
@@ -432,6 +469,23 @@ export default function SellerAuth() {
                 >
                   {isLoading ? "Verifying..." : "Verify Code"}
                 </Button>
+
+                <div className="text-center mt-4">
+                  {resendTimer > 0 ? (
+                    <p className="text-xs font-semibold text-slate-500">
+                      Resend OTP in {formatResendTimer(resendTimer)}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={isLoading}
+                      className="text-xs font-bold text-[#f26522] hover:underline disabled:opacity-50"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

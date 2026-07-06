@@ -100,7 +100,7 @@ export default function RestaurantOTP() {
       return
     }
 
-    setResendTimer(60)
+    setResendTimer(120)
     const timer = setInterval(() => {
       setResendTimer((prev) => {
         if (prev <= 1) {
@@ -374,7 +374,7 @@ export default function RestaurantOTP() {
       setError(message)
     }
 
-    setResendTimer(60)
+    setResendTimer(120)
     const timer = setInterval(() => {
       setResendTimer((prev) => {
         if (prev <= 1) {
@@ -529,7 +529,7 @@ export default function RestaurantOTP() {
                   {resendTimer > 0 ? (
                     <div className="flex items-center gap-2 text-slate-400 text-xs font-black tracking-widest uppercase">
                       <Timer className="w-4 h-4 text-[#FE5502]" />
-                      RESEND IN <span className="text-[#FE5502]">{resendTimer}S</span>
+                      RESEND IN <span className="text-[#FE5502]">{Math.floor(resendTimer / 60).toString().padStart(2, "0")}:{(resendTimer % 60).toString().padStart(2, "0")}</span>
                     </div>
                   ) : (
                     <button

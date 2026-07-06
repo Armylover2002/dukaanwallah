@@ -64,8 +64,8 @@ export default function DeliveryOTP() {
     // OTP field should be empty - delivery boy needs to enter it manually
     // No auto-fill for delivery OTP
 
-    // Start resend timer (60 seconds)
-    setResendTimer(60)
+    // Start resend timer (120 seconds)
+    setResendTimer(120)
     const timer = setInterval(() => {
       setResendTimer((prev) => {
         if (prev <= 1) {
@@ -450,8 +450,8 @@ export default function DeliveryOTP() {
       setIsLoading(false)
     }
 
-    // Reset timer to 60 seconds
-    setResendTimer(60)
+    // Reset timer to 120 seconds
+    setResendTimer(120)
     const timer = setInterval(() => {
       setResendTimer((prev) => {
         if (prev <= 1) {
@@ -611,7 +611,7 @@ export default function DeliveryOTP() {
                 </p>
                 {resendTimer > 0 ? (
                   <p className="text-sm text-gray-500">
-                    Resend SMS in {resendTimer}s
+                    Resend SMS in {Math.floor(resendTimer / 60).toString().padStart(2, "0")}:{(resendTimer % 60).toString().padStart(2, "0")}
                   </p>
                 ) : (
                   <button
