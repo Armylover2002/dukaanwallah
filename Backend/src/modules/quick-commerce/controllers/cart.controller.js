@@ -61,27 +61,38 @@ const mapCart = async (idQuery) => {
     .map((item) => {
       const product = productMap[String(item.productId)];
       if (!product) return null;
-      const unitPrice =
-        Number(product.salePrice || 0) > 0
-          ? Number(product.salePrice)
-          : Number(product.price || 0);
-      const mrp = Number(product.mrp || product.price || unitPrice || 0);
+
+      let variant = null;
+      if (item.variantId && Array.isArray(product.variants)) {
+        variant = product.variants.find(v => String(v._id) === String(item.variantId) || String(v.id) === String(item.variantId));
+      }
+
+      const pSalePrice = variant && Number(variant.salePrice || 0) > 0 ? Number(variant.salePrice) : Number(product.salePrice || 0);
+      const pPrice = variant ? Number(variant.price || 0) : Number(product.price || 0);
+
+      const unitPrice = pSalePrice > 0 ? pSalePrice : pPrice;
+      const mrp = variant && Number(variant.price || 0) > 0 ? Number(variant.price) : Number(product.mrp || product.price || unitPrice || 0);
+
+      const pName = variant ? `${product.name} - ${variant.name}` : product.name;
+      const pStock = variant ? Number(variant.stock ?? 0) : Number(product.stock ?? 0);
 
       return {
-        id: String(product._id),
+        id: String(product._id) + (variant ? `-${variant._id}` : ''),
         productId: String(product._id),
+        variantId: variant ? String(variant._id) : null,
+        variantName: variant ? variant.name : null,
         categoryId: product.categoryId ? String(product.categoryId) : null,
         subcategoryId: product.subcategoryId ? String(product.subcategoryId) : null,
         headerId: product.headerId ? String(product.headerId) : null,
-        name: product.name,
+        name: pName,
         image: product.mainImage || product.image || '',
         mainImage: product.mainImage || product.image || '',
         price: unitPrice,
-        salePrice: Number(product.salePrice || 0),
+        salePrice: pSalePrice,
         mrp,
         originalPrice: mrp,
         unit: product.unit,
-        stock: Number(product.stock ?? 0),
+        stock: pStock,
         quantity: item.quantity,
         lineTotal: item.quantity * unitPrice,
       };
@@ -121,11 +132,18 @@ export const addToCart = async (req, res) => {
   await ensureQuickCommerceSeedData();
 
   const idQuery = resolveId(req);
-  const { productId } = req.body;
+  let { productId } = req.body;
   const quantity = Number(req.body.quantity || 1);
 
   if (!idQuery || !productId) {
     return res.status(400).json({ success: false, message: 'sessionId/userId and productId are required' });
+  }
+
+  let variantId = null;
+  if (productId && String(productId).includes('-')) {
+    const parts = String(productId).split('-');
+    productId = parts[0];
+    variantId = parts[1];
   }
 
   const product = await QuickProduct.findOne({ _id: productId, ...approvedProductFilter }).lean();
@@ -133,27 +151,33 @@ export const addToCart = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Product not found' });
   }
 
+  let variant = null;
+  if (variantId && Array.isArray(product.variants)) {
+    variant = product.variants.find(v => String(v._id) === String(variantId) || String(v.id) === String(variantId));
+  }
+  const stockLimit = variant ? Number(variant.stock || 0) : Number(product.stock || 0);
+
   const cart = await QuickCart.findOneAndUpdate(
     idQuery,
     { $setOnInsert: buildCartInsertDoc(idQuery) },
     { upsert: true, new: true }
   );
 
-  const itemIndex = cart.items.findIndex((item) => String(item.productId) === String(productId));
+  const itemIndex = cart.items.findIndex((item) => String(item.productId) === String(productId) && String(item.variantId || null) === String(variantId || null));
   const currentQty = itemIndex >= 0 ? cart.items[itemIndex].quantity : 0;
   const targetQty = currentQty + Math.max(1, quantity);
 
-  if (targetQty > (product.stock || 0)) {
+  if (targetQty > stockLimit) {
     return res.status(400).json({
       success: false,
-      message: `Only ${product.stock || 0} items are available in stock.`,
+      message: `Only ${stockLimit} items are available in stock.`,
     });
   }
 
   if (itemIndex >= 0) {
     cart.items[itemIndex].quantity = targetQty;
   } else {
-    cart.items.push({ productId, quantity: Math.max(1, quantity) });
+    cart.items.push({ productId, variantId, quantity: Math.max(1, quantity) });
   }
 
   await cart.save();
@@ -166,10 +190,17 @@ export const updateCartItem = async (req, res) => {
   await ensureQuickCommerceSeedData();
 
   const idQuery = resolveId(req);
-  const { productId, quantity } = req.body;
+  let { productId, quantity } = req.body;
 
   if (!idQuery || !productId) {
     return res.status(400).json({ success: false, message: 'sessionId/userId and productId are required' });
+  }
+
+  let variantId = null;
+  if (productId && String(productId).includes('-')) {
+    const parts = String(productId).split('-');
+    productId = parts[0];
+    variantId = parts[1];
   }
 
   const qty = Number(quantity);
@@ -179,7 +210,7 @@ export const updateCartItem = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Cart not found' });
   }
 
-  const itemIndex = cart.items.findIndex((item) => String(item.productId) === String(productId));
+  const itemIndex = cart.items.findIndex((item) => String(item.productId) === String(productId) && String(item.variantId || null) === String(variantId || null));
   if (itemIndex < 0) {
     return res.status(404).json({ success: false, message: 'Cart item not found' });
   }
@@ -191,11 +222,18 @@ export const updateCartItem = async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
+
+    let variant = null;
+    if (variantId && Array.isArray(product.variants)) {
+      variant = product.variants.find(v => String(v._id) === String(variantId) || String(v.id) === String(variantId));
+    }
+    const stockLimit = variant ? Number(variant.stock || 0) : Number(product.stock || 0);
+
     const targetQty = Math.floor(qty);
-    if (targetQty > (product.stock || 0)) {
+    if (targetQty > stockLimit) {
       return res.status(400).json({
         success: false,
-        message: `Only ${product.stock || 0} items are available in stock.`,
+        message: `Only ${stockLimit} items are available in stock.`,
       });
     }
     cart.items[itemIndex].quantity = targetQty;
@@ -210,10 +248,17 @@ export const removeCartItem = async (req, res) => {
   await ensureQuickCommerceSeedData();
 
   const idQuery = resolveId(req);
-  const { productId } = req.params;
+  let { productId } = req.params;
 
   if (!idQuery || !productId) {
     return res.status(400).json({ success: false, message: 'sessionId/userId and productId are required' });
+  }
+
+  let variantId = null;
+  if (productId && String(productId).includes('-')) {
+    const parts = String(productId).split('-');
+    productId = parts[0];
+    variantId = parts[1];
   }
 
   const cart = await QuickCart.findOne(idQuery);
@@ -221,7 +266,7 @@ export const removeCartItem = async (req, res) => {
     return res.status(404).json({ success: false, message: 'Cart not found' });
   }
 
-  cart.items = cart.items.filter((item) => String(item.productId) !== String(productId));
+  cart.items = cart.items.filter((item) => !(String(item.productId) === String(productId) && String(item.variantId || null) === String(variantId || null)));
   await cart.save();
 
   const result = await mapCart(idQuery);

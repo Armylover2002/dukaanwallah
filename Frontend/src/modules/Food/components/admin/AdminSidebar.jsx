@@ -194,6 +194,8 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     if (l === "return orders" || p.includes("return-orders")) return badges.returnOrders
     if (l === "deliveryman" && !p.includes("join-request")) return badges.deliveryPartners // expandable parent
     if (l.includes("join request") || p.includes("join-request")) return badges.deliveryPartners
+    if (l === "sellers" && !p.includes("pending")) return badges.sellerRequests || 0
+    if (l.includes("seller requests") || p.includes("sellers/pending")) return badges.sellerRequests || 0
     return 0
   }
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('admin'))

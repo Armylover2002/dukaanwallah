@@ -178,8 +178,12 @@ const ProductDetailSheet = () => {
 
     // Memoised derived values
     const productId = useMemo(
-        () => selectedProduct?.id || selectedProduct?._id,
-        [selectedProduct]
+        () => {
+            const pId = selectedProduct?.id || selectedProduct?._id;
+            const vId = selectedVariant?.id || selectedVariant?._id;
+            return vId ? `${pId}-${vId}` : pId;
+        },
+        [selectedProduct, selectedVariant]
     );
 
     const cartItem = useMemo(() => {
@@ -296,23 +300,28 @@ const ProductDetailSheet = () => {
     }, [toggleWishlistGlobal, selectedProduct, isWishlisted, showToast]);
 
     const handleAddToCart = useCallback(() => {
-        const stock = Number(selectedProduct.stock ?? 0);
+        const stock = selectedVariant ? Number(selectedVariant.stock ?? 0) : Number(selectedProduct.stock ?? 0);
         if (stock <= 0) {
             showToast("This product is out of stock", "error");
             return;
         }
-        addToCart(selectedProduct);
-        showToast(`${selectedProduct.name} added to cart`, 'success');
-    }, [addToCart, selectedProduct, showToast]);
+        
+        const productToAdd = selectedVariant 
+            ? { ...selectedProduct, id: productId } 
+            : selectedProduct;
+            
+        addToCart(productToAdd);
+        showToast(`${selectedProduct.name}${selectedVariant ? ' - ' + selectedVariant.name : ''} added to cart`, 'success');
+    }, [addToCart, selectedProduct, selectedVariant, productId, showToast]);
 
     const handleIncrement = useCallback(() => {
-        const stock = Number(selectedProduct.stock ?? 0);
+        const stock = selectedVariant ? Number(selectedVariant.stock ?? 0) : Number(selectedProduct.stock ?? 0);
         if (quantity >= stock) {
             showToast(`Only ${stock} items are available in stock.`, "error");
             return;
         }
         updateQuantity(productId, 1);
-    }, [updateQuantity, productId, selectedProduct, quantity, showToast]);
+    }, [updateQuantity, productId, selectedProduct, selectedVariant, quantity, showToast]);
 
     const handleDecrement = useCallback(() => {
         if (quantity === 1) removeFromCart(productId);

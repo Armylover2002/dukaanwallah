@@ -1354,25 +1354,41 @@ const ProductManagement = () => {
                       </div>
                       <div className="space-y-3">
                         {formData.variants.map((v, i) => (
-                          <div key={v.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">Variant Name</label>
+                          <div key={v.id || v._id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-12 gap-4 items-start">
+                            <div className="col-span-12 md:col-span-4 space-y-1">
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">Variant Name</label>
                               <input value={v.name} onChange={e => {
                                 const news = [...formData.variants];
                                 news[i].name = e.target.value;
                                 setFormData({ ...formData, variants: news });
                               }} placeholder="e.g. 1kg" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
                             </div>
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 space-y-1">
-                                <label className="text-[8px] font-bold text-slate-600 uppercase tracking-widest ml-1">SKU</label>
-                                <input value={v.sku} onChange={e => {
-                                  const news = [...formData.variants];
-                                  news[i].sku = e.target.value;
-                                  setFormData({ ...formData, variants: news });
-                                }} placeholder="SKU" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
-                              </div>
-                              <button type="button" onClick={() => setFormData({ ...formData, variants: formData.variants.filter((_, idx) => idx !== i) })} className="text-rose-500 p-2 hover:bg-rose-50 rounded-lg shrink-0 mb-0.5">
+                            <div className="col-span-6 md:col-span-2 space-y-1">
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">Price</label>
+                              <input type="number" value={v.price} onChange={e => {
+                                const news = [...formData.variants];
+                                news[i].price = e.target.value;
+                                setFormData({ ...formData, variants: news });
+                              }} placeholder="0.00" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
+                            </div>
+                            <div className="col-span-6 md:col-span-2 space-y-1">
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">Sale Price</label>
+                              <input type="number" value={v.salePrice} onChange={e => {
+                                const news = [...formData.variants];
+                                news[i].salePrice = e.target.value;
+                                setFormData({ ...formData, variants: news });
+                              }} placeholder="0.00" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
+                            </div>
+                            <div className="col-span-11 md:col-span-3 space-y-1">
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">Stock</label>
+                              <input type="number" value={v.stock} onChange={e => {
+                                const news = [...formData.variants];
+                                news[i].stock = e.target.value;
+                                setFormData({ ...formData, variants: news });
+                              }} placeholder="e.g. 50" className="w-full bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none" />
+                            </div>
+                            <div className="col-span-1 flex justify-end mt-5">
+                              <button type="button" onClick={() => setFormData({ ...formData, variants: formData.variants.filter((_, idx) => idx !== i) })} className="text-rose-500 p-2 hover:bg-rose-50 rounded-lg shrink-0">
                                 <HiOutlineTrash className="h-4 w-4" />
                               </button>
                             </div>

@@ -218,10 +218,18 @@ const ProductDetailPage = () => {
   const product = useMemo(() => {
     if (!baseProduct) return null;
     if (!selectedVariant) return baseProduct;
+    
+    const pSalePrice = Number(selectedVariant.salePrice || 0) > 0 ? Number(selectedVariant.salePrice) : Number(baseProduct.salePrice || 0);
+    const pPrice = Number(selectedVariant.price || 0) > 0 ? Number(selectedVariant.price) : Number(baseProduct.price || 0);
+    const unitPrice = pSalePrice > 0 ? pSalePrice : pPrice;
+    const mrp = Number(selectedVariant.price || 0) > 0 ? Number(selectedVariant.price) : Number(baseProduct.originalPrice || baseProduct.mrp || unitPrice || 0);
+
     return {
       ...baseProduct,
-      price: selectedVariant.price || baseProduct.price,
-      originalPrice: selectedVariant.originalPrice || baseProduct.originalPrice,
+      id: `${baseProduct.id || baseProduct._id}-${selectedVariant.id || selectedVariant._id}`,
+      price: unitPrice,
+      originalPrice: mrp,
+      stock: Number(selectedVariant.stock ?? baseProduct.stock ?? 0),
       name: `${baseProduct.name} - ${selectedVariant.name}`,
       variant: selectedVariant
     };
@@ -241,7 +249,7 @@ const ProductDetailPage = () => {
 
   const quantity = useMemo(() => {
     if (!product) return 0;
-    const cartItem = cart.find((item) => getProductIdentifier(item) === getProductIdentifier(product) && item.variant?.sku === product.variant?.sku);
+    const cartItem = cart.find((item) => (item.id || item._id) === (product.id || product._id) || item.productId === (product.id || product._id));
     return cartItem ? cartItem.quantity : 0;
   }, [cart, product]);
 

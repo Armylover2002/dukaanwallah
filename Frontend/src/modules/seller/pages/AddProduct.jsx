@@ -950,7 +950,7 @@ const AddProduct = () => {
                   <div
                     key={variant.id}
                     className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-end group relative">
-                    <div className="col-span-12 md:col-span-7 space-y-1">
+                    <div className="col-span-12 md:col-span-4 space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
                         Variant Name
                       </label>
@@ -965,15 +965,46 @@ const AddProduct = () => {
                         className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-orange-500/10"
                       />
                     </div>
-                    <div className="col-span-11 md:col-span-4 space-y-1">
-                      <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                        Product Code
-                      </label>
+                    <div className="col-span-6 md:col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">Price</label>
                       <input
-                        value={variant.sku}
-                        readOnly
-                        placeholder="AUTO-GENERATED"
-                        className="w-full px-3 py-2 bg-slate-100 ring-1 ring-slate-200 border-none rounded-xl text-xs font-mono font-bold text-slate-400 cursor-not-allowed outline-none"
+                        type="number"
+                        value={variant.price}
+                        onChange={(e) => {
+                          const newVariants = [...formData.variants];
+                          newVariants[index].price = e.target.value;
+                          setFormData({ ...formData, variants: newVariants });
+                        }}
+                        className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-orange-500/10"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="col-span-6 md:col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">Sale Price</label>
+                      <input
+                        type="number"
+                        value={variant.salePrice}
+                        onChange={(e) => {
+                          const newVariants = [...formData.variants];
+                          newVariants[index].salePrice = e.target.value;
+                          setFormData({ ...formData, variants: newVariants });
+                        }}
+                        className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-orange-500/10"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="col-span-11 md:col-span-3 space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">Stock</label>
+                      <input
+                        type="number"
+                        value={variant.stock}
+                        onChange={(e) => {
+                          const newVariants = [...formData.variants];
+                          newVariants[index].stock = e.target.value;
+                          setFormData({ ...formData, variants: newVariants });
+                        }}
+                        className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-orange-500/10"
+                        placeholder="e.g. 50"
                       />
                     </div>
                     <div className="col-span-1 flex justify-end pb-1">
