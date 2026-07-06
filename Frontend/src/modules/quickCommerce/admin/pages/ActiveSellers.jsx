@@ -9,7 +9,11 @@ import {
   HiOutlineMagnifyingGlass,
   HiOutlineMapPin,
   HiOutlinePhone,
+  HiOutlineEllipsisVertical,
+  HiOutlineCheck,
+  HiOutlineXMark
 } from 'react-icons/hi2';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import Card from '@shared/components/ui/Card';
@@ -50,6 +54,21 @@ const ActiveSellers = () => {
       setSellers([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (id, isActive) => {
+    try {
+      const res = await adminApi.toggleSellerStatus(id, isActive);
+      if (res.success) {
+        toast.success(`Seller ${isActive ? 'activated' : 'deactivated'} successfully`);
+        loadActiveSellers(); // refresh list
+      } else {
+        toast.error(res.message || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Error updating status');
     }
   };
 
@@ -246,14 +265,46 @@ const ActiveSellers = () => {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right align-middle">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/admin/quick-commerce/sellers/active/${seller._id || seller.id}`)}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 hover:bg-orange-600 px-5 py-2 text-[11px] font-bold text-white shadow-md transition-colors"
-                      >
-                        <HiOutlineEye className="h-4 w-4" />
-                        View
-                      </button>
+                      <DropdownMenu.Root>
+                        <DropdownMenu.Trigger asChild>
+                          <button className="p-2 rounded-full hover:bg-slate-100 transition-colors focus:outline-none">
+                            <HiOutlineEllipsisVertical className="h-5 w-5 text-slate-500" />
+                          </button>
+                        </DropdownMenu.Trigger>
+                        
+                        <DropdownMenu.Portal>
+                          <DropdownMenu.Content 
+                            className="min-w-[160px] bg-white rounded-lg shadow-lg border border-slate-100 p-1 z-50 overflow-hidden text-sm"
+                            align="end"
+                          >
+                            <DropdownMenu.Item 
+                              className="flex items-center gap-2 px-3 py-2 text-slate-700 hover:bg-slate-50 rounded-md cursor-pointer outline-none focus:bg-slate-50"
+                              onSelect={() => navigate(`/admin/quick-commerce/sellers/active/${seller._id || seller.id}`)}
+                            >
+                              <HiOutlineEye className="h-4 w-4" />
+                              View
+                            </DropdownMenu.Item>
+                            
+                            {seller.isActive !== false ? (
+                              <DropdownMenu.Item 
+                                className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-md cursor-pointer outline-none focus:bg-red-50"
+                                onSelect={() => handleToggleStatus(seller._id || seller.id, false)}
+                              >
+                                <HiOutlineXMark className="h-4 w-4" />
+                                Deactivate
+                              </DropdownMenu.Item>
+                            ) : (
+                              <DropdownMenu.Item 
+                                className="flex items-center gap-2 px-3 py-2 text-emerald-600 hover:bg-emerald-50 rounded-md cursor-pointer outline-none focus:bg-emerald-50"
+                                onSelect={() => handleToggleStatus(seller._id || seller.id, true)}
+                              >
+                                <HiOutlineCheck className="h-4 w-4" />
+                                Activate
+                              </DropdownMenu.Item>
+                            )}
+                          </DropdownMenu.Content>
+                        </DropdownMenu.Portal>
+                      </DropdownMenu.Root>
                     </td>
                   </tr>
                 ))

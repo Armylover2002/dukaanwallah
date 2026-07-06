@@ -98,6 +98,7 @@ import {
   getAdminSellerCODVerificationsController,
   settleSellerCODVerificationController,
   createActiveSeller,
+  toggleAdminSellerStatus,
 } from "../controllers/admin.controller.js";
 import {
   getSellerCommissionBootstrap,
@@ -337,6 +338,12 @@ router.put(
   ...adminOrEmployee,
   checkPermission("quick::core_management::seller_requests", "edit"),
   rejectAdminSellerRequest,
+);
+router.put(
+  "/admin/sellers/:sellerId/toggle-status",
+  ...adminOrEmployee,
+  checkPermission("quick::core_management::seller_requests", "edit"),
+  toggleAdminSellerStatus,
 );
 router.get("/admin/zones", ...adminOrEmployee, checkPermission("quick::core_management::zone_setup", "view"), getAdminZones);
 router.get("/admin/zones/:zoneId", ...adminOrEmployee, checkPermission("quick::core_management::zone_setup", "view"), getAdminZoneById);

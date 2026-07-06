@@ -390,6 +390,7 @@ const toSellerRequest = (seller) => ({
     seller.approvalStatus ||
     (seller.approved === false ? 'pending' : 'approved'),
   approved: seller.approved !== false,
+  isActive: seller.isActive !== false,
   onboardingSubmitted: seller.onboardingSubmitted === true,
   serviceRadius: Number(seller.serviceRadius || 0),
   bankInfo: seller.bankInfo || {},
@@ -1238,6 +1239,30 @@ export const approveAdminSellerRequest = async (req, res) => {
     message: 'Seller approved successfully',
     result: toSellerRequest(seller),
   });
+};
+
+export const toggleAdminSellerStatus = async (req, res) => {
+  try {
+    const { sellerId } = req.params;
+    const { isActive } = req.body;
+    
+    const seller = await Seller.findById(sellerId);
+    if (!seller) {
+      return res.status(404).json({ success: false, message: 'Seller not found' });
+    }
+
+    seller.isActive = Boolean(isActive);
+    await seller.save();
+
+    res.json({
+      success: true,
+      message: `Seller successfully ${seller.isActive ? 'activated' : 'deactivated'}`,
+      data: seller
+    });
+  } catch (error) {
+    console.error('Error toggling seller status:', error);
+    res.status(500).json({ success: false, message: 'Error updating seller status' });
+  }
 };
 
 export const rejectAdminSellerRequest = async (req, res) => {
