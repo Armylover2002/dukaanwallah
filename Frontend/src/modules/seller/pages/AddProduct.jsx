@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import toast2 from "react-hot-toast";
 import { sellerApi } from "../services/sellerApi";
-import { openGallery } from "@food/utils/imageUploadUtils";
+import { ImageSourcePicker } from "@food/components/ImageSourcePicker";
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -35,6 +35,26 @@ const AddProduct = () => {
   const [productIdInput, setProductIdInput] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
+
+  const [imagePickerConfig, setImagePickerConfig] = useState({
+    isOpen: false,
+    title: "",
+    onSelectFile: null,
+    fileNamePrefix: "",
+  });
+
+  const openImageSourcePicker = ({ title, onSelectFile, fileNamePrefix }) => {
+    setImagePickerConfig({
+      isOpen: true,
+      title,
+      onSelectFile,
+      fileNamePrefix,
+    });
+  };
+
+  const closeImageSourcePicker = () => {
+    setImagePickerConfig(prev => ({ ...prev, isOpen: false }));
+  };
 
   const [formData, setFormData] = useState(() => {
     const defaultData = {
@@ -1106,7 +1126,7 @@ const AddProduct = () => {
                 </label>
                 <div className="flex flex-col md:flex-row items-start gap-6">
                   <div
-                    onClick={() => openGallery({ onSelectFile: (f) => handleImageUpload(f, "main"), fileNamePrefix: "main-cover" })}
+                    onClick={() => openImageSourcePicker({ title: "Upload Cover", onSelectFile: (f) => handleImageUpload(f, "main"), fileNamePrefix: "main-cover" })}
                     className="w-48 aspect-square rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer overflow-hidden relative">
                     {formData.mainImage ? (
                       <img
@@ -1132,7 +1152,7 @@ const AddProduct = () => {
                     </p>
                     <button
                       type="button"
-                      onClick={() => openGallery({ onSelectFile: (f) => handleImageUpload(f, "main"), fileNamePrefix: "main-cover" })}
+                      onClick={() => openImageSourcePicker({ title: "Upload Cover", onSelectFile: (f) => handleImageUpload(f, "main"), fileNamePrefix: "main-cover" })}
                       className="text-[10px] font-black text-orange-500 uppercase tracking-wider hover:underline">
                       Pick from Library
                     </button>
@@ -1149,7 +1169,7 @@ const AddProduct = () => {
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
-                      onClick={() => !formData.galleryImages[i - 1] && openGallery({ onSelectFile: (f) => handleImageUpload(f, "gallery"), fileNamePrefix: "gallery" })}
+                      onClick={() => !formData.galleryImages[i - 1] && openImageSourcePicker({ title: "Add Gallery Photo", onSelectFile: (f) => handleImageUpload(f, "gallery"), fileNamePrefix: "gallery" })}
                       className="aspect-square rounded-md border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer relative overflow-hidden">
                       {formData.galleryImages[i - 1] ? (
                         <img
@@ -1198,6 +1218,11 @@ const AddProduct = () => {
           )}
         </Button>
       </div>
+
+      <ImageSourcePicker
+        {...imagePickerConfig}
+        onClose={closeImageSourcePicker}
+      />
     </div>
   );
 };

@@ -34,6 +34,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
+import { ImageSourcePicker } from "@food/components/ImageSourcePicker";
 
 import { MagicCard } from "@/components/ui/magic-card";
 import { BlurFade } from "@/components/ui/blur-fade";
@@ -213,6 +214,26 @@ const ProductManagement = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
+
+  const [imagePickerConfig, setImagePickerConfig] = useState({
+    isOpen: false,
+    title: "",
+    onSelectFile: null,
+    fileNamePrefix: "",
+  });
+
+  const openImageSourcePicker = ({ title, onSelectFile, fileNamePrefix }) => {
+    setImagePickerConfig({
+      isOpen: true,
+      title,
+      onSelectFile,
+      fileNamePrefix,
+    });
+  };
+
+  const closeImageSourcePicker = () => {
+    setImagePickerConfig(prev => ({ ...prev, isOpen: false }));
+  };
 
   const fetchProducts = useCallback(async (requestedPage = 1) => {
     setIsLoading(true);
@@ -506,9 +527,8 @@ const ProductManagement = () => {
     }
   };
 
-  const handleImageUpload = (e, type) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+  const handleImageUpload = (file, type) => {
+    if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (type === "main") {
@@ -1323,12 +1343,10 @@ const ProductManagement = () => {
                           Main Cover Photo
                         </label>
                         <div className="flex flex-col md:flex-row items-start gap-6">
-                          <div className="w-48 aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer overflow-hidden relative">
-                            <input
-                              type="file"
-                              className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                              onChange={(e) => handleImageUpload(e, "main")}
-                            />
+                          <div 
+                            onClick={() => openImageSourcePicker({ title: "Update Cover", onSelectFile: (f) => handleImageUpload(f, "main"), fileNamePrefix: "main-cover" })}
+                            className="w-48 aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer overflow-hidden relative">
+
                             {formData.mainImage ? (
                               <img src={formData.mainImage} alt="Main Preview" className="w-full h-full object-cover" />
                             ) : (
@@ -1842,6 +1860,11 @@ const ProductManagement = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ImageSourcePicker
+        {...imagePickerConfig}
+        onClose={closeImageSourcePicker}
+      />
     </div >
   );
 };

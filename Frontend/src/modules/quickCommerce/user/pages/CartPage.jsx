@@ -214,6 +214,17 @@ const CartPage = () => {
   const [activeTab, setActiveTab] = useState('Home');
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  useEffect(() => {
+    if (showClearConfirm) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showClearConfirm]);
   const [quickBillingSettings, setQuickBillingSettings] = useState(DEFAULT_QUICK_BILLING_SETTINGS);
   const [categoryFeeMap, setCategoryFeeMap] = useState({});
   const [isUserCodAllowed, setIsUserCodAllowed] = useState(true);

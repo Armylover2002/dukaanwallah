@@ -386,6 +386,7 @@ const toSellerRequest = (seller) => ({
   location: seller.location?.formattedAddress || seller.location?.address || '',
   category: seller.shopInfo?.businessType || 'General',
   applicationDate: seller.createdAt,
+  approvedAt: seller.approvedAt || null,
   status:
     seller.approvalStatus ||
     (seller.approved === false ? 'pending' : 'approved'),

@@ -25,11 +25,33 @@ const formatDate = (value) => {
   if (!value) return 'N/A';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'N/A';
-  return date.toLocaleDateString('en-IN', {
+  return date.toLocaleString('en-IN', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
   });
+};
+
+const formatLocationTooltip = (location) => {
+  if (!location) return 'Location not added yet';
+  if (typeof location === 'string') {
+    // If it's just coordinates (e.g. "28.53, 77.39")
+    if (/^[-+]?[0-9]*\.?[0-9]+,\s*[-+]?[0-9]*\.?[0-9]+$/.test(location)) {
+      return 'Exact coordinates available';
+    }
+    // Extract City and Area from comma-separated address
+    const parts = location.split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      // Assuming typical format: "Area/Locality, City, State, Country"
+      // Returns "City, Area"
+      return `${parts[1]}, ${parts[0]}`;
+    }
+    return location;
+  }
+  return 'Location not added yet';
 };
 
 const ActiveSellers = () => {
@@ -226,7 +248,7 @@ const ActiveSellers = () => {
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-slate-900">{seller.shopName || 'Store'}</span>
                           <span className="text-[11px] font-bold text-slate-500 mt-0.5">{seller.ownerName || 'Seller'}</span>
-                          <span className="mt-1 text-[11px] font-medium text-slate-500 max-w-[200px] truncate" title={seller.location}>
+                          <span className="mt-1 text-[11px] font-medium text-slate-500 max-w-[200px] truncate" title={formatLocationTooltip(seller.location)}>
                             {seller.location || 'Location not added yet'}
                           </span>
                         </div>
@@ -252,7 +274,7 @@ const ActiveSellers = () => {
                     <td className="px-6 py-4 align-middle">
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-slate-700">
-                          {formatDate(seller.approvedAt || seller.applicationDate)}
+                          {formatDate(seller.approvedAt || seller.applicationDate || seller.createdAt)}
                         </span>
                         <span className="text-[10px] font-medium text-slate-400 mt-0.5">
                           {seller.serviceRadius ? `${seller.serviceRadius} km radius` : 'Radius not set'}
