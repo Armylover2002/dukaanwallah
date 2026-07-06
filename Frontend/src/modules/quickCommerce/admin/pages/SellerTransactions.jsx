@@ -44,7 +44,7 @@ const SellerTransactions = () => {
     const [isExporting, setIsExporting] = useState(false);
     const [transactions, setTransactions] = useState([]);
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(25);
+    const [pageSize, setPageSize] = useState(20);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
 
@@ -126,6 +126,16 @@ const SellerTransactions = () => {
             return matchesSearch && matchesStatus && matchesType && matchesSeller;
         });
     }, [transactions, searchTerm, filterStatus, filterType, selectedSeller]);
+
+    const paginatedTransactions = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return filteredTransactions.slice(start, start + pageSize);
+    }, [filteredTransactions, page, pageSize]);
+
+    // Reset page to 1 when filters change
+    useEffect(() => {
+        setPage(1);
+    }, [searchTerm, filterStatus, filterType, selectedSeller]);
 
     const handleExport = () => {
         if (!filteredTransactions || filteredTransactions.length === 0) {
@@ -313,7 +323,7 @@ const SellerTransactions = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {filteredTransactions.map((txn) => (
+                            {paginatedTransactions.map((txn) => (
                                 <tr key={txn.id} className="group hover:bg-slate-50/40 transition-all">
                                     <td className="px-6 py-5 pl-8">
                                         <div className="flex items-center gap-3">
@@ -391,10 +401,10 @@ const SellerTransactions = () => {
                 <div className="px-6 py-3 border-t border-slate-100">
                     <Pagination
                         page={page}
-                        totalPages={Math.ceil(total / pageSize) || 1}
-                        total={total}
+                        totalPages={Math.ceil(filteredTransactions.length / pageSize) || 1}
+                        total={filteredTransactions.length}
                         pageSize={pageSize}
-                        onPageChange={(p) => fetchTransactions(p)}
+                        onPageChange={(p) => setPage(p)}
                         onPageSizeChange={(newSize) => {
                             setPageSize(newSize);
                             setPage(1);

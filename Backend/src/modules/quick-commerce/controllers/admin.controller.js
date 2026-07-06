@@ -385,7 +385,7 @@ const toSellerRequest = (seller) => ({
   phone: seller.phoneLast10 || seller.phone || '',
   location: seller.location?.formattedAddress || seller.location?.address || '',
   category: seller.shopInfo?.businessType || 'General',
-  applicationDate: seller.createdAt,
+  applicationDate: seller.updatedAt || seller.createdAt,
   approvedAt: seller.approvedAt || null,
   status:
     seller.approvalStatus ||
@@ -1200,7 +1200,7 @@ export const getAdminSellerRequests = async (req, res) => {
 
   const [items, total] = await Promise.all([
     Seller.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ updatedAt: -1 })
       .skip((currentPage - 1) * perPage)
       .limit(perPage)
       .lean(),

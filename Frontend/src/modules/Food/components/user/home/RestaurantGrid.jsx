@@ -54,7 +54,7 @@ const FoodRestaurantCard = memo(({
   const restaurantSlug =
     typeof restaurant?.slug === "string" && restaurant.slug.trim()
       ? restaurant.slug.trim()
-      : fallbackSlugSource.toLowerCase().replace(/\s+/g, "-");
+      : (restaurant?.id || restaurant?._id || fallbackSlugSource.toLowerCase().replace(/\s+/g, "-"));
 
   const availability = getRestaurantAvailabilityStatus(restaurant, currentDate, {
     ignoreOperationalStatus: false,

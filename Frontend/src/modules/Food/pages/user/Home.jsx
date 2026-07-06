@@ -305,7 +305,7 @@ export default function Home() {
   const handleFavoriteToggle = useCallback((e, restaurant, slug, favorite) => {
     if (favorite) removeFavorite(slug);
     else {
-      addFavorite(restaurant);
+      addFavorite({ ...restaurant, slug });
       setShowToast(true);
       setTimeout(() => setShowToast(false), 2000);
     }

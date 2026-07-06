@@ -351,19 +351,21 @@ export function ProfileProvider({ children }) {
   // Favorites functions - memoized with useCallback
   const addFavorite = useCallback((restaurant) => {
     setFavorites((prev) => {
-      if (!prev.find(fav => fav.slug === restaurant.slug)) {
-        return [...prev, restaurant]
+      const identifier = restaurant.slug || restaurant.id || restaurant._id;
+      if (!prev.find(fav => (fav.slug || fav.id || fav._id) === identifier)) {
+        // Always ensure the saved favorite has a slug property for consistency
+        return [...prev, { ...restaurant, slug: identifier }]
       }
       return prev
     })
   }, [])
 
   const removeFavorite = useCallback((slug) => {
-    setFavorites((prev) => prev.filter(fav => fav.slug !== slug))
+    setFavorites((prev) => prev.filter(fav => (fav.slug || fav.id || fav._id) !== slug))
   }, [])
 
   const isFavorite = useCallback((slug) => {
-    return favorites.some(fav => fav.slug === slug)
+    return favorites.some(fav => (fav.slug || fav.id || fav._id) === slug)
   }, [favorites])
 
   const getFavorites = useCallback(() => {

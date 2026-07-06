@@ -24,7 +24,8 @@ const cuisinesOptions = [
 ]
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/
+const PINCODE_REGEX = /^[1-9][0-9]{5}$/
 const PHONE_REGEX = /^[6-9]\d{9}$/
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const FSSAI_REGEX = /^\d{14}$/
@@ -428,6 +429,9 @@ export default function AddRestaurant() {
     if (!step1.zoneId?.trim()) errors.push("Service zone is required")
     if (!step1.location?.area?.trim()) errors.push("Area/Sector/Locality is required")
     if (!step1.location?.city?.trim()) errors.push("City is required")
+    if (step1.location?.pincode?.trim() && !PINCODE_REGEX.test(step1.location.pincode.trim())) {
+      errors.push("Pin code must be exactly 6 digits")
+    }
     return errors
   }
 

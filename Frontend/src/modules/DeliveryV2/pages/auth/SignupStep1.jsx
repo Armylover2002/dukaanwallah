@@ -203,30 +203,37 @@ export default function SignupStep1() {
     /^[A-Za-z][A-Za-z\s]*[A-Za-z]$/.test(value.trim())
 
   const isValidEmailValue = (value) => {
-    const normalizedValue = value.trim().toLowerCase()
-    // General email regex
-    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(normalizedValue)) {
-      return false
+    const normalizedValue = value.trim().toLowerCase();
+    
+    // Standard email regex
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(normalizedValue)) {
+      return false;
     }
 
-    const [, domain = ""] = normalizedValue.split("@")
+    const parts = normalizedValue.split('@');
+    if (parts.length !== 2) return false;
     
+    const domain = parts[1];
+    const tld = domain.split('.').pop();
+    
+    // Reject common typos like .commm, .con
+    const invalidTlds = ['commm', 'comm', 'con', 'coom', 'cm', 'cmo'];
+    if (invalidTlds.includes(tld)) {
+      return false;
+    }
+
     // Catch common typos for Gmail
     const gmailTypos = [
       "gnail.com", "gmal.com", "gmaill.com", "gamil.com", "gmial.com", 
       "gmail.co", "gmail.con", "gmail.cm", "g-mail.com"
-    ]
+    ];
     
     if (gmailTypos.includes(domain)) {
-      return false
+      return false;
     }
 
-    // If it starts with gmail. but isn't gmail.com (e.g. gmail.in is usually not a thing)
-    if (domain.startsWith("gmail.") && domain !== "gmail.com") {
-      return false
-    }
-
-    return true
+    return true;
   }
 
   const sanitizeEmailValue = (value) =>
@@ -295,7 +302,7 @@ export default function SignupStep1() {
     }
 
     if (formData.email && !isValidEmailValue(formData.email)) {
-      newErrors.email = "Enter a valid email address. Gmail must be gmail.com"
+      newErrors.email = "Please enter a valid email address."
     }
 
     if (!formData.address.trim()) {

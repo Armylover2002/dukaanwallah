@@ -119,14 +119,8 @@ export default function DeliverySignIn() {
 
     const digitsOnly = phone.replace(/\D/g, "")
 
-    if (digitsOnly.length < 7) {
-      return "Phone number must be at least 7 digits"
-    }
-
-    // India-specific validation
-    // India-specific validation (Fixed to +91 only)
-    if (digitsOnly.length !== 10) {
-      return "Phone number must be exactly 10 digits"
+    if (!/^[6-9]\d{9}$/.test(digitsOnly)) {
+      return "Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9."
     }
 
     return ""

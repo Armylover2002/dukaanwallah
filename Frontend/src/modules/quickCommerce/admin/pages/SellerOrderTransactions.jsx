@@ -212,7 +212,9 @@ const SellerOrderTransactions = () => {
                 {total > 0 && (
                     <div className="p-4 border-t border-gray-200">
                         <Pagination
-                            currentPage={page}
+                            page={page}
+                            total={total}
+                            pageSize={pageSize}
                             totalPages={Math.ceil(total / pageSize)}
                             onPageChange={setPage}
                         />

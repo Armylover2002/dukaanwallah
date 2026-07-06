@@ -110,6 +110,7 @@ function RestaurantDetailsContent() {
   const [highlightedDishId, setHighlightedDishId] = useState(null)
   const [loadingMenuItems, setLoadingMenuItems] = useState(true)
   const [selectedMenuCategory, setSelectedMenuCategory] = useState("all")
+  const [showFullAddress, setShowFullAddress] = useState(false)
   const dishCardRefs = useRef({})
 
   const getLineItemIdForDish = (item, variant = null) =>
@@ -1976,7 +1977,7 @@ function RestaurantDetailsContent() {
                   Make sure the backend server is running at {API_BASE_URL.replace('/api', '')}
                 </p>
               )}
-              <Button onClick={goBack} variant="outline">
+              <Button onClick={() => navigate(-1)} variant="outline">
                 Go Back
               </Button>
             </div>
@@ -1994,7 +1995,7 @@ function RestaurantDetailsContent() {
           <div className="flex flex-col items-center gap-4">
             <AlertCircle className="h-12 w-12 text-red-500" />
             <span className="text-sm text-gray-600">Restaurant not found</span>
-            <Button onClick={goBack} variant="outline">
+            <Button onClick={() => navigate(-1)} variant="outline">
               Go Back
             </Button>
           </div>
@@ -2101,11 +2102,12 @@ function RestaurantDetailsContent() {
             {/* Middle Row: Location & Open Status */}
             <div className="flex items-center justify-between gap-4">
               <div
-                className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 min-w-0"
+                className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 min-w-0 cursor-pointer"
+                onClick={() => setShowFullAddress(!showFullAddress)}
               >
-                <div className="flex items-center gap-2 truncate">
+                <div className={`flex items-center gap-2 ${showFullAddress ? "" : "truncate"}`}>
                   <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <span className="truncate">
+                  <span className={showFullAddress ? "leading-tight" : "truncate"}>
                     {restaurant?.distance || "1.2 km"} | {restaurant?.location || "Location"}
                   </span>
                 </div>

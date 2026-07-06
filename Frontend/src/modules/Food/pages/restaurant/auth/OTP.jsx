@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, ShieldCheck, Timer, RefreshCw, X } from "lucide-react"
+import { ArrowLeft, ShieldCheck, Timer, RefreshCw, X, Edit2 } from "lucide-react"
 import loginBg from "@food/assets/loginbanner.png"
 import { Button } from "@food/components/ui/button"
 import { restaurantAPI } from "@food/api"
@@ -475,8 +475,15 @@ export default function RestaurantOTP() {
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight lowercase">
               verify otp
             </h2>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed">
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed flex items-center justify-center gap-1.5">
               Sent to <span className="text-[#FE5502] font-black">{contactInfo}</span>
+              <button
+                onClick={() => navigate("/food/restaurant/login")}
+                className="text-[#FE5502] hover:text-[#d5581e] underline underline-offset-2 transition-colors cursor-pointer capitalize ml-1 text-[10px] sm:text-xs"
+                title="Edit mobile number"
+              >
+                Edit no.
+              </button>
             </p>
           </div>
 

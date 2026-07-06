@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react"
 import { BarChart3, ChevronDown, Info, Settings, FileText, FileSpreadsheet, Code, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@food/components/ui/dialog"
+import Pagination from "@shared/components/ui/Pagination"
 import { exportTransactionReportToCSV, exportTransactionReportToExcel, exportTransactionReportToPDF, exportTransactionReportToJSON } from "@food/components/admin/reports/reportsExportUtils"
 import { adminAPI } from "@food/api"
 import { toast } from "sonner"
@@ -41,6 +42,8 @@ export default function TransactionReport() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [zones, setZones] = useState([])
   const [restaurants, setRestaurants] = useState([])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
 
   // Fetch zones and restaurants for filters
   useEffect(() => {
@@ -130,6 +133,15 @@ export default function TransactionReport() {
   const filteredTransactions = useMemo(() => {
     return transactions // Backend already filters, so just return transactions
   }, [transactions])
+
+  const paginatedTransactions = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filteredTransactions.slice(start, start + pageSize)
+  }, [filteredTransactions, page, pageSize])
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery, filters])
 
   const handleExport = (format) => {
     if (filteredTransactions.length === 0) {
@@ -452,13 +464,13 @@ export default function TransactionReport() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTransactions.map((transaction, index) => (
+                  paginatedTransactions.map((transaction, index) => (
                     <tr
                       key={transaction.id}
                       className="hover:bg-slate-50 transition-colors"
                     >
                       <td className="px-1.5 py-1">
-                        <span className="text-[10px] font-medium text-slate-700">{index + 1}</span>
+                        <span className="text-[10px] font-medium text-slate-700">{(page - 1) * pageSize + index + 1}</span>
                       </td>
                       <td className="px-1.5 py-1">
                         <span className="text-[10px] text-slate-700">{transaction.orderId}</span>
@@ -503,6 +515,21 @@ export default function TransactionReport() {
                 )}
               </tbody>
             </table>
+          </div>
+          
+          <div className="px-6 py-4 border-t border-slate-100 bg-white rounded-b-xl">
+            <Pagination
+              page={page}
+              totalPages={Math.ceil(filteredTransactions.length / pageSize) || 1}
+              total={filteredTransactions.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              loading={loading}
+            />
           </div>
         </div>
       </div>
