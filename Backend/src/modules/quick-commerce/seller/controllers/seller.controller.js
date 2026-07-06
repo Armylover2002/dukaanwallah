@@ -767,7 +767,7 @@ const parseProductPayload = async (req, existingProduct = null) => {
   });
   const firstVariant = variants[0] || {};
 
-  const mainImageUrl = mainUpload 
+  const mainImageUrl = mainUpload
     ? await uploadImageBuffer(mainUpload.buffer, 'quick/products')
     : "";
 
@@ -1065,7 +1065,7 @@ export const verifySellerOtpController = async (req, res) => {
         return sendError(
           res,
           403,
-          "Your account has been deleted/deactivated. Please contact support."
+          "Your account has been deleted/deactivated. Please contact support at dukaanwallah2026@gmail.com for assistance."
         );
       }
       seller.isVerified = true;
