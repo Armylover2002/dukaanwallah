@@ -312,6 +312,9 @@ export const adminAPI = {
       params,
       contextModule: "admin",
     }),
+  /** Add delivery partner manually (admin) */
+  addDeliveryPartner: (data) => apiClient.post("/food/admin/delivery/add", data),
+  
   /** List approved delivery partners (Deliveryman List page) */
   getDeliveryPartners: (params) =>
     apiClient.get("/food/admin/delivery/partners", {

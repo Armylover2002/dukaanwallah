@@ -1101,6 +1101,46 @@ export async function updateSupportTicket(req, res, next) {
 }
 
 // ----- Delivery partners -----
+export async function addDeliveryPartner(req, res, next) {
+    try {
+        const partnerData = req.body;
+
+        // Process uploaded files if any
+        if (req.files) {
+            if (req.files.panPhoto && req.files.panPhoto[0]) {
+                partnerData.panPhoto = `/uploads/${req.files.panPhoto[0].filename}`;
+            }
+            if (req.files.aadharPhoto && req.files.aadharPhoto[0]) {
+                partnerData.aadharPhoto = `/uploads/${req.files.aadharPhoto[0].filename}`;
+            }
+            if (req.files.drivingLicensePhoto && req.files.drivingLicensePhoto[0]) {
+                partnerData.drivingLicensePhoto = `/uploads/${req.files.drivingLicensePhoto[0].filename}`;
+            }
+        }
+        
+        // Auto-approve the partner since an admin is creating them
+        partnerData.status = 'approved';
+        partnerData.isActive = true;
+        partnerData.approvedAt = new Date();
+        partnerData.approvedBy = {
+            id: req.admin?._id,
+            name: req.admin?.name,
+            email: req.admin?.email,
+            roleName: req.admin?.role?.name,
+            actionAt: new Date()
+        };
+
+        const delivery = await adminService.addDeliveryPartner(partnerData);
+        res.status(201).json({
+            success: true,
+            message: 'Delivery partner created successfully',
+            data: { delivery }
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
 export async function getDeliveryPartners(req, res, next) {
     try {
         const data = await adminService.getDeliveryPartners(req.query);

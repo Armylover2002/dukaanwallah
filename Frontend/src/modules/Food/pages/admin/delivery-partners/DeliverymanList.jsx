@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from "react"
-import { Search, Download, ChevronDown, Eye, User, Star, ArrowUpDown, Settings, FileText, FileSpreadsheet, Loader2, Check, Columns, ExternalLink, Calendar, MapPin, CreditCard, Mail, Phone, Bike, FileCheck, Pencil, Save, X } from "lucide-react"
+import { Search, Download, ChevronDown, Eye, User, Star, ArrowUpDown, Settings, FileText, FileSpreadsheet, Loader2, Check, Columns, ExternalLink, Calendar, MapPin, CreditCard, Mail, Phone, Bike, FileCheck, Pencil, Save, X, UserPlus } from "lucide-react"
 import { adminAPI } from "@food/api"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
 import { exportDeliverymenToExcel, exportDeliverymenToPDF } from "@food/components/admin/deliveryman/deliverymanExportUtils"
 import { toast } from "sonner"
+import AddDeliveryManModal from "@food/components/admin/deliveryman/AddDeliveryManModal"
 import { useAuth } from "@core/context/AuthContext"
 import { getCurrentUser } from "@food/utils/auth"
 import { canPerformAdminPermissionAction, extractAdminPermissions, extractAdminRoleId, fetchAdminRolePermissions } from "@food/utils/adminPermissions"
@@ -68,6 +69,7 @@ export default function DeliverymanList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
   const [viewDetails, setViewDetails] = useState(null)
   const [editingDeliveryId, setEditingDeliveryId] = useState(null)
@@ -488,13 +490,22 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
             </div>
           </div>
 
-          <div className="mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-slate-700">Deliveryman</span>
               <span className="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
                 {filteredDeliverymen.length}
               </span>
             </div>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-all shadow-sm"
+              title="Add Delivery Man"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span className="font-bold hidden sm:inline">Add Delivery Man</span>
+              <span className="font-bold sm:hidden">Add</span>
+            </button>
           </div>
 
           {/* Error Message */}
@@ -1233,6 +1244,13 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
           </div>
         </DialogContent>
       </Dialog>
+      {/* Add Delivery Man Modal */}
+      <AddDeliveryManModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={fetchDeliverymen} 
+      />
+
     </div>
   )
 }

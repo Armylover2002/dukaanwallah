@@ -3888,6 +3888,18 @@ export async function updateDeliverySupportTicket(id, body = {}) {
 }
 
 // ----- Delivery partners (approved list) -----
+export async function addDeliveryPartner(data) {
+    // Check if phone already exists
+    const existing = await FoodDeliveryPartner.findOne({ phone: data.phone }).lean();
+    if (existing) {
+        throw new Error('A delivery partner with this phone number already exists');
+    }
+
+    const partner = new FoodDeliveryPartner(data);
+    await partner.save();
+    return partner;
+}
+
 export async function getDeliveryPartners(query) {
     const { page = 1, limit = 1000, search } = query;
     const filter = { status: 'approved' };
