@@ -517,9 +517,11 @@ export default function OTP() {
                   type="text"
                   value={name}
                   onChange={(e) => {
-                    setName(e.target.value)
+                    const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                    setName(val)
                     if (nameError) setNameError("")
                   }}
+                  maxLength={30}
                   disabled={isLoading}
                   placeholder="Full Name"
                   className={`h-12 md:h-14 text-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 rounded-xl focus-visible:ring-1 focus-visible:ring-[#EB590E] focus-visible:border-[#EB590E] ${nameError ? "border-red-500" : ""} transition-all`}

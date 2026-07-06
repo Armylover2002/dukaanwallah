@@ -106,7 +106,7 @@ export default function SellerPendingApproval() {
                 tone: isRejected ? "bg-rose-50 text-rose-700" : "bg-orange-50 text-orange-700",
               },
             ].map((item) => (
-              <div key={item.label} className="rounded-3xl border border-slate-100 bg-slate-50 p-5">
+              <div key={item.label} className="rounded-3xl border border-slate-100 bg-slate-50 p-5 min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">
                   {item.label}
                 </p>

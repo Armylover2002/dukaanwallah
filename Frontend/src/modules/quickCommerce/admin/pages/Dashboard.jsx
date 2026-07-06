@@ -275,10 +275,9 @@ const AdminDashboard = () => {
                     <Card
                         title="Earnings"
                         subtitle="Monthly revenue trends"
-                        className="h-full cursor-pointer hover:shadow-lg hover:border-primary/20 hover:-translate-y-1 transition-all duration-300 select-none"
-                        onClick={() => navigate('/admin/quick-commerce/wallet')}
+                        className="h-full hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-orange-200 border border-slate-100 transition-all duration-500"
                     >
-                        <div className="ds-chart-container min-h-[250px]">
+                        <div className="ds-chart-container min-h-[250px] outline-none *:outline-none">
                             <ResponsiveContainer width="100%" height={250}>
                                 <AreaChart data={chartData}>
                                     <defs>
@@ -330,10 +329,9 @@ const AdminDashboard = () => {
                     <Card
                         title="Top Categories"
                         subtitle="Sales breakdown by category"
-                        className="h-full border-none shadow-sm ring-1 ring-gray-100 cursor-pointer hover:shadow-lg hover:border-primary/20 hover:-translate-y-1 transition-all duration-300 select-none"
-                        onClick={() => navigate('/admin/quick-commerce/categories/header')}
+                        className="h-full shadow-sm ring-1 ring-gray-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:ring-orange-200 transition-all duration-500"
                     >
-                        <div className="h-[250px] min-h-[250px] relative">
+                        <div className="h-[250px] min-h-[250px] relative outline-none *:outline-none">
                             <ResponsiveContainer width="100%" height={250}>
                                 <PieChart>
                                     <Pie
@@ -350,6 +348,17 @@ const AdminDashboard = () => {
                                             <Cell key={`cell-${index}`} fill={entry.color} />
                                         ))}
                                     </Pie>
+                                    <Tooltip 
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                            padding: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: 'bold'
+                                        }}
+                                        itemStyle={{ color: '#1f2937' }}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

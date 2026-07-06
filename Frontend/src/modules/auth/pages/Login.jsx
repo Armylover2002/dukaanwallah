@@ -517,9 +517,11 @@ export default function UnifiedOTPFastLogin() {
                       autoFocus
                       value={name}
                       onChange={(e) => {
-                        setName(e.target.value)
+                        const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                        setName(val)
                         if (nameError) setNameError("")
                       }}
+                      maxLength={30}
                       className={`block w-full pl-10 pr-4 py-3 bg-transparent text-gray-900 dark:text-white border-b-2 border-gray-100 dark:border-gray-800 focus:border-primary-orange outline-none transition-all placeholder:text-gray-300 font-bold text-lg ${nameError ? "border-red-500" : ""}`}
                       placeholder="Your full name"
                     />

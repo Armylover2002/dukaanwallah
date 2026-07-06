@@ -99,13 +99,26 @@ const MapPicker = ({
     mapRef.current.fitBounds(bounds);
   }, [isLoaded, isOpen, zonePath]);
 
+  const reverseGeocode = useCallback((pos) => {
+    if (!window.google) return;
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ location: pos }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        setAddress(results[0].formatted_address);
+      } else {
+        setAddress("");
+      }
+    });
+  }, []);
+
   const onMapClick = useCallback((e) => {
     const newPos = {
       lat: e.latLng.lat(),
       lng: e.latLng.lng(),
     };
     setMarker(newPos);
-  }, []);
+    reverseGeocode(newPos);
+  }, [reverseGeocode]);
 
   const onMarkerDragEnd = useCallback((e) => {
     const newPos = {
@@ -113,7 +126,8 @@ const MapPicker = ({
       lng: e.latLng.lng(),
     };
     setMarker(newPos);
-  }, []);
+    reverseGeocode(newPos);
+  }, [reverseGeocode]);
 
   const handlePlaceChanged = () => {
     if (autocompleteRef.current) {
@@ -150,7 +164,7 @@ const MapPicker = ({
           lng: position.coords.longitude,
         };
         setMarker(newPos);
-        setAddress("");
+        reverseGeocode(newPos);
         setIsFetchingLocation(false);
         if (mapRef.current) {
           mapRef.current.panTo(newPos);
@@ -244,7 +258,9 @@ const MapPicker = ({
             {marker
               ? address
                 ? <span className="font-medium text-slate-700 truncate max-w-[280px] sm:max-w-xs block">{address}</span>
-                : `${marker.lat.toFixed(4)}, ${marker.lng.toFixed(4)}`
+                : zoneLabel
+                  ? <span className="font-medium text-slate-700 truncate max-w-[280px] sm:max-w-xs block">{zoneLabel}</span>
+                  : `${marker.lat.toFixed(4)}, ${marker.lng.toFixed(4)}`
               : "No location selected"}
           </div>
           <div className="flex gap-2 justify-end w-full sm:w-auto">

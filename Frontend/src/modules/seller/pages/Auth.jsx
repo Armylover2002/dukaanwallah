@@ -386,9 +386,21 @@ export default function SellerAuth() {
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight lowercase">
               {step === "phone" ? companyName : "verify otp"}
             </h1>
-            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest">
-              {step === "phone" ? "Seller Partner Login" : `Sent to ${maskedPhone}`}
-            </p>
+            <div className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest flex flex-col items-center gap-1.5">
+              {step === "phone" ? (
+                <span>Seller Partner Login</span>
+              ) : (
+                <>
+                  <span>Sent to {maskedPhone}</span>
+                  <button
+                    onClick={() => { setStep("phone"); setOtp(["", "", "", ""]); setOtpPhone(""); }}
+                    className="text-[10px] sm:text-xs text-[#f26522] hover:text-[#d5581e] underline underline-offset-2 transition-colors cursor-pointer capitalize"
+                  >
+                    Change Mobile Number
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Form wrapper */}

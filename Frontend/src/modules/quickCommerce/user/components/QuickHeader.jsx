@@ -134,6 +134,9 @@ export default function QuickHeader({ showSearch = true, activeCategory = null, 
   const handleVoiceSearch = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (e.nativeEvent) {
+      e.nativeEvent.stopImmediatePropagation();
+    }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -145,6 +148,13 @@ export default function QuickHeader({ showSearch = true, activeCategory = null, 
     recognition.lang = 'en-IN';
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      if (event.error === 'not-allowed') {
+        alert('Microphone access denied. Please allow microphone permissions in your browser settings.');
+      }
+    };
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       if (transcript) {

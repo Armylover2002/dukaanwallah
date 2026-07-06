@@ -124,7 +124,11 @@ const SearchPage = () => {
 
     // ── Voice search ───────────────────────────────────────────────────────────
     const recognitionRef = useRef(null);
-    const handleVoiceSearch = useCallback(() => {
+    const handleVoiceSearch = useCallback((e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) { alert('Voice search is not supported in this browser.'); return; }
 
@@ -135,6 +139,13 @@ const SearchPage = () => {
         recognition.lang = 'en-IN';
         recognition.onstart = () => setIsListening(true);
         recognition.onend = () => setIsListening(false);
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            setIsListening(false);
+            if (event.error === 'not-allowed') {
+                alert('Microphone access denied. Please allow microphone permissions in your browser settings.');
+            }
+        };
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
             if (transcript) { setQuery(transcript); saveSearch(transcript); }
@@ -256,6 +267,7 @@ const SearchPage = () => {
                             </button>
                         )}
                         <button
+                            type="button"
                             onClick={handleVoiceSearch}
                             className={cn(
                                 'absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all',
