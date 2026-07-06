@@ -93,7 +93,6 @@ export function ProfileProvider({ children }) {
 
   // VegMode state - stored in localStorage for persistence
   const [vegMode, setVegMode] = useState(() => {
-    if (!hasUserSession) return false
     const saved = localStorage.getItem("userVegMode")
     // Support new string values 'pure', 'all' or legacy boolean
     if (saved === "pure" || saved === "all") return saved
@@ -136,10 +135,8 @@ export function ProfileProvider({ children }) {
   }, [dishFavorites, isAuthenticated])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      localStorage.setItem("userVegMode", vegMode.toString())
-    }
-  }, [vegMode, isAuthenticated])
+    localStorage.setItem("userVegMode", vegMode.toString())
+  }, [vegMode])
 
   // Fetch user profile and addresses from API on mount and when authentication changes
   useEffect(() => {
@@ -153,11 +150,7 @@ export function ProfileProvider({ children }) {
         setPaymentMethods([])
         setFavorites([])
         setDishFavorites([])
-        setVegMode(false)
         clearUserSession()
-        USER_SESSION_PREFERENCE_KEYS.forEach((key) => {
-          localStorage.removeItem(key)
-        })
         setLoading(false)
         return
       }
