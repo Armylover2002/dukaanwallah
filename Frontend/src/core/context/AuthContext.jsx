@@ -66,6 +66,15 @@ export const AuthProvider = ({ children }) => {
         return normalizedVal;
     };
 
+    const getSafeProfile = (key) => {
+        try {
+            const val = localStorage.getItem(`profile_${key}`);
+            return val ? JSON.parse(val) : null;
+        } catch {
+            return null;
+        }
+    };
+
     const [currentPath, setCurrentPath] = useState(getEffectivePath);
 
     const [authData, setAuthData] = useState({
@@ -76,9 +85,13 @@ export const AuthProvider = ({ children }) => {
     });
 
     const currentRole = getCurrentRoleFromUrl(currentPath);
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => getSafeProfile(currentRole));
     const token = authData[currentRole];
-    const [isLoading, setIsLoading] = useState(Boolean(authData[currentRole]));
+    
+    // If we have a token but NO cached profile, we must load. 
+    // Otherwise, we have the cached user and can render immediately without skeleton flicker.
+    const [isLoading, setIsLoading] = useState(Boolean(token) && !getSafeProfile(currentRole));
+    
     const isAuthenticated = !!token && !isTokenExpired(token);
 
     // Sync auth tokens on custom login events or cross-tab/storage changes, and track URL path changes since Provider is mounted outside Router
@@ -140,7 +153,10 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const fetchProfile = async () => {
             if (token) {
-                setIsLoading(true);
+                // If we don't have the user yet (no cache), show loading state
+                if (!user) {
+                    setIsLoading(true);
+                }
                 try {
                     // Use deduplicated fetch to avoid multiple simultaneous profile calls
                     const requestConfig = { ttl: 5000, contextModule: currentRole };
@@ -152,7 +168,11 @@ export const AuthProvider = ({ children }) => {
                         {},
                         requestConfig
                     );
-                    setUser(extractProfilePayload(response));
+                    const profilePayload = extractProfilePayload(response);
+                    setUser(profilePayload);
+                    if (profilePayload) {
+                        localStorage.setItem(`profile_${currentRole}`, JSON.stringify(profilePayload));
+                    }
                 } catch (error) {
                     console.error('Failed to fetch profile:', error);
                     // If 401, axios interceptor will handle it
@@ -175,6 +195,8 @@ export const AuthProvider = ({ children }) => {
         if (storageKey && userData.token) {
             // Save ONLY the token string as requested by the user
             localStorage.setItem(storageKey, userData.token);
+            // Save profile data for synchronous rendering on refresh
+            localStorage.setItem(`profile_${role}`, JSON.stringify(userData));
 
             setAuthData(prev => ({ ...prev, [role]: userData.token }));
             setUser(userData); // Set full data initially
@@ -184,9 +206,10 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        // Clear all role-specific tokens from localStorage
-        Object.values(ROLE_STORAGE_KEYS).forEach(key => {
-            localStorage.removeItem(key);
+        // Clear all role-specific tokens and profiles from localStorage
+        Object.keys(ROLE_STORAGE_KEYS).forEach(roleKey => {
+            localStorage.removeItem(ROLE_STORAGE_KEYS[roleKey]);
+            localStorage.removeItem(`profile_${roleKey}`);
         });
         Object.values(LEGACY_ROLE_STORAGE_KEYS).flat().forEach(key => {
             localStorage.removeItem(key);
