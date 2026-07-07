@@ -8,7 +8,7 @@ import { Label } from "@food/components/ui/label"
 import { Button } from "@food/components/ui/button"
 import { adminAPI, uploadAPI, zoneAPI } from "@food/api"
 import { toast } from "sonner"
-const debugLog = (...args) => {}
+const debugLog = (...args) => { }
 const debugWarn = (...args) => { console.warn(...args) }
 const debugError = (...args) => { console.error(...args) }
 
@@ -24,7 +24,58 @@ const cuisinesOptions = [
 ]
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+// Regex alone can't tell "gmail.commmm" from "gmail.com" — both match the shape.
+// So we also check the domain's last segment (TLD) against a known-good list.
+const COMMON_EMAIL_TLDS = new Set([
+  "com", "net", "org", "info", "biz", "co", "io", "ai", "me", "tv", "xyz",
+  "app", "dev", "tech", "store", "online", "site", "cloud", "shop", "email",
+  "edu", "gov", "mil", "int",
+  "in", "us", "uk", "ca", "au", "nz", "de", "fr", "it", "es", "pt", "nl",
+  "be", "ch", "at", "se", "no", "dk", "fi", "pl", "ie", "gr", "ru", "cn",
+  "jp", "kr", "hk", "sg", "my", "id", "th", "ph", "vn", "tw", "ae", "sa",
+  "za", "br", "mx", "ar", "cl",
+])
+const isKnownEmailTld = (email = "") => {
+  const domain = email.split("@")[1] || ""
+  const parts = domain.split(".").filter(Boolean)
+  if (parts.length < 2) return false
+  const tld = parts[parts.length - 1].toLowerCase()
+  const lastTwo = parts.slice(-2).join(".").toLowerCase()
+  return COMMON_EMAIL_TLDS.has(tld) || lastTwo === "co.in" || lastTwo === "co.uk"
+}
+const isValidEmail = (email = "") => EMAIL_REGEX.test(email) && isKnownEmailTld(email)
+
+// Catches common domain typos like "gmai.com" or "gmial.com" instead of "gmail.com".
+const COMMON_EMAIL_DOMAINS = [
+  "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com",
+  "aol.com", "live.com", "msn.com", "protonmail.com", "rediffmail.com",
+  "yandex.com", "zoho.com", "ymail.com",
+]
+const levenshteinDistance = (a = "", b = "") => {
+  const m = a.length
+  const n = b.length
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)])
+  for (let j = 0; j <= n; j += 1) dp[0][j] = j
+  for (let i = 1; i <= m; i += 1) {
+    for (let j = 1; j <= n; j += 1) {
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1])
+    }
+  }
+  return dp[m][n]
+}
+const isProbableTypoDomain = (email = "") => {
+  const domain = (email.split("@")[1] || "").toLowerCase()
+  if (!domain || COMMON_EMAIL_DOMAINS.includes(domain)) return false
+  return COMMON_EMAIL_DOMAINS.some((known) => {
+    const distance = levenshteinDistance(domain, known)
+    return distance > 0 && distance <= 2
+  })
+}
+const isValidEmailStrict = (email = "") => isValidEmail(email) && !isProbableTypoDomain(email)
 const PINCODE_REGEX = /^[1-9][0-9]{5}$/
 const PHONE_REGEX = /^[6-9]\d{9}$/
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
@@ -33,12 +84,19 @@ const ACCOUNT_NUMBER_REGEX = /^\d{9,18}$/
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 const NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]*$/
+const MAX_NAME_LENGTH = 45
+const MAX_RESTAURANT_NAME_LENGTH = 50
+const MAX_GST_ADDRESS_LENGTH = 200
 const sanitizeDigits = (value = "") => value.replace(/\D/g, "")
 const sanitizePan = (value = "") => value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)
 const sanitizeFssai = (value = "") => value.replace(/\D/g, "").slice(0, 14)
 const sanitizeIfsc = (value = "") => value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11)
 const sanitizeGst = (value = "") => value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15)
 const normalizeName = (value = "") => value.replace(/\s+/g, " ").trimStart()
+// Strips digits/symbols so name-only fields can't accept numbers while typing.
+const sanitizeNameOnly = (value = "") => value.replace(/[^A-Za-z\s.'-]/g, "")
+const handleNameInput = (value = "", maxLength = MAX_NAME_LENGTH) =>
+  normalizeName(sanitizeNameOnly(value)).slice(0, maxLength)
 const hasLetters = (value = "") => /[A-Za-z]/.test(value)
 const getTodayLocalYMD = () => new Date().toISOString().split("T")[0]
 const timeStringToMinutes = (value = "") => {
@@ -301,7 +359,7 @@ export default function AddRestaurant() {
         ),
         profileImage:
           !isUploadableFile(step2.profileImage) &&
-          (step2.profileImage?.url || (typeof step2.profileImage === "string" && step2.profileImage.trim()))
+            (step2.profileImage?.url || (typeof step2.profileImage === "string" && step2.profileImage.trim()))
             ? step2.profileImage
             : null,
       }
@@ -310,17 +368,17 @@ export default function AddRestaurant() {
         ...step3,
         panImage:
           !isUploadableFile(step3.panImage) &&
-          (step3.panImage?.url || (typeof step3.panImage === "string" && step3.panImage.trim()))
+            (step3.panImage?.url || (typeof step3.panImage === "string" && step3.panImage.trim()))
             ? step3.panImage
             : null,
         gstImage:
           !isUploadableFile(step3.gstImage) &&
-          (step3.gstImage?.url || (typeof step3.gstImage === "string" && step3.gstImage.trim()))
+            (step3.gstImage?.url || (typeof step3.gstImage === "string" && step3.gstImage.trim()))
             ? step3.gstImage
             : null,
         fssaiImage:
           !isUploadableFile(step3.fssaiImage) &&
-          (step3.fssaiImage?.url || (typeof step3.fssaiImage === "string" && step3.fssaiImage.trim()))
+            (step3.fssaiImage?.url || (typeof step3.fssaiImage === "string" && step3.fssaiImage.trim()))
             ? step3.fssaiImage
             : null,
       }
@@ -421,7 +479,7 @@ export default function AddRestaurant() {
       errors.push("Owner name must contain valid characters")
     }
     if (!step1.ownerEmail?.trim()) errors.push("Owner email is required")
-    if (step1.ownerEmail?.trim() && !EMAIL_REGEX.test(step1.ownerEmail.trim())) errors.push("Please enter a valid email address")
+    if (step1.ownerEmail?.trim() && !isValidEmailStrict(step1.ownerEmail.trim())) errors.push("Please enter a valid email address")
     if (!step1.ownerPhone?.trim()) errors.push("Owner phone number is required")
     if (step1.ownerPhone?.trim() && !PHONE_REGEX.test(step1.ownerPhone.trim())) errors.push("Owner phone number must be 10 digits")
     if (!step1.primaryContactNumber?.trim()) errors.push("Primary contact number is required")
@@ -676,7 +734,7 @@ export default function AddRestaurant() {
         }
         await new Promise((r) => setTimeout(r, 100))
       }
-      
+
       if (!inputElement || cancelled) return
 
       const loadMaps = async () => {
@@ -701,15 +759,15 @@ export default function AddRestaurant() {
         // 4. Check for any existing script and force libraries=places
         const scripts = Array.from(document.getElementsByTagName("script"))
         const mapsScript = scripts.find(s => s.src?.includes("maps.googleapis.com/maps/api/js"))
-        
+
         if (mapsScript && !mapsScript.src.includes("libraries=places")) {
           mapsScript.remove()
         } else if (mapsScript && mapsScript.src.includes("libraries=places")) {
-           for (let i = 0; i < 60; i++) {
-              if (window.google?.maps?.places?.Autocomplete) return true
-              if (cancelled) return false
-              await new Promise(r => setTimeout(r, 100))
-           }
+          for (let i = 0; i < 60; i++) {
+            if (window.google?.maps?.places?.Autocomplete) return true
+            if (cancelled) return false
+            await new Promise(r => setTimeout(r, 100))
+          }
         }
 
         // 5. Create and append new script
@@ -735,14 +793,14 @@ export default function AddRestaurant() {
         const formattedAddress = place?.formatted_address || ""
         const comps = Array.isArray(place?.address_components) ? place.address_components : []
         const get = (types) => comps.find((c) => types.some((t) => c.types?.includes(t)))?.long_name || ""
-        
+
         const area = get(["sublocality_level_1", "sublocality", "neighborhood"]) || get(["locality"])
         const city = get(["locality"]) || get(["administrative_area_level_2"])
         const state = get(["administrative_area_level_1"]) || get(["administrative_area_level_2"])
         const pincode = get(["postal_code"])
         const lat = place?.geometry?.location?.lat?.()
         const lng = place?.geometry?.location?.lng?.()
-        
+
         return {
           formattedAddress,
           area,
@@ -768,14 +826,14 @@ export default function AddRestaurant() {
             types: ["geocode", "establishment"]
           }
         )
-        
+
         inputElement.setAttribute('data-google-places-initialized', 'true')
         placesAutocompleteRef.current = autocomplete
 
         autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace()
           if (!place?.geometry) return
-          
+
           const parsed = parsePlace(place)
           setStep1((prev) => ({
             ...prev,
@@ -791,11 +849,11 @@ export default function AddRestaurant() {
               longitude: parsed.longitude !== "" ? parsed.longitude : prev.location.longitude,
             },
           }))
-          
+
           setLocationSearchValue(parsed.formattedAddress)
           inputElement.blur()
         })
-        
+
         const pacContainerFix = () => {
           const applyFix = () => {
             const containers = document.querySelectorAll('.pac-container');
@@ -812,7 +870,7 @@ export default function AddRestaurant() {
           setTimeout(applyFix, 100);
           setTimeout(applyFix, 300);
         };
-        
+
         inputElement.addEventListener('focus', pacContainerFix);
         inputElement.addEventListener('input', pacContainerFix);
       } catch (e) {
@@ -820,12 +878,12 @@ export default function AddRestaurant() {
       }
     }
 
-    init().catch(() => {})
+    init().catch(() => { })
 
     return () => {
       cancelled = true
       if (autocomplete) {
-        try { window.google?.maps?.event?.clearInstanceListeners(autocomplete) } catch {}
+        try { window.google?.maps?.event?.clearInstanceListeners(autocomplete) } catch { }
       }
       if (locationSearchInputRef.current) {
         locationSearchInputRef.current.removeAttribute('data-google-places-initialized')
@@ -879,9 +937,10 @@ export default function AddRestaurant() {
             <Label className="text-xs text-gray-700">Restaurant name*</Label>
             <Input
               value={step1.restaurantName || ""}
-              onChange={(e) => setStep1({ ...step1, restaurantName: e.target.value })}
+              onChange={(e) => setStep1({ ...step1, restaurantName: e.target.value.slice(0, MAX_RESTAURANT_NAME_LENGTH) })}
               className="mt-1 bg-white text-sm text-black placeholder-black"
               placeholder="Customers will see this name"
+              maxLength={MAX_RESTAURANT_NAME_LENGTH}
             />
           </div>
           <div>
@@ -890,22 +949,20 @@ export default function AddRestaurant() {
               <button
                 type="button"
                 onClick={() => setStep1({ ...step1, pureVegRestaurant: true })}
-                className={`px-3 py-1.5 text-xs rounded-full border ${
-                  step1.pureVegRestaurant === true
-                    ? "bg-green-600 text-white border-green-600"
-                    : "bg-white text-gray-700 border-gray-200"
-                }`}
+                className={`px-3 py-1.5 text-xs rounded-full border ${step1.pureVegRestaurant === true
+                  ? "bg-green-600 text-white border-green-600"
+                  : "bg-white text-gray-700 border-gray-200"
+                  }`}
               >
                 Yes, Pure Veg
               </button>
               <button
                 type="button"
                 onClick={() => setStep1({ ...step1, pureVegRestaurant: false })}
-                className={`px-3 py-1.5 text-xs rounded-full border ${
-                  step1.pureVegRestaurant === false
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-700 border-gray-200"
-                }`}
+                className={`px-3 py-1.5 text-xs rounded-full border ${step1.pureVegRestaurant === false
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-700 border-gray-200"
+                  }`}
               >
                 No, Mixed Menu
               </button>
@@ -924,9 +981,10 @@ export default function AddRestaurant() {
             <Label className="text-xs text-gray-700">Full name*</Label>
             <Input
               value={step1.ownerName || ""}
-              onChange={(e) => setStep1({ ...step1, ownerName: normalizeName(e.target.value) })}
+              onChange={(e) => setStep1({ ...step1, ownerName: handleNameInput(e.target.value) })}
               className="mt-1 bg-white text-sm text-black placeholder-black"
               placeholder="Owner full name"
+              maxLength={MAX_NAME_LENGTH}
             />
           </div>
           <div>
@@ -1009,7 +1067,7 @@ export default function AddRestaurant() {
               ))}
             </div>
           )}
-          
+
           <p className="text-[11px] text-gray-500 mt-1">
             Search to auto-fill Area, City, State, Pincode and coordinates.
           </p>
@@ -1081,9 +1139,11 @@ export default function AddRestaurant() {
           />
           <Input
             value={step1.location?.pincode || ""}
-            onChange={(e) => setStep1({ ...step1, location: { ...step1.location, pincode: e.target.value } })}
+            onChange={(e) => setStep1({ ...step1, location: { ...step1.location, pincode: sanitizeDigits(e.target.value).slice(0, 6) } })}
             className="bg-white text-sm"
             placeholder="Pin code (optional)"
+            inputMode="numeric"
+            maxLength={6}
           />
           <Input
             value={step1.location?.landmark || ""}
@@ -1226,11 +1286,11 @@ export default function AddRestaurant() {
                   <Label className="text-xs text-gray-700 mb-1 block">Opening time</Label>
                   <div className="flex items-center gap-1">
                     <select value={h} onChange={(e) => updateTime(e.target.value, m, ampm)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
-                      {Array.from({length: 12}).map((_, i) => (<option key={i+1} value={String(i+1).padStart(2, '0')}>{String(i+1).padStart(2, '0')}</option>))}
+                      {Array.from({ length: 12 }).map((_, i) => (<option key={i + 1} value={String(i + 1).padStart(2, '0')}>{String(i + 1).padStart(2, '0')}</option>))}
                     </select>
                     <span>:</span>
                     <select value={m} onChange={(e) => updateTime(h, e.target.value, ampm)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
-                      {Array.from({length: 60}).map((_, i) => (<option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2, '0')}</option>))}
+                      {Array.from({ length: 60 }).map((_, i) => (<option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2, '0')}</option>))}
                     </select>
                     <select value={ampm} onChange={(e) => updateTime(h, m, e.target.value)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
                       <option value="AM">AM</option><option value="PM">PM</option>
@@ -1260,11 +1320,11 @@ export default function AddRestaurant() {
                   <Label className="text-xs text-gray-700 mb-1 block">Closing time</Label>
                   <div className="flex items-center gap-1">
                     <select value={h} onChange={(e) => updateTime(e.target.value, m, ampm)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
-                      {Array.from({length: 12}).map((_, i) => (<option key={i+1} value={String(i+1).padStart(2, '0')}>{String(i+1).padStart(2, '0')}</option>))}
+                      {Array.from({ length: 12 }).map((_, i) => (<option key={i + 1} value={String(i + 1).padStart(2, '0')}>{String(i + 1).padStart(2, '0')}</option>))}
                     </select>
                     <span>:</span>
                     <select value={m} onChange={(e) => updateTime(h, e.target.value, ampm)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
-                      {Array.from({length: 60}).map((_, i) => (<option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2, '0')}</option>))}
+                      {Array.from({ length: 60 }).map((_, i) => (<option key={i} value={String(i).padStart(2, '0')}>{String(i).padStart(2, '0')}</option>))}
                     </select>
                     <select value={ampm} onChange={(e) => updateTime(h, m, e.target.value)} className="bg-white text-sm border border-input rounded-md h-9 px-2 w-16 text-center">
                       <option value="AM">AM</option><option value="PM">PM</option>
@@ -1337,8 +1397,9 @@ export default function AddRestaurant() {
             <Label className="text-xs text-gray-700">Name on PAN*</Label>
             <Input
               value={step3.nameOnPan || ""}
-              onChange={(e) => setStep3({ ...step3, nameOnPan: normalizeName(e.target.value) })}
+              onChange={(e) => setStep3({ ...step3, nameOnPan: handleNameInput(e.target.value) })}
               className="mt-1 bg-white text-sm text-black placeholder-black"
+              maxLength={MAX_NAME_LENGTH}
             />
           </div>
         </div>
@@ -1383,8 +1444,8 @@ export default function AddRestaurant() {
         {step3.gstRegistered && (
           <div className="space-y-3">
             <Input value={step3.gstNumber || ""} onChange={(e) => setStep3({ ...step3, gstNumber: sanitizeGst(e.target.value) })} className="bg-white text-sm" placeholder="GST number*" maxLength={15} />
-            <Input value={step3.gstLegalName || ""} onChange={(e) => setStep3({ ...step3, gstLegalName: normalizeName(e.target.value) })} className="bg-white text-sm" placeholder="Legal name*" />
-            <Input value={step3.gstAddress || ""} onChange={(e) => setStep3({ ...step3, gstAddress: e.target.value })} className="bg-white text-sm" placeholder="Registered address*" />
+            <Input value={step3.gstLegalName || ""} onChange={(e) => setStep3({ ...step3, gstLegalName: handleNameInput(e.target.value) })} className="bg-white text-sm" placeholder="Legal name*" maxLength={MAX_NAME_LENGTH} />
+            <Input value={step3.gstAddress || ""} onChange={(e) => setStep3({ ...step3, gstAddress: e.target.value.slice(0, MAX_GST_ADDRESS_LENGTH) })} className="bg-white text-sm" placeholder="Registered address*" maxLength={MAX_GST_ADDRESS_LENGTH} />
             <Input type="file" accept="image/*" onChange={(e) => setStep3({ ...step3, gstImage: e.target.files?.[0] || null })} className="bg-white text-sm" />
             {step3.gstImage && (
               <div className="flex items-center gap-3">
@@ -1439,7 +1500,7 @@ export default function AddRestaurant() {
             <option value="Current">Current</option>
           </select>
         </div>
-        <Input value={step3.accountHolderName || ""} onChange={(e) => setStep3({ ...step3, accountHolderName: normalizeName(e.target.value) })} className="bg-white text-sm" placeholder="Account holder name*" />
+        <Input value={step3.accountHolderName || ""} onChange={(e) => setStep3({ ...step3, accountHolderName: handleNameInput(e.target.value) })} className="bg-white text-sm" placeholder="Account holder name*" maxLength={MAX_NAME_LENGTH} />
       </section>
     </div>
   )
@@ -1512,6 +1573,3 @@ export default function AddRestaurant() {
     </div>
   )
 }
-
-
-
