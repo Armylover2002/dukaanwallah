@@ -16,15 +16,18 @@ export const ImageSourcePicker = ({
   isOpen, 
   onClose, 
   onFileSelect, 
+  onSelectFile,
   title = "Update photo",
   description = "Choose how you want to upload your photo.",
   fileNamePrefix = "upload",
   galleryInputRef = null
 }) => {
   
+  const handleFileSelect = onFileSelect || onSelectFile;
+
   const handleOpenCamera = async () => {
     const openPromise = openCamera({
-      onSelectFile: onFileSelect,
+      onSelectFile: handleFileSelect,
       fileNamePrefix: fileNamePrefix
     })
     onClose()
@@ -37,7 +40,7 @@ export const ImageSourcePicker = ({
     // 1. Try Bridge first
     if (isFlutterBridgeAvailable()) {
       await openGallery({
-        onSelectFile: onFileSelect,
+        onSelectFile: handleFileSelect,
         fileNamePrefix: fileNamePrefix
       })
       return
@@ -53,7 +56,7 @@ export const ImageSourcePicker = ({
       input.accept = "image/*"
       input.onchange = (e) => {
         const file = e.target.files?.[0]
-        if (file) onFileSelect(file)
+        if (file && handleFileSelect) handleFileSelect(file)
       }
       input.click()
     }
