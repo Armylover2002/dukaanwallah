@@ -45,7 +45,7 @@ function resolveNativeInitialRoute() {
 
   const rawPathname = String(window.location?.pathname || '')
   const pathname = rawPathname.replace(/\/index\.html$/i, '') || '/'
-  const storedRoute = String(sessionStorage.getItem(NATIVE_LAST_ROUTE_KEY) || '').trim()
+  const storedRoute = String(localStorage.getItem(NATIVE_LAST_ROUTE_KEY) || '').trim()
 
   if (pathname.startsWith('/food/')) return pathname
 
@@ -55,8 +55,23 @@ function resolveNativeInitialRoute() {
   if (pathname.startsWith('/delivery')) return `/food${pathname}`
   if (pathname.startsWith('/user')) return `/food${pathname}`
   if (pathname.startsWith('/admin')) return pathname
-  if (storedRoute.startsWith('/food/') || storedRoute.startsWith('/admin') || storedRoute.startsWith('/seller')) {
-    return storedRoute
+
+  // Validate stored route against active auth tokens before using it.
+  // This prevents navigating to a module route after the user has logged out.
+  if (storedRoute) {
+    const routeModuleAuth = {
+      '/seller': () => Boolean(localStorage.getItem('auth_seller')),
+      '/admin': () => isModuleAuthenticated('admin'),
+      '/food/restaurant': () => isModuleAuthenticated('restaurant'),
+      '/food/delivery': () => isModuleAuthenticated('delivery'),
+      '/food/user': () => true, // user routes are always valid as fallback
+      '/food/': () => true,
+    }
+
+    const matchedEntry = Object.entries(routeModuleAuth).find(([prefix]) => storedRoute.startsWith(prefix))
+    if (matchedEntry && matchedEntry[1]()) {
+      return storedRoute
+    }
   }
 
   if (Boolean(localStorage.getItem('auth_seller'))) return '/seller'

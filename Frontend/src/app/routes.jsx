@@ -46,12 +46,11 @@ const RouteAwarePageLoader = () => {
     return <AuthPortalSkeleton />
   }
 
-
-
   if (pathname.startsWith('/admin')) {
     return <ContentPageSkeleton hero={false} />
   }
 
+  // Seller, Restaurant, Delivery, and User app all use the same AppShellSkeleton
   return <AppShellSkeleton />
 }
 /**
@@ -148,7 +147,7 @@ const AppRoutes = () => {
 
     const route = `${location.pathname || ''}${location.search || ''}`
     if (route.startsWith('/food/') || route.startsWith('/admin') || route.startsWith('/seller')) {
-      sessionStorage.setItem(NATIVE_LAST_ROUTE_KEY, route)
+      localStorage.setItem(NATIVE_LAST_ROUTE_KEY, route)
     }
   }, [location.pathname, location.search])
 

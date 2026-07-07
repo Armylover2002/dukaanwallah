@@ -80,11 +80,9 @@ const BASE_NAV_ITEMS = [
   { label: "Profile", path: "/seller/profile", icon: HiOutlineUser },
 ];
 
-const Loader = () => (
-  <div className="flex min-h-[50vh] items-center justify-center font-black text-slate-600">
-    Loading seller workspace...
-  </div>
-);
+import { AppShellSkeleton } from '@food/components/ui/loading-skeletons';
+
+const Loader = () => <AppShellSkeleton />;
 
 function SellerWorkspace() {
   const { count: qcReturnCount } = useQCReturnCount();
