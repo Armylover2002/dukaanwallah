@@ -84,8 +84,9 @@ export function useGenericTableManagement(data, title, searchFields = []) {
     try {
       const targetOrder = order.originalOrder || order
       
-      const hasItems = targetOrder.items && Array.isArray(targetOrder.items) && targetOrder.items.length > 0
-      const totalAmount = targetOrder.totalAmount ?? targetOrder.total ?? targetOrder.pricing?.total
+      const orderItems = targetOrder.items || targetOrder.cart?.items || targetOrder.cartItems || []
+      const hasItems = Array.isArray(orderItems) && orderItems.length > 0
+      const totalAmount = targetOrder.totalAmount ?? targetOrder.total ?? targetOrder.pricing?.total ?? targetOrder.pricing?.finalAmount
       const hasAmount = totalAmount !== undefined && totalAmount !== null
       
       if (!hasItems && !hasAmount) {
@@ -116,14 +117,14 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       
       // Date
       doc.setFontSize(10)
-      const orderDate = targetOrder.date && targetOrder.time ? `${targetOrder.date}, ${targetOrder.time}` : (targetOrder.date || new Date().toLocaleDateString())
+      const orderDate = targetOrder.date && targetOrder.time ? `${targetOrder.date}, ${targetOrder.time}` : (order.orderDate && order.orderTime ? `${order.orderDate}, ${order.orderTime}` : targetOrder.date || new Date().toLocaleDateString())
       doc.text(`Date: ${orderDate}`, 105, 34, { align: 'center' })
       
       let startY = 45
       
       // Customer Information
-      const customerName = targetOrder.customerName || targetOrder.userName
-      const customerPhone = targetOrder.customerPhone || targetOrder.userNumber
+      const customerName = targetOrder.customerName || targetOrder.userName || order.userName || targetOrder.userId?.name
+      const customerPhone = targetOrder.customerPhone || targetOrder.userNumber || order.userNumber || targetOrder.userId?.phone || targetOrder.deliveryAddress?.phone
       if (customerName || customerPhone) {
         doc.setFontSize(12)
         doc.setTextColor(30, 30, 30)
@@ -144,7 +145,7 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       }
       
       // Restaurant Information
-      const restaurantName = targetOrder.restaurant || targetOrder.restaurantName
+      const restaurantName = targetOrder.restaurant || targetOrder.restaurantName || order.restaurantName
       if (restaurantName) {
         doc.setFontSize(12)
         doc.setTextColor(30, 30, 30)
@@ -159,11 +160,11 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       
       // Order Items Table
       if (hasItems) {
-        const tableData = targetOrder.items.map((item) => [
+        const tableData = orderItems.map((item) => [
           item.quantity || 1,
           item.name || item.itemName || item.title || 'Unknown Item',
-          `Rs. ${(item.price || 0).toFixed(2)}`,
-          `Rs. ${((item.quantity || 1) * (item.price || 0)).toFixed(2)}`
+          `Rs. ${(item.price || item.itemPrice || 0).toFixed(2)}`,
+          `Rs. ${((item.quantity || 1) * (item.price || item.itemPrice || 0)).toFixed(2)}`
         ])
         
         autoTable(doc, {
@@ -222,7 +223,7 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       }
       
       // Order Status
-      const orderStatus = targetOrder.orderStatus || targetOrder.status
+      const orderStatus = targetOrder.orderStatus || targetOrder.status || order.status
       if (orderStatus) {
         doc.setFontSize(10)
         doc.text(`Order Status: ${orderStatus}`, 14, startY)

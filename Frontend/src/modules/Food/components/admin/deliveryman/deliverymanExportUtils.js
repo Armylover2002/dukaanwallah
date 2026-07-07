@@ -1,4 +1,4 @@
-﻿const debugLog = (...args) => {}
+const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
@@ -213,55 +213,59 @@ export const exportReviewsToExcel = (reviews, filename = "deliveryman_reviews") 
 }
 
 export const exportReviewsToPDF = (reviews, filename = "deliveryman_reviews") => {
-  const headers = ["SI", "Deliveryman", "Customer", "Review", "Rating"]
-  
-  let htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Deliveryman Reviews Report</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10px; }
-        th { background-color: #f2f2f2; font-weight: bold; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        h1 { text-align: center; }
-      </style>
-    </head>
-    <body>
-      <h1>Deliveryman Reviews Report</h1>
-      <p>Generated on: ${new Date().toLocaleString()}</p>
-      <table>
-        <thead>
-          <tr>
-            ${headers.map(h => `<th>${h}</th>`).join("")}
-          </tr>
-        </thead>
-        <tbody>
-          ${reviews.map(review => `
-            <tr>
-              <td>${review.sl}</td>
-              <td>${review.deliveryman}</td>
-              <td>${review.customer}</td>
-              <td>${review.review}</td>
-              <td>${review.rating}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </body>
-    </html>
-  `
-  
-  const printWindow = window.open("", "_blank")
-  printWindow.document.write(htmlContent)
-  printWindow.document.close()
-  printWindow.focus()
-  setTimeout(() => {
-    printWindow.print()
-    printWindow.close()
-  }, 250)
+  if (!reviews || reviews.length === 0) {
+    alert("No data to export")
+    return
+  }
+
+  try {
+    import('jspdf').then(({ default: jsPDF }) => {
+      import('jspdf-autotable').then(({ default: autoTable }) => {
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        })
+
+        doc.setFontSize(16)
+        doc.text('Deliveryman Reviews Report', 14, 15)
+        
+        doc.setFontSize(10)
+        const exportDate = new Date().toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+        doc.text(`Exported on: ${exportDate} | Total Records: ${reviews.length}`, 14, 22)
+
+        const headers = ["SI", "Deliveryman", "Customer", "Review", "Rating"]
+        const tableData = reviews.map((review) => [
+          review.sl || 'N/A',
+          review.deliveryman || 'N/A',
+          review.customer || 'N/A',
+          review.review || 'N/A',
+          review.rating || 0
+        ])
+
+        autoTable(doc, {
+          startY: 30,
+          head: [headers],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [249, 250, 251] },
+          styles: { fontSize: 9, cellPadding: 4 }
+        })
+
+        doc.save(`${filename}_${new Date().toISOString().split("T")[0]}.pdf`)
+      })
+    })
+  } catch (error) {
+    console.error("PDF generation failed:", error)
+    alert("Failed to generate PDF. Please try again.")
+  }
 }
 
 export const exportReviewsToJSON = (reviews, filename = "deliveryman_reviews") => {

@@ -65,6 +65,24 @@ export default function ViewOrderDetectDeliveryDialog({ isOpen, onOpenChange, or
                     {order.userNumber}
                   </p>
                 </div>
+                {order.originalOrder?.deliveryAddress && (
+                  <div>
+                    <p className="text-xs text-slate-500">Delivery Address</p>
+                    <p className="text-sm font-medium text-slate-900 mt-1">
+                      {order.originalOrder.deliveryAddress.formattedAddress || 
+                       [order.originalOrder.deliveryAddress.street, order.originalOrder.deliveryAddress.city, order.originalOrder.deliveryAddress.state, order.originalOrder.deliveryAddress.zipCode].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                )}
+                {order.originalOrder?.address && !order.originalOrder?.deliveryAddress && (
+                  <div>
+                    <p className="text-xs text-slate-500">Delivery Address</p>
+                    <p className="text-sm font-medium text-slate-900 mt-1">
+                      {order.originalOrder.address.formattedAddress || 
+                       [order.originalOrder.address.street, order.originalOrder.address.city, order.originalOrder.address.state, order.originalOrder.address.zipCode].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -158,6 +176,43 @@ export default function ViewOrderDetectDeliveryDialog({ isOpen, onOpenChange, or
               </div>
             </div>
           </div>
+
+          {/* Bill Breakdown */}
+          {(() => {
+            const originalOrder = order.originalOrder || {}
+            const items = originalOrder.items || originalOrder.cart?.items || originalOrder.cartItems || []
+            const totalAmount = originalOrder.totalAmount ?? originalOrder.total ?? originalOrder.pricing?.total ?? originalOrder.pricing?.finalAmount
+            if (items.length > 0) {
+              return (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Bill Breakdown
+                  </h3>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <div className="space-y-3">
+                      {items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-500 font-medium">{item.quantity || 1}x</span>
+                            <span className="font-medium text-slate-900">{item.name || item.itemName || item.title || 'Unknown Item'}</span>
+                          </div>
+                          <span className="text-slate-700 font-medium">Rs. {((item.quantity || 1) * (item.price || item.itemPrice || 0)).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {(totalAmount !== undefined && totalAmount !== null) && (
+                      <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
+                        <span className="font-semibold text-slate-900">Total Amount</span>
+                        <span className="font-bold text-slate-900">Rs. {(typeof totalAmount === 'number' ? totalAmount : Number(totalAmount)).toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+            return null
+          })()}
 
           {/* Order Date & Time */}
           <div className="mt-6 pt-6 border-t border-slate-200">
