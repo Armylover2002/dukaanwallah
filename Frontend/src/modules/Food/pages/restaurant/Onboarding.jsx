@@ -838,21 +838,21 @@ export default function RestaurantOnboarding() {
         let serverData = null
         let isReonboard = sessionStorage.getItem("restaurantReonboard") === "true"
 
+        try {
+          const res = await restaurantAPI.getCurrentRestaurant()
+          serverData = res?.data?.data?.restaurant || res?.data?.restaurant
+        } catch (err) {
+          setIsEditing(true)
+          if (err?.response?.status === 401) {
+            debugError("Authentication error fetching onboarding:", err)
+          } else {
+            debugError("Error fetching onboarding data:", err)
+          }
+        }
+
         if (isReonboard) {
           setIsEditing(true)
           setIsReonboardBypass(true) // bypass payment for re-applying
-        } else {
-          try {
-            const res = await restaurantAPI.getCurrentRestaurant()
-            serverData = res?.data?.data?.restaurant || res?.data?.restaurant
-          } catch (err) {
-            setIsEditing(true)
-            if (err?.response?.status === 401) {
-              debugError("Authentication error fetching onboarding:", err)
-            } else {
-              debugError("Error fetching onboarding data:", err)
-            }
-          }
         }
 
         const verifiedPhone = getVerifiedPhoneFromStoredRestaurant()
@@ -1668,41 +1668,54 @@ export default function RestaurantOnboarding() {
         formData.append("openDays", (step2.openDays || []).join(","))
 
         const menuFiles = (step2.menuImages || []).filter((f) => isUploadableFile(f))
-        if (menuFiles.length === 0) {
+        const hasExistingMenu = (step2.menuImages || []).some(f => typeof f === 'string' || (f?.url && typeof f.url === 'string'))
+        if (menuFiles.length === 0 && !hasExistingMenu) {
           throw new Error("At least one menu image must be uploaded")
         }
         menuFiles.forEach((file) => formData.append("menuImages", file))
 
-        if (!isUploadableFile(step2.profileImage)) {
+        const hasExistingProfile = typeof step2.profileImage === 'string' || (step2.profileImage?.url && typeof step2.profileImage.url === 'string')
+        if (!isUploadableFile(step2.profileImage) && !hasExistingProfile) {
           throw new Error("Restaurant profile image is required")
         }
-        formData.append("profileImage", step2.profileImage)
+        if (isUploadableFile(step2.profileImage)) {
+          formData.append("profileImage", step2.profileImage)
+        }
 
         // Step 3
         formData.append("panNumber", step3.panNumber || "")
         formData.append("nameOnPan", step3.nameOnPan || "")
-        if (!isUploadableFile(step3.panImage)) {
+        const hasExistingPan = typeof step3.panImage === 'string' || (step3.panImage?.url && typeof step3.panImage.url === 'string')
+        if (!isUploadableFile(step3.panImage) && !hasExistingPan) {
           throw new Error("PAN image is required")
         }
-        formData.append("panImage", step3.panImage)
+        if (isUploadableFile(step3.panImage)) {
+          formData.append("panImage", step3.panImage)
+        }
 
         formData.append("gstRegistered", step3.gstRegistered ? "true" : "false")
         if (step3.gstRegistered) {
           formData.append("gstNumber", step3.gstNumber || "")
           formData.append("gstLegalName", step3.gstLegalName || "")
           formData.append("gstAddress", step3.gstAddress || "")
-          if (!isUploadableFile(step3.gstImage)) {
+          const hasExistingGst = typeof step3.gstImage === 'string' || (step3.gstImage?.url && typeof step3.gstImage.url === 'string')
+          if (!isUploadableFile(step3.gstImage) && !hasExistingGst) {
             throw new Error("GST image is required when GST registered")
           }
-          formData.append("gstImage", step3.gstImage)
+          if (isUploadableFile(step3.gstImage)) {
+            formData.append("gstImage", step3.gstImage)
+          }
         }
 
         formData.append("fssaiNumber", step3.fssaiNumber || "")
         formData.append("fssaiExpiry", step3.fssaiExpiry || "")
-        if (!isUploadableFile(step3.fssaiImage)) {
+        const hasExistingFssai = typeof step3.fssaiImage === 'string' || (step3.fssaiImage?.url && typeof step3.fssaiImage.url === 'string')
+        if (!isUploadableFile(step3.fssaiImage) && !hasExistingFssai) {
           throw new Error("FSSAI image is required")
         }
-        formData.append("fssaiImage", step3.fssaiImage)
+        if (isUploadableFile(step3.fssaiImage)) {
+          formData.append("fssaiImage", step3.fssaiImage)
+        }
 
         formData.append("accountNumber", step3.accountNumber || "")
         formData.append("ifscCode", (step3.ifscCode || "").toUpperCase())
