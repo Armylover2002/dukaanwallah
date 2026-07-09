@@ -892,6 +892,9 @@ export const useDeliveryNotifications = () => {
         orderId: orderData?.orderId || orderData?.orderMongoId || orderData?._id,
         dispatchStatus: orderData?.dispatch?.status,
       });
+      // Always clear dedupe so the order alert shows even on repeated sends
+      const alertKey = getOrderAlertKey(orderData);
+      if (alertKey) lastAlertAtByOrderRef.current.delete(alertKey);
       setNewOrder(orderData);
       handleIncomingOrderAlert(orderData);
     });
@@ -907,7 +910,10 @@ export const useDeliveryNotifications = () => {
         phase: orderData?.phase || 'unknown',
         dispatchStatus: orderData?.dispatch?.status,
       });
-      // Treat it the same as new_order for now - delivery boy can accept it
+      // Always clear dedupe for resend scenarios — seller explicitly triggered this
+      const alertKey = getOrderAlertKey(orderData);
+      if (alertKey) lastAlertAtByOrderRef.current.delete(alertKey);
+      // Treat it the same as new_order — delivery boy can accept it
       setNewOrder(orderData);
       handleIncomingOrderAlert(orderData);
     });
