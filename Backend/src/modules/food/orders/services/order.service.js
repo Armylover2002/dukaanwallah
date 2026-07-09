@@ -3575,27 +3575,23 @@ export async function resendDeliveryNotificationRestaurant(orderId, restaurantId
     throw new ValidationError('A delivery partner has already accepted this order.');
   }
 
-  // Reset dispatch state to unassigned to allow tryAutoAssign to start fresh
+  // Reset dispatch state to unassigned.
+  // Also clear dispatchingAt to remove any stale lock from previous auto-assign cycles.
   order.dispatch.status = 'unassigned';
   order.dispatch.deliveryPartnerId = null;
-  // Clear previously offered partners to give everyone a fresh chance when resending manually.
   order.dispatch.offeredTo = [];
+  order.dispatch.dispatchingAt = undefined;
 
   await order.save();
 
   if (isSplitDispatchOrder(order)) {
     await notifySplitDispatchOffers(order);
-  } else {
-    // Trigger smart dispatch logic immediately
-    const { tryAutoAssign } = await import('./order-dispatch.service.js');
-    const dispatchRes = await tryAutoAssign(order._id, { attempt: 3 });
-    return {
-      success: true,
-      notifiedCount: dispatchRes?.notifiedCount || 0
-    };
+    return { success: true };
   }
 
-  return { success: true };
+  // Delegate to the dispatch-service resend which broadcasts to all zone partners directly.
+  const { resendDeliveryNotificationRestaurant: dispatchResend } = await import('./order-dispatch.service.js');
+  return dispatchResend(orderId, restaurantId);
 }
 
 export async function getCurrentTripDelivery(deliveryPartnerId) {

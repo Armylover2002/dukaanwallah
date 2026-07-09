@@ -29,7 +29,9 @@ import {
   buildDeliverySocketPayload,
   haversineKm,
   notifyOwnerSafely,
+  notifyOwnersSafely,
 } from "../../../food/orders/services/order.helpers.js";
+import { listNearbyOnlineDeliveryPartners } from "../../../food/orders/services/order-dispatch.service.js";
 import { getSellerCommissionSnapshot } from "../../admin/services/commission.service.js";
 import * as quickOrderService from "../../services/quickOrder.service.js";
 import {
@@ -2127,41 +2129,32 @@ export const resendSellerOrderDispatchController = async (req, res) => {
     const seller = await Seller.findById(sellerId)
       .select("shopName name phone location")
       .lean();
-    const origin =
-      quickOrderService.getSellerLocation(seller) ||
-      quickOrderService.getOrderAddressPoint(quickOrder);
 
-    const nearbyPartners = await listNearbyOnlineDeliveryPartnersByCoords(
-      origin,
-      {
-        maxKm: 15,
-        limit: 15,
-      },
-    );
-
-    const closestPartner = nearbyPartners[0];
-    if (!closestPartner?.partnerId) {
-      return sendError(res, 404, "No nearby online delivery partner found");
-    }
-
+    // Reset dispatch so all zone partners can accept (no single-partner assignment)
     const now = new Date();
     quickOrder.dispatch = {
       ...(quickOrder.dispatch?.toObject?.() || quickOrder.dispatch || {}),
       modeAtCreation: quickOrder.dispatch?.modeAtCreation || "auto",
-      status: "assigned",
-      deliveryPartnerId: closestPartner.partnerId,
-      assignedAt: now,
+      status: "unassigned",
+      deliveryPartnerId: null,
       acceptedAt: null,
-      offeredTo: [
-        ...(quickOrder.dispatch?.offeredTo || []).filter(Boolean),
-        {
-          partnerId: closestPartner.partnerId,
-          at: now,
-          action: "offered",
-        },
-      ],
+      dispatchingAt: undefined,
+      offeredTo: [],
     };
     await quickOrder.save();
+    logger.info(`[Resend] QC order ${quickOrder.orderId} dispatch reset. Searching zone partners...`);
+
+    // Fetch all zone-eligible online partners (uses zone polygon filtering)
+    const { partners: zonePartners, source } = await listNearbyOnlineDeliveryPartners(
+      seller._id,
+      { maxKm: 15, limit: 50, sourceType: "quick" },
+    );
+
+    logger.info(`[Resend] QC order ${quickOrder.orderId} — found ${zonePartners?.length || 0} zone partners.`);
+
+    if (!zonePartners || zonePartners.length === 0) {
+      return sendError(res, 404, "No online delivery partners found in your zone");
+    }
 
     const io = getIO();
     const sellerAddressText =
@@ -2182,45 +2175,44 @@ export const resendSellerOrderDispatchController = async (req, res) => {
       sourceType: "quick",
     };
 
-    if (io) {
-      for (const partner of nearbyPartners || []) {
-        const deliveryRoom = rooms.delivery(partner.partnerId);
+    let notifiedCount = 0;
+    const notifyList = [];
+    for (const partner of zonePartners) {
+      const deliveryRoom = rooms.delivery(partner.partnerId);
+      logger.info(`[Resend] Emitting to room: ${deliveryRoom}`);
+      if (io) {
         const payloadWithDistance = {
           ...deliveryPayload,
           pickupDistanceKm: partner.distanceKm,
         };
-        io.to(deliveryRoom).emit("new_order", payloadWithDistance);
         io.to(deliveryRoom).emit("new_order_available", payloadWithDistance);
         io.to(deliveryRoom).emit("play_notification_sound", {
           orderId: quickOrder.orderId,
           orderMongoId: quickOrder._id?.toString?.(),
         });
-
-        await notifyOwnerSafely(
-          { ownerType: "DELIVERY_PARTNER", ownerId: partner.partnerId },
-          {
-            title: "New nearby order",
-            body: `Order #${quickOrder.orderId} is ready for pickup.`,
-            data: {
-              type: "new_order",
-              orderId: quickOrder.orderId,
-              orderMongoId: quickOrder._id?.toString?.(),
-              link: "/delivery",
-            },
-          },
-        );
       }
+      notifyList.push({ ownerType: "DELIVERY_PARTNER", ownerId: partner.partnerId });
+      notifiedCount++;
     }
 
-    return sendResponse(res, 200, "Driver notified again", {
-      orderId: quickOrder.orderId,
-      dispatchStatus: quickOrder.dispatch?.status || "assigned",
-      notifiedPartner: {
-        _id: closestPartner.partnerId,
-        name: closestPartner.name || "Delivery Partner",
-        phone: closestPartner.phone || "",
-        distanceKm: closestPartner.distanceKm,
+    // FCM push to first 5 only (avoid spam)
+    await notifyOwnersSafely(notifyList.slice(0, 5), {
+      title: "New delivery order available",
+      body: `Order #${quickOrder.orderId} is ready for pickup near you.`,
+      data: {
+        type: "new_order_available",
+        orderId: quickOrder.orderId,
+        orderMongoId: quickOrder._id?.toString?.(),
+        link: "/delivery",
       },
+    });
+
+    logger.info(`[Resend] QC order ${quickOrder.orderId} broadcast to ${notifiedCount} zone partners.`);
+
+    return sendResponse(res, 200, "Delivery request sent to all zone partners", {
+      orderId: quickOrder.orderId,
+      dispatchStatus: "unassigned",
+      notifiedCount,
     });
   } catch (error) {
     logger.error(`Resend seller dispatch failed: ${error?.message || error}`);

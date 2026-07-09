@@ -3,6 +3,9 @@ import { FoodOrder, FoodSettings } from "../models/order.model.js";
 import { FoodRestaurant } from "../../restaurant/models/restaurant.model.js";
 import { Seller } from "../../../quick-commerce/seller/models/seller.model.js";
 import { FoodDeliveryPartner } from "../../delivery/models/deliveryPartner.model.js";
+import { FoodZone } from "../../admin/models/zone.model.js";
+import { QuickZone } from "../../../quick-commerce/models/quick_zone.model.js";
+import { isPointInPolygon } from "../../../../utils/geo.js";
 import { getDeliveryPartnerWalletEnhanced } from "../../delivery/services/deliveryFinance.service.js";
 import { getCache, setCache } from "../../../../utils/cacheManager.js";
 import { FoodDailyPass } from "../../subscriptions/models/foodDailyPass.model.js";
@@ -57,9 +60,8 @@ export async function filterEligiblePartners(partners) {
   const fullyEligiblePartners = [];
   
   for (const p of partners) {
-    const isSubEligible = subEligibleIds.has(p.partnerId.toString());
-    
     // Check cash limit with cache (5 mins TTL)
+
     try {
       const cacheKey = `rider_cash_limit_${p.partnerId}`;
       let cashLimitHit = getCache(cacheKey);
@@ -84,15 +86,12 @@ export async function filterEligiblePartners(partners) {
         continue; // Skip this partner
       }
       
-      // If cash limit is fine, check subscription (or if bypassed, always push)
-      if (isSubEligible) {
-        fullyEligiblePartners.push(p);
-      } else {
-        // Optionally bypass sub check if that was the intent elsewhere: fullyEligiblePartners.push(p);
-        fullyEligiblePartners.push(p); // Bypassing subscription here as well since it was bypassed in accept.
-      }
+      // Cash limit is fine — include this partner
+      fullyEligiblePartners.push(p);
     } catch (err) {
-      logger.error(`Failed to check wallet for partner ${p.partnerId}: ${err.message}`);
+      // Wallet check failed — include partner anyway so they still get the request
+      logger.warn(`Wallet check failed for partner ${p.partnerId}, including anyway: ${err.message}`);
+      fullyEligiblePartners.push(p);
     }
   }
 
@@ -165,10 +164,17 @@ export async function listNearbyOnlineDeliveryPartners(
   const sId = (sourceId?._id || sourceId).toString();
 
   let source = null;
+  let sourceZone = null;
   if (sourceType === "quick") {
     source = await Seller.findById(sId).lean();
+    if (source?.shopInfo?.zoneId) {
+      sourceZone = await QuickZone.findById(source.shopInfo.zoneId).lean();
+    }
   } else {
     source = await FoodRestaurant.findById(sId).lean();
+    if (source?.zoneId) {
+      sourceZone = await FoodZone.findById(source.zoneId).lean();
+    }
   }
 
   if (!source?.location?.coordinates?.length) {
@@ -213,6 +219,12 @@ export async function listNearbyOnlineDeliveryPartners(
     if (p.lastLat == null || p.lastLng == null || isStale) {
       scored.push({ partnerId: p._id, distanceKm: 999, status: p.status });
       continue;
+    }
+
+    if (sourceZone?.coordinates?.length) {
+      if (!isPointInPolygon(p.lastLat, p.lastLng, sourceZone.coordinates)) {
+        continue;
+      }
     }
 
     const d = haversineKm(rLat, rLng, p.lastLat, p.lastLng);
@@ -567,26 +579,92 @@ export async function resendDeliveryNotificationRestaurant(
     );
   }
 
+  // Guard: don't allow resend if a delivery partner has already accepted
   if (order.dispatch?.status === "accepted") {
     throw new ValidationError(
       "A delivery partner has already accepted this order.",
     );
   }
 
+  // Reset dispatch state so partners can accept afresh.
+  // Also clear dispatchingAt to remove any stale lock from previous auto-assign cycles.
   order.dispatch.status = "unassigned";
   order.dispatch.deliveryPartnerId = null;
   order.dispatch.offeredTo = [];
+  order.dispatch.dispatchingAt = undefined;
   await order.save();
 
   // Proactively sweep all online riders — force offline anyone whose cash limit is ₹0
-  // before we attempt to dispatch this order to them.
-  void enforceCashLimitForAllOnlinePartners().catch(err =>
-    logger.warn(`[Resend] Cash-limit sweep failed: ${err.message}`)
+  void enforceCashLimitForAllOnlinePartners().catch((err) =>
+    logger.warn(`[Resend] Cash-limit sweep failed: ${err.message}`),
   );
 
-  const res = await tryAutoAssign(order._id, { attempt: 3 });
+  // Determine correct source for zone lookup (quick vs food)
+  const isQuickOrder =
+    order.orderType === "quick" || order.orderType === "mixed";
+  const quickSellerId =
+    order.items?.find((item) => item?.type === "quick" && item?.sourceId)
+      ?.sourceId ||
+    order.pickupPoints?.find(
+      (point) => point?.pickupType === "quick" && point?.sourceId,
+    )?.sourceId;
+  const dispatchSourceId = isQuickOrder
+    ? quickSellerId || order.restaurantId
+    : order.restaurantId;
+
+  // Directly broadcast to ALL online zone-eligible partners — no Phase 1 single-partner targeting.
+  const { partners, source } = await listNearbyOnlineDeliveryPartners(
+    dispatchSourceId,
+    {
+      maxKm: 15,
+      limit: 50,
+      sourceType: isQuickOrder ? "quick" : "food",
+    },
+  );
+
+  const io = getIO();
+  const payload = buildDeliverySocketPayload(order, source);
+
+  let notifiedCount = 0;
+  for (const p of partners) {
+    const roomName = rooms.delivery(p.partnerId);
+    if (io) {
+      io.to(roomName).emit("new_order_available", {
+        ...payload,
+        pickupDistanceKm: p.distanceKm,
+      });
+      io.to(roomName).emit("play_notification_sound", {
+        orderId: order.orderId,
+        orderMongoId: order._id.toString(),
+      });
+    }
+    notifiedCount++;
+  }
+
+  logger.info(
+    `[Resend] Broadcast order ${order.orderId} to ${notifiedCount} delivery partners.`,
+  );
+
+  // Push notification to first 5 partners (to avoid FCM spam)
+  if (partners.length > 0) {
+    const notifyList = partners.slice(0, 5).map((p) => ({
+      ownerType: "DELIVERY_PARTNER",
+      ownerId: p.partnerId,
+    }));
+    await notifyOwnersSafely(notifyList, {
+      title: "New delivery order available",
+      body: `Order ${payload.orderId} is available. Open the app to accept.`,
+      data: {
+        type: "new_order_available",
+        orderId: payload.orderId,
+        orderMongoId: payload.orderMongoId,
+        link: "/delivery",
+      },
+    });
+  }
+
   return {
     success: true,
-    notifiedCount: res?.notifiedCount || 0,
+    notifiedCount,
   };
 }
