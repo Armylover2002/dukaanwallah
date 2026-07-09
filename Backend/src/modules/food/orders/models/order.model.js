@@ -195,7 +195,8 @@ const dispatchSchema = new mongoose.Schema(
             partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodDeliveryPartner' },
             at: { type: Date, default: Date.now },
             action: { type: String, enum: ['offered', 'rejected', 'timeout'], default: 'offered' }
-        }]
+        }],
+        dispatchingAt: { type: Date }
     },
     { _id: false }
 );
