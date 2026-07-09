@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useParams, Link, useSearchParams, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
@@ -48,19 +48,19 @@ import ReturnOrderModal from "../../../../quickCommerce/user/pages/ReturnOrderMo
 import circleIcon from "@food/assets/circleicon.png"
 import { RESTAURANT_PIN_SVG, CUSTOMER_PIN_SVG, RIDER_BIKE_SVG } from "@food/constants/mapIcons"
 
-// ΓöÇΓöÇΓöÇ Fallback SVGs ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Fallback SVGs ────────────────────────────────────────────────────────────
 const DEFAULT_CUSTOMER_PIN = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#10B981"><path d="M12 2C8.13 2 5 5.13 5 9c0 4.17 4.42 9.92 6.24 12.11.4.48 1.08.48 1.52 0C14.58 18.92 19 13.17 19 9c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/><circle cx="12" cy="9" r="3" fill="#FFFFFF"/></svg>`;
 const SAFE_CUSTOMER_PIN = typeof CUSTOMER_PIN_SVG !== 'undefined' ? CUSTOMER_PIN_SVG : DEFAULT_CUSTOMER_PIN;
 const DEFAULT_RESTAURANT_PIN = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#FE5502"><path d="M12 2C8.13 2 5 5.13 5 9c0 4.17 4.42 9.92 6.24 12.11.4.48 1.08.48 1.52 0C14.58 18.92 19 13.17 19 9c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/><circle cx="12" cy="9" r="3" fill="#FFFFFF"/></svg>`;
 const SAFE_RESTAURANT_PIN = typeof RESTAURANT_PIN_SVG !== 'undefined' ? RESTAURANT_PIN_SVG : DEFAULT_RESTAURANT_PIN;
 
-// ΓöÇΓöÇΓöÇ Debug helpers (no-ops in production, tree-shake friendly) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Debug helpers (no-ops in production, tree-shake friendly) ────────────────
 const debugLog = (...args) => console.log('[OrderTracking]', ...args)
 const debugWarn = (...args) => console.warn('[OrderTracking]', ...args)
 const debugError = (...args) => console.error('[OrderTracking]', ...args)
 const INVOICE_BRAND_NAME = "Appzeto"
 
-// ΓöÇΓöÇΓöÇ Stable animated checkmark ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Stable animated checkmark ───────────────────────────────────────────────
 // Extracted outside component to prevent recreation on parent re-renders
 const CHECKMARK_CIRCLE_ANIM = { pathLength: 1, opacity: 1 }
 const CHECKMARK_CIRCLE_INIT = { pathLength: 0, opacity: 0 }
@@ -81,7 +81,7 @@ const AnimatedCheckmark = React.memo(function AnimatedCheckmark({ delay = 0 }) {
   )
 })
 
-// ΓöÇΓöÇΓöÇ DeliveryMap ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── DeliveryMap ─────────────────────────────────────────────────────────────
 const DeliveryMap = React.memo(function DeliveryMap({
   orderId, order, isVisible, fallbackCustomerCoords = null,
   userLiveCoords = null, userLocationAccuracy = null, onEtaUpdate = null
@@ -158,7 +158,7 @@ const DeliveryMap = React.memo(function DeliveryMap({
   );
 });
 
-// ΓöÇΓöÇΓöÇ SectionItem ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── SectionItem ─────────────────────────────────────────────────────────────
 // Extracted stable tap animation object to prevent recreation
 const SECTION_TAP = { scale: 0.99 };
 const SectionItem = React.memo(function SectionItem({
@@ -188,7 +188,7 @@ const SectionItem = React.memo(function SectionItem({
   );
 });
 
-// ΓöÇΓöÇΓöÇ Pure utility functions (module-level, never recreated) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Pure utility functions (module-level, never recreated) ──────────────────
 function getRestaurantCoordsFromOrder(apiOrder, fallback = null) {
   if (apiOrder?.restaurantId?.location?.coordinates?.length >= 2)
     return apiOrder.restaurantId.location.coordinates;
@@ -415,7 +415,7 @@ function transformOrderForTracking(apiOrder, previousOrder = null, explicitResta
   };
 }
 
-// ΓöÇΓöÇΓöÇ Status mapping (module-level, pure) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Status mapping (module-level, pure) ─────────────────────────────────────
 function mapBackendOrderStatusToUi(raw) {
   const s = String(raw || "").toLowerCase();
   if (!s || s === "pending" || s === "created") return "placed";
@@ -518,7 +518,7 @@ function normalizeQuickOrderForTracking(rawOrder) {
   };
 }
 
-// ΓöÇΓöÇΓöÇ Stable STATUS CONFIG (module-level, never recreated) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Stable STATUS CONFIG (module-level, never recreated) ────────────────────
 const STATUS_CONFIG_TEMPLATE = {
   scheduled: { title: "Order Scheduled", color: "bg-blue-600", iconType: 'food' },
   placed: { title: "Order Placed", color: "bg-green-600", iconType: 'food' },
@@ -533,12 +533,12 @@ const STATUS_CONFIG_TEMPLATE = {
   cancelled: { title: "Order cancelled", subtitle: "This order has been cancelled", color: "bg-red-600", iconType: 'cancelled' },
 };
 
-// ΓöÇΓöÇΓöÇ Stable motion props (module-level) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Stable motion props (module-level) ──────────────────────────────────────
 const MOTION_FADE = { initial: { opacity: 0 }, animate: { opacity: 1 } };
 const MOTION_SLIDE_UP = (delay) => ({ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay } });
 const RIDER_SVG_STYLE = { width: "100%", height: "100%" };
 
-// ΓöÇΓöÇΓöÇ localStorage helpers (lazy init, debounced write) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── localStorage helpers (lazy init, debounced write) ───────────────────────
 function loadShownRatings() {
   try {
     const stored = localStorage.getItem('shownRatingForOrders');
@@ -554,7 +554,7 @@ function saveShownRatings(set) {
   }, 500);
 }
 
-// ΓöÇΓöÇΓöÇ Main Component ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function OrderTracking() {
   const companyName = useCompanyName();
   const { orderId } = useParams();
@@ -571,7 +571,7 @@ export default function OrderTracking() {
   const { location: userLiveLocation } = useUserLocation();
   const { isConnected: isSocketConnected } = useUserNotifications();
 
-  // ΓöÇΓöÇ Core order state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Core order state ────────────────────────────────────────────────────────
   const [order, setOrder] = useState(() =>
     prefetchedOrder
       ? transformOrderForTracking(isQuickOrder ? normalizeQuickOrderForTracking(prefetchedOrder) : prefetchedOrder)
@@ -580,7 +580,7 @@ export default function OrderTracking() {
   const [loading, setLoading] = useState(() => !prefetchedOrder);
   const [error, setError] = useState(null);
 
-  // ΓöÇΓöÇ UI state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── UI state ────────────────────────────────────────────────────────────────
   const [showConfirmation, setShowConfirmation] = useState(confirmed);
   const [orderStatus, setOrderStatus] = useState(() =>
     prefetchedOrder ? mapOrderToTrackingUiStatus(isQuickOrder ? normalizeQuickOrderForTracking(prefetchedOrder) : prefetchedOrder) : 'placed'
@@ -620,7 +620,7 @@ export default function OrderTracking() {
   const [loadingReturnDetails, setLoadingReturnDetails] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // ΓöÇΓöÇ Rating state (grouped) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Rating state (grouped) ──────────────────────────────────────────────────
   const [ratingModal, setRatingModal] = useState({ open: false, order: null });
   const [selectedRestaurantRating, setSelectedRestaurantRating] = useState(null);
   const [selectedDeliveryRating, setSelectedDeliveryRating] = useState(null);
@@ -631,10 +631,10 @@ export default function OrderTracking() {
   const shownRatingForOrdersRef = useRef(null);
   if (shownRatingForOrdersRef.current === null) shownRatingForOrdersRef.current = loadShownRatings();
 
-  // ΓöÇΓöÇ Socket OTP ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Socket OTP ──────────────────────────────────────────────────────────────
   const [socketDropOtpCode, setSocketDropOtpCode] = useState(null);
 
-  // ΓöÇΓöÇ Refs (stable across renders) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Refs (stable across renders) ────────────────────────────────────────────
   const lastRealtimeRefreshRef = useRef(0);
   const confirmationShownAtRef = useRef(confirmed ? Date.now() : 0);
   const trackingOrderIdsRef = useRef(new Set());
@@ -644,7 +644,7 @@ export default function OrderTracking() {
   const lastPollExecutionRef = useRef(0);
   const pollRef = useRef(null);
 
-  // ΓöÇΓöÇ Derived values ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Derived values ───────────────────────────────────────────────────────────
   const defaultAddress = getDefaultAddress();
 
   // Keep lookupIds ref up to date without triggering re-renders
@@ -707,7 +707,7 @@ export default function OrderTracking() {
   const resolveOrderFromList = useCallback((id) => stableOpsRef.current.resolveOrderFromList(id), []);
   const fetchOrderDetailsWithFallback = useCallback((opts) => stableOpsRef.current.fetchOrderDetailsWithFallback(opts), []);
 
-  // ΓöÇΓöÇ Memoized derived values ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Memoized derived values ──────────────────────────────────────────────────
   const fallbackCustomerCoords = useMemo(() => {
     const orderCoords = order?.address?.coordinates || order?.address?.location?.coordinates;
     if (Array.isArray(orderCoords) && orderCoords.length >= 2) {
@@ -885,7 +885,7 @@ export default function OrderTracking() {
     <div dangerouslySetInnerHTML={{ __html: SAFE_CUSTOMER_PIN }} className="w-6 h-6 [&_svg]:w-full [&_svg]:h-full [&_svg]:block" />
   ), []);
 
-  // ΓöÇΓöÇ Effects ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Effects ──────────────────────────────────────────────────────────────────
 
   // Sync prefetched order
   useEffect(() => {
@@ -1033,7 +1033,7 @@ export default function OrderTracking() {
     return () => clearTimeout(t);
   }, [orderStatus, order, ratingModal.open, orderId]);
 
-  // ΓöÇΓöÇ Main polling effect ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Main polling effect ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!orderId) return;
     let isSubscribed = true;
@@ -1142,7 +1142,7 @@ export default function OrderTracking() {
     return () => clearInterval(interval);
   }, [orderId, isSocketConnected]);
 
-  // ΓöÇΓöÇ Stable callbacks ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Stable callbacks ─────────────────────────────────────────────────────────
   const handleEtaUpdate = useCallback((newEta) => setEstimatedTime(newEta), []);
 
   const handleRefresh = useCallback(async () => {
@@ -1177,7 +1177,7 @@ export default function OrderTracking() {
     }
   }, [isQuickOrder]);
 
-  // Phone call helpers ΓÇö stable, no order dependency needed for the factory
+  // Phone call helpers — stable, no order dependency needed for the factory
   const makeCall = useCallback((phone) => {
     const clean = String(phone || '').replace(/[^\d+]/g, '');
     if (!clean || clean.length < 5) { toast.error('Phone number not available'); return; }
@@ -1408,13 +1408,13 @@ export default function OrderTracking() {
     }
   }, [order, orderStatus, profile?.name, profile?.phone, companyName]);
 
-  // ΓöÇΓöÇ Instruction modal opener ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Instruction modal opener ─────────────────────────────────────────────────
   const openInstructionsModal = useCallback(() => {
     setDeliveryInstructions(order?.note || "");
     setIsInstructionsModalOpen(true);
   }, [order?.note]);
 
-  // ΓöÇΓöÇ Early returns (after all hooks) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Early returns (after all hooks) ─────────────────────────────────────────
   if (loading) {
     return (
       <AnimatedPage className="min-h-screen bg-gray-50 p-4">
@@ -1438,7 +1438,7 @@ export default function OrderTracking() {
     );
   }
 
-  // ΓöÇΓöÇ Render ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-[#0a0a0a]">
       {/* Confirmation Modal */}
@@ -1599,7 +1599,7 @@ export default function OrderTracking() {
                   <p className="text-sm text-gray-500 truncate">{partner?.sourceName ? `${partner.label} for ${partner.sourceName}` : partner?.statusText || 'Your delivery partner is arriving'}</p>
                   {formatPartnerRating(partner?.rating) ? (
                     <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600">
-                      <span className="font-semibold">Γÿà {formatPartnerRating(partner?.rating)}</span>
+                      <span className="font-semibold">★ {formatPartnerRating(partner?.rating)}</span>
                       <span className="text-gray-400">{Number(partner?.totalRatings || 0) > 0 ? `(${Number(partner?.totalRatings)} ratings)` : '(New rider)'}</span>
                     </div>
                   ) : <div className="mt-1 text-xs text-gray-400">Rating not available yet</div>}
@@ -1636,7 +1636,7 @@ export default function OrderTracking() {
 
         {!isDeliveredOrder && (
           <motion.div className="bg-yellow-50 rounded-xl p-4 text-center" {...MOTION_SLIDE_UP(0.65)}>
-            <p className="text-yellow-800 font-medium">All your delivery details in one place ≡ƒÜÇ</p>
+            <p className="text-yellow-800 font-medium">All your delivery details in one place 🚀</p>
           </motion.div>
         )}
 
@@ -1841,7 +1841,7 @@ export default function OrderTracking() {
                   </div>
                   <div className="border-t border-slate-200/50 pt-2 flex justify-between items-center text-xs font-bold text-gray-900 mt-2.5">
                     <span>Refund Amount:</span>
-                    <span>Γé╣{Number(returnOrderDetails.refundAmount || 0).toFixed(2)}</span>
+                    <span>₹{Number(returnOrderDetails.refundAmount || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1869,7 +1869,7 @@ export default function OrderTracking() {
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {[
-                    { value: "gateway", label: "Original payment method", desc: "Auto-refunded via Razorpay within 5ΓÇô7 business days." },
+                    { value: "gateway", label: "Original payment method", desc: "Auto-refunded via Razorpay within 5–7 business days." },
                     { value: "wallet", label: "Wallet (Instant)", desc: "Refund credited instantly to your AppZeto wallet." },
                   ].map(({ value, label, desc }) => (
                     <button key={value} type="button" onClick={() => setRefundDestination(value)} disabled={isCancelling}
@@ -1937,7 +1937,7 @@ export default function OrderTracking() {
                         <p className="text-sm text-gray-500 mt-0.5">Quantity: {item.quantity}</p>
                       </div>
                     </div>
-                    <p className="font-semibold text-gray-900">Γé╣{((item?.price || 0) * (item?.quantity || 0)).toFixed(2)}</p>
+                    <p className="font-semibold text-gray-900">₹{((item?.price || 0) * (item?.quantity || 0)).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -1953,18 +1953,18 @@ export default function OrderTracking() {
               ].filter(Boolean).map(([label, val]) => (
                 <div key={label} className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">{label}</span>
-                  <span className="text-gray-900 font-medium">Γé╣{Number(val || 0).toFixed(2)}</span>
+                  <span className="text-gray-900 font-medium">₹{Number(val || 0).toFixed(2)}</span>
                 </div>
               ))}
               {Number(order?.pricing?.discount || order?.discount) > 0 && (
                 <div className="flex justify-between items-center text-sm text-green-600 font-medium">
                   <span>Discount Applied</span>
-                  <span>-Γé╣{Number(order?.pricing?.discount || order?.discount).toFixed(2)}</span>
+                  <span>-₹{Number(order?.pricing?.discount || order?.discount).toFixed(2)}</span>
                 </div>
               )}
               <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
                 <span className="text-base font-bold text-gray-900">Total Amount</span>
-                <span className="text-lg font-bold text-gray-900">Γé╣{Number(order?.totalAmount || 0).toFixed(2)}</span>
+                <span className="text-lg font-bold text-gray-900">₹{Number(order?.totalAmount || 0).toFixed(2)}</span>
               </div>
             </div>
             {order?.paymentMethod && (
