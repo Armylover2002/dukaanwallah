@@ -93,6 +93,15 @@ const DashboardLayout = ({ children, navItems, title }) => {
     const fetchOrdersRef = useRef(null);
     const earningsFetchedRef = useRef(false);
     const lastEarningsErrorToastAtRef = useRef(0);
+    const activeAudioRef = useRef(null);
+
+    const stopAudio = () => {
+        if (activeAudioRef.current) {
+            activeAudioRef.current.pause();
+            activeAudioRef.current.currentTime = 0;
+            activeAudioRef.current = null;
+        }
+    };
 
     useEffect(() => {
         if (isSidebarOpen) {
@@ -179,7 +188,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
                 triggerNativeSound(newOrder).then((usedNative) => {
                     if (!usedNative) {
+                        stopAudio();
                         const audio = new Audio(resolveAudioSource(alertSound));
+                        activeAudioRef.current = audio;
                         audio.play().catch(() => { });
                     }
                 });
@@ -223,6 +234,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             // Terminal cancellation check – clear modal if this specific order is cancelled
             if (raw.includes('cancel')) {
                 if (newOrderAlertRef.current && String(newOrderAlertRef.current.orderId) === orderId) {
+                    stopAudio();
                     setNewOrderAlert(null);
                     toast.error(`Order #${orderId} was cancelled by the customer/system.`);
                 }
@@ -256,6 +268,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             if (!orderId) return;
 
             if (newOrderAlertRef.current && String(newOrderAlertRef.current.orderId) === orderId) {
+                stopAudio();
                 setNewOrderAlert(null);
                 toast.error(`Order #${orderId} has been cancelled.`);
             }
@@ -267,7 +280,9 @@ const DashboardLayout = ({ children, navItems, title }) => {
         const offSound = onPlayNotificationSound(getToken, async (payload) => {
             const usedNative = await triggerNativeSound(payload);
             if (!usedNative) {
+                stopAudio();
                 const audio = new Audio(resolveAudioSource(alertSound));
+                activeAudioRef.current = audio;
                 audio.play().catch(() => {});
             }
         });
@@ -376,6 +391,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             setTimeLeft(next);
             if (next <= 0) {
                 clearInterval(timer);
+                stopAudio();
                 setNewOrderAlert(null);
                 toast.error("Order timed out!");
             }
@@ -400,6 +416,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
         try {
             await sellerApi.updateOrderStatus(orderId, { status: 'confirmed' });
             toast.success(`Order #${orderId} Accepted!`);
+            stopAudio();
             setNewOrderAlert(null);
         } catch (error) {
             const msg =
@@ -413,6 +430,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
         try {
             await sellerApi.updateOrderStatus(orderId, { status: 'cancelled' });
             toast.error(`Order #${orderId} Declined`);
+            stopAudio();
             setNewOrderAlert(null);
         } catch (error) {
             const msg =
