@@ -135,7 +135,7 @@ export async function sendUserOtpEmail(to, otp) {
         return false;
     }
     const from = config.emailFrom || config.emailUser;
-    const subject = 'Your verification code – Itzo';
+    const subject = 'Your verification code – Dukaanwallah';
     const html = `
 <!DOCTYPE html>
 <html>
@@ -146,14 +146,14 @@ export async function sendUserOtpEmail(to, otp) {
   <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; background: #f5f5f5; padding: 12px 16px; border-radius: 8px;">${otp}</p>
   <p style="color: #666; font-size: 14px;">If you did not request this, you can ignore this email.</p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">Itzo Team</p>
+  <p style="color: #999; font-size: 12px;">Dukaanwallah Team</p>
 </body>
 </html>`;
     const text = `Your verification code is: ${otp}. It is valid for 5 minutes. If you did not request this, ignore this email.`;
 
     try {
         await trans.sendMail({
-            from: typeof from === 'string' && from.includes('<') ? from : `Itzo <${from}>`,
+            from: typeof from === 'string' && from.includes('<') ? from : `Dukaanwallah <${from}>`,
             to,
             subject,
             text,
