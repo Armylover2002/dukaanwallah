@@ -33,10 +33,28 @@ export default function DeliverySignIn() {
   const location = useLocation()
   const searchParams = new URLSearchParams(location.search)
   const referralCode = searchParams.get("ref") || ""
-  const [formData, setFormData] = useState({
-    phone: "",
-    countryCode: "+91",
-  })
+  const [formData, setFormData] = useState(() => {
+    try {
+      const draft = sessionStorage.getItem("deliveryLoginDraft");
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed && typeof parsed === "object") {
+          return {
+            phone: parsed.phone || "",
+            countryCode: parsed.countryCode || "+91",
+          };
+        }
+      }
+    } catch (err) { }
+    return {
+      phone: "",
+      countryCode: "+91",
+    };
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("deliveryLoginDraft", JSON.stringify(formData));
+  }, [formData]);
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('delivery'))
   const [adminEmail, setAdminEmail] = useState(() => getCachedSettings()?.email || "admin@appzeto.com")
 
@@ -232,11 +250,11 @@ export default function DeliverySignIn() {
           {/* Sign In Heading */}
           <div className="space-y-2 text-center">
             <h2 className="text-2xl font-bold text-black">
-              Sign in to your account
-            </h2>
-            <p className="text-base text-gray-600">
               Login with your phone number
-            </p>
+            </h2>
+            {/* <p className="text-base text-gray-600">
+              Login with your phone number
+            </p> */}
           </div>
 
           {/* Mobile Number Input */}
