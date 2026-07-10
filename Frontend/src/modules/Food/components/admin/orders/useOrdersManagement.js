@@ -301,7 +301,7 @@ export function useOrdersManagement(orders, statusKey, title) {
 
       const settings = getCachedSettings() || await loadBusinessSettings()
       const companyName = settings?.companyName || "Dukaanwallah"
-      const logoUrl = settings?.logo?.url || undefined
+      const logoUrl = settings?.adminLogo?.url || settings?.logo?.url || undefined
       const logoDataUrl = await imageUrlToDataUrl(logoUrl)
 
       const items = Array.isArray(order.items) ? order.items : []
