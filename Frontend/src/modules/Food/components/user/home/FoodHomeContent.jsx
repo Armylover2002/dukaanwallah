@@ -71,7 +71,7 @@ const FoodRestaurantCard = memo(function FoodRestaurantCard({
         <Link to={`/user/restaurants/${restaurantSlug}`} className="flex h-full">
           <Card
             className={`relative flex h-full w-full flex-col gap-0 overflow-hidden rounded-[28px] border-0 border-background bg-white py-0 shadow-sm transition-all duration-500 hover:shadow-xl dark:border-gray-800 dark:bg-[#1a1a1a] ${
-              isOutOfService || !availability.isOpen ? "grayscale opacity-75" : ""
+              !availability.isOpen ? "grayscale opacity-75" : ""
             }`}
           >
             <div className="relative">
@@ -485,6 +485,20 @@ function FoodHomeContent({
           <div ref={restaurantLoadMoreRef} className="h-1 w-full" aria-hidden="true" />
         </div>
       </motion.section>
+
+      {isOutOfService && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-[#1a1a1a] p-6 sm:p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full border border-gray-100 dark:border-gray-800">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MapPin className="h-8 w-8 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Location Out of Zone</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
+              We currently don't deliver to this location. Please update your address.
+            </p>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

@@ -183,7 +183,7 @@ export default function Home() {
 
   // --- Location Logic ---
   const { location } = useLocation();
-  const { zoneId: liveZoneId, isInService: isLiveInService } = useZone(location);
+  const { zoneId: liveZoneId, isInService: isLiveInService, isOutOfService: isLiveOutOfService } = useZone(location);
   const defaultSavedAddress = useMemo(() => getDefaultAddress?.() || null, [getDefaultAddress]);
   const defaultSavedAddressLocation = useMemo(() => {
     if (!defaultSavedAddress) return null;
@@ -199,11 +199,12 @@ export default function Home() {
       postalCode: defaultSavedAddress.postalCode || defaultSavedAddress.zipCode || "",
     };
   }, [defaultSavedAddress]);
-  const { zoneId: savedZoneId, isInService: isSavedInService } = useZone(defaultSavedAddressLocation);
+  const { zoneId: savedZoneId, isInService: isSavedInService, isOutOfService: isSavedOutOfService } = useZone(defaultSavedAddressLocation);
 
   const deliveryAddressMode = getStoredDeliveryAddressMode();
   const effectiveZoneId = (deliveryAddressMode === "current" ? liveZoneId : savedZoneId) || liveZoneId;
   const effectiveLocation = (deliveryAddressMode === "current" ? location : defaultSavedAddressLocation) || location;
+  const effectiveIsOutOfService = deliveryAddressMode === "current" ? isLiveOutOfService : isSavedOutOfService;
 
   // --- Core Data Hook ---
   const {
@@ -374,71 +375,78 @@ export default function Home() {
               transition={{ duration: 0.16, ease: "easeOut" }}
               className="bg-white dark:bg-[#0a0a0a]"
             >
-              <Suspense fallback={<CategoryChipRowSkeleton className="py-1" />}>
-                <CategoryRail
-                  displayCategories={categories.display}
-                  showCategorySkeleton={categories.loading}
-                  navigate={navigate}
-                  setShowAllCategoriesModal={setShowAllCategoriesModal}
-                  backendOrigin={BACKEND_ORIGIN}
-                />
-              </Suspense>
-
-              <Suspense fallback={null}>
-                <RecommendedSection recommendedForYouRestaurants={meta.recommended} />
-              </Suspense>
-
-
-              <Suspense fallback={<HeroBannerSkeleton className="h-full w-full px-4 mt-3" />}>
-                <section className="content-auto px-4 py-4 sm:py-6 lg:py-8">
-                  <div className="overflow-hidden rounded-2xl h-48 sm:h-64 md:h-72 lg:h-[350px] shadow-lg border border-gray-100">
-                    <BannerSection
-                      showBannerSkeleton={banners.loading}
-                      heroBannerImages={banners.images}
-                      heroBannersData={banners.data}
-                      currentBannerIndex={currentBannerIndex}
-                      setCurrentBannerIndex={setCurrentBannerIndex}
-                      heroShellRef={heroShellRef}
-                      navigate={navigate}
-                      backendOrigin={BACKEND_ORIGIN}
-                      hideOverlay={true}
-                    />
+              {effectiveIsOutOfService ? (
+                <div className="flex flex-col items-center justify-center py-20 px-4 text-center min-h-[60vh]">
+                  <div className="bg-white dark:bg-[#1a1a1a] p-6 sm:p-8 rounded-2xl shadow-xl text-center max-w-sm w-full border border-gray-100 dark:border-gray-800">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <MapPin className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Service Not Available</h2>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
+                      We currently don't deliver to this location. Please update your address above to explore restaurants.
+                    </p>
                   </div>
-                </section>
-              </Suspense>
+                </div>
+              ) : (
+                <>
+                  <Suspense fallback={<CategoryChipRowSkeleton className="py-1" />}>
+                    <CategoryRail
+                      displayCategories={categories.display}
+                      showCategorySkeleton={categories.loading}
+                      navigate={navigate}
+                      setShowAllCategoriesModal={setShowAllCategoriesModal}
+                      backendOrigin={BACKEND_ORIGIN}
+                    />
+                  </Suspense>
 
-              <Suspense fallback={null}>
-                <ExploreMoreSection
-                  exploreMoreHeading={landing.heading}
-                  showExploreSkeleton={landing.loading}
-                  finalExploreItems={landing.exploreMore}
-                  backendOrigin={BACKEND_ORIGIN}
-                />
-              </Suspense>
+                  <Suspense fallback={null}>
+                    <RecommendedSection recommendedForYouRestaurants={meta.recommended} />
+                  </Suspense>
 
-              {/* <Suspense fallback={null}>
-              <SortFilterSection
-                activeFilters={state.activeFilters}
-                toggleFilter={actions.toggleFilter}
-                setIsFilterOpen={(val) => { }} // Hook handles internal apply
-              />
-            </Suspense> */}
+                  <Suspense fallback={<HeroBannerSkeleton className="h-full w-full px-4 mt-3" />}>
+                    <section className="content-auto px-4 py-4 sm:py-6 lg:py-8">
+                      <div className="overflow-hidden rounded-2xl h-48 sm:h-64 md:h-72 lg:h-[350px] shadow-lg border border-gray-100">
+                        <BannerSection
+                          showBannerSkeleton={banners.loading}
+                          heroBannerImages={banners.images}
+                          heroBannersData={banners.data}
+                          currentBannerIndex={currentBannerIndex}
+                          setCurrentBannerIndex={setCurrentBannerIndex}
+                          heroShellRef={heroShellRef}
+                          navigate={navigate}
+                          backendOrigin={BACKEND_ORIGIN}
+                          hideOverlay={true}
+                        />
+                      </div>
+                    </section>
+                  </Suspense>
 
-              <Suspense fallback={<RestaurantGridSkeleton count={3} />}>
-                <RestaurantGrid
-                  filteredRestaurants={restaurants.visible}
-                  visibleRestaurants={restaurants.visible}
-                  showRestaurantSkeleton={restaurants.loading}
-                  isLoadingFilterResults={restaurants.isLoadingFilterResults}
-                  loadingRestaurants={restaurants.loading}
-                  availabilityTick={availabilityTick}
-                  isFavorite={isFavorite}
-                  onFavoriteToggle={handleFavoriteToggle}
-                  backendOrigin={BACKEND_ORIGIN}
-                  hasMoreRestaurants={restaurants.hasMore}
-                  loadMoreRestaurants={actions.loadMoreRestaurants}
-                />
-              </Suspense>
+                  <Suspense fallback={null}>
+                    <ExploreMoreSection
+                      exploreMoreHeading={landing.heading}
+                      showExploreSkeleton={landing.loading}
+                      finalExploreItems={landing.exploreMore}
+                      backendOrigin={BACKEND_ORIGIN}
+                    />
+                  </Suspense>
+
+                  <Suspense fallback={<RestaurantGridSkeleton count={3} />}>
+                    <RestaurantGrid
+                      filteredRestaurants={restaurants.visible}
+                      visibleRestaurants={restaurants.visible}
+                      showRestaurantSkeleton={restaurants.loading}
+                      isLoadingFilterResults={restaurants.isLoadingFilterResults}
+                      loadingRestaurants={restaurants.loading}
+                      availabilityTick={availabilityTick}
+                      isFavorite={isFavorite}
+                      onFavoriteToggle={handleFavoriteToggle}
+                      backendOrigin={BACKEND_ORIGIN}
+                      hasMoreRestaurants={restaurants.hasMore}
+                      loadMoreRestaurants={actions.loadMoreRestaurants}
+                    />
+                  </Suspense>
+                </>
+              )}
             </motion.div>
           ) : (
             <motion.div

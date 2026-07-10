@@ -16,7 +16,7 @@ quickCartSchema.index(
   { userId: 1 },
   {
     unique: true,
-    partialFilterExpression: { userId: { $exists: true, $ne: null } },
+    partialFilterExpression: { userId: { $type: "objectId" } },
   }
 );
 
@@ -24,7 +24,7 @@ quickCartSchema.index(
   { sessionId: 1 },
   {
     unique: true,
-    partialFilterExpression: { sessionId: { $exists: true, $type: 'string', $ne: '' } },
+    partialFilterExpression: { sessionId: { $type: "string", $gt: "" } },
   }
 );
 

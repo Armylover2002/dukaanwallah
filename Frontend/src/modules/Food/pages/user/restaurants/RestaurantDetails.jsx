@@ -2006,7 +2006,7 @@ function RestaurantDetailsContent() {
 
   const availabilityStatus = getRestaurantAvailabilityStatus(restaurant, new Date(availabilityTick))
   const isRestaurantOffline = !availabilityStatus.isOpen
-  const shouldShowGrayscale = isOutOfService || isRestaurantOffline
+  const shouldShowGrayscale = isRestaurantOffline
 
   return (
     <AnimatedPage

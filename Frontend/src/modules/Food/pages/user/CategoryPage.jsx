@@ -801,13 +801,17 @@ export default function CategoryPage() {
 
   // Fetch restaurants from API
   useEffect(() => {
+    let cancelled = false;
+
     const fetchRestaurants = async () => {
       try {
         setLoadingRestaurants(true)
-        // IMPORTANT: Do NOT pass zoneId as a hard filter.
-        // UX is "show all restaurants", and we only style out-of-service state.
-        const params = {}
+        setRestaurantsData([]) // Clear stale data on zone change
+        // Fetch restaurants specifically for this zone to avoid cross-zone data leakage
+        const params = zoneId ? { zoneId } : {}
         const response = await restaurantAPI.getRestaurants(params)
+        
+        if (cancelled) return;
 
         if (response.data && response.data.success && response.data.data && response.data.data.restaurants) {
           const restaurantsArray = response.data.data.restaurants
@@ -996,7 +1000,7 @@ export default function CategoryPage() {
                 transformedRestaurants.push(...batchResults)
               }
 
-              if (enrichmentRequestId === menuEnrichmentRequestRef.current) {
+              if (enrichmentRequestId === menuEnrichmentRequestRef.current && !cancelled) {
                 startTransition(() => {
                   setRestaurantsData(transformedRestaurants)
                 })
@@ -1008,17 +1012,21 @@ export default function CategoryPage() {
             }
           })()
         } else {
-          setRestaurantsData([])
+          if (!cancelled) setRestaurantsData([])
         }
       } catch (error) {
         debugError('Error fetching restaurants:', error)
-        setRestaurantsData([])
+        if (!cancelled) setRestaurantsData([])
       } finally {
-        setLoadingRestaurants(false)
+        if (!cancelled) setLoadingRestaurants(false)
       }
     }
 
     fetchRestaurants()
+
+    return () => {
+      cancelled = true
+    }
   }, [zoneId, isOutOfService])
 
   // Update selected category when URL changes
@@ -1270,7 +1278,7 @@ export default function CategoryPage() {
   }, [navigate])
 
   // Check if should show grayscale (user out of service)
-  const shouldShowGrayscale = isOutOfService
+  const shouldShowGrayscale = false
   const isCategoryView = selectedCategory && selectedCategory !== 'all'
 
   return (
@@ -1298,7 +1306,9 @@ export default function CategoryPage() {
             </div>
           </div>
 
-          {/* Browse Category Section */}
+          {!isOutOfService && (
+            <>
+              {/* Browse Category Section */}
           <div
             ref={categoryScrollRef}
             className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide px-4 md:px-6 py-3 bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-gray-800"
@@ -1438,11 +1448,26 @@ export default function CategoryPage() {
                 )
               })}
             </div>
-          </div>
+            </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Content */}
+      {isOutOfService ? (
+        <div className="flex flex-col items-center justify-center pt-24 pb-20 px-4 text-center min-h-[60vh]">
+          <div className="bg-white dark:bg-[#1a1a1a] p-6 sm:p-8 rounded-2xl shadow-xl text-center max-w-sm w-full border border-gray-100 dark:border-gray-800">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MapPin className="h-8 w-8 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Service Not Available</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
+              We currently don't deliver to this location. Please update your address above to explore restaurants.
+            </p>
+          </div>
+        </div>
+      ) : (
       <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 lg:py-10 space-y-6 md:space-y-8 lg:space-y-10">
         <div className="max-w-7xl mx-auto">
           {/* RECOMMENDED FOR YOU Section - Hide when "All" category is selected */}
@@ -1724,8 +1749,10 @@ export default function CategoryPage() {
               </div>
             )}
           </section>
+
         </div>
       </div>
+      )}
 
       {/* Filter Modal - Bottom Sheet */}
       {typeof window !== "undefined" &&

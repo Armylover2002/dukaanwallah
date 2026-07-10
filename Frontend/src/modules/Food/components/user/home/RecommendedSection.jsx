@@ -6,6 +6,7 @@ import { restaurantAPI } from "@food/api";
 import { useCart } from "@food/context/CartContext";
 import toast from "react-hot-toast";
 import { useProfile } from "@food/context/ProfileContext";
+import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability";
 
 // Module-level cache: persists across component unmount/remount, avoids re-fetching same restaurants
 const productsCache = new Map();
@@ -228,7 +229,9 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {displayedProducts.map((product, index) => (
+        {displayedProducts.map((product, index) => {
+          const isOffline = product.restaurantData ? !getRestaurantAvailabilityStatus(product.restaurantData, new Date()).isOpen : false;
+          return (
             <motion.div
               key={`recommended-prod-${product._id || product.id || index}`}
               initial={{ opacity: 0, y: 12 }}
@@ -237,8 +240,8 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
               transition={{ duration: 0.35, delay: index * 0.05 }}
             >
               <div
-                onClick={() => setSelectedProduct(product)}
-                className="bg-white rounded-[12px] border border-gray-100 overflow-hidden shadow-sm block hover:shadow-md transition-shadow cursor-pointer h-full flex flex-col"
+                onClick={() => !isOffline && setSelectedProduct(product)}
+                className={`bg-white rounded-[12px] border border-gray-100 overflow-hidden shadow-sm block hover:shadow-md transition-shadow h-full flex flex-col ${isOffline ? 'grayscale opacity-75 cursor-not-allowed' : 'cursor-pointer'}`}
                 data-purpose="product-card"
               >
                 <div className="relative h-32 sm:h-36 bg-gray-100 shrink-0">
@@ -269,7 +272,8 @@ const RecommendedSection = memo(({ recommendedForYouRestaurants }) => {
                 </div>
               </div>
             </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {selectedProduct && (

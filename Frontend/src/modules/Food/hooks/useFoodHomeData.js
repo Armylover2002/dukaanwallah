@@ -9,53 +9,60 @@ import * as imgUtils from "@food/utils/imageUtils";
  * Encapsulates banners, categories, settings, and restaurant filtering logic.
  */
 // --- Global Persistence Cache (Outlives Component Lifecycle) ---
-let globalHomeCache = {
-  bootstrap: null,
-  restaurants: null,
-  lastFetched: 0,
-};
+let globalHomeCache = {};
 
 const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
-export const useFoodHomeData = ({ 
-  zoneId, 
-  location, 
-  vegMode, 
+export const useFoodHomeData = ({
+  zoneId,
+  location,
+  vegMode,
   backendOrigin,
-  availabilityTick 
+  availabilityTick
 }) => {
-  // Use cache as initial state if valid
-  const hasValidCache = globalHomeCache.bootstrap && (Date.now() - globalHomeCache.lastFetched < CACHE_EXPIRY_MS);
+  const zoneKey = String(zoneId || "global");
   
+  if (!globalHomeCache[zoneKey]) {
+    globalHomeCache[zoneKey] = {
+      bootstrap: null,
+      restaurants: null,
+      lastFetched: 0,
+    };
+  }
+  const currentCache = globalHomeCache[zoneKey];
+
+  // Use cache as initial state if valid
+  const hasValidCache = currentCache.bootstrap && (Date.now() - currentCache.lastFetched < CACHE_EXPIRY_MS);
+
   // --- Bootstrap State ---
   const [isBootstrapped, setIsBootstrapped] = useState(hasValidCache);
-  
+
   // --- Banners State ---
-  const [heroBannerImages, setHeroBannerImages] = useState(globalHomeCache.bootstrap?.banners?.images || []);
-  const [heroBannersData, setHeroBannersData] = useState(globalHomeCache.bootstrap?.banners?.data || []);
+  const [heroBannerImages, setHeroBannerImages] = useState(currentCache.bootstrap?.banners?.images || []);
+  const [heroBannersData, setHeroBannersData] = useState(currentCache.bootstrap?.banners?.data || []);
   const [loadingBanners, setLoadingBanners] = useState(!hasValidCache);
 
   // --- Categories State ---
-  const [realCategories, setRealCategories] = useState(globalHomeCache.bootstrap?.categories || []);
+  const [realCategories, setRealCategories] = useState(currentCache.bootstrap?.categories || []);
   const [loadingRealCategories, setLoadingRealCategories] = useState(!hasValidCache);
   const [menuCategories, setMenuCategories] = useState([]);
   const [loadingMenuCategories, setLoadingMenuCategories] = useState(false);
   const [landingCategories, setLandingCategories] = useState([]);
-  
+
   // --- Landing Config State ---
-  const [landingExploreMore, setLandingExploreMore] = useState(globalHomeCache.bootstrap?.exploreMore || []);
-  const [exploreMoreHeading, setExploreMoreHeading] = useState(globalHomeCache.bootstrap?.settings?.heading || "Explore More");
-  const [headerVideoUrl, setHeaderVideoUrl] = useState(globalHomeCache.bootstrap?.settings?.videoUrl || "");
-  const [recommendedRestaurantIds, setRecommendedRestaurantIds] = useState(globalHomeCache.bootstrap?.settings?.recommendedIds || []);
-  const [recommendedRestaurantsFromSettings, setRecommendedRestaurantsFromSettings] = useState(globalHomeCache.bootstrap?.settings?.recommendedRaw || []);
+  const [landingExploreMore, setLandingExploreMore] = useState(currentCache.bootstrap?.exploreMore || []);
+  const [exploreMoreHeading, setExploreMoreHeading] = useState(currentCache.bootstrap?.settings?.heading || "Explore More");
+  const [headerVideoUrl, setHeaderVideoUrl] = useState(currentCache.bootstrap?.settings?.videoUrl || "");
+  const [recommendedRestaurantIds, setRecommendedRestaurantIds] = useState(currentCache.bootstrap?.settings?.recommendedIds || []);
+  const [recommendedRestaurantsFromSettings, setRecommendedRestaurantsFromSettings] = useState(currentCache.bootstrap?.settings?.recommendedRaw || []);
   const [loadingLandingConfig, setLoadingLandingConfig] = useState(!hasValidCache);
 
   // --- Restaurants State ---
-  const [restaurantsData, setRestaurantsData] = useState(globalHomeCache.restaurants || []);
-  const [loadingRestaurants, setLoadingRestaurants] = useState(!globalHomeCache.restaurants);
+  const [restaurantsData, setRestaurantsData] = useState(currentCache.restaurants || []);
+  const [loadingRestaurants, setLoadingRestaurants] = useState(!currentCache.restaurants);
   const [visibleRestaurantCount, setVisibleRestaurantCount] = useState(10);
   const [isLoadingFilterResults, setIsLoadingFilterResults] = useState(false);
-  
+
   // ... existing filter state ...
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [sortBy, setSortBy] = useState(null);
@@ -73,13 +80,13 @@ export const useFoodHomeData = ({
   const publicCategoriesCacheRef = useRef(new Map());
 
   // --- Image Helpers ---
-  const normalizeImageUrl = useCallback((imageUrl) => 
+  const normalizeImageUrl = useCallback((imageUrl) =>
     imgUtils.normalizeImageUrl(imageUrl, backendOrigin), [backendOrigin]);
-  
-  const extractImages = useCallback((source) => 
+
+  const extractImages = useCallback((source) =>
     imgUtils.extractImages(source, backendOrigin), [backendOrigin]);
 
-  const buildRestaurantImageCandidates = useCallback((value) => 
+  const buildRestaurantImageCandidates = useCallback((value) =>
     imgUtils.buildRestaurantImageCandidates(value, backendOrigin), [backendOrigin]);
 
   const slugifyCategory = imgUtils.slugifyCategory;
@@ -91,13 +98,13 @@ export const useFoodHomeData = ({
 
     const fetchBootstrap = async () => {
       // Re-use cache if strictly valid
-      if (globalHomeCache.bootstrap && (Date.now() - globalHomeCache.lastFetched < CACHE_EXPIRY_MS)) {
+      if (globalHomeCache[zoneKey].bootstrap && (Date.now() - globalHomeCache[zoneKey].lastFetched < CACHE_EXPIRY_MS)) {
         return;
       }
 
       // Fire all metadata requests in parallel
       const results = await Promise.allSettled([
-        publicGetOnce(zoneId 
+        publicGetOnce(zoneId
           ? `/food/hero-banners/public?zoneId=${encodeURIComponent(String(zoneId))}`
           : "/food/hero-banners/public"
         ),
@@ -177,8 +184,8 @@ export const useFoodHomeData = ({
       }
 
       // Update global cache
-      globalHomeCache.bootstrap = newBootstrapCache;
-      globalHomeCache.lastFetched = Date.now();
+      globalHomeCache[zoneKey].bootstrap = newBootstrapCache;
+      globalHomeCache[zoneKey].lastFetched = Date.now();
 
       setLoadingBanners(false);
       setLoadingRealCategories(false);
@@ -192,9 +199,11 @@ export const useFoodHomeData = ({
 
   // --- Fetch Restaurants ---
   const fetchRestaurants = useCallback(async (filters = {}) => {
+    console.log("fetchRestaurants")
     const requestSeq = ++restaurantsRequestSeqRef.current;
     try {
       setLoadingRestaurants(true);
+      setRestaurantsData([]); // Clear stale data when switching zones/filters
       const params = {};
       if (Number.isFinite(location?.latitude) && Number.isFinite(location?.longitude)) {
         params.lat = location.latitude;
@@ -207,7 +216,7 @@ export const useFoodHomeData = ({
       // Map local active filters to API params
       if (filters.activeFilters?.has("rating-45-plus")) params.minRating = 4.5;
       else if (filters.activeFilters?.has("rating-4-plus")) params.minRating = 4.0;
-      
+
       const response = await restaurantAPI.getRestaurants(params);
       if (requestSeq !== restaurantsRequestSeqRef.current) return;
 
@@ -216,7 +225,7 @@ export const useFoodHomeData = ({
           const profileImageCandidates = buildRestaurantImageCandidates(restaurant.profileImage || restaurant.image);
           const coverImages = extractImages(restaurant.coverImages || restaurant.coverImage);
           const allImages = Array.from(new Set([...profileImageCandidates, ...coverImages].filter(Boolean)));
-          
+
           return {
             id: restaurant.restaurantId || restaurant._id,
             mongoId: restaurant._id,
@@ -224,8 +233,8 @@ export const useFoodHomeData = ({
             cuisine: restaurant.cuisines?.[0] || "Multi-cuisine",
             rating: Number(restaurant.rating) || 0,
             deliveryTime: restaurant.estimatedDeliveryTime || "25-30 mins",
-            distance: restaurant.distanceInKm 
-              ? `${restaurant.distanceInKm} km` 
+            distance: restaurant.distanceInKm
+              ? `${restaurant.distanceInKm} km`
               : (restaurant.distance ? String(restaurant.distance).includes("km") ? restaurant.distance : `${restaurant.distance} km` : `${(2 + Math.random()).toFixed(1)} km`),
             featuredDish: restaurant.featuredDish || "Special Dish",
             featuredPrice: restaurant.featuredPrice || (restaurant.restaurantName === "Sayaji" ? "249" : "199"),
@@ -248,7 +257,7 @@ export const useFoodHomeData = ({
 
         startTransition(() => {
           setRestaurantsData(transformed);
-          globalHomeCache.restaurants = transformed;
+          globalHomeCache[zoneKey].restaurants = transformed;
         });
       }
     } catch (err) {
@@ -293,7 +302,7 @@ export const useFoodHomeData = ({
             } catch { return null; }
           }));
           if (requestSeq !== menuUnionRequestSeqRef.current) return;
-          
+
           res.forEach(menu => {
             if (!menu?.sections) return;
             menu.sections.forEach(section => {
@@ -325,7 +334,7 @@ export const useFoodHomeData = ({
     // If vegMode is 'pure', only show 100% vegetarian restaurants.
     // If vegMode is 'all' or false, show all restaurants (dish level filtering handles 'all' mode).
     let filtered = [...deferredRestaurants].filter(r => vegMode !== "pure" || r.pureVegRestaurant);
-    
+
     // Compute availability status for sorting rather than strictly filtering out closed ones
     filtered = filtered.map(r => {
       const status = getRestaurantAvailabilityStatus(r, new Date(availabilityTick), { ignoreOperationalStatus: false });
@@ -346,7 +355,7 @@ export const useFoodHomeData = ({
     return filtered;
   }, [deferredRestaurants, vegMode, sortBy, availabilityTick]);
 
-  const visibleRestaurants = useMemo(() => 
+  const visibleRestaurants = useMemo(() =>
     filteredRestaurants.slice(0, visibleRestaurantCount), [filteredRestaurants, visibleRestaurantCount]);
 
   const displayCategories = useMemo(() => {
@@ -391,11 +400,11 @@ export const useFoodHomeData = ({
   return {
     banners: { images: heroBannerImages, data: heroBannersData, loading: loadingBanners },
     categories: { display: displayCategories, loading: loadingRealCategories || loadingMenuCategories },
-    restaurants: { 
-      visible: visibleRestaurants, 
-      loading: loadingRestaurants, 
+    restaurants: {
+      visible: visibleRestaurants,
+      loading: loadingRestaurants,
       isLoadingFilterResults,
-      hasMore: visibleRestaurantCount < filteredRestaurants.length 
+      hasMore: visibleRestaurantCount < filteredRestaurants.length
     },
     landing: { exploreMore: landingExploreMore, heading: exploreMoreHeading, loading: loadingLandingConfig, videoUrl: headerVideoUrl },
     meta: { recommended: recommendedForYouRestaurants },

@@ -762,7 +762,7 @@ export default function SearchResults() {
   )
 
   // Check if should show grayscale (user out of service)
-  const shouldShowGrayscale = isOutOfService
+  const shouldShowGrayscale = false
 
   return (
     <div className={`min-h-screen bg-white dark:bg-[#0a0a0a] ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>

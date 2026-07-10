@@ -828,7 +828,7 @@ export default function Under250() {
   }
 
   // Check if should show grayscale (only when user is out of service)
-  const shouldShowGrayscale = isOutOfService
+  const shouldShowGrayscale = false
 
   return (
 
@@ -845,8 +845,22 @@ export default function Under250() {
         </div>
       </div>
 
-      {/* Banner Section */}
-      <div
+      {isOutOfService ? (
+        <div className="flex flex-col items-center justify-center pt-32 pb-20 px-4 text-center min-h-[80vh]">
+          <div className="bg-white dark:bg-[#1a1a1a] p-6 sm:p-8 rounded-2xl shadow-xl text-center max-w-sm w-full border border-gray-100 dark:border-gray-800">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MapPin className="h-8 w-8 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Service Not Available</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
+              We currently don't deliver to this location. Please update your address above to explore restaurants.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Banner Section */}
+          <div
         ref={bannerShellRef}
         data-banner-shell="true"
         className="relative w-full overflow-hidden h-[clamp(240px,42vw,520px)] md:-mt-40"
@@ -1171,6 +1185,8 @@ export default function Under250() {
             )
           }))}
       </div>
+        </>
+      )}
 
       {/* Sort Popup - Bottom Sheet */}
       <AnimatePresence>

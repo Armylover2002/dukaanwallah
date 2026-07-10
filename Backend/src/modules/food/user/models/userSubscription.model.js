@@ -112,7 +112,7 @@ userSubscriptionSchema.index(
     { 
         unique: true, 
         partialFilterExpression: { 
-            restaurantId: { $exists: true, $ne: null }, 
+            restaurantId: { $type: "objectId" }, 
             status: { $in: ['active', 'grace'] } 
         } 
     }
@@ -122,7 +122,7 @@ userSubscriptionSchema.index(
     { 
         unique: true, 
         partialFilterExpression: { 
-            deliveryBoyId: { $exists: true, $ne: null }, 
+            deliveryBoyId: { $type: "objectId" }, 
             status: { $in: ['active', 'grace'] } 
         } 
     }
@@ -133,7 +133,7 @@ userSubscriptionSchema.index(
     {
         unique: true,
         partialFilterExpression: {
-            restaurantId: { $exists: true, $ne: null },
+            restaurantId: { $type: "objectId" },
             status: 'pending'
         }
     }
@@ -143,7 +143,7 @@ userSubscriptionSchema.index(
     {
         unique: true,
         partialFilterExpression: {
-            deliveryBoyId: { $exists: true, $ne: null },
+            deliveryBoyId: { $type: "objectId" },
             status: 'pending'
         }
     }
