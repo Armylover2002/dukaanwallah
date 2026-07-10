@@ -133,9 +133,13 @@ export default function Coupons() {
     }
     const next = { ...formData, [field]: value }
     
-    // Auto-select "First Order Only" when "First Time User" is selected
-    if (field === "customerScope" && value === "first-time") {
-      next.isFirstOrderOnly = true
+    // Auto-select/deselect "First Order Only" based on "Customer Scope"
+    if (field === "customerScope") {
+      if (value === "first-time") {
+        next.isFirstOrderOnly = true
+      } else if (value === "all") {
+        next.isFirstOrderOnly = false
+      }
     }
 
     // Date constraints
