@@ -1104,7 +1104,7 @@ export default function SellerOnboarding() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-900">UPI QR image <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-900">UPI QR image <span className="text-red-500"></span></label>
                     <div
                       onClick={() => setIsQrPickerOpen(true)}
                       className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
