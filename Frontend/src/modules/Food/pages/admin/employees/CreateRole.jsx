@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { 
-  ChevronLeft, Save, ShieldCheck, ChevronRight, ChevronDown, 
-  Check, Info, Search, ListFilter, Layers, 
+import {
+  ChevronLeft, Save, ShieldCheck, ChevronRight, ChevronDown,
+  Check, Info, Search, ListFilter, Layers,
   Maximize2, Minimize2, CheckSquare, Square, Copy, Trash2
 } from "lucide-react";
 import { Button } from "@food/components/ui/button";
@@ -25,7 +25,7 @@ export default function CreateRole() {
     description: "",
     permissions: {}, // Flat map for API: { key: { view: true, ... } }
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [enabledModules, setEnabledModules] = useState(() => {
@@ -47,19 +47,19 @@ export default function CreateRole() {
   // Filter tree based on search
   const permissionTree = useMemo(() => {
     if (!searchQuery.trim()) return rawPermissionTree;
-    
+
     const filterNodes = (nodes) => {
       return nodes.map(node => {
         const matches = node.label.toLowerCase().includes(searchQuery.toLowerCase());
         const filteredChildren = node.children ? filterNodes(node.children) : [];
-        
+
         if (matches || filteredChildren.length > 0) {
           return { ...node, children: filteredChildren };
         }
         return null;
       }).filter(Boolean);
     };
-    
+
     return filterNodes(rawPermissionTree);
   }, [rawPermissionTree, searchQuery]);
 
@@ -197,7 +197,7 @@ export default function CreateRole() {
   const handleSectionSelectAll = (node, isChecked) => {
     const newPermissions = { ...roleData.permissions };
     const actions = ["view", "create", "edit", "delete"];
-    
+
     const applyRecursive = (n) => {
       const k = n.permissionKey;
       if (!newPermissions[k]) newPermissions[k] = { view: false, create: false, edit: false, delete: false };
@@ -273,7 +273,7 @@ export default function CreateRole() {
         ...roleData,
         permissions: buildSubmitPermissions(roleData.permissions),
       };
-      
+
       const response = await axiosInstance[method](url, payload);
       if (response.data.success) {
         toast.success(response.data.message);
@@ -290,7 +290,7 @@ export default function CreateRole() {
     const isExpanded = expandedNodes.has(node.permissionKey);
     const hasChildren = node.children && node.children.length > 0;
     const permissions = roleData.permissions[node.permissionKey] || { view: false, create: false, edit: false, delete: false };
-    
+
     const actionIcons = {
       view: { icon: "👁", label: "View", color: "text-blue-500" },
       create: { icon: "➕", label: "Create", color: "text-green-500" },
@@ -300,7 +300,7 @@ export default function CreateRole() {
 
     return (
       <div key={node.permissionKey} className="flex flex-col">
-        <div 
+        <div
           className={cn(
             "flex items-center justify-between py-3 px-4 border-b border-neutral-50 hover:bg-neutral-50/80 transition-all duration-200 group min-w-[720px]",
             depth === 0 && "bg-neutral-100/50 border-neutral-200/50 backdrop-blur-sm",
@@ -308,23 +308,23 @@ export default function CreateRole() {
           )}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div 
-              className="flex items-center gap-2 cursor-pointer select-none" 
+            <div
+              className="flex items-center gap-2 cursor-pointer select-none"
               onClick={() => hasChildren && toggleExpand(node.permissionKey)}
               style={{ paddingLeft: `${depth * 20}px` }}
             >
               {hasChildren ? (
-                isExpanded ? 
-                  <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" /> : 
+                isExpanded ?
+                  <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" /> :
                   <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
               ) : (
                 <div className="w-4 shrink-0" />
               )}
               {depth === 0 && (node.permissionKey === "food" || node.permissionKey === "quick") && (
                 <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center mr-1">
-                  <Checkbox 
+                  <Checkbox
                     checked={
-                      node.permissionKey === "food" 
+                      node.permissionKey === "food"
                         ? (foodState.checked ? true : foodState.indeterminate ? "indeterminate" : false)
                         : (quickState.checked ? true : quickState.indeterminate ? "indeterminate" : false)
                     }
@@ -337,19 +337,27 @@ export default function CreateRole() {
               )}
               <span className={cn(
                 "text-sm truncate",
-                depth === 0 ? "font-black text-neutral-800 uppercase text-[11px] tracking-widest" : 
-                depth === 1 ? "font-bold text-neutral-700" : "text-neutral-600 font-medium"
+                depth === 0 ? "font-black text-neutral-800 uppercase text-[11px] tracking-widest" :
+                  depth === 1 ? "font-bold text-neutral-700" : "text-neutral-600 font-medium"
               )}>
                 {node.label}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-8 shrink-0 justify-end w-[280px] md:w-[320px]">
+          {/*
+            FIX: switched from `flex` (content-based sizing, causes column drift
+            between rows with different labels/checkbox states) to a CSS `grid`
+            with 4 equal-width tracks + 1 fixed track for the ALL button.
+            Grid tracks are computed from the container, not from each child's
+            content, so VIEW / CREATE / EDIT / DELETE line up perfectly across
+            every row and depth. No other markup, classes, or logic changed.
+          */}
+          <div className="grid grid-cols-[repeat(4,1fr)_3rem] gap-4 md:gap-8 items-center shrink-0 w-[280px] md:w-[320px]">
             {["view", "create", "edit", "delete"].map(action => {
               const isAllowed = !node.allowedActions || node.allowedActions.includes(action);
               return (
-                <div key={action} className="flex flex-col items-center gap-1.5 min-w-[44px]" title={depth > 0 ? actionIcons[action].label : ""}>
+                <div key={action} className="flex flex-col items-center gap-1.5" title={depth > 0 ? actionIcons[action].label : ""}>
                   {depth === 0 ? (
                     <span className={cn("text-[9px] font-bold uppercase tracking-tighter", actionIcons[action].color)}>
                       {actionIcons[action].label}
@@ -358,7 +366,7 @@ export default function CreateRole() {
                     hasChildren ? (
                       <div className="w-4 h-4 shrink-0" />
                     ) : isAllowed ? (
-                      <Checkbox 
+                      <Checkbox
                         checked={permissions[action]}
                         onCheckedChange={(checked) => handlePermissionChange(node, action, checked)}
                         className={cn(
@@ -376,9 +384,9 @@ export default function CreateRole() {
               );
             })}
 
-            <div className="w-12 flex justify-center border-l border-neutral-100 ml-2">
-               {depth > 0 && (
-                 <button 
+            <div className="flex justify-center border-l border-neutral-100">
+              {depth > 0 && (
+                <button
                   type="button"
                   onClick={() => {
                     const applicableActions = ["view", "create", "edit", "delete"].filter(a => !node.allowedActions || node.allowedActions.includes(a));
@@ -391,13 +399,13 @@ export default function CreateRole() {
                       const applicableActions = ["view", "create", "edit", "delete"].filter(a => !node.allowedActions || node.allowedActions.includes(a));
                       return applicableActions.length > 0 && applicableActions.every(a => permissions[a]);
                     })()
-                      ? "bg-primary/10 text-primary" 
+                      ? "bg-primary/10 text-primary"
                       : "text-neutral-400 hover:text-primary hover:bg-primary/5"
                   )}
-                 >
-                   ALL
-                 </button>
-               )}
+                >
+                  ALL
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -426,10 +434,10 @@ export default function CreateRole() {
       {/* Sticky Header */}
       <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-3xl border border-neutral-200 shadow-xl shadow-neutral-100/50 sticky top-4 z-20">
         <div className="flex items-center gap-5">
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => navigate("/admin/food/employee-role")}
             className="rounded-2xl hover:bg-neutral-100 h-12 w-12 transition-all active:scale-90"
           >
@@ -454,15 +462,15 @@ export default function CreateRole() {
             <span className="text-[10px] font-black text-primary uppercase tracking-widest">{selectedCount} Permissions</span>
             <span className="text-[9px] text-neutral-400 font-bold uppercase">Ready to Commit</span>
           </div>
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => navigate("/admin/food/employee-role")}
             className="rounded-2xl border-neutral-200 text-neutral-600 h-12 px-6 font-bold transition-all hover:bg-neutral-50"
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={loading}
             className="rounded-2xl bg-neutral-900 hover:bg-black text-white h-12 px-8 font-black shadow-2xl shadow-neutral-900/30 transition-all active:scale-95 disabled:opacity-50"
@@ -477,14 +485,14 @@ export default function CreateRole() {
         <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-[100px]">
           <div className="bg-white p-8 rounded-[2rem] border border-neutral-200 shadow-xl shadow-neutral-100/50 space-y-8">
             <div className="flex items-center gap-3 pb-4 border-b border-neutral-100">
-               <Info className="w-5 h-5 text-neutral-400" />
-               <h3 className="font-black text-neutral-800 text-xs uppercase tracking-[0.2em]">Primary Config</h3>
+              <Info className="w-5 h-5 text-neutral-400" />
+              <h3 className="font-black text-neutral-800 text-xs uppercase tracking-[0.2em]">Primary Config</h3>
             </div>
-            
+
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Role Title</label>
-                <Input 
+                <Input
                   value={roleData.roleName}
                   onChange={(e) => setRoleData(prev => ({ ...prev, roleName: e.target.value }))}
                   placeholder="e.g. Senior Order Manager"
@@ -494,7 +502,7 @@ export default function CreateRole() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Scope Description</label>
-                <Textarea 
+                <Textarea
                   value={roleData.description}
                   onChange={(e) => setRoleData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe the operational boundaries of this role..."
@@ -510,18 +518,18 @@ export default function CreateRole() {
               <h4 className="font-black text-[11px] uppercase tracking-widest">Permission Logic</h4>
             </div>
             <div className="space-y-4">
-               <div className="flex gap-4">
-                  <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
-                  <p className="text-[11px] font-bold leading-relaxed opacity-90">Actions (Create/Edit/Delete) automatically grant 'View' access for that section.</p>
-               </div>
-               <div className="flex gap-4">
-                  <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
-                  <p className="text-[11px] font-bold leading-relaxed opacity-90">Removing 'View' access will instantly revoke all associated operational actions.</p>
-               </div>
-               <div className="flex gap-4">
-                  <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-xs font-bold">3</div>
-                  <p className="text-[11px] font-bold leading-relaxed opacity-90">Hierarchical Select allows provisioning entire sub-trees with a single click.</p>
-               </div>
+              <div className="flex gap-4">
+                <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
+                <p className="text-[11px] font-bold leading-relaxed opacity-90">Actions (Create/Edit/Delete) automatically grant 'View' access for that section.</p>
+              </div>
+              <div className="flex gap-4">
+                <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
+                <p className="text-[11px] font-bold leading-relaxed opacity-90">Removing 'View' access will instantly revoke all associated operational actions.</p>
+              </div>
+              <div className="flex gap-4">
+                <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-xs font-bold">3</div>
+                <p className="text-[11px] font-bold leading-relaxed opacity-90">Hierarchical Select allows provisioning entire sub-trees with a single click.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -531,31 +539,31 @@ export default function CreateRole() {
           <div className="bg-white rounded-[2rem] border border-neutral-200 shadow-2xl shadow-neutral-100/50 overflow-hidden flex flex-col">
             {/* Tree Toolbar */}
             <div className="p-5 bg-neutral-900 border-b border-neutral-800 flex flex-col md:flex-row items-center gap-4">
-               <div className="relative flex-1 w-full">
-                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                 <input 
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                <input
                   type="text"
                   placeholder="Search permissions..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-neutral-800 border-none rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:ring-2 focus:ring-primary/50 transition-all font-bold"
-                 />
-               </div>
-               <div className="flex items-center gap-2 shrink-0">
-                 <Button type="button" size="sm" onClick={expandAll} className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold text-[10px]">
-                   <Maximize2 className="w-3 h-3 mr-1.5" /> EXPAND ALL
-                 </Button>
-                 <Button type="button" size="sm" onClick={collapseAll} className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold text-[10px]">
-                   <Minimize2 className="w-3 h-3 mr-1.5" /> COLLAPSE ALL
-                 </Button>
-                </div>
-             </div>
+                />
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button type="button" size="sm" onClick={expandAll} className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold text-[10px]">
+                  <Maximize2 className="w-3 h-3 mr-1.5" /> EXPAND ALL
+                </Button>
+                <Button type="button" size="sm" onClick={collapseAll} className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold text-[10px]">
+                  <Minimize2 className="w-3 h-3 mr-1.5" /> COLLAPSE ALL
+                </Button>
+              </div>
+            </div>
 
             {/* Module Quick Access Toggles */}
             <div className="p-4 bg-neutral-50/60 border-b border-neutral-200/60 flex flex-wrap items-center gap-6 px-6">
               <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Quick Section Toggles:</span>
               <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-neutral-200 shadow-xs hover:shadow-md transition-all duration-200">
-                <Checkbox 
+                <Checkbox
                   id="toggle-food-module"
                   checked={foodState.checked ? true : foodState.indeterminate ? "indeterminate" : false}
                   onCheckedChange={(checked) => {
@@ -571,7 +579,7 @@ export default function CreateRole() {
                 </label>
               </div>
               <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-neutral-200 shadow-xs hover:shadow-md transition-all duration-200">
-                <Checkbox 
+                <Checkbox
                   id="toggle-quick-module"
                   checked={quickState.checked ? true : quickState.indeterminate ? "indeterminate" : false}
                   onCheckedChange={(checked) => {
@@ -588,7 +596,7 @@ export default function CreateRole() {
               </div>
             </div>
 
-             {/* Tree Container */}
+            {/* Tree Container */}
             <div className="bg-white min-h-[600px] max-h-[800px] overflow-x-auto overflow-y-auto custom-scrollbar flex flex-col">
               {permissionTree.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-neutral-400 gap-4">
@@ -604,11 +612,11 @@ export default function CreateRole() {
 
             {/* Tree Footer Info */}
             <div className="p-4 bg-neutral-50 border-t border-neutral-100 flex items-center justify-between text-[10px] font-black text-neutral-400 uppercase tracking-widest">
-               <div className="flex items-center gap-6">
-                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-primary" /> ACTIVE INHERITANCE</div>
-                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-neutral-300" /> SYSTEM DEFAULT</div>
-               </div>
-               <div>REVISION v1.0.4</div>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-primary" /> ACTIVE INHERITANCE</div>
+                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-neutral-300" /> SYSTEM DEFAULT</div>
+              </div>
+              <div>REVISION v1.0.4</div>
             </div>
           </div>
         </div>
