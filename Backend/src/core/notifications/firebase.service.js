@@ -25,11 +25,11 @@ const OWNER_TOKEN_FIELDS = {
     mobile: 'fcmTokenMobile'
 };
 const OWNER_APP_PREFIXES = {
-    USER: '👤 [User]',
-    RESTAURANT: '🏪 [Shop]',
-    DELIVERY_PARTNER: '🛵 [Rider]',
-    ADMIN: '🛡️ [Admin]',
-    SELLER: '🛍️ [Seller]'
+    USER: '[User]',
+    RESTAURANT: '[Shop]',
+    DELIVERY_PARTNER: '[Rider]',
+    ADMIN: '[Admin]',
+    SELLER: '[Seller]'
 };
 
 let cachedAccessToken = null;
@@ -173,8 +173,8 @@ const buildMessagePayload = (payload = {}, token) => {
     // payload and cannot build a meaningful notification.
     if (payload.dataOnly) {
         if (notification.title) finalData.title = notification.title;
-        if (notification.body)  finalData.body  = notification.body;
-        if (image)              finalData.image  = image;
+        if (notification.body) finalData.body = notification.body;
+        if (image) finalData.image = image;
     }
 
     if (Object.keys(finalData).length > 0) {
@@ -295,14 +295,14 @@ export const listOwnerTokens = async ({ ownerType, ownerId, platform }) => {
     }
     const doc = await model.findById(ownerId).select('fcmTokens fcmTokenMobile').lean();
     const tokens = readTokensFromDoc(doc, platform);
-    console.log(`[FCM-DEBUG] listOwnerTokens: ownerType=${ownerType}, ownerId=${ownerId}, platform=${platform||'all'}, docFound=${!!doc}, tokenCount=${tokens.length}, tokens=[${tokens.map(t=>t.slice(0,10)).join(',')}]`);
+    console.log(`[FCM-DEBUG] listOwnerTokens: ownerType=${ownerType}, ownerId=${ownerId}, platform=${platform || 'all'}, docFound=${!!doc}, tokenCount=${tokens.length}, tokens=[${tokens.map(t => t.slice(0, 10)).join(',')}]`);
     return tokens;
 };
 
 export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, platform = 'web' }) => {
     const normalizedToken = sanitizeString(token);
     console.log(`[FCM-DEBUG] upsertFirebaseDeviceToken: ownerType=${ownerType}, ownerId=${ownerId}, platform=${platform}, tokenPreview=${normalizedToken?.slice(0, 10)}...`);
-    
+
     if (!ownerType || !ownerId || !normalizedToken) {
         console.error('[FCM-DEBUG] upsert - Missing required fields');
         throw new Error('ownerType, ownerId, and token are required.');
@@ -324,10 +324,10 @@ export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, pla
     const field = getTokenFieldForPlatform(normalizedPlatform);
     const existingTokens = Array.isArray(doc[field]) ? doc[field] : [];
     console.log(`[FCM-DEBUG] upsert - Current tokens in DB count: ${existingTokens.length}`);
-    
+
     const tokens = normalizeTokenList([...existingTokens, normalizedToken]);
     doc[field] = tokens;
-    
+
     await doc.save();
     console.log(`[FCM-DEBUG] upsert - Token list updated. New count: ${tokens.length}`);
     return { success: true };
@@ -427,11 +427,11 @@ export const sendNotificationToOwner = async ({ ownerType, ownerId, payload, pla
     if (enrichedPayload && !enrichedPayload.skipHighlighter) {
         const typeKey = String(ownerType || '').toUpperCase();
         const prefix = OWNER_APP_PREFIXES[typeKey] || '';
-        
+
         if (prefix) {
             // Get original title from any potential field
             let originalTitle = enrichedPayload.title || enrichedPayload.notification?.title || 'New notification';
-            
+
             // Safety: Ensure we don't ADD the prefix if it's already there (defensive check)
             if (!originalTitle.includes(prefix)) {
                 enrichedPayload.title = `${prefix} ${originalTitle}`.trim();
@@ -443,7 +443,7 @@ export const sendNotificationToOwner = async ({ ownerType, ownerId, payload, pla
 
     const tokens = await listOwnerTokens({ ownerType, ownerId, platform });
     if (!tokens.length) {
-        console.warn(`[FCM-DEBUG] sendNotificationToOwner - NO TOKENS FOUND for ownerType=${ownerType}, ownerId=${ownerId}, platform=${platform||'all'}. Skipping FCM send.`);
+        console.warn(`[FCM-DEBUG] sendNotificationToOwner - NO TOKENS FOUND for ownerType=${ownerType}, ownerId=${ownerId}, platform=${platform || 'all'}. Skipping FCM send.`);
         return { successCount: 0, failureCount: 0, results: [] };
     }
     console.log(`[FCM-DEBUG] sendNotificationToOwner - Found ${tokens.length} token(s) for ${ownerType}:${ownerId}. Sending FCM...`);
@@ -481,7 +481,7 @@ export const sendNotificationToOwner = async ({ ownerType, ownerId, payload, pla
 export const sendNotificationToOwners = async (targets = [], payload = {}) => {
     // 🔍 Tip #6: Deduplicate targets by ownerType:ownerId before sending
     // This prevents duplicate notifications if the same person is listed twice (e.g. as USER and partner)
-    const uniqueTargets = Array.isArray(targets) 
+    const uniqueTargets = Array.isArray(targets)
         ? [...new Map(targets.filter(t => t?.ownerType && t?.ownerId).map(t => [`${t.ownerType}:${t.ownerId}`, t])).values()]
         : [];
 
@@ -502,12 +502,12 @@ export const notifyAdminsSafely = async (payload = {}) => {
     try {
         const admins = await FoodAdmin.find({ isActive: true }).select('_id').lean();
         if (!admins.length) return [];
-        
+
         const targets = admins.map(a => ({
             ownerType: 'ADMIN',
             ownerId: String(a._id)
         }));
-        
+
         return await sendNotificationToOwners(targets, payload);
     } catch (e) {
         logger.error(`Error notifying admins: ${e.message}`);

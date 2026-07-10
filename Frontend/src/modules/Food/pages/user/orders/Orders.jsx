@@ -28,6 +28,7 @@ export default function Orders() {
   const [deliveryFeedbackText, setDeliveryFeedbackText] = useState("")
   const [submittingRating, setSubmittingRating] = useState(false)
   const [countdowns, setCountdowns] = useState({})
+  const [visibleOrdersCount, setVisibleOrdersCount] = useState(10)
   // Track orders that have shown rating popup - persist in localStorage
   const [shownRatingForOrders, setShownRatingForOrders] = useState(() => {
     try {
@@ -703,7 +704,7 @@ Order again from this restaurant in the ${companyName} app.`
       <div className="sticky top-0 z-10 bg-white dark:bg-[#111111] shadow-sm border-b border-gray-100 dark:border-gray-800">
         {/* Header */}
         <div className="p-4 flex items-center">
-          <button onClick={() => navigate(-1)} className="focus:outline-none">
+          <button onClick={() => { navigate("/profile"); }} className="focus:outline-none">
             <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-white cursor-pointer" />
           </button>
           <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
@@ -731,7 +732,7 @@ Order again from this restaurant in the ${companyName} app.`
             <p className="text-gray-600 dark:text-gray-300">No orders found matching your search</p>
           </div>
         ) : (
-          filteredOrders.map((order) => {
+          filteredOrders.slice(0, visibleOrdersCount).map((order) => {
             // Check payment method - COD/wallet orders have 'pending' status which is normal
             const isCodOrWallet = order.payment?.method === 'cash' ||
               order.payment?.method === 'cod' ||
@@ -1072,6 +1073,18 @@ Order again from this restaurant in the ${companyName} app.`
           })
         )}
       </div>
+
+      {/* Load More Button */}
+      {filteredOrders.length > visibleOrdersCount && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={() => setVisibleOrdersCount(prev => prev + 10)}
+            className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-6 py-2 rounded-full text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
+          >
+            Load More
+          </button>
+        </div>
+      )}
 
       {/* Footer Branding */}
       <div className="flex justify-center mt-8 mb-4">

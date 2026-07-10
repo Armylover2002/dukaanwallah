@@ -26,12 +26,35 @@ export const ImageSourcePicker = ({
   const handleFileSelect = onFileSelect || onSelectFile;
 
   const handleOpenCamera = async () => {
-    const openPromise = openCamera({
-      onSelectFile: handleFileSelect,
-      fileNamePrefix: fileNamePrefix
-    })
     onClose()
-    await openPromise
+    
+    if (isFlutterBridgeAvailable()) {
+      const openPromise = openCamera({
+        onSelectFile: handleFileSelect,
+        fileNamePrefix: fileNamePrefix
+      })
+      await openPromise
+      return
+    }
+
+    if (galleryInputRef && galleryInputRef.current) {
+      const inputRef = galleryInputRef.current;
+      inputRef.setAttribute("capture", "environment");
+      inputRef.click();
+      
+      // Cleanup capture attribute after use so gallery still works
+      setTimeout(() => {
+        if (galleryInputRef.current) {
+          galleryInputRef.current.removeAttribute("capture");
+        }
+      }, 500);
+    } else {
+      const openPromise = openCamera({
+        onSelectFile: handleFileSelect,
+        fileNamePrefix: fileNamePrefix
+      })
+      await openPromise
+    }
   }
 
   const handlePickFromDevice = async () => {

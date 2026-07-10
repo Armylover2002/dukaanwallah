@@ -48,7 +48,7 @@ const ONBOARDING_STORAGE_KEY = "restaurant_onboarding_data"
 const PAN_NUMBER_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const GST_NUMBER_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 const FSSAI_NUMBER_REGEX = /^\d{14}$/
-const BANK_ACCOUNT_NUMBER_REGEX = /^\d{9,18}$/
+const BANK_ACCOUNT_NUMBER_REGEX = /^(?!0+$)\d{9,18}$/
 const IFSC_CODE_REGEX = /^[A-Z0-9]{11}$/
 const ACCOUNT_HOLDER_NAME_REGEX = /^[A-Za-z ]+$/
 const GST_LEGAL_NAME_REGEX = /^[A-Za-z ]+$/
@@ -1884,6 +1884,7 @@ export default function RestaurantOnboarding() {
               className="mt-1 bg-white text-sm text-black placeholder-black"
               placeholder="Customers will see this name"
               disabled={!isEditing}
+              maxLength={50}
             />
           </div>
           <div>
@@ -1934,6 +1935,7 @@ export default function RestaurantOnboarding() {
               className="mt-1 bg-white text-sm text-black placeholder-black"
               placeholder="Owner full name"
               disabled={!isEditing}
+              maxLength={30}
             />
           </div>
           <div>
@@ -2509,6 +2511,7 @@ export default function RestaurantOnboarding() {
                 })
               }
               placeholder="Enter your name as on PAN card"
+              maxLength={30}
               className="mt-1 bg-white text-sm text-black placeholder-black"
             />
           </div>
@@ -2789,6 +2792,7 @@ export default function RestaurantOnboarding() {
       <section className="bg-white p-4 sm:p-6 rounded-md space-y-4">
         <h2 className="text-lg font-semibold text-black">Bank account details</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Label className="text-xs text-gray-700">Bank account number</Label>
           <Input
             value={step3.accountNumber || ""}
             onChange={(e) =>
@@ -2797,6 +2801,7 @@ export default function RestaurantOnboarding() {
             className="bg-white text-sm"
             placeholder="Account number"
           />
+          <Label className="text-xs text-gray-700">Confirm bank account number</Label>
           <Input
             value={step3.confirmAccountNumber || ""}
             onChange={(e) =>
@@ -2810,6 +2815,7 @@ export default function RestaurantOnboarding() {
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Label className="text-xs text-gray-700">IFSC code</Label>
           <Input
             value={step3.ifscCode || ""}
             onChange={(e) =>
@@ -2821,6 +2827,7 @@ export default function RestaurantOnboarding() {
             className="bg-white text-sm"
             placeholder="IFSC code"
           />
+          <Label className="text-xs text-gray-700">Account type</Label>
           <Select
             value={step3.accountType || ""}
             onValueChange={(value) => setStep3({ ...step3, accountType: value })}
@@ -2834,6 +2841,7 @@ export default function RestaurantOnboarding() {
             </SelectContent>
           </Select>
         </div>
+        <Label className="text-xs text-gray-700">Account holder name</Label>
         <Input
           value={step3.accountHolderName || ""}
           onChange={(e) =>
@@ -2844,6 +2852,7 @@ export default function RestaurantOnboarding() {
           }
           className="bg-white text-sm"
           placeholder="Account holder name"
+          maxLength={30}
         />
       </section>
     </div>
@@ -2889,11 +2898,12 @@ export default function RestaurantOnboarding() {
             onChange={(e) =>
               setStep4({
                 ...step4,
-                featuredDish: e.target.value.replace(/[^A-Za-z ]/g, ""),
+                featuredDish: e.target.value.replace(/[^A-Za-z 0-9, ]/g, ""),
               })
             }
             className="mt-1 bg-white text-sm"
             placeholder="e.g., Butter Chicken Special"
+            maxLength={30}
           />
         </div>
 
@@ -2904,6 +2914,7 @@ export default function RestaurantOnboarding() {
             onChange={(e) => setStep4({ ...step4, offer: e.target.value })}
             className="mt-1 bg-white text-sm"
             placeholder="e.g., Flat 50 Rs. OFF on Order Above Rs.199"
+            maxLength={50}
           />
           <p className="text-[11px] text-gray-500 mt-1">
             Optional. Leave this blank if you do not want to highlight an offer.
