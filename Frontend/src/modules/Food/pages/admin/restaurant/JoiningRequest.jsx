@@ -1052,16 +1052,21 @@ export default function JoiningRequest() {
                                 </div>
                               ) : (
                                 <>
-                                  <p className="text-xs text-slate-500">Address</p>
-                                  <p className="text-sm font-medium text-slate-900">
-                                    {addressParts.length > 0
-                                      ? [r.addressLine1, r.addressLine2, r.area, r.city, r.landmark].filter(Boolean).join(", ")
-                                      : r?.location?.addressLine1
-                                        ? [r.location.addressLine1, r.location.addressLine2, r.location.area, r.location.city].filter(Boolean).join(", ")
-                                        : r?.onboarding?.step1?.location
-                                          ? [r.onboarding.step1.location.addressLine1, r.onboarding.step1.location.addressLine2, r.onboarding.step1.location.area, r.onboarding.step1.location.city].filter(Boolean).join(", ")
-                                          : r?.zone || "—"}
-                                  </p>
+                                  <div className="mb-3">
+                                    <p className="text-xs text-slate-500">Address</p>
+                                    <p className="text-sm font-medium text-slate-900">
+                                      {[r?.addressLine1, r?.addressLine2, r?.area, r?.city, r?.landmark].filter(Boolean).join(", ") ||
+                                       [r?.location?.addressLine1, r?.location?.addressLine2, r?.location?.area, r?.location?.city].filter(Boolean).join(", ") ||
+                                       [r?.onboarding?.step1?.location?.addressLine1, r?.onboarding?.step1?.location?.addressLine2, r?.onboarding?.step1?.location?.area, r?.onboarding?.step1?.location?.city].filter(Boolean).join(", ") ||
+                                       r?.address || "—"}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-slate-500">Zone</p>
+                                    <p className="text-sm font-medium text-slate-900">
+                                      {r?.zone || r?.zoneName || r?.zoneId?.name || r?.zoneId?.zoneName || r?.zoneId?.serviceLocation || "—"}
+                                    </p>
+                                  </div>
                                 </>
                               )}
                             </div>
