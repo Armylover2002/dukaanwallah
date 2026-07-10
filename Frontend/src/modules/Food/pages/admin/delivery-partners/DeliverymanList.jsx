@@ -65,6 +65,7 @@ export default function DeliverymanList() {
   }, [currentUser, resolvedPermissions])
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
   const [deliverymen, setDeliverymen] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -209,6 +210,24 @@ availableCashLimit: wallet?.availableCashLimit || 0,
     // Backend already handles search, but we can do client-side filtering if needed
     return deliverymen
   }, [deliverymen])
+
+  // Pagination logic
+  const itemsPerPage = 20
+  const paginatedDeliverymen = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    return filteredDeliverymen.slice(startIndex, startIndex + itemsPerPage)
+  }, [filteredDeliverymen, currentPage])
+
+  const totalPages = Math.ceil(filteredDeliverymen.length / itemsPerPage)
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber)
+  }
 
   const handleView = async (deliveryman) => {
     try {
@@ -610,14 +629,14 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-100">
-                  {filteredDeliverymen.length === 0 ? (
+                  {paginatedDeliverymen.length === 0 ? (
                     <tr>
                       <td colSpan={Object.values(visibleColumns).filter(v => v).length} className="px-6 py-8 text-center text-slate-500">
                         {error ? "Error loading delivery partners" : "No delivery partners found"}
                       </td>
                     </tr>
                   ) : (
-                    filteredDeliverymen.map((dm) => (
+                    paginatedDeliverymen.map((dm) => (
                       <tr key={dm._id} className="hover:bg-slate-50 transition-colors">
                         {visibleColumns.si && (
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -788,6 +807,51 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
               </table>
             )}
           </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 px-2 pt-4 border-t border-slate-200">
+              <p className="text-sm text-slate-600">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredDeliverymen.length)} of {filteredDeliverymen.length} deliverymen
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm rounded border border-slate-300 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }).map((_, idx) => {
+                  const pageNum = currentPage <= 3
+                    ? idx + 1
+                    : currentPage >= totalPages - 2
+                      ? totalPages - 4 + idx
+                      : currentPage - 2 + idx
+                  if (pageNum < 1 || pageNum > totalPages) return null
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-1 text-sm rounded border ${currentPage === pageNum
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "border-slate-300 text-slate-700 hover:bg-slate-50"
+                        }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm rounded border border-slate-300 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
