@@ -136,17 +136,19 @@ if (
       notificationKey,
     });
 
-    self.registration.showNotification(title, {
-      body,
-      icon: "/favicon.ico",
-      image,
-      tag: notificationKey,
-      renotify: true,
-      silent: false,
-      requireInteraction: false,
-      vibrate: [200, 100, 200, 100, 300],
-      data: payload?.data || {},
-    });
+    if (!payload?.notification) {
+      self.registration.showNotification(title, {
+        body,
+        icon: "/favicon.ico",
+        image,
+        tag: notificationKey,
+        renotify: true,
+        silent: false,
+        requireInteraction: false,
+        vibrate: [200, 100, 200, 100, 300],
+        data: payload?.data || {},
+      });
+    }
 
     // Also notify open clients for in-app sound playback
     await notifyOpenClients(payload);

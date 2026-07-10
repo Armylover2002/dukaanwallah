@@ -86,7 +86,7 @@ export const useUserNotifications = () => {
       const message = data.message || `Your order status is now ${String(data.orderStatus || '').replace(/_/g, ' ')}`;
 
       // Optional: Show toast for important updates (Cancel, Ready, etc.)
-      const isImportant = String(data.orderStatus).includes('cancel') || ['ready_for_pickup', 'ready', 'confirmed'].includes(data.orderStatus);
+      const isImportant = (String(data.orderStatus).includes('cancel') && data.orderStatus !== 'cancelled_by_user') || ['ready_for_pickup', 'ready', 'confirmed'].includes(data.orderStatus);
       if (isImportant) {
         toast.success(title, {
           id: `order-status-${data.orderId}`,
