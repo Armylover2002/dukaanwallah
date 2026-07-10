@@ -42,6 +42,7 @@ import {
   getQuickCommerceSellerWithdrawals,
   updateQuickCommerceWithdrawalStatus,
 } from "../services/finance.service.js";
+import { notifyOwnerSafely } from '../../../core/notifications/firebase.service.js';
 
 const toCategory = (category) => ({
   id: category._id,
@@ -121,11 +122,11 @@ const withProductSeller = (product, sellerMap = {}) => {
   const seller = sellerMap[String(product?.sellerId || '')] || null;
   const sellerInfo = seller
     ? {
-        _id: seller._id,
-        id: seller._id,
-        name: seller.name || '',
-        shopName: seller.shopName || seller.name || 'Store',
-      }
+      _id: seller._id,
+      id: seller._id,
+      name: seller.name || '',
+      shopName: seller.shopName || seller.name || 'Store',
+    }
     : null;
 
   return {
@@ -254,20 +255,20 @@ const buildQuickAdminOrderResponse = (order, sellerMap = {}, sellerOrderMap = {}
     },
     seller: seller
       ? {
-          _id: seller._id,
-          shopName: seller.shopName || seller.name || 'Store',
-          name: seller.name || seller.shopName || 'Store',
-        }
+        _id: seller._id,
+        shopName: seller.shopName || seller.name || 'Store',
+        name: seller.name || seller.shopName || 'Store',
+      }
       : null,
     storeName: seller?.shopName || seller?.name || '',
     sellerOrder: sellerOrder
       ? {
-          _id: sellerOrder._id,
-          status: sellerOrder.status,
-          workflowStatus: sellerOrder.workflowStatus,
-          customer: sellerOrder.customer || {},
-          address: sellerOrder.address || {},
-        }
+        _id: sellerOrder._id,
+        status: sellerOrder.status,
+        workflowStatus: sellerOrder.workflowStatus,
+        customer: sellerOrder.customer || {},
+        address: sellerOrder.address || {},
+      }
       : null,
   };
 };
@@ -410,19 +411,22 @@ export const getAdminStats = async (_req, res) => {
     Seller.countDocuments({ approvalStatus: 'approved' }),
     FoodUser.countDocuments({ role: 'USER' }),
     QuickOrder.aggregate([
-      { $match: { 
+      {
+        $match: {
           orderType: { $in: ['quick', 'mixed'] },
           $or: [
             { orderStatus: 'delivered' },
             { workflowStatus: 'DELIVERED' }
           ]
-      } },
-      { $group: { 
-          _id: null, 
+        }
+      },
+      {
+        $group: {
+          _id: null,
           total: { $sum: '$pricing.total' },
           totalGst: { $sum: { $ifNull: ['$pricing.tax', { $ifNull: ['$pricing.gst', 0] }] } },
           totalPlatformFee: { $sum: { $ifNull: ['$pricing.platformFee', 0] } }
-        } 
+        }
       },
     ]),
   ]);
@@ -476,8 +480,8 @@ export const getAdminCategories = async (_req, res) => {
     let fullTree = buildCategoryTree(categories);
     if (type) {
       const originalCount = fullTree.length;
-      fullTree = fullTree.filter(root => 
-        !root.parentId && 
+      fullTree = fullTree.filter(root =>
+        !root.parentId &&
         (String(root.type).toLowerCase() === String(type).toLowerCase() || !root.type || root.type === 'default')
       );
     }
@@ -861,7 +865,7 @@ export const getAdminOrders = async (req, res) => {
   ]);
 
   const sellerIds = [...new Set(
-    orders.flatMap(order => 
+    orders.flatMap(order =>
       (order.items || [])
         .filter(item => item.type === 'quick')
         .map(item => String(item.sourceId))
@@ -966,9 +970,9 @@ export const getAdminCustomers = async (req, res) => {
   ]);
 
   const userIds = users.map(u => u._id);
-  const orders = await QuickOrder.find({ 
+  const orders = await QuickOrder.find({
     userId: { $in: userIds },
-    orderType: { $in: ['quick', 'mixed'] } 
+    orderType: { $in: ['quick', 'mixed'] }
   }).select('userId pricing createdAt').lean();
 
   const customerMap = new Map();
@@ -1234,19 +1238,27 @@ export const approveAdminSellerRequest = async (req, res) => {
   seller.rejectedAt = null;
   seller.approvalNotes = String(req.body?.approvalNotes || '').trim();
   await seller.save();
-
+  // Send notification to seller
+  await notifyOwnerSafely(
+    { ownerType: 'SELLER', ownerId: seller._id },
+    {
+      title: 'Account Approved! 🎉',
+      body: 'Your seller account has been approved. You can now log in to the seller dashboard.'
+    }
+  );
   return res.json({
     success: true,
     message: 'Seller approved successfully',
     result: toSellerRequest(seller),
   });
+
 };
 
 export const toggleAdminSellerStatus = async (req, res) => {
   try {
     const { sellerId } = req.params;
     const { isActive } = req.body;
-    
+
     const seller = await Seller.findById(sellerId);
     if (!seller) {
       return res.status(404).json({ success: false, message: 'Seller not found' });
@@ -1280,7 +1292,16 @@ export const rejectAdminSellerRequest = async (req, res) => {
   seller.approvedAt = null;
   seller.rejectedAt = new Date();
   seller.approvalNotes = String(req.body?.approvalNotes || req.body?.reason || '').trim();
+
   await seller.save();
+  // Send notification to seller
+  await notifyOwnerSafely(
+    { ownerType: 'SELLER', ownerId: seller._id },
+    {
+      title: 'Request Rejected',
+      body: `Your seller request was rejected. Reason: ${seller.approvalNotes || 'Not specified'}`
+    }
+  );
 
   return res.json({
     success: true,
@@ -1635,13 +1656,13 @@ export const getAdminQuickZoneSellersController = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Invalid zone ID" });
     }
     const zoneObjId = new mongoose.Types.ObjectId(zoneId);
-    const sellers = await Seller.find({ 
-      "shopInfo.zoneId": zoneObjId, 
-      isDeleted: { $ne: true }, 
-      approved: true 
+    const sellers = await Seller.find({
+      "shopInfo.zoneId": zoneObjId,
+      isDeleted: { $ne: true },
+      approved: true
     })
-    .select('_id shopName name phone email isActive isZoneHub')
-    .lean();
+      .select('_id shopName name phone email isActive isZoneHub')
+      .lean();
 
     return res.json({ success: true, result: sellers });
   } catch (error) {
@@ -1686,11 +1707,11 @@ export const getAdminSellerCODVerificationsController = async (req, res, next) =
       status: 'Seller_Accepted',
       depositType: 'quick_zone_hub'
     })
-    .populate('deliveryPartnerId', 'name phone profilePartnerId')
-    .populate('quickZoneHubSellerId', 'shopName name phone')
-    .populate('quickZoneId', 'name zoneName')
-    .sort({ createdAt: -1 })
-    .lean();
+      .populate('deliveryPartnerId', 'name phone profilePartnerId')
+      .populate('quickZoneHubSellerId', 'shopName name phone')
+      .populate('quickZoneId', 'name zoneName')
+      .sort({ createdAt: -1 })
+      .lean();
 
     const formatted = verifications.map(v => ({
       id: v._id,
@@ -1818,13 +1839,13 @@ export const createActiveSeller = async (req, res, next) => {
 
     const phoneRaw = String(phone).replace(/\D/g, "").slice(-15);
     const digits = phoneRaw ? phoneRaw.slice(-10) : "";
-    const existing = await Seller.findOne({ 
+    const existing = await Seller.findOne({
       $or: [
         { phoneDigits: phoneRaw },
         { phoneLast10: digits }
       ]
     });
-    
+
     if (existing) {
       return res.status(400).json({ success: false, message: "A seller with this phone number already exists." });
     }
