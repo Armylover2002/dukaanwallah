@@ -307,6 +307,11 @@ const restaurantSchema = new mongoose.Schema(
       enum: ['active', 'deleted'],
       default: 'active'
     },
+    activeItemCount: {
+      type: Number,
+      default: 0,
+      index: true
+    },
   },
   {
     collection: 'food_restaurants',

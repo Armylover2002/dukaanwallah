@@ -152,7 +152,10 @@ export async function getPublicApprovedRestaurantMenu(restaurantIdOrSlug) {
 }
 
 export async function syncMenuItemApprovalStatus(restaurantId, itemId, status, rejectionReason = '') {
-    // No-op in Option A (menu snapshots removed). Approval status lives only in food_items.
-    // Kept to avoid breaking admin approval flows that call this helper.
-    return;
+    try {
+        const { syncRestaurantActiveItemCount } = await import('./restaurantFood.service.js');
+        await syncRestaurantActiveItemCount(restaurantId);
+    } catch (e) {
+        console.error('Failed to sync activeItemCount in syncMenuItemApprovalStatus:', e);
+    }
 }

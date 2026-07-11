@@ -94,7 +94,7 @@ export const getPublicLandingSettingsController = async (req, res, next) => {
         const ids = settings?.recommendedRestaurantIds || [];
         let recommendedRestaurants = [];
         if (Array.isArray(ids) && ids.length > 0) {
-            recommendedRestaurants = await FoodRestaurant.find({ _id: { $in: ids }, status: 'approved' })
+            recommendedRestaurants = await FoodRestaurant.find({ _id: { $in: ids }, status: 'approved', activeItemCount: { $gt: 0 } })
                 .select('restaurantName area city profileImage coverImages menuImages slug rating cuisines pureVegRestaurant')
                 .sort({ rating: -1 })
                 .lean();

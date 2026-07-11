@@ -7,7 +7,7 @@ export const getPublicGourmetRestaurants = async () => {
         .lean();
 
     const restaurantIds = docs.map((d) => d.restaurantId);
-    const restaurants = await FoodRestaurant.find({ _id: { $in: restaurantIds } })
+    const restaurants = await FoodRestaurant.find({ _id: { $in: restaurantIds }, activeItemCount: { $gt: 0 } })
         .select('restaurantName area city profileImage rating cuisines slug pureVegRestaurant location estimatedDeliveryTime')
         .lean();
 

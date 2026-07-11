@@ -254,6 +254,8 @@ export async function createRestaurantFood(restaurantId, body = {}) {
         console.error('Failed to notify admins of new food approval request:', e);
     }
 
+    await syncRestaurantActiveItemCount(restaurantId);
+
     return doc.toObject();
 }
 
@@ -341,6 +343,8 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
         }
     }
 
+    await syncRestaurantActiveItemCount(restaurantId);
+
     return updated;
 }
 
@@ -357,5 +361,31 @@ export async function deleteRestaurantFood(restaurantId, foodId) {
         throw new ValidationError('Food item not found or unauthorized');
     }
 
+    await syncRestaurantActiveItemCount(restaurantId);
+
     return deleted;
+}
+
+export async function syncRestaurantActiveItemCount(restaurantId) {
+    if (!restaurantId) return;
+    try {
+        const count = await FoodItem.countDocuments({
+            restaurantId,
+            isAvailable: true,
+            approvalStatus: 'approved'
+        });
+        const currentRest = await FoodRestaurant.findById(restaurantId).select('activeItemCount').lean();
+        if (!currentRest || currentRest.activeItemCount !== count) {
+            await FoodRestaurant.findByIdAndUpdate(restaurantId, { activeItemCount: count });
+            // Invalidate restaurants cache since the count changed
+            try {
+                const { invalidateCache } = await import('../../../../middleware/cache.js');
+                await invalidateCache('restaurants:*');
+            } catch (cacheErr) {
+                console.error('Failed to invalidate restaurants cache after sync:', cacheErr);
+            }
+        }
+    } catch (e) {
+        console.error('Failed to sync activeItemCount for restaurant:', e);
+    }
 }
