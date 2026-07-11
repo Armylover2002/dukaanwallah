@@ -17,6 +17,7 @@ import {
   HiOutlineCurrencyRupee,
   HiOutlineQrCode,
   HiOutlineCheckCircle,
+  HiOutlineXMark,
 } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -690,7 +691,7 @@ const AddProduct = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12">
+    <div className="max-w-6xl mx-auto space-y-6 pb-12 group">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <Button
@@ -1130,10 +1131,22 @@ const AddProduct = () => {
                     onClick={() => openImageSourcePicker({ title: "Upload Cover", onSelectFile: (f) => handleImageUpload(f, "main"), fileNamePrefix: "main-cover" })}
                     className="w-48 aspect-square rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer overflow-hidden relative">
                     {formData.mainImage ? (
-                      <img
-                        src={formData.mainImage}
-                        className="w-full h-full object-cover"
-                      />
+                      <>
+                        <img
+                          src={formData.mainImage}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFormData({ ...formData, mainImage: null, mainImageFile: null });
+                          }}
+                          className="absolute top-1 right-1 p-1 text-rose-500 hover:text-rose-600 transition-colors drop-shadow-md"
+                        >
+                          <HiOutlineXMark className="w-4 h-4" />
+                        </button>
+                      </>
                     ) : (
                       <>
                         <HiOutlinePhoto className="h-10 w-10 text-slate-200 group-hover:text-orange-500 transition-colors" />
@@ -1173,10 +1186,32 @@ const AddProduct = () => {
                       onClick={() => !formData.galleryImages[i - 1] && openImageSourcePicker({ title: "Add Gallery Photo", onSelectFile: (f) => handleImageUpload(f, "gallery"), fileNamePrefix: "gallery" })}
                       className="aspect-square rounded-md border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-orange-500 hover:bg-orange-500/5 transition-all cursor-pointer relative overflow-hidden">
                       {formData.galleryImages[i - 1] ? (
-                        <img
-                          src={formData.galleryImages[i - 1]}
-                          className="w-full h-full object-cover"
-                        />
+                        <>
+                          <img
+                            src={formData.galleryImages[i - 1]}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newGallery = [...formData.galleryImages];
+                              newGallery.splice(i - 1, 1);
+                              const newGalleryFiles = [...(formData.galleryFiles || [])];
+                              if (newGalleryFiles.length > i - 1) {
+                                newGalleryFiles.splice(i - 1, 1);
+                              }
+                              setFormData({ 
+                                ...formData, 
+                                galleryImages: newGallery,
+                                galleryFiles: newGalleryFiles
+                              });
+                            }}
+                            className="absolute top-0 right-0 p-1.5 text-rose-500 hover:text-rose-600 transition-colors drop-shadow-md"
+                          >
+                            <HiOutlineXMark className="w-3.5 h-3.5" />
+                          </button>
+                        </>
                       ) : (
                         <>
                           <HiOutlinePlus className="h-5 w-5 text-slate-200 group-hover:text-orange-500 transition-colors" />
@@ -1197,27 +1232,43 @@ const AddProduct = () => {
             </div>
           )}
 
-
+          <div className="mt-8 pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-3 items-stretch sm:items-center">
+            <Button variant="outline" onClick={() => navigate(-1)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full sm:w-auto min-w-[140px]">
+              {isSaving ? (
+                <>
+                  <HiOutlineArrowPath className="mr-2 h-5 w-5 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                "Save & Publish"
+              )}
+            </Button>
+            {modalTab !== "media" && (
+              <button
+                type="button"
+                onClick={() => {
+                  const tabs = ["general", "pricing", "variants", "category", "media"];
+                  const currentIndex = tabs.indexOf(modalTab);
+                  if (currentIndex < tabs.length - 1) {
+                    setModalTab(tabs[currentIndex + 1]);
+                    // Scroll back to top of the content area
+                    const scrollContainer = document.querySelector('.flex-1.p-8.overflow-y-auto');
+                    if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 bg-orange-50 text-orange-600 font-bold rounded-xl text-sm hover:bg-orange-100 transition-colors"
+              >
+                Next Step
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 md:left-80 z-[70] bg-white border-t border-slate-200 p-4 px-6 flex justify-end gap-3 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
-        <Button variant="outline" onClick={() => navigate(-1)}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="min-w-[140px]">
-          {isSaving ? (
-            <>
-              <HiOutlineArrowPath className="mr-2 h-5 w-5 animate-spin" />
-              Publishing...
-            </>
-          ) : (
-            "Save & Publish"
-          )}
-        </Button>
       </div>
 
       <ImageSourcePicker
