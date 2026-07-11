@@ -160,7 +160,24 @@ export default function Cart() {
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponCode, setCouponCode] = useState("")
   const [manualCouponCode, setManualCouponCode] = useState("")
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash")
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(() => {
+    try {
+      if (typeof window === "undefined") return "cash"
+      return window.localStorage.getItem("food-cart-payment-method") || "cash"
+    } catch {
+      return "cash"
+    }
+  })
+
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("food-cart-payment-method", selectedPaymentMethod)
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [selectedPaymentMethod])
   const [showPaymentSheet, setShowPaymentSheet] = useState(false)
   const [walletBalance, setWalletBalance] = useState(0)
   const [isLoadingWallet, setIsLoadingWallet] = useState(false)
