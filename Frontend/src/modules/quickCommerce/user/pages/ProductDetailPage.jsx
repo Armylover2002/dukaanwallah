@@ -110,7 +110,7 @@ const normalizeProduct = (product = {}, fallback = {}) => {
       ? images
       : ["https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1200&auto=format&fit=crop"],
     details: [
-      { label: "Unit", value: source.weight || source.unit || "1 unit" },
+      { label: "Default", value: (source.weight || source.unit) === "1 unit" ? "Default" : (source.weight || source.unit || "Default") },
       { label: "Stock", value: stock > 0 ? `${stock} available` : "Out of stock" },
       { label: "Brand", value: source.brand || "Quick Select" },
     ],
@@ -218,18 +218,32 @@ const ProductDetailPage = () => {
   const product = useMemo(() => {
     if (!baseProduct) return null;
     if (!selectedVariant) return baseProduct;
-    
+
     const pSalePrice = Number(selectedVariant.salePrice || 0) > 0 ? Number(selectedVariant.salePrice) : Number(baseProduct.salePrice || 0);
     const pPrice = Number(selectedVariant.price || 0) > 0 ? Number(selectedVariant.price) : Number(baseProduct.price || 0);
     const unitPrice = pSalePrice > 0 ? pSalePrice : pPrice;
     const mrp = Number(selectedVariant.price || 0) > 0 ? Number(selectedVariant.price) : Number(baseProduct.originalPrice || baseProduct.mrp || unitPrice || 0);
+
+    const variantStock = Number(selectedVariant.stock ?? baseProduct.stock ?? 0);
+
+    // Update details array to show variant stock and unit
+    const updatedDetails = baseProduct.details?.map(detail => {
+      if (detail.label === "Stock") {
+        return { ...detail, value: variantStock > 0 ? `${variantStock} available` : "Out of stock" };
+      }
+      if (detail.label === "Default" || detail.label === "Unit") {
+        return { ...detail, value: selectedVariant.name || detail.value };
+      }
+      return detail;
+    }) || [];
 
     return {
       ...baseProduct,
       id: `${baseProduct.id || baseProduct._id}-${selectedVariant.id || selectedVariant._id}`,
       price: unitPrice,
       originalPrice: mrp,
-      stock: Number(selectedVariant.stock ?? baseProduct.stock ?? 0),
+      stock: variantStock,
+      details: updatedDetails,
       name: `${baseProduct.name} - ${selectedVariant.name}`,
       variant: selectedVariant
     };
@@ -470,7 +484,7 @@ const ProductDetailPage = () => {
                 </>
               )}
             </div>
-            
+
             {/* Variants */}
             {baseProduct?.variants?.length > 0 && (
               <div className="mb-5 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 p-4 border border-border">
@@ -486,7 +500,7 @@ const ProductDetailPage = () => {
                         : 'bg-card dark:bg-slate-800 border-border text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm'
                     )}
                   >
-                    {baseProduct.weight || baseProduct.unit || 'Standard'} - ₹{Number(baseProduct.salePrice || 0) > 0 ? baseProduct.salePrice : baseProduct.price}
+                    {(baseProduct.weight || baseProduct.unit) === '1 unit' ? 'Default' : (baseProduct.weight || baseProduct.unit || 'Default')} - ₹{Number(baseProduct.salePrice || 0) > 0 ? baseProduct.salePrice : baseProduct.price}
                   </button>
 
                   {/* Variants */}

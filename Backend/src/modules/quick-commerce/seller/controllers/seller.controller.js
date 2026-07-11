@@ -584,15 +584,7 @@ const parseVariants = (raw, fallback = {}) => {
     return variants;
   }
 
-  return [
-    {
-      name: str(fallback.weight) || "Default",
-      price: num(fallback.price),
-      salePrice: num(fallback.salePrice),
-      stock: Math.max(0, num(fallback.stock)),
-      sku: str(fallback.sku) || createSellerSku(),
-    },
-  ];
+  return [];
 };
 
 const populateProductQuery = (query) =>
@@ -1293,6 +1285,12 @@ export const updateSellerProductController = async (req, res) => {
       ...payload,
       ...categoryIds,
     });
+
+    // Mongoose sometimes fails to track array updates with Object.assign
+    if (payload.variants !== undefined) {
+      existing.variants = payload.variants;
+      existing.markModified('variants');
+    }
 
     await existing.save();
     await syncSellerInventoryNotification(sellerId, existing);

@@ -414,7 +414,7 @@ const ProductManagement = () => {
     mainImage: null,
     galleryImages: [],
     variants: [
-      { id: Date.now(), name: "Default", price: "", salePrice: "", stock: "", sku: "" },
+      { id: Date.now(), name: "", price: "", salePrice: "", stock: "", sku: "" },
     ],
   });
 
@@ -498,7 +498,9 @@ const ProductManagement = () => {
       data.append("brand", formData.brand);
       data.append("weight", formData.weight);
       data.append("tags", formData.tags);
-      data.append("variants", JSON.stringify(formData.variants));
+      // Variants: filter out any variant that doesn't have a name
+      const validVariants = formData.variants.filter(v => v.name && v.name.trim() !== "");
+      data.append("variants", JSON.stringify(validVariants));
 
       if (formData.mainImageFile) {
         data.append("mainImage", formData.mainImageFile);
@@ -590,7 +592,7 @@ const ProductManagement = () => {
         variants: (item.variants && item.variants.length > 0) ? item.variants.map(v => ({ ...v, id: v._id || Date.now() })) : [
           {
             id: Date.now(),
-            name: "Default",
+            name: "",
             sku: item.sku || "",
           },
         ],
@@ -617,7 +619,7 @@ const ProductManagement = () => {
         variants: [
           {
             id: Date.now(),
-            name: "Default",
+            name: "",
             price: "",
             salePrice: "",
             stock: "",

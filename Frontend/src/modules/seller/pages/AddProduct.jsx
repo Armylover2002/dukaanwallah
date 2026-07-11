@@ -78,7 +78,7 @@ const AddProduct = () => {
       variants: [
         {
           id: Date.now(),
-          name: "Default",
+          name: "",
           price: "",
           salePrice: "",
           stock: "",
@@ -273,8 +273,9 @@ const AddProduct = () => {
         data.append("galleryImages", JSON.stringify(formData.galleryImages));
       }
 
-      // Variants
-      data.append("variants", JSON.stringify(formData.variants));
+      // Variants: filter out any variant that doesn't have a name
+      const validVariants = formData.variants.filter(v => v.name && v.name.trim() !== "");
+      data.append("variants", JSON.stringify(validVariants));
 
       await sellerApi.createProduct(data);
       localStorage.removeItem("sellerAddProductDraft");
