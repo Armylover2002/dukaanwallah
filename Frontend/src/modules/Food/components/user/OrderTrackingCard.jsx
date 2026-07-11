@@ -420,7 +420,7 @@ function OrderTrackingCardInner({ hasBottomNav = true }) {
           onClick={() => {
             const id = activeOrder.id || activeOrder._id || activeOrder.orderId;
             const basePath = isQuickOrder ? "/quick/orders" : "/food/user/orders";
-            navigate(`${basePath}/${id}`);
+            navigate(`${basePath}/${id}`, { state: { orderType: isQuickOrder ? "quick" : "food" } });
           }}
           className={`relative bg-white/95 backdrop-blur-xl rounded-[20px] p-4 shadow-[0_8px_30px_${isQuickOrder ? 'rgba(59,130,246,0.15)' : 'rgba(204,37,50,0.15)'}] border ${isQuickOrder ? 'border-blue-100/60' : 'border-red-100/60'} overflow-visible cursor-pointer group`}
         >

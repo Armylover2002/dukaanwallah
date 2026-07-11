@@ -362,6 +362,7 @@ const CheckoutPage = () => {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [quickBillingSettings, setQuickBillingSettings] = useState(DEFAULT_QUICK_BILLING_SETTINGS);
   const [storeLocation, setStoreLocation] = useState(null);
+  const [serviceRadius, setServiceRadius] = useState(5);
   const [distanceKm, setDistanceKm] = useState(0);
   const [categoryFeeMap, setCategoryFeeMap] = useState({});
   const postOrderNavigateRef = useRef(null);
@@ -1012,6 +1013,7 @@ const CheckoutPage = () => {
         const response = await customerApi.getStoreDetails(sellerId);
         const store = response?.data?.result || response?.data?.data || null;
         if (!mounted || !store) return;
+        setServiceRadius(Number(store.serviceRadius) || 5);
         const loc = store.location;
         let sCoords = null;
         if (Array.isArray(loc?.coordinates) && loc.coordinates.length === 2) {
@@ -1427,11 +1429,11 @@ const CheckoutPage = () => {
                   </div>
                   <div className="hidden lg:block">
                     {selectedPayment === "cash" ? (
-                      <button onClick={handlePlaceOrder} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
-                        {isPlacingOrder ? "Placing Order..." : `Place Order | ₹${totalAmount}`}
+                      <button onClick={handlePlaceOrder} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
+                        {isPlacingOrder ? "Placing Order..." : (storeLocation && distanceKm > serviceRadius) ? "Out of Delivery Zone" : `Place Order | ₹${totalAmount}`}
                       </button>
                     ) : (
-                      <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrder} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview} text="Order Now" />
+                      <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrder} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={(storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Order Now"} />
                     )}
                     <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-4 uppercase tracking-[0.1em]">🔒 SSL encrypted secure checkout</p>
                   </div>
@@ -1446,11 +1448,11 @@ const CheckoutPage = () => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-slate-200 dark:border-white/10 px-4 py-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 rounded-t-3xl transition-colors">
         <div className="max-w-4xl mx-auto">
           {selectedPayment === "cash" ? (
-            <button onClick={handlePlaceOrder} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
-              {isPlacingOrder ? "Placing Order..." : `Place Order | ₹${totalAmount}`}
+            <button onClick={handlePlaceOrder} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
+              {isPlacingOrder ? "Placing Order..." : (storeLocation && distanceKm > serviceRadius) ? "Out of Delivery Zone" : `Place Order | ₹${totalAmount}`}
             </button>
           ) : (
-            <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrder} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview} text="Slide to Pay" />
+            <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrder} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={(storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Slide to Pay"} />
           )}
         </div>
       </div>

@@ -358,18 +358,18 @@ function transformOrderForTracking(apiOrder, previousOrder = null, explicitResta
     restaurantPhone: apiOrder?.restaurantPhone || apiOrder?.restaurantId?.primaryContactNumber || apiOrder?.restaurantId?.phone || apiOrder?.restaurantId?.ownerPhone || apiOrder?.restaurant?.primaryContactNumber || apiOrder?.restaurant?.phone || apiOrder?.restaurant?.ownerPhone || previousOrder?.restaurantPhone || '',
     restaurantAddress, restaurantId: apiOrder?.restaurantId || previousOrder?.restaurantId || null,
     userId: apiOrder?.userId || previousOrder?.userId || null,
-    userName: apiOrder?.userName || apiOrder?.userId?.name || apiOrder?.userId?.fullName || previousOrder?.userName || '',
-    userPhone: apiOrder?.userPhone || apiOrder?.userId?.phone || previousOrder?.userPhone || '',
+    userName: apiOrder?.userName || apiOrder?.deliveryAddress?.name || apiOrder?.address?.name || apiOrder?.userId?.name || apiOrder?.userId?.fullName || previousOrder?.userName || '',
+    userPhone: apiOrder?.userPhone || apiOrder?.deliveryAddress?.phone || apiOrder?.address?.phone || apiOrder?.userId?.phone || previousOrder?.userPhone || '',
     address: {
       street: addr?.street || previousOrder?.address?.street || '',
       city: addr?.city || previousOrder?.address?.city || '',
       state: addr?.state || previousOrder?.address?.state || '',
       zipCode: addr?.zipCode || previousOrder?.address?.zipCode || '',
       additionalDetails: addr?.additionalDetails || previousOrder?.address?.additionalDetails || '',
-      formattedAddress: addr?.formattedAddress ||
+      formattedAddress: addr?.formattedAddress || addr?.fullAddress ||
         (addr?.street && addr?.city
           ? `${addr.street}${addr.additionalDetails ? `, ${addr.additionalDetails}` : ''}, ${addr.city}${addr.state ? `, ${addr.state}` : ''}${addr.zipCode ? ` ${addr.zipCode}` : ''}`
-          : previousOrder?.address?.formattedAddress || addr?.city || ''),
+          : previousOrder?.address?.formattedAddress || addr?.address || addr?.city || ''),
       coordinates: customerCoordsResolved || addr?.location?.coordinates || previousOrder?.address?.coordinates || null,
     },
     restaurantLocation: { coordinates: restaurantCoords },
@@ -562,7 +562,7 @@ export default function OrderTracking() {
   const location = useLocation();
   const confirmed = searchParams.get("confirmed") === "true";
   const prefetchedOrder = location.state?.prefetchedOrder || location.state?.order || null;
-  const isQuickOrder = String(location.state?.orderType || "").toLowerCase() === "quick" || /^QC/i.test(String(orderId || ""));
+  const isQuickOrder = String(location.state?.orderType || "").toLowerCase() === "quick" || /^QC/i.test(String(orderId || "")) || location.pathname.includes("/quick");
   const backPath = isQuickOrder ? "/quick" : "/food/user";
 
   const ordersContext = useOptionalOrders();

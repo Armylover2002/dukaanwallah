@@ -91,6 +91,7 @@ const normalizeOrderSummary = (order) => {
 const normalizeDeliveryAddress = (address) => {
   if (!address || typeof address !== 'object') return null;
 
+  const name = String(address.name || address.fullName || '').trim();
   const street = String(address.address || address.street || '').trim();
   const city = String(address.city || '').trim();
   const additionalDetails = String(address.landmark || address.additionalDetails || '').trim();
@@ -100,6 +101,7 @@ const normalizeDeliveryAddress = (address) => {
   const lng = Number(address.location?.lng);
 
   return {
+    name,
     label,
     street,
     additionalDetails,
@@ -743,7 +745,7 @@ export const getOrderById = async (req, res) => {
         orderId: order.orderId,
         address: {
           type: deliveryAddress.label || 'Other',
-          name: '',
+          name: deliveryAddress.name || order.userName || '',
           address: deliveryAddress.street || '',
           city: deliveryAddress.city || '',
           phone: deliveryAddress.phone || '',

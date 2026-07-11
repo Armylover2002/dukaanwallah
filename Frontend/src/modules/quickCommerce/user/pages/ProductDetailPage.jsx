@@ -510,12 +510,15 @@ const ProductDetailPage = () => {
                       onClick={() => setSelectedVariant(v)}
                       className={cn(
                         'px-4 py-2 font-[600] rounded-lg text-[13px] transition-all border-2',
-                        selectedVariant?.sku === v.sku
+                        (selectedVariant?._id && selectedVariant?._id === v._id) ||
+                          (selectedVariant?.id && selectedVariant?.id === v.id) ||
+                          (selectedVariant?.name === v.name)
                           ? 'bg-green-50 dark:bg-green-950/30 border-[#0c831f] text-[#0c831f] shadow-sm'
                           : 'bg-card dark:bg-slate-800 border-border text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm'
                       )}
                     >
-                      {v.name} - ₹{Number(v.salePrice || 0) > 0 ? v.salePrice : v.price}
+                      {v.name}
+                      {/* - ₹{Number(v.salePrice || 0) > 0 ? v.salePrice : v.price} */}
                     </button>
                   ))}
                 </div>
