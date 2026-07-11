@@ -1719,9 +1719,11 @@ export default function OrderTracking() {
                 <div className="mt-2 space-y-1">
                   {order?.items?.map((item, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm text-gray-600">
-                      <span className="w-4 h-4 rounded border border-green-600 flex items-center justify-center">
-                        <span className="w-2 h-2 rounded-full bg-green-600" />
-                      </span>
+                      {!isQuickOrder && (
+                        <span className="w-4 h-4 rounded border border-green-600 flex items-center justify-center shrink-0">
+                          <span className="w-2 h-2 rounded-full bg-green-600" />
+                        </span>
+                      )}
                       <span>{item.quantity} x {item.name}{item.variantName ? ` (${item.variantName})` : ""}</span>
                     </div>
                   ))}
@@ -1928,9 +1930,11 @@ export default function OrderTracking() {
                 {order?.items?.map((item, index) => (
                   <div key={index} className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1">
-                      <div className="w-5 h-5 rounded border border-green-600 flex items-center justify-center mt-0.5 shrink-0">
-                        <div className="w-2.5 h-2.5 rounded-full bg-green-600" />
-                      </div>
+                      {!isQuickOrder && (
+                        <div className="w-5 h-5 rounded border border-green-600 flex items-center justify-center mt-0.5 shrink-0">
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-600" />
+                        </div>
+                      )}
                       <div className="flex-1">
                         <p className="font-semibold text-gray-900 leading-tight">{item.name}</p>
                         {item.variantName && <p className="text-sm text-gray-500 mt-0.5">{item.variantName}</p>}
