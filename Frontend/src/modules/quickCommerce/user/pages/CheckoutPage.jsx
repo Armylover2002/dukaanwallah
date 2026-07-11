@@ -234,7 +234,11 @@ const CartItem = React.memo(function CartItem({ item, onMoveToWishlist, onUpdate
       </div>
       <div className="flex-1 min-w-0">
         <h4 className="font-bold text-slate-800 dark:text-white mb-1">{item.name}</h4>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{item.weight || item.unit || "1 unit"}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+          {(item.weight || item.unit || '1 unit') === '1 unit' || (item.weight || item.unit) === 'Default' 
+            ? `${item.quantity} unit${item.quantity > 1 ? 's' : ''}` 
+            : (item.weight || item.unit || '1 unit')}
+        </p>
         <button
           onClick={() => onMoveToWishlist(item)}
           className="text-xs text-slate-500 underline hover:text-[#0c831f] transition-colors">

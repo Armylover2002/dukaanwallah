@@ -155,7 +155,11 @@ const CartItem = React.memo(({ item, onRemove, onUpdateQuantity, showToast }) =>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">{item.name}</h2>
-              <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{item.weight || item.unit || '1 unit'}</p>
+              <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                {(item.weight || item.unit || '1 unit') === '1 unit' || (item.weight || item.unit) === 'Default' 
+                  ? `${item.quantity} unit${item.quantity > 1 ? 's' : ''}` 
+                  : (item.weight || item.unit || '1 unit')}
+              </p>
             </div>
             <button
               onClick={handleRemove}
