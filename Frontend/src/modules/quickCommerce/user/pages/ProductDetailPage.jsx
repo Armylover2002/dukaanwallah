@@ -213,7 +213,7 @@ const ProductDetailPage = () => {
   }, [location.state]);
 
   const [baseProduct, setBaseProduct] = useState(initialProduct);
-  const [selectedVariant, setSelectedVariant] = useState(initialProduct?.variants?.length > 0 ? initialProduct.variants[0] : null);
+  const [selectedVariant, setSelectedVariant] = useState(null);
 
   const product = useMemo(() => {
     if (!baseProduct) return null;
@@ -279,9 +279,7 @@ const ProductDetailPage = () => {
         if (!cancelled) {
           const normalized = normalizeProduct(result, location.state?.product);
           setBaseProduct(normalized);
-          if (normalized?.variants?.length > 0 && !selectedVariant) {
-             setSelectedVariant(normalized.variants[0]);
-          }
+          // Do not auto-select the first variant, let the user choose the base product by default
           // Set active image in the same state flush — avoids the extra render
           // from the second useEffect that was watching `product`
           setActiveImage(normalized.images[0] || "");
@@ -478,6 +476,20 @@ const ProductDetailPage = () => {
               <div className="mb-5 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 p-4 border border-border">
                 <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Select Variant</h4>
                 <div className="flex gap-3 flex-wrap">
+                  {/* Main Product Option */}
+                  <button
+                    onClick={() => setSelectedVariant(null)}
+                    className={cn(
+                      'px-4 py-2 font-[600] rounded-lg text-[13px] transition-all border-2',
+                      selectedVariant === null
+                        ? 'bg-green-50 dark:bg-green-950/30 border-[#0c831f] text-[#0c831f] shadow-sm'
+                        : 'bg-card dark:bg-slate-800 border-border text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm'
+                    )}
+                  >
+                    {baseProduct.weight || baseProduct.unit || 'Standard'} - ₹{Number(baseProduct.salePrice || 0) > 0 ? baseProduct.salePrice : baseProduct.price}
+                  </button>
+
+                  {/* Variants */}
                   {baseProduct.variants.map((v, idx) => (
                     <button
                       key={idx}
@@ -489,7 +501,7 @@ const ProductDetailPage = () => {
                           : 'bg-card dark:bg-slate-800 border-border text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm'
                       )}
                     >
-                      {v.name}
+                      {v.name} - ₹{Number(v.salePrice || 0) > 0 ? v.salePrice : v.price}
                     </button>
                   ))}
                 </div>
