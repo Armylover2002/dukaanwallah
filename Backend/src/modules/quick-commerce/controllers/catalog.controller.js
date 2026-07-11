@@ -5,6 +5,8 @@ import { QuickReview } from '../models/review.model.js';
 import { FoodUser } from '../../../core/users/user.model.js';
 import { Seller } from '../seller/models/seller.model.js';
 import { ensureQuickCommerceSeedData } from '../services/seed.service.js';
+import { QuickZone } from '../models/quick_zone.model.js';
+import { isPointInPolygon } from '../../../utils/geo.js';
 import {
   getQuickCategories,
   getQuickCoupons,
@@ -108,43 +110,43 @@ const buildSellerMap = async (products = []) => {
 const mapProduct = (product, sellerMap = {}) => {
   const seller = sellerMap[String(product?.sellerId || '')] || null;
   return ({
-  id: product._id,
-  _id: product._id,
-  name: product.name,
-  slug: product.slug,
-  image: product.mainImage || product.image,
-  mainImage: product.mainImage || product.image,
-  galleryImages: Array.isArray(product.galleryImages) ? product.galleryImages : [],
-  categoryId: product.categoryId,
-  subcategoryId: product.subcategoryId || null,
-  headerId: product.headerId || null,
-  price: product.price,
-  salePrice: product.salePrice || 0,
-  originalPrice: product.mrp,
-  weight: product.unit,
-  unit: product.unit,
-  stock: Number(product.stock || 0),
-  status: product.status || (product.isActive ? 'active' : 'inactive'),
-  brand: product.brand || '',
-  description: product.description || '',
-  tags: Array.isArray(product.tags) ? product.tags : [],
-  variants: Array.isArray(product.variants) ? product.variants : [],
-  deliveryTime: product.deliveryTime,
-  rating: product.rating,
-  badge: product.badge,
-  approvalStatus: product.approvalStatus || 'approved',
-  sellerId: product.sellerId || seller?._id || null,
-  seller: seller
-    ? {
+    id: product._id,
+    _id: product._id,
+    name: product.name,
+    slug: product.slug,
+    image: product.mainImage || product.image,
+    mainImage: product.mainImage || product.image,
+    galleryImages: Array.isArray(product.galleryImages) ? product.galleryImages : [],
+    categoryId: product.categoryId,
+    subcategoryId: product.subcategoryId || null,
+    headerId: product.headerId || null,
+    price: product.price,
+    salePrice: product.salePrice || 0,
+    originalPrice: product.mrp,
+    weight: product.unit,
+    unit: product.unit,
+    stock: Number(product.stock || 0),
+    status: product.status || (product.isActive ? 'active' : 'inactive'),
+    brand: product.brand || '',
+    description: product.description || '',
+    tags: Array.isArray(product.tags) ? product.tags : [],
+    variants: Array.isArray(product.variants) ? product.variants : [],
+    deliveryTime: product.deliveryTime,
+    rating: product.rating,
+    badge: product.badge,
+    approvalStatus: product.approvalStatus || 'approved',
+    sellerId: product.sellerId || seller?._id || null,
+    seller: seller
+      ? {
         _id: seller._id,
         id: seller._id,
         name: seller.name || '',
         shopName: seller.shopName || seller.name || 'Store',
       }
-    : null,
-  storeName: seller?.shopName || seller?.name || '',
-  restaurantName: seller?.shopName || seller?.name || '',
-});
+      : null,
+    storeName: seller?.shopName || seller?.name || '',
+    restaurantName: seller?.shopName || seller?.name || '',
+  });
 };
 
 export const getHomeData = async (req, res) => {
@@ -201,10 +203,10 @@ export const getHomeData = async (req, res) => {
 
   const resolvedHero = heroConfig
     ? {
-        ...heroConfig,
-        banners: heroConfig.banners || { items: [] },
-        categoryIds: Array.isArray(heroConfig.categoryIds) ? heroConfig.categoryIds : [],
-      }
+      ...heroConfig,
+      banners: heroConfig.banners || { items: [] },
+      categoryIds: Array.isArray(heroConfig.categoryIds) ? heroConfig.categoryIds : [],
+    }
     : fallbackHero;
 
   const resolvedSections = experienceSections.length ? experienceSections : fallbackSections;
@@ -241,13 +243,81 @@ export const getHomeData = async (req, res) => {
 // Ye naya endpoint 5 separate frontend calls ko 1 mein replace karta hai.
 // Cache: 2 minutes (content.service.js mein already 5-min in-memory cache hai)
 export const getBootstrapData = async (req, res) => {
-  setPublicCache(res, 120); // 2 minute HTTP cache
+  // No HTTP cache — response depends on user's lat/lng, so browser must
+  // always send the request to get zone-specific products.
+  setNoCache(res);
 
   try {
+    const { lat, lng, zoneId } = req.query;
+    const query = { ...publicProductFilter };
+
+    let effectiveZoneId = null;
+    let fallbackZoneName = null;
+
+    // 1. If GPS is provided, STRICTLY use the QuickZone polygon.
+    if (lat && lng) {
+      const zones = await QuickZone.find({}).lean();
+      
+      // Strict polygon check
+      for (const z of zones) {
+        if (z.coordinates && z.coordinates.length >= 3) {
+          if (isPointInPolygon(Number(lat), Number(lng), z.coordinates)) {
+            effectiveZoneId = z._id;
+            break;
+          }
+        }
+      }
+      // Note: If lat/lng is provided but user is outside all polygons, effectiveZoneId remains null.
+      // We DO NOT fall back to zoneId because the user's explicit location is out of bounds.
+    } 
+    // 2. Only if GPS is missing, fall back to the manually selected zoneId (from Food app)
+    else if (zoneId && zoneId !== 'null' && zoneId !== 'undefined') {
+      if (mongoose.Types.ObjectId.isValid(zoneId)) {
+        const qz = await QuickZone.findById(zoneId).select('_id').lean();
+        if (qz) {
+          effectiveZoneId = zoneId;
+        } else {
+          const { FoodZone } = await import('../../food/admin/models/zone.model.js');
+          const fz = await FoodZone.findById(zoneId).select('name').lean();
+          if (fz && fz.name) {
+            fallbackZoneName = fz.name;
+          }
+        }
+      }
+    }
+
+    if (effectiveZoneId) {
+      let sellersInZone = await Seller.find({ 'shopInfo.zoneId': effectiveZoneId, approvalStatus: 'approved', isActive: true }).select('_id').lean();
+
+      if (sellersInZone.length === 0) {
+        const qz = await QuickZone.findById(effectiveZoneId).select('name').lean();
+        if (qz && qz.name) {
+          sellersInZone = await Seller.find({ 'shopInfo.zoneName': new RegExp(`^${qz.name}$`, 'i'), approvalStatus: 'approved', isActive: true }).select('_id').lean();
+        }
+      }
+
+      if (sellersInZone.length > 0) {
+        const sellerIds = sellersInZone.map(s => s._id);
+        query.sellerId = { $in: sellerIds };
+      } else {
+        query._id = null;
+      }
+    } else if (fallbackZoneName) {
+      const sellersInZone = await Seller.find({ 'shopInfo.zoneName': new RegExp(`^${fallbackZoneName}$`, 'i'), approvalStatus: 'approved', isActive: true }).select('_id').lean();
+      if (sellersInZone.length > 0) {
+        const sellerIds = sellersInZone.map(s => s._id);
+        query.sellerId = { $in: sellerIds };
+      } else {
+        query._id = null;
+      }
+    } else {
+      query._id = null; // force empty products if out of service or no location
+    }
+
     // Sab parallel fetch — content.service.js ke in-memory cache se mostly serve hoga
     const [categories, products, heroConfig, experienceSections, offerSections] = await Promise.all([
       getQuickCategories(),
-      QuickProduct.find(publicProductFilter)
+      QuickProduct.find(query)
         .select('_id name slug mainImage image categoryId subcategoryId headerId price salePrice mrp unit stock status isActive approvalStatus deliveryTime rating badge sellerId')
         .sort({ createdAt: -1 })
         .limit(20)
@@ -262,10 +332,10 @@ export const getBootstrapData = async (req, res) => {
 
     const resolvedHero = heroConfig
       ? {
-          ...heroConfig,
-          banners: heroConfig.banners || { items: [] },
-          categoryIds: Array.isArray(heroConfig.categoryIds) ? heroConfig.categoryIds : [],
-        }
+        ...heroConfig,
+        banners: heroConfig.banners || { items: [] },
+        categoryIds: Array.isArray(heroConfig.categoryIds) ? heroConfig.categoryIds : [],
+      }
       : { banners: { items: [] }, categoryIds: [] };
 
     return res.json({
@@ -305,10 +375,10 @@ export const getHeroConfigLean = async (req, res) => {
     const heroConfig = await getQuickHeroConfig({ pageType, headerId });
     const resolved = heroConfig
       ? {
-          ...heroConfig,
-          banners: heroConfig.banners || { items: [] },
-          categoryIds: Array.isArray(heroConfig.categoryIds) ? heroConfig.categoryIds : [],
-        }
+        ...heroConfig,
+        banners: heroConfig.banners || { items: [] },
+        categoryIds: Array.isArray(heroConfig.categoryIds) ? heroConfig.categoryIds : [],
+      }
       : { banners: { items: [] }, categoryIds: [] };
     return res.json({ success: true, result: resolved });
   } catch (err) {
@@ -483,7 +553,7 @@ export const getCategories = async (req, res) => {
       cat.children = [];
       catMap[String(cat._id)] = cat;
     });
-    
+
     const root = [];
     mapped.forEach(cat => {
       if (cat.parentId && catMap[String(cat.parentId)]) {
@@ -502,15 +572,92 @@ export const getProducts = async (req, res) => {
   setPublicCache(res, 60);
   // Note: ensureQuickCommerceSeedData runs at server startup — no need here.
 
-  const { categoryId, search, limit } = req.query;
-  const query = { ...publicProductFilter };
+  const { categoryId, search, limit, lat, lng, zoneId } = req.query;
+
+  // If we have coordinates, find the applicable QuickZone
+  let effectiveZoneId = null;
+  let fallbackZoneName = null;
+
+  // 1. If GPS is provided, STRICTLY use the QuickZone polygon.
+  if (lat && lng) {
+    const zones = await QuickZone.find({}).lean();
+    
+    // Strict polygon check
+    for (const z of zones) {
+      if (z.coordinates && z.coordinates.length >= 3) {
+        const inside = isPointInPolygon(Number(lat), Number(lng), z.coordinates);
+        if (inside) {
+          effectiveZoneId = z._id;
+          break;
+        }
+      }
+    }
+    // Note: If lat/lng is provided but user is outside all polygons, effectiveZoneId remains null.
+    // We DO NOT fall back to zoneId because the user's explicit location is out of bounds.
+  } 
+  // 2. Only if GPS is missing, fall back to the manually selected zoneId (from Food app)
+  else if (zoneId && zoneId !== 'null' && zoneId !== 'undefined') {
+    if (mongoose.Types.ObjectId.isValid(zoneId)) {
+      const qz = await QuickZone.findById(zoneId).select('_id').lean();
+      if (qz) {
+        effectiveZoneId = zoneId;
+      } else {
+        const { FoodZone } = await import('../../food/admin/models/zone.model.js');
+        const fz = await FoodZone.findById(zoneId).select('name').lean();
+        if (fz && fz.name) {
+          fallbackZoneName = fz.name;
+        }
+      }
+    }
+  }
+
+  // Handle case where no valid zone is found (out of service area)
+  if (!effectiveZoneId && !fallbackZoneName) {
+    return res.json({
+      success: true,
+      result: { items: [] }
+    });
+  }
+
+  const query = JSON.parse(JSON.stringify(publicProductFilter));
+
+  if (effectiveZoneId) {
+    let sellersInZone = await Seller.find({ 'shopInfo.zoneId': effectiveZoneId, approvalStatus: 'approved', isActive: true }).select('_id').lean();
+
+    if (sellersInZone.length === 0) {
+      const qz = await QuickZone.findById(effectiveZoneId).select('name').lean();
+      if (qz && qz.name) {
+        sellersInZone = await Seller.find({ 'shopInfo.zoneName': new RegExp(`^${qz.name}$`, 'i'), approvalStatus: 'approved', isActive: true }).select('_id').lean();
+      }
+    }
+
+    if (sellersInZone.length > 0) {
+      const sellerIds = sellersInZone.map(s => s._id);
+      query.sellerId = { $in: sellerIds };
+    } else {
+      return res.json({ success: true, result: { items: [] } });
+    }
+  } else if (fallbackZoneName) {
+    const sellersInZone = await Seller.find({ 'shopInfo.zoneName': new RegExp(`^${fallbackZoneName}$`, 'i'), approvalStatus: 'approved', isActive: true }).select('_id').lean();
+    if (sellersInZone.length > 0) {
+      const sellerIds = sellersInZone.map(s => s._id);
+      query.sellerId = { $in: sellerIds };
+    } else {
+      return res.json({ success: true, result: { items: [] } });
+    }
+  } else {
+    return res.json({ success: true, result: { items: [] } });
+  }
 
   if (categoryId) {
-    query.$or = [
-      { categoryId: categoryId },
-      { subcategoryId: categoryId },
-      { headerId: categoryId }
-    ];
+    if (!query.$and) query.$and = [];
+    query.$and.push({
+      $or: [
+        { categoryId: categoryId },
+        { subcategoryId: categoryId },
+        { headerId: categoryId }
+      ]
+    });
   }
   if (search) query.name = { $regex: String(search).trim(), $options: 'i' };
 

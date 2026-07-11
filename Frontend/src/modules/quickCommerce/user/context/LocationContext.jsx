@@ -101,7 +101,14 @@ export const LocationProvider = ({ children }) => {
     newLoc,
     { persist = true, updateSavedHome = false } = {},
   ) => {
-    setCurrentLocation(newLoc);
+    // Always normalize lat/lng to numbers so downstream hooks
+    // (useQuickHomeData) never get string values that fail Number.isFinite().
+    const normalized = {
+      ...newLoc,
+      latitude: Number.isFinite(parseFloat(newLoc.latitude)) ? parseFloat(newLoc.latitude) : newLoc.latitude,
+      longitude: Number.isFinite(parseFloat(newLoc.longitude)) ? parseFloat(newLoc.longitude) : newLoc.longitude,
+    };
+    setCurrentLocation(normalized);
 
     if (updateSavedHome) {
       setSavedAddresses((prev) =>
@@ -118,8 +125,8 @@ export const LocationProvider = ({ children }) => {
           city: newLoc.city,
           state: newLoc.state,
           pincode: newLoc.pincode,
-          latitude: newLoc.latitude,
-          longitude: newLoc.longitude,
+          latitude: parseFloat(newLoc.latitude),
+          longitude: parseFloat(newLoc.longitude),
           // Internal app properties
           time: newLoc.time,
         };
@@ -139,6 +146,7 @@ export const LocationProvider = ({ children }) => {
         address: newAddress.address,
         phone: newAddress.phone || "N/A",
         isCurrent: false,
+        location: newAddress.location || null,
       },
     ]);
   };
@@ -353,24 +361,56 @@ export const LocationProvider = ({ children }) => {
     if (typeof window === "undefined") return;
 
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const addressName = parsed.address || parsed.name;
-        if (parsed && addressName) {
-          updateLocation(
-            {
-              name: addressName,
-              time: parsed.time || "12-15 mins",
-              city: parsed.city,
-              state: parsed.state,
-              pincode: parsed.pincode,
-              latitude: parsed.latitude,
-              longitude: parsed.longitude,
-            },
-            { persist: false, updateSavedHome: false },
-          );
+      // 1. Try to sync from global Food app location first (in case we missed the event while unmounted)
+      const globalRaw = window.localStorage.getItem("userLocation");
+      let parsed = null;
+      let addressName = null;
+
+      if (globalRaw) {
+        const globalParsed = JSON.parse(globalRaw);
+        addressName = globalParsed.formattedAddress || globalParsed.address || globalParsed.name;
+        if (globalParsed && addressName) {
+          parsed = {
+            name: addressName,
+            time: globalParsed.time || "12-15 mins",
+            city: globalParsed.city,
+            state: globalParsed.state,
+            pincode: globalParsed.pincode || globalParsed.zipCode || globalParsed.postalCode,
+            latitude: parseFloat(globalParsed.latitude || globalParsed.lat),
+            longitude: parseFloat(globalParsed.longitude || globalParsed.lng),
+          };
         }
+      }
+
+      // 2. If no valid global location, fallback to QuickCommerce-specific cache
+      if (!parsed || !Number.isFinite(parsed.latitude)) {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const quickParsed = JSON.parse(raw);
+          addressName = quickParsed.address || quickParsed.name;
+          if (quickParsed && addressName) {
+            parsed = {
+              name: addressName,
+              time: quickParsed.time || "12-15 mins",
+              city: quickParsed.city,
+              state: quickParsed.state,
+              pincode: quickParsed.pincode,
+              latitude: parseFloat(quickParsed.latitude),
+              longitude: parseFloat(quickParsed.longitude),
+            };
+          }
+        }
+      }
+
+      if (parsed && addressName && Number.isFinite(parsed.latitude)) {
+        updateLocation(
+          {
+            ...parsed,
+            latitude: parsed.latitude || 22.711140989838025,
+            longitude: parsed.longitude || 75.9001552518043,
+          },
+          { persist: true, updateSavedHome: false },
+        );
       } else {
         // If no location is stored, persist the default one immediately
         updateLocation(currentLocation, {
@@ -444,8 +484,8 @@ export const LocationProvider = ({ children }) => {
               city: nextLocation.city || "Indore",
               state: nextLocation.state || "Madhya Pradesh",
               pincode: nextLocation.pincode || "452018",
-              latitude: nextLocation.latitude,
-              longitude: nextLocation.longitude,
+              latitude: parseFloat(nextLocation.latitude || nextLocation.lat),
+              longitude: parseFloat(nextLocation.longitude || nextLocation.lng),
             },
             { persist: true, updateSavedHome: false }
           );

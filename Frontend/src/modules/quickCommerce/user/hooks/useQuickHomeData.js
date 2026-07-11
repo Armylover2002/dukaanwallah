@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { customerApi } from "../services/customerApi";
+import { invalidateCache } from "@core/api/dedupe";
 import { Sparkles } from "lucide-react";
 
 // MUI Icons
@@ -214,6 +215,9 @@ let globalQuickHomeCache = {
   categoryProducts: new Map(),  // headerId -> products
   heroConfigs: new Map(),       // headerId -> hero config
   lastFetched: 0,
+  zoneId: null,
+  lat: null,
+  lng: null
 };
 
 // ---------------------------------------------------------------------------
@@ -304,11 +308,33 @@ export const useQuickHomeData = ({ currentLocation }) => {
   const fetchData = useCallback(async () => {
     const seq = ++fetchDataSeqRef.current;
 
+    const currentZoneId = typeof window !== "undefined" ? window.localStorage?.getItem("userZoneId") : null;
+    // Compare as numbers to avoid string vs number mismatch
+    const cachedLat = parseFloat(globalQuickHomeCache.lat);
+    const cachedLng = parseFloat(globalQuickHomeCache.lng);
+    const newLat = parseFloat(currentLocation?.latitude);
+    const newLng = parseFloat(currentLocation?.longitude);
+    const locationChanged =
+      cachedLat !== newLat ||
+      cachedLng !== newLng ||
+      globalQuickHomeCache.zoneId !== currentZoneId;
+
     // Re-check cache validity at call time (avoids stale closure)
     const cacheIsValid =
+      !locationChanged &&
       globalQuickHomeCache.data &&
       Date.now() - globalQuickHomeCache.lastFetched < CACHE_EXPIRY_MS;
+
     if (cacheIsValid) return;
+
+    if (locationChanged) {
+      globalQuickHomeCache.headerSections.clear();
+      globalQuickHomeCache.categoryProducts.clear();
+      globalQuickHomeCache.heroConfigs.clear();
+      // Clear dedupe cache so the API layer makes a fresh HTTP request
+      invalidateCache('/quick-commerce/bootstrap');
+      invalidateCache('/quick-commerce/products');
+    }
 
     // Stale-while-revalidate: if stale data exists, don't show skeleton — refresh silently
     const isSilentRefresh = Boolean(globalQuickHomeCache.data);
@@ -317,14 +343,15 @@ export const useQuickHomeData = ({ currentLocation }) => {
     try {
       // ── Single bootstrap call replaces 5 separate API requests ─────────────────────
       // Location sirf optional context ke liye pass karo — blocking nahi karega
-      const hasLocation =
-        Number.isFinite(currentLocation?.latitude) &&
-        Number.isFinite(currentLocation?.longitude);
+      const latNum = parseFloat(currentLocation?.latitude);
+      const lngNum = parseFloat(currentLocation?.longitude);
+      const hasLocation = Number.isFinite(latNum) && Number.isFinite(lngNum);
 
+      console.log("lat, lng 111: ", currentLocation?.latitude, currentLocation?.longitude);
       const bootstrapParams = {};
       if (hasLocation) {
-        bootstrapParams.lat = currentLocation.latitude;
-        bootstrapParams.lng = currentLocation.longitude;
+        bootstrapParams.lat = latNum;
+        bootstrapParams.lng = lngNum;
       }
 
       const bootstrapRes = await customerApi.getBootstrap(bootstrapParams);
@@ -370,12 +397,12 @@ export const useQuickHomeData = ({ currentLocation }) => {
         (h) => h.slug?.toLowerCase() === "all" || h.name?.toLowerCase() === "all"
       );
       const mergedAll = allFromAdmin
-        ? { 
-            ...ALL_CATEGORY, 
-            _id: allFromAdmin._id,
-            id: allFromAdmin._id,
-            icon: allFromAdmin.icon || ALL_CATEGORY.icon 
-          }
+        ? {
+          ...ALL_CATEGORY,
+          _id: allFromAdmin._id,
+          id: allFromAdmin._id,
+          icon: allFromAdmin.icon || ALL_CATEGORY.icon
+        }
         : ALL_CATEGORY;
 
       const headersWithoutAll = formattedHeaders.filter(
@@ -434,9 +461,12 @@ export const useQuickHomeData = ({ currentLocation }) => {
       setHeroConfig(config);
       newCache.heroConfig = config;
 
-      // Save complete cache
+      // Save complete cache — store parsed numbers for consistent comparisons
       globalQuickHomeCache.data = newCache;
       globalQuickHomeCache.lastFetched = Date.now();
+      globalQuickHomeCache.lat = latNum;
+      globalQuickHomeCache.lng = lngNum;
+      globalQuickHomeCache.zoneId = currentZoneId;
     } catch (err) {
       // Surface errors only in dev
       if (import.meta.env?.DEV) console.error("Quick home bootstrap error:", err);
@@ -454,9 +484,9 @@ export const useQuickHomeData = ({ currentLocation }) => {
   useEffect(() => {
     if (!activeCategory) return;
 
-    const isAll = activeCategory._id === "all" || 
-                  activeCategory.slug === "all" || 
-                  activeCategory.name?.toLowerCase() === "all";
+    const isAll = activeCategory._id === "all" ||
+      activeCategory.slug === "all" ||
+      activeCategory.name?.toLowerCase() === "all";
 
     const headerId = activeCategory._id;
 
@@ -490,7 +520,12 @@ export const useQuickHomeData = ({ currentLocation }) => {
         return;
       }
       try {
-        const res = await customerApi.getProducts({ categoryId: headerId, limit: 50 });
+        const res = await customerApi.getProducts({
+          categoryId: headerId,
+          limit: 50,
+          lat: currentLocation?.latitude,
+          lng: currentLocation?.longitude
+        });
         if (res?.data?.success) {
           const formatted = extractArray(res.data.results ?? res.data.result).map(formatProduct);
           globalQuickHomeCache.categoryProducts.set(headerId, formatted);
@@ -526,9 +561,9 @@ export const useQuickHomeData = ({ currentLocation }) => {
           // Otherwise, fall back to home page hero/category settings.
           const finalConfig = (hasBanners || hasCategories)
             ? {
-                banners: config.banners || { items: [] },
-                categoryIds: config.categoryIds || []
-              }
+              banners: config.banners || { items: [] },
+              categoryIds: config.categoryIds || []
+            }
             : homeConfig;
 
           cacheMap.set(headerId, finalConfig);

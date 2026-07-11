@@ -2,20 +2,30 @@ import axiosInstance from "@core/api/axios";
 import { getWithDedupe, invalidateCache } from "@core/api/dedupe";
 import { getQuickSessionId } from "./quickApi";
 
-const withQuickSession = (config = {}) => ({
-  ...config,
-  params: {
-    ...(config.params || {}),
-    sessionId: getQuickSessionId(),
-  },
-  headers: {
-    ...(config.headers || {}),
-    "x-quick-session": getQuickSessionId(),
-  },
-});
+const withQuickSession = (config = {}) => {
+  let zoneId = null;
+  if (typeof window !== "undefined") {
+    zoneId = window.localStorage?.getItem("userZoneId");
+  }
+  return {
+    ...config,
+    params: {
+      ...(config.params || {}),
+      sessionId: getQuickSessionId(),
+      ...(zoneId && zoneId !== "undefined" && zoneId !== "null" ? { zoneId } : {}),
+    },
+    headers: {
+      ...(config.headers || {}),
+      "x-quick-session": getQuickSessionId(),
+    },
+  };
+};
 
-const quickGetWithDedupe = (url, params = {}, options = {}) =>
-  getWithDedupe(url, params, withQuickSession(options));
+const quickGetWithDedupe = (url, params = {}, options = {}) => {
+  const config = withQuickSession(options);
+  const mergedParams = { ...(config.params || {}), ...params };
+  return getWithDedupe(url, mergedParams, config);
+};
 
 export const customerApi = {
   getProfile: () =>
@@ -160,9 +170,9 @@ export const prefetchQuickHomeBootstrap = async (location = null) => {
     customerApi.getHeroConfig({ pageType: "home" }),
     hasValidLocation
       ? customerApi.getOfferSections({
-          lat: location.latitude,
-          lng: location.longitude,
-        })
+        lat: location.latitude,
+        lng: location.longitude,
+      })
       : Promise.resolve(null),
   ]);
 };
