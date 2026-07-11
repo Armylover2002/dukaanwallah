@@ -41,24 +41,16 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
 
         // Approved DLT template (ID: 1007282516644508833):
         // "Welcome to the ##var## powered by Appzeto.Your OTP for registration is ##var##.BGADEC"
-        const message = `Welcome to the Dukaanwallah powered by Appzeto.Your OTP for registration is ${otp}.BGADEC`;
+        // const message = `Welcome to the Dukaanwallah powered by Appzeto.Your OTP for registration is ${otp}.BGADEC`;
+        const message = `Welcome to Dukaanwallah Pvt. Ltd. Your verification code is ${otp}. Enter this OTP to complete your registration. Valid for 10 minutes.`;
 
-        // Build the GET URL manually using encodeURIComponent.
-        // This ensures spaces are encoded as %20 (not +), which is strictly required by SMS India Hub's DLT validator.
         let url = `https://cloud.smsindiahub.in/vendorsms/pushsms.aspx` +
-            `?APIKey=${encodeURIComponent(config.smsApiKey)}` +
-            `&msisdn=${encodeURIComponent(msisdn)}` +
-            `&sid=${encodeURIComponent(config.smsSenderId)}` +
+            `?APIKey=${config.smsApiKey}` +
+            `&msisdn=${msisdn}` +
+            `&sid=${config.smsSenderId}` +
             `&msg=${encodeURIComponent(message)}` +
             `&fl=0` +
             `&gwid=2`;
-
-        if (config.smsIndiaHubUsername) {
-            url += `&uname=${encodeURIComponent(config.smsIndiaHubUsername)}`;
-        }
-        if (config.smsDltTemplateId) {
-            url += `&DLT_TE_ID=${encodeURIComponent(config.smsDltTemplateId)}`;
-        }
 
         logger.info(`[SMS] Sending OTP to ${msisdn} | URL: ${url.replace(config.smsApiKey, 'HIDDEN')}`);
 
@@ -179,7 +171,7 @@ export const verifyOtp = async (phone, otp) => {
 
     record.attempts += 1;
 
-    if (record.otp !== otp) {
+    if (String(record.otp).trim() !== String(otp).trim()) {
         await record.save();
         return { valid: false, reason: 'Invalid OTP' };
     }
