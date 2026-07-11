@@ -10,7 +10,7 @@ import { useLocation as useFoodLocation } from "@food/hooks/useLocation"
 import { useZone } from "@food/hooks/useZone"
 import { customerApi } from "../../../../quickCommerce/user/services/customerApi"
 import { toast } from "sonner"
-import { ArrowLeft, Building2, HelpCircle, ShoppingBag, ChevronRight } from "lucide-react"
+import { ArrowLeft, Building2, HelpCircle, ShoppingBag, ChevronRight, X } from "lucide-react"
 
 export default function Support() {
   const routerLocation = useRouterLocation()
@@ -381,11 +381,28 @@ export default function Support() {
     <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a]">
       <div className="max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 pb-20">
         <div className="mb-4">
-          <Link to={profileHomePath}>
-            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+          {step === "pick" ? (
+            <Link to={profileHomePath}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                <ArrowLeft className="h-5 w-5 text-black dark:text-white" />
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                if (step === "order_issue" || step === "store_issue") {
+                  setStep(step === "order_issue" ? "choose_order" : "choose_store")
+                } else {
+                  resetForm()
+                }
+              }}
+            >
               <ArrowLeft className="h-5 w-5 text-black dark:text-white" />
             </Button>
-          </Link>
+          )}
         </div>
 
         <Card className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-sm border border-slate-200 dark:border-gray-800 mb-3">
@@ -432,7 +449,12 @@ export default function Support() {
 
             {step === "choose_order" && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Select an order</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Select an order</h3>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={resetForm}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
                 <OrderList />
                 <Button variant="outline" onClick={resetForm}>Back</Button>
               </div>
@@ -440,7 +462,12 @@ export default function Support() {
 
             {step === "order_issue" && selectedOrder && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Issue type</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Issue type</h3>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={resetForm}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {orderIssues.map((item) => (
                     <Button key={item} variant={issueType === item ? "default" : "outline"} onClick={() => setIssueType(item)}>
@@ -464,7 +491,12 @@ export default function Support() {
             {step === "choose_store" && (
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">{isQuickProfile ? "Select a store" : "Select a restaurant"}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">{isQuickProfile ? "Select a store" : "Select a restaurant"}</h3>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={resetForm}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                   {!isQuickProfile && activeFoodZoneId ? (
                     <p className="text-xs text-slate-500">Showing restaurants for your current service zone.</p>
                   ) : null}
@@ -476,7 +508,12 @@ export default function Support() {
 
             {step === "store_issue" && selectedStore && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Issue type</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Issue type</h3>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={resetForm}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {storeIssues.map((item) => (
                     <Button key={item} variant={issueType === item ? "default" : "outline"} onClick={() => setIssueType(item)}>
