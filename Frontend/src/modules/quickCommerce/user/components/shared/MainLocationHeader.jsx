@@ -558,9 +558,18 @@ const MainLocationHeader = ({
                 className="relative z-10"
               >
                 <div className="mb-1 flex justify-between items-center pr-2">
-                  <span className="inline-flex items-center rounded-full border border-black/10 bg-white/18 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-900 backdrop-blur-sm">
-                    {appName}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {logoUrl && (
+                      <img 
+                        src={logoUrl} 
+                        alt={`${appName} Logo`} 
+                        className="h-6 w-auto object-contain rounded-sm" 
+                      />
+                    )}
+                    <span className="inline-flex items-center rounded-full border border-black/10 bg-white/18 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-900 backdrop-blur-sm">
+                      {appName}
+                    </span>
+                  </div>
                   {onRefresh && (
                     <button
                       onClick={onRefresh}

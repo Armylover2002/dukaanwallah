@@ -29,6 +29,8 @@ import {
 import { Badge } from "@food/components/ui/badge";
 import foodPattern from "@food/assets/food_pattern_background.png";
 import useNotificationInbox from "@food/hooks/useNotificationInbox";
+import { useSettings } from "@core/context/SettingsContext";
+import LogoImage from "@/assets/Logo.jpeg";
 
 const tabs = [
   {
@@ -148,6 +150,7 @@ export default function HomeHeader({
   const [isListening, setIsListening] = useState(false);
   const routerLocation = useRouterLocation();
   const videoRef = useRef(null);
+  const { settings } = useSettings();
   const [notifications, setNotifications] = useState(() => {
     if (typeof window === "undefined") return [];
     const saved = localStorage.getItem("food_user_notifications");
@@ -277,12 +280,18 @@ export default function HomeHeader({
       >
         <div className="flex items-center justify-between">
 
-          {/* Location Selector (Left) */}
-          <button
-            type="button"
-            onClick={handleLocationClick}
-            className="flex items-center space-x-2 cursor-pointer bg-transparent border-0 p-0 text-left outline-none shrink min-w-0"
-          >
+          {/* Logo & Location Selector (Left) */}
+          <div className="flex items-center space-x-2 shrink min-w-0">
+            <img 
+              src={settings?.logoUrl || LogoImage} 
+              alt="App Logo" 
+              className="h-8 w-auto object-contain shrink-0 rounded-md mr-1"
+            />
+            <button
+              type="button"
+              onClick={handleLocationClick}
+              className="flex items-center space-x-2 cursor-pointer bg-transparent border-0 p-0 text-left outline-none shrink min-w-0"
+            >
             <MapPin
               className="h-5 w-5 shrink-0"
               style={{ color: iconColor }}
@@ -299,7 +308,8 @@ export default function HomeHeader({
                 {locationSubtitle}
               </span>
             </div>
-          </button>
+            </button>
+          </div>
 
           {/* Action Icons (Right) */}
           <div className="flex items-center space-x-3 shrink-0">
