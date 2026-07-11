@@ -105,6 +105,7 @@ import VegModePopups from "@food/components/user/VegModePopups";
 
 import * as imgUtils from "@food/utils/imageUtils";
 import { useFoodHomeData } from "@food/hooks/useFoodHomeData";
+import { useDeliveryAddressMode } from "@food/hooks/useDeliveryAddressMode";
 
 // Extracted Sub-components
 const BannerSection = lazy(() => import("@food/components/user/home/BannerSection"));
@@ -201,7 +202,7 @@ export default function Home() {
   }, [defaultSavedAddress]);
   const { zoneId: savedZoneId, isInService: isSavedInService, isOutOfService: isSavedOutOfService } = useZone(defaultSavedAddressLocation);
 
-  const deliveryAddressMode = getStoredDeliveryAddressMode();
+  const deliveryAddressMode = useDeliveryAddressMode();
   const effectiveZoneId = (deliveryAddressMode === "current" ? liveZoneId : savedZoneId) || liveZoneId;
   const effectiveLocation = (deliveryAddressMode === "current" ? location : defaultSavedAddressLocation) || location;
   const effectiveIsOutOfService = deliveryAddressMode === "current" ? isLiveOutOfService : isSavedOutOfService;

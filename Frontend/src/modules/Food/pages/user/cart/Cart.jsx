@@ -1298,7 +1298,8 @@ export default function Cart() {
       localStorage.setItem("userLocation", JSON.stringify(locationData))
       // User selected a saved address from Cart; prefer saved mode.
       try {
-        localStorage.setItem("deliveryAddressMode", "saved")
+        localStorage.setItem("deliveryAddressMode", "saved");
+        window.dispatchEvent(new Event("deliveryAddressModeChanged"));
         setDeliveryAddressMode("saved")
       } catch { }
 

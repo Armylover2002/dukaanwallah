@@ -956,6 +956,7 @@ export default function LocationSelectorOverlay({ isOpen, onClose }) {
       // Store selection mode so Cart can prefer this current location for delivery address.
       try {
         localStorage.setItem("deliveryAddressMode", "current");
+        window.dispatchEvent(new Event("deliveryAddressModeChanged"));
       } catch {}
       syncSelectedLocation({
         ...locationData,
@@ -2048,7 +2049,8 @@ export default function LocationSelectorOverlay({ isOpen, onClose }) {
         })
         // User saved an address; prefer saved delivery address in Cart.
         try {
-          localStorage.setItem("deliveryAddressMode", "saved")
+          localStorage.setItem("deliveryAddressMode", "saved");
+          window.dispatchEvent(new Event("deliveryAddressModeChanged"));
         } catch {}
       }
 
@@ -2191,6 +2193,7 @@ export default function LocationSelectorOverlay({ isOpen, onClose }) {
       // User picked a saved address; Cart should prefer saved address over current location.
       try {
         localStorage.setItem("deliveryAddressMode", "saved");
+        window.dispatchEvent(new Event("deliveryAddressModeChanged"));
       } catch {}
       onClose()
     } catch (error) {
