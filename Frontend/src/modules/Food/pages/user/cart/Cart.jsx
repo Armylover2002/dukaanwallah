@@ -213,6 +213,7 @@ export default function Cart() {
   })
 
   const [sendCutlery, setSendCutlery] = useState(true)
+
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [showBillDetails, setShowBillDetails] = useState(true)
   const [showPlacingOrder, setShowPlacingOrder] = useState(false)
@@ -258,6 +259,14 @@ export default function Cart() {
 
   // Restaurant and pricing state
   const [restaurantData, setRestaurantData] = useState(null)
+  const displayDeliveryTime = useMemo(() => {
+    if (!restaurantData) return "35-40 mins";
+    if (restaurantData.estimatedDeliveryTime) return restaurantData.estimatedDeliveryTime;
+    if (restaurantData.deliveryTime) return restaurantData.deliveryTime;
+    if (restaurantData.avgDeliveryTime) return restaurantData.avgDeliveryTime;
+    if (restaurantData.estimatedDeliveryTimeMinutes) return `${restaurantData.estimatedDeliveryTimeMinutes} mins`;
+    return "35-40 mins";
+  }, [restaurantData]);
   const [loadingRestaurant, setLoadingRestaurant] = useState(false)
   const [pricing, setPricing] = useState(null)
   const [loadingPricing, setLoadingPricing] = useState(false)
@@ -2217,7 +2226,7 @@ export default function Cart() {
               <div className="min-w-0">
                 <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">{restaurantName}</p>
                 <p className="text-sm md:text-base font-medium text-gray-800 dark:text-white truncate">
-                  {restaurantData?.estimatedDeliveryTime || "10-15 mins"} to <span className="font-semibold">Location</span>
+                  {displayDeliveryTime} to <span className="font-semibold">Location</span>
                   <span className="text-gray-400 dark:text-gray-500 ml-1 text-xs md:text-sm">{defaultAddress ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || defaultAddress?.city || "Select address") : "Select address"}</span>
                 </p>
               </div>
@@ -2348,7 +2357,7 @@ export default function Cart() {
                       </div>
 
                       <p className="mt-3 text-lg font-bold tracking-tight text-gray-900 dark:text-white md:text-xl">
-                        Delivery in <span className="text-[#FE5502]">{restaurantData?.estimatedDeliveryTime || "15-20 mins"}</span>
+                        Delivery in <span className="text-[#FE5502]">{displayDeliveryTime}</span>
                       </p>
                       <p className="mt-1 max-w-xl text-sm leading-6 text-gray-600 dark:text-gray-300">
                         We prioritize your order, match the nearest available rider, and keep the handoff moving smoothly.
