@@ -3457,7 +3457,7 @@ export async function updateOrderStatusRestaurant(
         } else {
           if (isSplitDispatchOrder(order)) {
             await notifySplitDispatchOffers(order, { restaurantDoc: restaurant });
-          } else {
+          } else if (order.dispatch?.modeAtCreation !== "auto") {
             // Broadcast to nearby online partners so someone can accept/claim.
             console.log(
               `[DEBUG] Searching for nearby partners for order ${order.orderId}`,
