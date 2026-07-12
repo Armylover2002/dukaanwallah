@@ -65,27 +65,27 @@ const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
   for (const rule of sorted) {
     const min = Number(rule.minDistance || 0);
     const max = rule.maxDistance == null ? Infinity : Number(rule.maxDistance);
-    
+
     // Check if distance falls within the slab
     if ((min === 0 && d <= max) || (d >= min && d <= max) || (d > min && d <= max)) {
-        // We use d >= min for the first slab if it doesn't start at 0, so distances smaller than min still get caught if we want, but better to strictly check boundaries and use a fallback for < min.
-        if (d <= max && d >= min) {
-            earning = min === 0 ? Number(rule.basePayout || 0) : Number(rule.commissionPerKm || 0);
-            break;
-        }
+      // We use d >= min for the first slab if it doesn't start at 0, so distances smaller than min still get caught if we want, but better to strictly check boundaries and use a fallback for < min.
+      if (d <= max && d >= min) {
+        earning = min === 0 ? Number(rule.basePayout || 0) : Number(rule.commissionPerKm || 0);
+        break;
+      }
     }
   }
 
   // Fallback to the appropriate slab
   if (earning === 0 && sorted.length > 0) {
     if (d < Number(sorted[0].minDistance || 0)) {
-       // Distance is less than the first slab, charge the first slab
-       const firstRule = sorted[0];
-       earning = Number(firstRule.minDistance || 0) === 0 ? Number(firstRule.basePayout || 0) : Number(firstRule.commissionPerKm || 0);
+      // Distance is less than the first slab, charge the first slab
+      const firstRule = sorted[0];
+      earning = Number(firstRule.minDistance || 0) === 0 ? Number(firstRule.basePayout || 0) : Number(firstRule.commissionPerKm || 0);
     } else {
-       // Distance exceeds all slabs, charge the last slab
-       const lastRule = sorted[sorted.length - 1];
-       earning = Number(lastRule.minDistance || 0) === 0 ? Number(lastRule.basePayout || 0) : Number(lastRule.commissionPerKm || 0);
+      // Distance exceeds all slabs, charge the last slab
+      const lastRule = sorted[sorted.length - 1];
+      earning = Number(lastRule.minDistance || 0) === 0 ? Number(lastRule.basePayout || 0) : Number(lastRule.commissionPerKm || 0);
     }
   }
 
@@ -169,8 +169,8 @@ const CartItem = React.memo(({ item, onRemove, onUpdateQuantity, showToast }) =>
             <div className="min-w-0">
               <h2 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-white">{item.name}</h2>
               <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                {(item.weight || item.unit || '1 unit') === '1 unit' || (item.weight || item.unit) === 'Default' 
-                  ? `${item.quantity} unit${item.quantity > 1 ? 's' : ''}` 
+                {(item.weight || item.unit || '1 unit') === '1 unit' || (item.weight || item.unit) === 'Default'
+                  ? `${item.quantity} unit${item.quantity > 1 ? 's' : ''}`
                   : (item.weight || item.unit || '1 unit')}
               </p>
             </div>
