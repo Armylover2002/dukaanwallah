@@ -244,7 +244,7 @@ export default function SellerOnboarding() {
       toast.error("FSSAI expiry date cannot be a past date");
       return false;
     }
-    if (!form.shopLicenseNumber || !/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) || /^0+$/.test(form.shopLicenseNumber)) {
+    if (!form.shopLicenseNumber || !/^[A-Z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) || /^0+$/.test(form.shopLicenseNumber)) {
       toast.error("Shop license number must be 5–20 characters and cannot be all zeros");
       return false;
     }
@@ -577,7 +577,7 @@ export default function SellerOnboarding() {
       return;
     }
 
-    if (form.shopLicenseNumber && (!/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) || /^0+$/.test(form.shopLicenseNumber))) {
+    if (form.shopLicenseNumber && (!/^[A-Z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) || /^0+$/.test(form.shopLicenseNumber))) {
       toast.error("Shop license number must be 5–20 characters and cannot be all zeros");
       return;
     }
@@ -1226,13 +1226,13 @@ export default function SellerOnboarding() {
                     <label className="text-xs font-bold text-slate-900">Shop license number <span className="text-red-500">*</span></label>
                     <input
                       required
-                      className={`w-full rounded-2xl border px-4 py-3 font-medium outline-none focus:border-slate-900 ${form.shopLicenseNumber && !/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
+                      className={`w-full rounded-2xl border px-4 py-3 font-medium outline-none focus:border-slate-900 ${form.shopLicenseNumber && !/^[A-Z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
                       placeholder="Shop license number (e.g. MH/2023/12345)"
                       value={form.shopLicenseNumber}
                       maxLength={20}
-                      onChange={(e) => updateField("shopLicenseNumber", e.target.value.replace(/[^A-Za-z0-9\/\-]/g, "").slice(0, 20))}
+                      onChange={(e) => updateField("shopLicenseNumber", e.target.value.toUpperCase().replace(/[^A-Z0-9\/\-]/g, "").slice(0, 20))}
                     />
-                    {form.shopLicenseNumber && !/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) && (
+                    {form.shopLicenseNumber && !/^[A-Z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) && (
                       <p className="text-xs font-medium text-red-500 px-1">License number must be 5–20 characters (letters, numbers, / and - only)</p>
                     )}
                   </div>
