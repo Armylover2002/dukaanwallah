@@ -686,7 +686,15 @@ export const getDeliveryPartnerEarnings = async (deliveryPartnerId, query = {}) 
             {
                 $group: {
                     _id: null,
-                    totalEarnings: { $sum: { $ifNull: ['$riderEarning', 0] } }
+                    totalEarnings: { 
+                        $sum: { 
+                            $cond: [
+                                { $gt: [{ $ifNull: ['$riderEarning', 0] }, 0] },
+                                '$riderEarning',
+                                { $ifNull: ['$pricing.deliveryFee', 0] }
+                            ]
+                        } 
+                    }
                 }
             }
         ]),
@@ -797,7 +805,7 @@ const toTripDto = (order) => {
     const paymentMethod = order?.payment?.method || order?.paymentMethod || '';
     const pricingTotal = Number(order?.pricing?.total) || Number(order?.totalAmount) || 0;
 
-    const earningAmount = Number(order?.riderEarning ?? order?.deliveryEarning ?? 0) || 0;
+    const earningAmount = Number(order?.riderEarning || order?.pricing?.deliveryFee || order?.deliveryEarning || 0) || 0;
     const codAmount = paymentMethod === 'cash' ? Number(order?.payment?.amountDue) || 0 : 0;
     const codCollectedAmount = paymentMethod === 'cash' && order?.payment?.status === 'paid' ? codAmount : 0;
     return {

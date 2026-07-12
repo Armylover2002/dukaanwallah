@@ -6,19 +6,28 @@ import {
 } from "../../../../core/notifications/firebase.service.js";
 import { getIO, rooms } from '../../../../config/socket.js';
 import { addOrderJob } from '../../../../queues/producers/order.producer.js';
+import { addPaymentJob } from '../../../../queues/producers/payment.producer.js';
 
 export function enqueueOrderEvent(action, payload = {}) {
+  const isPaymentAction = ['delivery_completed', 'order_cancelled', 'payment_verified'].includes(action);
+
   try {
-    void addOrderJob({ action, ...payload }).catch((err) => {
-      logger.warn(`BullMQ enqueue order event failed: ${action} - ${err?.message || err}`);
-    });
+    if (isPaymentAction) {
+      void addPaymentJob({ action, ...payload }).catch((err) => {
+        logger.warn(`BullMQ enqueue payment event failed: ${action} - ${err?.message || err}`);
+      });
+    } else {
+      void addOrderJob({ action, ...payload }).catch((err) => {
+        logger.warn(`BullMQ enqueue order event failed: ${action} - ${err?.message || err}`);
+      });
+    }
   } catch (err) {
-    logger.warn(`BullMQ enqueue order event failed (sync): ${action} - ${err?.message || err}`);
+    logger.warn(`BullMQ enqueue event failed (sync): ${action} - ${err?.message || err}`);
   }
 
   // Synchronous fallback in development or when BullMQ is disabled
   if (process.env.BULLMQ_ENABLED !== 'true') {
-    if (['delivery_completed', 'order_cancelled', 'payment_verified'].includes(action)) {
+    if (isPaymentAction) {
       import('../../../../queues/processors/payment.processor.js')
         .then(({ processPaymentJob }) => {
           logger.info(`[BullMQ:fallback] Running sync payment processor for action=${action}`);
@@ -88,6 +97,11 @@ export function sanitizeOrderForExternal(orderDoc, roleContext = "") {
   o.orderMongoId = (o._id || orderDoc?._id || "").toString();
   // Ensure orderId field for UI always contains the pretty ID
   o.orderId = o.orderId || o.order_id || o.orderMongoId;
+
+  // Sync earnings fields for UI (similar to socket payload)
+  o.riderEarning = o.riderEarning || 0;
+  o.earnings = o.riderEarning || o.pricing?.deliveryFee || 0;
+
 
   // Mask Delivery Partner phone for Restaurant panel
   if (String(roleContext).toUpperCase() === "RESTAURANT") {

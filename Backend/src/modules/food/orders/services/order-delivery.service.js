@@ -967,7 +967,7 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
     paymentMethod: payMethod,
     prevPayStatus,
     paymentStatus: order.payment?.status,
-    riderEarning: order.riderEarning || 0,
+    riderEarning: order.riderEarning || order.pricing?.deliveryFee || 0,
     platformProfit: order.platformProfit || 0,
     total: order.pricing?.total || 0
   });

@@ -141,6 +141,10 @@ function sanitizeOrderForExternal(orderDoc, roleContext = "") {
     o.orderId = o.orderId || o.order_id || o.orderMongoId;
   }
 
+  // Sync earnings fields for delivery UI (matches socket payload format)
+  o.riderEarning = o.riderEarning || 0;
+  o.earnings = o.riderEarning || o.pricing?.deliveryFee || 0;
+
   // Mask Delivery Partner phone for Restaurant panel
   if (String(roleContext).toUpperCase() === "RESTAURANT") {
     if (!shouldShowDeliveryPartnerPhone(o)) {
@@ -4340,10 +4344,14 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
   enqueueOrderEvent('delivery_completed', {
     orderMongoId: order._id?.toString?.(),
     orderId: order.orderId,
+    restaurantId: order.restaurantId,
     deliveryPartnerId,
-    payMethod,
+    paymentMethod: payMethod,
     prevPayStatus,
-    paymentStatus: order.payment?.status
+    paymentStatus: order.payment?.status,
+    riderEarning: order.riderEarning || order.pricing?.deliveryFee || 0,
+    platformProfit: order.platformProfit || 0,
+    total: order.pricing?.total || 0
   });
   return sanitizeOrderForExternal(order);
 }
