@@ -206,8 +206,8 @@ export default function SellerOnboarding() {
       toast.error("Account holder name is required");
       return false;
     }
-    if (!form.accountNumber || !/^\d{9,18}$/.test(form.accountNumber)) {
-      toast.error("Account number must be 9–18 digits (numbers only)");
+    if (!form.accountNumber || !/^\d{9,18}$/.test(form.accountNumber) || /^0+$/.test(form.accountNumber)) {
+      toast.error("Account number must be 9–18 digits and cannot be all zeros");
       return false;
     }
     if (!form.ifscCode || !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifscCode)) {
@@ -236,16 +236,16 @@ export default function SellerOnboarding() {
         return false;
       }
     }
-    if (form.fssaiNumber && !/^\d{14}$/.test(form.fssaiNumber)) {
-      toast.error("FSSAI number must be exactly 14 digits (numbers only)");
+    if (form.fssaiNumber && (!/^\d{14}$/.test(form.fssaiNumber) || /^0+$/.test(form.fssaiNumber))) {
+      toast.error("FSSAI number must be exactly 14 digits and cannot be all zeros");
       return false;
     }
     if (form.fssaiExpiry && form.fssaiExpiry < new Date().toISOString().split("T")[0]) {
       toast.error("FSSAI expiry date cannot be a past date");
       return false;
     }
-    if (!form.shopLicenseNumber || !/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber)) {
-      toast.error("Shop license number must be 5–20 characters (letters, numbers, / and - only)");
+    if (!form.shopLicenseNumber || !/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) || /^0+$/.test(form.shopLicenseNumber)) {
+      toast.error("Shop license number must be 5–20 characters and cannot be all zeros");
       return false;
     }
     if (!form.shopLicenseExpiry || form.shopLicenseExpiry < new Date().toISOString().split("T")[0]) {
@@ -577,8 +577,8 @@ export default function SellerOnboarding() {
       return;
     }
 
-    if (form.shopLicenseNumber && !/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber)) {
-      toast.error("Shop license number must be 5–20 characters (letters, numbers, / and - only)");
+    if (form.shopLicenseNumber && (!/^[A-Za-z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) || /^0+$/.test(form.shopLicenseNumber))) {
+      toast.error("Shop license number must be 5–20 characters and cannot be all zeros");
       return;
     }
 
@@ -587,8 +587,8 @@ export default function SellerOnboarding() {
       return;
     }
 
-    if (form.accountNumber && !/^\d{9,18}$/.test(form.accountNumber)) {
-      toast.error("Account number must be 9–18 digits (numbers only)");
+    if (form.accountNumber && (!/^\d{9,18}$/.test(form.accountNumber) || /^0+$/.test(form.accountNumber))) {
+      toast.error("Account number must be 9–18 digits and cannot be all zeros");
       return;
     }
 
