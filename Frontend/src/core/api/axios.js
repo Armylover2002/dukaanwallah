@@ -114,6 +114,10 @@ axiosInstance.interceptors.response.use(
             const keysToClear = moduleStorageKeys[currentModule] || ['token'];
             keysToClear.forEach((key) => localStorage.removeItem(key));
 
+            if (path.includes('/auth') || path.includes('/login')) {
+                return Promise.reject(error);
+            }
+
             if (currentModule === 'seller') window.location.href = '/seller/auth';
             else if (currentModule === 'admin') window.location.href = '/admin/login';
             else if (currentModule === 'delivery') window.location.href = '/delivery/auth';
