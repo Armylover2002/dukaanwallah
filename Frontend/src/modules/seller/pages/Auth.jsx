@@ -330,7 +330,7 @@ export default function SellerAuth() {
 
       {/* Right form section */}
       <div className="w-full lg:w-1/2 h-[100dvh] lg:h-screen overflow-y-auto overscroll-contain bg-white">
-        <div className="flex flex-col min-h-[600px] min-h-[100dvh] lg:min-h-screen w-full relative">
+        <div className="flex flex-col min-h-[600px] min-h-full lg:min-h-screen w-full relative">
 
         {/* Curved Header Background - Mobile Only */}
         <div className="relative h-[260px] sm:h-[300px] w-full bg-[#f26522] overflow-hidden lg:hidden">

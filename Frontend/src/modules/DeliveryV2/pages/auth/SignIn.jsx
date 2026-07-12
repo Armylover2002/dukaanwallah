@@ -218,7 +218,7 @@ export default function DeliverySignIn() {
 
   return (
     <div className="w-full h-[100dvh] lg:h-screen overflow-y-auto overscroll-contain bg-white">
-      <div className="flex flex-col min-h-[600px] min-h-[100dvh] lg:min-h-screen w-full relative">
+      <div className="flex flex-col min-h-[600px] min-h-full lg:min-h-screen w-full relative">
       {/* Top Banner section - Orange */}
       <div className="w-full bg-primary-orange rounded-b-[2.5rem] p-6 text-center text-white relative overflow-hidden shadow-xl mb-6">
         <div className="absolute inset-0 bg-white/5 opacity-50 blur-3xl rounded-full -top-1/2 -left-1/4 animate-pulse" />
