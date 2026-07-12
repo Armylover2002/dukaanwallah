@@ -270,8 +270,9 @@ export const getBootstrapData = async (req, res) => {
       // Note: If lat/lng is provided but user is outside all polygons, effectiveZoneId remains null.
       // We DO NOT fall back to zoneId because the user's explicit location is out of bounds.
     } 
-    // 2. Only if GPS is missing, fall back to the manually selected zoneId (from Food app)
-    else if (zoneId && zoneId !== 'null' && zoneId !== 'undefined') {
+    
+    // 2. Only if GPS is missing OR polygon check failed, fall back to the manually selected zoneId
+    if (!effectiveZoneId && zoneId && zoneId !== 'null' && zoneId !== 'undefined') {
       if (mongoose.Types.ObjectId.isValid(zoneId)) {
         const qz = await QuickZone.findById(zoneId).select('_id').lean();
         if (qz) {
@@ -595,8 +596,9 @@ export const getProducts = async (req, res) => {
     // Note: If lat/lng is provided but user is outside all polygons, effectiveZoneId remains null.
     // We DO NOT fall back to zoneId because the user's explicit location is out of bounds.
   } 
-  // 2. Only if GPS is missing, fall back to the manually selected zoneId (from Food app)
-  else if (zoneId && zoneId !== 'null' && zoneId !== 'undefined') {
+  
+  // 2. Only if GPS is missing OR polygon check failed, fall back to the manually selected zoneId
+  if (!effectiveZoneId && zoneId && zoneId !== 'null' && zoneId !== 'undefined') {
     if (mongoose.Types.ObjectId.isValid(zoneId)) {
       const qz = await QuickZone.findById(zoneId).select('_id').lean();
       if (qz) {
