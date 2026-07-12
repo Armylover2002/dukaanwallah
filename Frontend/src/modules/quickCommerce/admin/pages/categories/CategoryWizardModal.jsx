@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Image, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -58,6 +58,40 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [createdHeaderId, setCreatedHeaderId] = useState(null);
   const [createdLevel2Id, setCreatedLevel2Id] = useState(null);
+  const [headerCategories, setHeaderCategories] = useState([]);
+  const [selectedExistingHeaderId, setSelectedExistingHeaderId] = useState("");
+  const [level2Categories, setLevel2Categories] = useState([]);
+  const [selectedExistingLevel2Id, setSelectedExistingLevel2Id] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchHeaderCategories = async () => {
+        try {
+          const res = await adminApi.getCategories({ type: 'header', limit: 100 });
+          setHeaderCategories(res.data?.results || res.data?.result?.items || []);
+        } catch (error) {
+          console.error("Failed to fetch header categories", error);
+        }
+      };
+      fetchHeaderCategories();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && step === 2 && selectedExistingHeaderId) {
+      const fetchLevel2Categories = async () => {
+        try {
+          const res = await adminApi.getCategories({ type: 'category', parentId: selectedExistingHeaderId, limit: 100 });
+          setLevel2Categories(res.data?.results || res.data?.result?.items || []);
+        } catch (error) {
+          console.error("Failed to fetch level 2 categories", error);
+        }
+      };
+      fetchLevel2Categories();
+    } else if (step === 2 && !selectedExistingHeaderId) {
+      setLevel2Categories([]);
+    }
+  }, [isOpen, step, selectedExistingHeaderId]);
 
   const [headerForm, setHeaderForm] = useState({
     name: "", slug: "", description: "", status: "active", type: "header",
@@ -95,6 +129,8 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
     setStep(1);
     setCreatedHeaderId(null);
     setCreatedLevel2Id(null);
+    setSelectedExistingHeaderId("");
+    setSelectedExistingLevel2Id("");
     setHeaderForm({ name: "", slug: "", description: "", status: "active", type: "header", parentId: null, iconId: "", adminCommission: 0, handlingFees: 0, headerColor: "#FF1E1E" });
     setLevel2Form({ name: "", slug: "", description: "", status: "active", type: "category", parentId: "" });
     setSubForm({ name: "", slug: "", description: "", status: "active", type: "subcategory", parentId: "" });
@@ -109,21 +145,33 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
   };
 
   const handleSaveHeader = async () => {
-    if (!headerForm.name || !headerForm.slug) {
-      toast.error("Name and slug are required");
-      return;
-    }
-    if (parseFloat(headerForm.adminCommission) > 100) {
-      toast.error("Admin commission cannot exceed 100%");
-      return;
+    if (!selectedExistingHeaderId) {
+      if (!headerForm.name || !headerForm.slug) {
+        toast.error("Name and slug are required");
+        return;
+      }
+      if (!headerForm.iconId && !headerImage) {
+        toast.error("Please select an icon or upload an image");
+        return;
+      }
+      if (parseFloat(headerForm.adminCommission) > 100) {
+        toast.error("Admin commission cannot exceed 100%");
+        return;
+      }
     }
     setStep(2);
   };
 
   const handleSaveLevel2 = async () => {
-    if (!level2Form.name || !level2Form.slug) {
-      toast.error("Name and slug are required");
-      return;
+    if (!selectedExistingLevel2Id) {
+      if (!level2Form.name || !level2Form.slug) {
+        toast.error("Name and slug are required");
+        return;
+      }
+      if (!level2Image) {
+        toast.error("Please upload an image");
+        return;
+      }
     }
     setStep(3);
   };
@@ -133,46 +181,56 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
       toast.error("Name and slug are required");
       return;
     }
+    if (!subImage) {
+      toast.error("Please upload an image");
+      return;
+    }
 
     setIsSaving(true);
     try {
       // 1. Create Header
-      const headerData = new FormData();
-      headerData.append("type", "header");
-      Object.keys(headerForm).forEach((key) => {
-        if (key !== "type" && key !== "parentId") {
-          let value = headerForm[key];
-          if (key === "adminCommission" || key === "handlingFees") {
-            value = parseFloat(value) || 0;
+      let headerId = selectedExistingHeaderId;
+      if (!headerId) {
+        const headerData = new FormData();
+        headerData.append("type", "header");
+        Object.keys(headerForm).forEach((key) => {
+          if (key !== "type" && key !== "parentId") {
+            let value = headerForm[key];
+            if (key === "adminCommission" || key === "handlingFees") {
+              value = parseFloat(value) || 0;
+            }
+            headerData.append(key, value);
           }
-          headerData.append(key, value);
-        }
-      });
-      if (headerImage) headerData.append("image", headerImage);
+        });
+        if (headerImage) headerData.append("image", headerImage);
 
-      const headerRes = await adminApi.createCategory(headerData);
-      const newHeader = headerRes.data?.result || headerRes.data?.category || headerRes.data?.data;
-      const headerId = newHeader?._id || newHeader?.id;
-      
-      if (!headerId) throw new Error("Could not retrieve created Header ID");
+        const headerRes = await adminApi.createCategory(headerData);
+        const newHeader = headerRes.data?.result || headerRes.data?.category || headerRes.data?.data;
+        headerId = newHeader?._id || newHeader?.id;
+        
+        if (!headerId) throw new Error("Could not retrieve created Header ID");
+      }
       setCreatedHeaderId(headerId); // For completeness
 
       // 2. Create Level 2
-      const level2Data = new FormData();
-      level2Data.append("type", "category");
-      level2Data.append("parentId", headerId);
-      Object.keys(level2Form).forEach((key) => {
-        if (key !== "type" && key !== "parentId") {
-          level2Data.append(key, level2Form[key]);
-        }
-      });
-      if (level2Image) level2Data.append("image", level2Image);
+      let level2Id = selectedExistingLevel2Id;
+      if (!level2Id) {
+        const level2Data = new FormData();
+        level2Data.append("type", "category");
+        level2Data.append("parentId", headerId);
+        Object.keys(level2Form).forEach((key) => {
+          if (key !== "type" && key !== "parentId") {
+            level2Data.append(key, level2Form[key]);
+          }
+        });
+        if (level2Image) level2Data.append("image", level2Image);
 
-      const level2Res = await adminApi.createCategory(level2Data);
-      const newLevel2 = level2Res.data?.result || level2Res.data?.category || level2Res.data?.data;
-      const level2Id = newLevel2?._id || newLevel2?.id;
-      
-      if (!level2Id) throw new Error("Could not retrieve created Level 2 ID");
+        const level2Res = await adminApi.createCategory(level2Data);
+        const newLevel2 = level2Res.data?.result || level2Res.data?.category || level2Res.data?.data;
+        level2Id = newLevel2?._id || newLevel2?.id;
+        
+        if (!level2Id) throw new Error("Could not retrieve created Level 2 ID");
+      }
       setCreatedLevel2Id(level2Id);
 
       // 3. Create Subcategory
@@ -245,7 +303,27 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
           >
             {step === 1 && (
               <>
-                {/* Icon/Image Selection */}
+                <div className="space-y-2 mb-4">
+                  <label className="text-sm font-medium text-gray-700">
+                    Select Existing Header Category
+                  </label>
+                  <select
+                    value={selectedExistingHeaderId}
+                    onChange={(e) => setSelectedExistingHeaderId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  >
+                    <option value="">-- Create New Header Category --</option>
+                    {headerCategories.map(cat => (
+                      <option key={cat._id || cat.id} value={cat._id || cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {!selectedExistingHeaderId && (
+                  <>
+                    {/* Icon/Image Selection */}
                 <div className="flex flex-col items-center gap-4">
                   <div className="flex gap-4">
                     {/* SVG Icon Display */}
@@ -444,11 +522,51 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
                   </div>
                 </div>
               </>
+              )}
+              </>
             )}
 
             {step === 2 && (
               <>
-                <div className="flex justify-center">
+                <div className="space-y-2 mb-4">
+                  <label className="text-sm font-medium text-gray-700">
+                    Parent Header Category
+                  </label>
+                  <select
+                    value="pending"
+                    disabled
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 focus:outline-none">
+                    <option key="pending-header" value="pending">
+                      {selectedExistingHeaderId 
+                        ? (headerCategories.find(c => (c._id || c.id) === selectedExistingHeaderId)?.name || "Selected Header") 
+                        : (headerForm.name || "Pending Creation")}
+                    </option>
+                  </select>
+                </div>
+
+                {selectedExistingHeaderId && (
+                  <div className="space-y-2 mb-4">
+                    <label className="text-sm font-medium text-gray-700">
+                      Select Existing Main Category
+                    </label>
+                    <select
+                      value={selectedExistingLevel2Id}
+                      onChange={(e) => setSelectedExistingLevel2Id(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    >
+                      <option value="">-- Create New Main Category --</option>
+                      {level2Categories.map(cat => (
+                        <option key={cat._id || cat.id} value={cat._id || cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {!selectedExistingLevel2Id && (
+                  <>
+                    <div className="flex justify-center">
                   <div
                     onClick={() => level2FileRef.current?.click()}
                     className="w-24 h-24 rounded-full bg-gray-50 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden transition-colors">
@@ -527,14 +645,35 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
                     }
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
                     <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
                   </select>
                 </div>
+              </>
+              )}
               </>
             )}
 
             {step === 3 && (
               <>
+                <div className="space-y-2 mb-4">
+                  <label className="text-sm font-medium text-gray-700">
+                    Parent Category (Level 2)
+                  </label>
+                  <select
+                    value="pending"
+                    disabled
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 focus:outline-none">
+                    <option key="pending-level2" value="pending">
+                      {selectedExistingHeaderId 
+                        ? (headerCategories.find(c => (c._id || c.id) === selectedExistingHeaderId)?.name || "Selected Header") 
+                        : (headerForm.name || "Pending Creation")} 
+                      {" > "} 
+                      {selectedExistingLevel2Id 
+                        ? (level2Categories.find(c => (c._id || c.id) === selectedExistingLevel2Id)?.name || "Selected Category") 
+                        : (level2Form.name || "Pending Creation")}
+                    </option>
+                  </select>
+                </div>
+
                 <div className="flex justify-center">
                   <div
                     onClick={() => subFileRef.current?.click()}
@@ -559,18 +698,6 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
                     onChange={(e) => handleImageChange(e, setSubImage, setSubPreview)}
                     accept="image/*"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Parent Category (Level 2)
-                  </label>
-                  <select
-                    value="pending"
-                    disabled
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 focus:outline-none">
-                    <option key="pending-level2" value="pending">{headerForm.name} &gt; {level2Form.name || "Pending Creation"}</option>
-                  </select>
                 </div>
 
                 <div className="space-y-2">
@@ -642,7 +769,7 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
                 {isSaving && (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 )}
-                Create Header
+                {selectedExistingHeaderId ? "Next Step" : "Create Header"}
               </button>
             )}
             {step === 2 && (
@@ -653,7 +780,7 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
                 {isSaving && (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 )}
-                Create Category
+                {selectedExistingLevel2Id ? "Next Step" : "Create Category"}
               </button>
             )}
             {step === 3 && (
