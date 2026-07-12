@@ -475,6 +475,31 @@ export const useDeliveryNotifications = () => {
     return true;
   }, [deliveryPartnerId]);
 
+  // Listen for FCM foreground delivery order events (Primary Trigger)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleFcmDeliveryOrder = (event) => {
+      const orderData = event.detail;
+      if (!isActionableDeliveryOffer(orderData)) {
+        debugLog('Ignoring non-actionable FCM delivery order event', orderData);
+        return;
+      }
+
+      debugLog('New order received via FCM (Foreground)', {
+        orderId: orderData?.orderId || orderData?.orderMongoId || orderData?._id,
+      });
+
+      setNewOrder(orderData);
+      handleIncomingOrderAlert(orderData);
+    };
+
+    window.addEventListener('fcm-delivery-order', handleFcmDeliveryOrder);
+    return () => {
+      window.removeEventListener('fcm-delivery-order', handleFcmDeliveryOrder);
+    };
+  }, [handleIncomingOrderAlert]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -893,8 +918,14 @@ export const useDeliveryNotifications = () => {
         dispatchStatus: orderData?.dispatch?.status,
       });
       // Always clear dedupe so the order alert shows even on repeated sends
+      // BUT check if it was just alerted by FCM (within 5 seconds) to avoid double-ringing.
       const alertKey = getOrderAlertKey(orderData);
-      if (alertKey) lastAlertAtByOrderRef.current.delete(alertKey);
+      if (alertKey) {
+        const lastAlert = lastAlertAtByOrderRef.current.get(alertKey) || 0;
+        if (Date.now() - lastAlert > 5000) {
+          lastAlertAtByOrderRef.current.delete(alertKey);
+        }
+      }
       setNewOrder(orderData);
       handleIncomingOrderAlert(orderData);
     });
@@ -911,8 +942,14 @@ export const useDeliveryNotifications = () => {
         dispatchStatus: orderData?.dispatch?.status,
       });
       // Always clear dedupe for resend scenarios — seller explicitly triggered this
+      // BUT check if it was just alerted by FCM (within 5 seconds) to avoid double-ringing.
       const alertKey = getOrderAlertKey(orderData);
-      if (alertKey) lastAlertAtByOrderRef.current.delete(alertKey);
+      if (alertKey) {
+        const lastAlert = lastAlertAtByOrderRef.current.get(alertKey) || 0;
+        if (Date.now() - lastAlert > 5000) {
+          lastAlertAtByOrderRef.current.delete(alertKey);
+        }
+      }
       // Treat it the same as new_order — delivery boy can accept it
       setNewOrder(orderData);
       handleIncomingOrderAlert(orderData);

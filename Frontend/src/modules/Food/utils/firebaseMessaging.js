@@ -515,6 +515,17 @@ function showForegroundNotification(payload = {}) {
     payload?.data?.imageUrl ||
     undefined;
 
+  const type = payload?.data?.type || '';
+  if (type === 'new_order' || type === 'new_order_available') {
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('fcm-delivery-order', { detail: payload.data }));
+      } catch (err) {
+        pushDebugWarn(PUSH_DEBUG_PREFIX, "Failed to dispatch fcm-delivery-order event", { error: err?.message || err });
+      }
+    }
+  }
+
   playPushSound(payload);
 
   // Force system notification even when the tab is in focus

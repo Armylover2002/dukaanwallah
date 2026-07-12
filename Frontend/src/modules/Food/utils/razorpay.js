@@ -52,6 +52,7 @@ export const loadRazorpayScript = () => {
  */
 export const initRazorpayPayment = async (options) => {
   try {
+    console.log("Incoming Options:--> ", options);
     await loadRazorpayScript();
 
     if (!window.Razorpay) {
@@ -64,7 +65,7 @@ export const initRazorpayPayment = async (options) => {
       amount: options.amount,
       currency: options.currency || 'INR',
       order_id: options.order_id,
-      name: options.name || 'Appzeto Food',
+      name: options.name || 'Dukaanwallah',
       description: options.description || 'Order Payment',
       image: options.image || '/logo.png',
       prefill: {
@@ -136,6 +137,7 @@ export const initRazorpayPayment = async (options) => {
  * @param {Object} options
  */
 export const initRazorpaySubscription = async (options) => {
+  console.log("Incoming Options--->: ", options);
   if (isFlutterWebView()) {
     console.log('[Razorpay] Flutter WebView detected → using native bridge');
     return handleFlutterRazorpayPayment(options);
@@ -150,7 +152,7 @@ export const initRazorpaySubscription = async (options) => {
     const razorpayOptions = {
       key: options.key,
       subscription_id: options.subscription_id,
-      name: options.name || 'Appzeto Subscriptions',
+      name: options.name || 'Dukaanwallah',
       description: options.description || 'Plan Subscription',
       image: options.image || '/logo.png',
       prefill: {
@@ -186,6 +188,7 @@ export const initRazorpaySubscription = async (options) => {
         options.onError(response.error || { description: 'Payment failed. Please try again.' });
       }
     });
+
     rzp.open();
     return rzp;
   } catch (error) {
