@@ -15,12 +15,13 @@ export default function Footer() {
     const loadLogo = async () => {
       try {
         const cached = getCachedSettings()
-        if (cached?.logo?.url) {
-          setLogoUrl(cached.logo.url)
+        if (cached?.data?.userLogo?.url || cached?.data?.logo?.url) {
+          setLogoUrl(cached?.data?.userLogo?.url || cached?.data?.logo?.url)
         } else {
           const settings = await loadBusinessSettings()
-          if (settings?.logo?.url) {
-            setLogoUrl(settings.logo.url)
+          console.log("setting->>", settings)
+          if (settings?.data?.userLogo?.url || settings?.data?.logo?.url) {
+            setLogoUrl(settings?.data?.userLogo?.url || settings?.data?.logo?.url)
           }
         }
       } catch (error) {
@@ -32,8 +33,8 @@ export default function Footer() {
     // Listen for business settings updates
     const handleSettingsUpdate = () => {
       const cached = getCachedSettings()
-      if (cached?.logo?.url) {
-        setLogoUrl(cached.logo.url)
+      if (cached?.data?.userLogo?.url || cached?.data?.logo?.url) {
+        setLogoUrl(cached?.data?.userLogo?.url || cached?.data?.logo?.url)
       }
     }
     window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)

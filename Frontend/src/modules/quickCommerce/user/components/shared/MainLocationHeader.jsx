@@ -287,8 +287,8 @@ const MainLocationHeader = ({
   const routerLocation = useRouterLocation();
 
   // Stable derived values
-  const appName = settings?.appName || "DukaanWallah";
-  const logoUrl = settings?.logoUrl || LogoImage;
+  const appName = settings?.companyName || settings?.appName || "DukaanWallah";
+  const logoUrl = settings?.userLogo?.url || settings?.logoUrl || LogoImage;
 
   // Memoize route paths — only recalculate when pathname changes
   const cartPath = useMemo(() => getQuickCartPath(routerLocation.pathname), [routerLocation.pathname]);

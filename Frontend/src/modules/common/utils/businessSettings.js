@@ -103,6 +103,11 @@ export const loadBusinessSettings = async () => {
         const favicon = getAppFavicon(currentAppType);
         if (favicon) updateFavicon(favicon);
 
+        // Dispatch event so all listening components update with fresh data
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('businessSettingsUpdated', { detail: settings }));
+        }
+
         return settings;
       }
       return cachedSettings;

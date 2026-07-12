@@ -18,7 +18,7 @@ const SOCIAL_ICONS = [
 const Footer = () => {
     const { settings } = useSettings();
 
-    const logoUrl = settings?.logoUrl || Logo;
+    const logoUrl = settings?.data?.userLogo?.url || settings?.data?.logoUrl || Logo;
     const defaultPrimaryColor = settings?.primaryColor || '#ea580c';
 
     const [themeColor, setThemeColor] = useState(() => {
@@ -38,7 +38,7 @@ const Footer = () => {
     }, []);
 
     const primaryColor = themeColor;
-    const appName = settings?.appName || 'DukaanWallah';
+    const appName = settings?.data?.companyName || 'DukaanWallah';
     console.log("settings?.appName :",);
     const currentYear = useMemo(() => new Date().getFullYear(), []); // year never changes in session
 
@@ -52,7 +52,7 @@ const Footer = () => {
             })),
         [settings],
     );
-    console.log("logoUrl :", logoUrl);
+    console.log("setting---->", settings)
     return (
         <footer
             className="dynamic-footer-bg relative bg-[#1a0f05] pt-20 pb-10 mt-20 text-slate-300 md:pt-32 md:pb-16 md:mt-32 overflow-hidden transition-colors duration-500"
@@ -177,21 +177,21 @@ const Footer = () => {
                                     <MapPin size={22} />
                                 </div>
                                 <MapPin className="mt-1 shrink-0 md:hidden" size={18} style={{ color: primaryColor }} />
-                                <span className="md:text-base text-white md:pt-1 font-medium">{settings?.address || '—'}</span>
+                                <span className="md:text-base text-white md:pt-1 font-medium">{settings?.data?.address || '—'}</span>
                             </li>
                             <li className="flex items-center gap-3 md:gap-5 group">
                                 <div className="hidden md:flex h-12 w-12 rounded-xl bg-white/10 items-center justify-center text-white transition-all shrink-0 group-hover:opacity-90">
                                     <Phone size={22} />
                                 </div>
                                 <Phone className="shrink-0 md:hidden" size={18} style={{ color: primaryColor }} />
-                                <span className="md:text-base text-white font-medium">{settings?.supportPhone || '—'}</span>
+                                <span className="md:text-base text-white font-medium">{settings?.data?.phone?.number || '—'}</span>
                             </li>
                             <li className="flex items-center gap-3 md:gap-5 group">
                                 <div className="hidden md:flex h-12 w-12 rounded-xl bg-white/10 items-center justify-center text-white transition-all shrink-0 group-hover:opacity-90">
                                     <Mail size={22} />
                                 </div>
                                 <Mail className="shrink-0 md:hidden" size={18} style={{ color: primaryColor }} />
-                                <span className="md:text-base text-white font-medium">{settings?.supportEmail || '—'}</span>
+                                <span className="md:text-base text-white font-medium">{settings?.data?.email || '—'}</span>
                             </li>
                         </ul>
                     </div>
@@ -199,7 +199,7 @@ const Footer = () => {
 
                 <div className="border-t border-white/10 mt-12 pt-8 text-center text-sm md:flex md:justify-between md:text-left md:mt-24 md:pt-12">
                     <p className="md:text-base text-white/60">
-                        &copy; {currentYear} Dukaanwallah. All rights reserved.
+                        &copy; {currentYear} {settings?.data?.companyName}. All rights reserved.
                     </p>
                     <div className="flex gap-6 justify-center md:justify-end mt-4 md:mt-0 md:gap-12">
                         <a href="#" className="hover:text-orange-300 md:text-base text-white/60 transition-all">Privacy Policy</a>

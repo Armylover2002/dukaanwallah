@@ -282,9 +282,9 @@ export default function HomeHeader({
 
           {/* Logo & Location Selector (Left) */}
           <div className="flex items-center space-x-2 shrink min-w-0">
-            <img 
-              src={settings?.logoUrl || LogoImage} 
-              alt="App Logo" 
+            <img
+              src={settings?.data?.userLogo?.url || settings?.logoUrl || LogoImage}
+              alt="App Logo"
               className="h-8 w-auto object-contain shrink-0 rounded-md mr-1"
             />
             <button
@@ -292,22 +292,22 @@ export default function HomeHeader({
               onClick={handleLocationClick}
               className="flex items-center space-x-2 cursor-pointer bg-transparent border-0 p-0 text-left outline-none shrink min-w-0"
             >
-            <MapPin
-              className="h-5 w-5 shrink-0"
-              style={{ color: iconColor }}
-              strokeWidth={2}
-            />
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center">
-                <span className={cn("font-bold text-sm truncate max-w-[150px]", textColorClass)}>
-                  {locationTitle}
+              <MapPin
+                className="h-5 w-5 shrink-0"
+                style={{ color: iconColor }}
+                strokeWidth={2}
+              />
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center">
+                  <span className={cn("font-bold text-sm truncate max-w-[150px]", textColorClass)}>
+                    {locationTitle}
+                  </span>
+                  <ChevronDown className={cn("h-4 w-4 ml-1 shrink-0", textColorClass)} strokeWidth={2} />
+                </div>
+                <span className={cn("text-[10px] uppercase truncate max-w-[170px]", subtextColorClass)}>
+                  {locationSubtitle}
                 </span>
-                <ChevronDown className={cn("h-4 w-4 ml-1 shrink-0", textColorClass)} strokeWidth={2} />
               </div>
-              <span className={cn("text-[10px] uppercase truncate max-w-[170px]", subtextColorClass)}>
-                {locationSubtitle}
-              </span>
-            </div>
             </button>
           </div>
 

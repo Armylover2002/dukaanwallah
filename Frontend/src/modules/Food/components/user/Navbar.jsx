@@ -12,15 +12,15 @@ import {
 import { useLocation } from "@food/hooks/useLocation"
 import { useCart } from "@food/context/CartContext"
 import { useLocationSelector } from "./UserLayout"
-import { 
-  loadBusinessSettings, 
-  getCachedSettings, 
+import {
+  loadBusinessSettings,
+  getCachedSettings,
   getCompanyName,
-  getAppLogo 
+  getAppLogo
 } from "@common/utils/businessSettings"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 export default function Navbar() {
@@ -29,6 +29,7 @@ export default function Navbar() {
   const { openLocationSelector } = useLocationSelector()
   const cartCount = getCartCount()
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('user'))
+
   const [companyName, setCompanyName] = useState(() => getCompanyName())
 
   // Load business settings logo
@@ -38,6 +39,7 @@ export default function Navbar() {
         const cached = getCachedSettings()
         if (cached) {
           const userLogo = getAppLogo('user')
+          console.log("user logog ->>", userLogo)
           if (userLogo) setLogoUrl(userLogo)
           if (cached.companyName) setCompanyName(cached.companyName)
         } else {
@@ -118,7 +120,7 @@ export default function Navbar() {
             {logoUrl ? (
               <img
                 src={logoUrl}
-                alt={companyName || "Logo"}
+                alt={companyName || "logo"}
                 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 object-contain"
                 onError={(e) => {
                   e.target.style.display = 'none'
@@ -126,7 +128,7 @@ export default function Navbar() {
               />
             ) : (
               <span className="text-sm sm:text-base md:text-lg font-bold text-gray-900">
-                {companyName || "Appzeto"}
+                {companyName || "Dukaanwallah"}
               </span>
             )}
           </Link>
