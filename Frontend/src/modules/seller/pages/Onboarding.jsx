@@ -137,11 +137,15 @@ export default function SellerOnboarding() {
   const [fetchingFees, setFetchingFees] = useState(false);
   const [rejectionReason, setRejectionReason] = useState(null);
   const [isReonboardBypass, setIsReonboardBypass] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => {
+    const savedStep = sessionStorage.getItem("seller_onboarding_step");
+    return savedStep ? parseInt(savedStep, 10) : 1;
+  });
   const [isQrPickerOpen, setIsQrPickerOpen] = useState(false);
   const [isLicensePickerOpen, setIsLicensePickerOpen] = useState(false);
 
   useEffect(() => {
+    sessionStorage.setItem("seller_onboarding_step", currentStep.toString());
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentStep]);
 
@@ -643,6 +647,7 @@ export default function SellerOnboarding() {
           await refreshUser();
           sessionStorage.removeItem("sellerReonboard");
           localStorage.removeItem("sellerOnboardingDraft");
+          sessionStorage.removeItem("seller_onboarding_step");
           toast.success("Application submitted for admin approval");
           navigate("/seller/pending", { replace: true });
         } else {
@@ -671,6 +676,7 @@ export default function SellerOnboarding() {
                 await refreshUser();
                 sessionStorage.removeItem("sellerReonboard");
                 localStorage.removeItem("sellerOnboardingDraft");
+                sessionStorage.removeItem("seller_onboarding_step");
                 toast.success("Application submitted for admin approval");
                 navigate("/seller/pending", { replace: true });
               } catch (error) {
@@ -695,6 +701,7 @@ export default function SellerOnboarding() {
         await refreshUser();
         sessionStorage.removeItem("sellerReonboard");
         localStorage.removeItem("sellerOnboardingDraft");
+        sessionStorage.removeItem("seller_onboarding_step");
         toast.success("Application submitted for admin approval");
         navigate("/seller/pending", { replace: true });
       }
