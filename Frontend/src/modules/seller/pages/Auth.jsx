@@ -329,7 +329,8 @@ export default function SellerAuth() {
       </div>
 
       {/* Right form section */}
-      <div className="w-full lg:w-1/2 h-screen flex flex-col overflow-y-auto overscroll-contain bg-white">
+      <div className="w-full lg:w-1/2 h-[100dvh] lg:h-screen overflow-y-auto overscroll-contain bg-white">
+        <div className="flex flex-col min-h-[600px] min-h-[100dvh] lg:min-h-screen w-full relative">
 
         {/* Curved Header Background - Mobile Only */}
         <div className="relative h-[260px] sm:h-[300px] w-full bg-[#f26522] overflow-hidden lg:hidden">
@@ -523,6 +524,7 @@ export default function SellerAuth() {
             &copy; {new Date().getFullYear()} {companyName.toUpperCase()} SELLER PARTNER
           </p>
         </div>
+      </div>
       </div>
 
       {rejectionModalData.isOpen && (
