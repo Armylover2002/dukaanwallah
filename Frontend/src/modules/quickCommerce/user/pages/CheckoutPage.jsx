@@ -94,22 +94,38 @@ const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
   const d = Number(distanceKm);
   if (!Number.isFinite(d) || d < 0) return 0;
   if (!Array.isArray(rules) || !rules.length) return 0;
+
   const sorted = [...rules]
     .filter((r) => r && r.status !== false)
     .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
-  const baseRule = sorted.find((r) => (Number(r.minDistance) || 0) === 0) || null;
-  if (!baseRule) return 0;
-  let earning = Number(baseRule.basePayout || 0);
+
+  let earning = 0;
   for (const rule of sorted) {
-    const perKm = Number(rule.commissionPerKm || 0);
-    if (!Number.isFinite(perKm) || perKm <= 0) continue;
     const min = Number(rule.minDistance || 0);
-    const max = rule.maxDistance == null ? null : Number(rule.maxDistance);
-    if (d <= min) continue;
-    const upper = max == null ? d : Math.min(d, max);
-    const kmInSlab = Math.max(0, upper - min);
-    if (kmInSlab > 0) earning += kmInSlab * perKm;
+    const max = rule.maxDistance == null ? Infinity : Number(rule.maxDistance);
+    
+    // Check if distance falls within the slab
+    if ((min === 0 && d <= max) || (d >= min && d <= max) || (d > min && d <= max)) {
+        if (d <= max && d >= min) {
+            earning = min === 0 ? Number(rule.basePayout || 0) : Number(rule.commissionPerKm || 0);
+            break;
+        }
+    }
   }
+
+  // Fallback to the appropriate slab
+  if (earning === 0 && sorted.length > 0) {
+    if (d < Number(sorted[0].minDistance || 0)) {
+       // Distance is less than the first slab, charge the first slab
+       const firstRule = sorted[0];
+       earning = Number(firstRule.minDistance || 0) === 0 ? Number(firstRule.basePayout || 0) : Number(firstRule.commissionPerKm || 0);
+    } else {
+       // Distance exceeds all slabs, charge the last slab
+       const lastRule = sorted[sorted.length - 1];
+       earning = Number(lastRule.minDistance || 0) === 0 ? Number(lastRule.basePayout || 0) : Number(lastRule.commissionPerKm || 0);
+    }
+  }
+
   if (!Number.isFinite(earning) || earning <= 0) return 0;
   return Math.round(earning);
 };
@@ -1005,8 +1021,10 @@ const CheckoutPage = () => {
     let mounted = true;
     const firstCartItem = cart[0];
     const sellerId = firstCartItem?.sellerId?._id || firstCartItem?.sellerId || firstCartItem?.seller?._id || firstCartItem?.quickStoreId || firstCartItem?.storeId;
-    if (!sellerId || typeof sellerId !== "string" || sellerId === "quick-commerce") {
-      setStoreLocation(null); setDistanceKm(0); return;
+    if (!sellerId || typeof sellerId !== 'string') {
+      setStoreLocation(null);
+      setDistanceKm(0);
+      return;
     }
     const fetchStoreDetails = async () => {
       try {
@@ -1064,20 +1082,56 @@ const CheckoutPage = () => {
     });
   }, [sharedProfileName, sharedProfilePhone]);
 
-  useEffect(() => {
-    const hasUsableAddress = [currentAddress.address, currentAddress.city, currentAddress.landmark].some((v) => String(v || "").trim());
-    if (hasUsableAddress || !locationSavedAddresses.length) return;
-    const primaryAddress = locationSavedAddresses.find((addr) => addr?.isDefault || addr?.isCurrent) || locationSavedAddresses[0];
-    if (!primaryAddress?.address) return;
-    setCurrentAddress((prev) => ({ ...prev, type: primaryAddress.label || prev.type || "Home", name: primaryAddress.name || sharedProfileName || "", address: primaryAddress.address || "", city: primaryAddress.city || "", phone: primaryAddress.phone || sharedProfilePhone || "", landmark: "", ...(primaryAddress.placeId ? { placeId: primaryAddress.placeId } : {}), ...(primaryAddress.location ? { location: primaryAddress.location } : {}), ...(primaryAddress.id ? { id: primaryAddress.id } : {}) }));
-  }, [currentAddress.address, currentAddress.city, currentAddress.landmark, locationSavedAddresses, sharedProfileName, sharedProfilePhone]);
-
+  // 1. On mount ONLY: load stored address from localStorage
   useEffect(() => {
     const stored = readStoredCheckoutState();
     if (stored.currentAddress && stored.currentAddress.address) {
       setCurrentAddress(stored.currentAddress);
     }
-  }, [currentLocation]);
+  }, []);
+
+  // 2. Sync currentAddress with global currentLocation if it changes externally (e.g. from /addresses page)
+  useEffect(() => {
+    if (!currentLocation?.latitude || !currentLocation?.longitude) return;
+    
+    const currLat = Number(currentAddress.location?.lat || currentAddress.location?.latitude || 0);
+    const currLng = Number(currentAddress.location?.lng || currentAddress.location?.longitude || 0);
+    
+    // Check if the global location differs significantly from the checkout location
+    const latDiff = Math.abs(currLat - currentLocation.latitude);
+    const lngDiff = Math.abs(currLng - currentLocation.longitude);
+    
+    // If there is no current address at all, or the location differs, we sync it!
+    const isLocationDifferent = latDiff > 0.0001 || lngDiff > 0.0001 || !currentAddress.address;
+    
+    if (isLocationDifferent) {
+      const primaryAddress = locationSavedAddresses.find((addr) => addr?.isCurrent) || locationSavedAddresses.find((addr) => addr?.isDefault) || locationSavedAddresses[0];
+      
+      if (primaryAddress && primaryAddress.address && (Math.abs(Number(primaryAddress.location?.lat || 0) - currentLocation.latitude) < 0.0001)) {
+        setCurrentAddress((prev) => ({ 
+            ...prev, 
+            type: primaryAddress.label || prev.type || "Home", 
+            name: primaryAddress.name || sharedProfileName || "", 
+            address: primaryAddress.address || "", 
+            city: primaryAddress.city || "", 
+            phone: primaryAddress.phone || sharedProfilePhone || "", 
+            landmark: "", 
+            ...(primaryAddress.placeId ? { placeId: primaryAddress.placeId } : {}), 
+            ...(primaryAddress.location ? { location: primaryAddress.location } : {}), 
+            ...(primaryAddress.id ? { id: primaryAddress.id } : {}) 
+        }));
+      } else {
+        setCurrentAddress((prev) => ({
+            ...prev,
+            address: currentLocation.name || prev.address || "Selected Location",
+            city: currentLocation.city || prev.city || "",
+            state: currentLocation.state || prev.state || "",
+            zipCode: currentLocation.pincode || prev.zipCode || "",
+            location: { lat: currentLocation.latitude, lng: currentLocation.longitude }
+        }));
+      }
+    }
+  }, [currentLocation, locationSavedAddresses, currentAddress.location, currentAddress.address, sharedProfileName, sharedProfilePhone]);
 
   useEffect(() => {
     const fetchCoupons = async () => {

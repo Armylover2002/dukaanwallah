@@ -14,6 +14,8 @@ const DEFAULT_QUICK_FEE_SETTINGS = {
   isActive: true,
 };
 
+import { invalidateCache } from '../../../../middleware/cache.js';
+
 let deliveryCommissionRulesCache = null;
 let deliveryCommissionRulesLoadedAt = 0;
 const DELIVERY_COMMISSION_CACHE_MS = 30 * 1000;
@@ -21,6 +23,7 @@ const DELIVERY_COMMISSION_CACHE_MS = 30 * 1000;
 const clearDeliveryCommissionRulesCache = () => {
   deliveryCommissionRulesCache = null;
   deliveryCommissionRulesLoadedAt = 0;
+  invalidateCache('qc_billing*');
 };
 
 export async function getDeliveryCommissionRules() {
@@ -41,15 +44,7 @@ export async function getDeliveryCommissionRules() {
 function validateCommissionRuleSet(rules) {
   const active = (rules || []).filter((r) => r && r.status !== false);
   if (!active.length) {
-    throw new ValidationError('A base slab with minDistance = 0 is required');
-  }
-
-  const baseRules = active.filter((r) => Number(r.minDistance || 0) === 0);
-  if (baseRules.length === 0) {
-    throw new ValidationError('A base slab with minDistance = 0 is required');
-  }
-  if (baseRules.length > 1) {
-    throw new ValidationError('Exactly one base slab with minDistance = 0 is allowed. You already have a base slab active. Please edit the existing one instead of adding a new one.');
+    // allow empty rules, but if they add one, we don't strictly require 0
   }
 
   const sorted = [...active].sort((a, b) => Number(a.minDistance || 0) - Number(b.minDistance || 0));

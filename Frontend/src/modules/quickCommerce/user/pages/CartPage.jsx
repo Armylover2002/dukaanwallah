@@ -61,19 +61,32 @@ const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
     .filter((r) => r && r.status !== false)
     .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
 
-  const baseRule = sorted.find((r) => (Number(r.minDistance) || 0) === 0);
-  if (!baseRule) return 0;
-
-  let earning = Number(baseRule.basePayout || 0);
+  let earning = 0;
   for (const rule of sorted) {
-    const perKm = Number(rule.commissionPerKm || 0);
-    if (!Number.isFinite(perKm) || perKm <= 0) continue;
     const min = Number(rule.minDistance || 0);
-    const max = rule.maxDistance == null ? null : Number(rule.maxDistance);
-    if (d <= min) continue;
-    const upper = max == null ? d : Math.min(d, max);
-    const kmInSlab = Math.max(0, upper - min);
-    if (kmInSlab > 0) earning += kmInSlab * perKm;
+    const max = rule.maxDistance == null ? Infinity : Number(rule.maxDistance);
+    
+    // Check if distance falls within the slab
+    if ((min === 0 && d <= max) || (d >= min && d <= max) || (d > min && d <= max)) {
+        // We use d >= min for the first slab if it doesn't start at 0, so distances smaller than min still get caught if we want, but better to strictly check boundaries and use a fallback for < min.
+        if (d <= max && d >= min) {
+            earning = min === 0 ? Number(rule.basePayout || 0) : Number(rule.commissionPerKm || 0);
+            break;
+        }
+    }
+  }
+
+  // Fallback to the appropriate slab
+  if (earning === 0 && sorted.length > 0) {
+    if (d < Number(sorted[0].minDistance || 0)) {
+       // Distance is less than the first slab, charge the first slab
+       const firstRule = sorted[0];
+       earning = Number(firstRule.minDistance || 0) === 0 ? Number(firstRule.basePayout || 0) : Number(firstRule.commissionPerKm || 0);
+    } else {
+       // Distance exceeds all slabs, charge the last slab
+       const lastRule = sorted[sorted.length - 1];
+       earning = Number(lastRule.minDistance || 0) === 0 ? Number(lastRule.basePayout || 0) : Number(lastRule.commissionPerKm || 0);
+    }
   }
 
   return Number.isFinite(earning) && earning > 0 ? Math.round(earning) : 0;
@@ -288,7 +301,7 @@ const CartPage = () => {
       firstItem?.quickStoreId ||
       firstItem?.storeId;
 
-    if (!sellerId || typeof sellerId !== 'string' || sellerId === 'quick-commerce') {
+    if (!sellerId || typeof sellerId !== 'string') {
       setStoreLocation(null);
       setDistanceKm(0);
       return;

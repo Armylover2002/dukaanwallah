@@ -769,10 +769,20 @@ export const getStoreDetails = async (req, res) => {
   setPublicCache(res, 300);
   try {
     const { storeId } = req.params;
-    if (!storeId || !mongoose.Types.ObjectId.isValid(storeId)) {
-      return res.status(400).json({ success: false, message: 'Invalid store ID' });
+    let seller;
+
+    if (storeId === "quick-commerce") {
+      // Fallback: Return the first active seller as the central store for distance calculation
+      seller = await Seller.findOne({ isActive: true }).select('_id name shopName location').lean();
+      if (!seller) {
+        seller = await Seller.findOne().select('_id name shopName location').lean();
+      }
+    } else {
+      if (!storeId || !mongoose.Types.ObjectId.isValid(storeId)) {
+        return res.status(400).json({ success: false, message: 'Invalid store ID' });
+      }
+      seller = await Seller.findById(storeId).select('_id name shopName location').lean();
     }
-    const seller = await Seller.findById(storeId).select('_id name shopName location').lean();
     if (!seller) {
       return res.status(404).json({ success: false, message: 'Store not found' });
     }
