@@ -105,8 +105,6 @@ const Dashboard = () => {
     {
       label: "Total Revenue",
       value: statsData?.overview?.totalSales || "₹0",
-      change: "+12.5%",
-      changeType: "increase",
       icon: IndianRupee,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
@@ -116,8 +114,6 @@ const Dashboard = () => {
     {
       label: "Total Orders",
       value: statsData?.overview?.totalOrders || "0",
-      change: "+8.2%",
-      changeType: "increase",
       icon: ShoppingBag,
       iconBg: "bg-orange-50",
       iconColor: "text-orange-600",
@@ -127,8 +123,6 @@ const Dashboard = () => {
     {
       label: "Avg Order Value",
       value: statsData?.overview?.avgOrderValue || "₹0",
-      change: "+2",
-      changeType: "increase",
       icon: Package,
       iconBg: "bg-purple-50",
       iconColor: "text-purple-600",
@@ -138,8 +132,6 @@ const Dashboard = () => {
     {
       label: "Pending Orders",
       value: safeOrders.filter((o) => o.status === "pending").length.toString(),
-      change: "-3",
-      changeType: "decrease",
       icon: Clock,
       iconBg: "bg-red-50",
       iconColor: "text-red-600",
@@ -272,8 +264,6 @@ const Dashboard = () => {
               label={stat.label}
               value={stat.value}
               icon={stat.icon}
-              trend={stat.change}
-              trendDirection={stat.changeType === "increase" ? "up" : "down"}
               description={stat.description}
               color={stat.iconColor}
               bg={stat.iconBg}
