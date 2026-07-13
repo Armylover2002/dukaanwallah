@@ -52,8 +52,10 @@ const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
     Math.sin(dLon / 2);
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
-
+console.log("123456789----->", calculateHaversineDistance);
 const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
+  console.log("distance cartpage----->", distanceKm);
+  console.log(" rules cartpage----->", rules);
   const d = Number(distanceKm);
   if (!Number.isFinite(d) || d < 0 || !rules.length) return 0;
 
@@ -98,12 +100,8 @@ const calculateQuickCartPricing = ({ subtotal = 0, cartItems = [], feeSettings =
 
   let deliveryFee = 0;
   if (safeSubtotal > 0) {
-    if (Number.isFinite(freeThreshold) && freeThreshold > 0 && safeSubtotal >= freeThreshold) {
-      deliveryFee = 0;
-    } else if (Array.isArray(feeSettings?.deliveryCommissionRules) && feeSettings.deliveryCommissionRules.length > 0) {
+    if (Array.isArray(feeSettings?.deliveryCommissionRules) && feeSettings.deliveryCommissionRules.length > 0) {
       deliveryFee = calculateFrontendRiderEarning(distanceKm, feeSettings.deliveryCommissionRules);
-    } else {
-      deliveryFee = Number(feeSettings?.deliveryFee || 0);
     }
   }
 
@@ -336,6 +334,7 @@ const CartPage = () => {
 
     if (Number.isFinite(lat1) && Number.isFinite(lon1) && Number.isFinite(lat2) && Number.isFinite(lon2)) {
       setDistanceKm(calculateHaversineDistance(lat1, lon1, lat2, lon2));
+      console.log("next----->", calculateHaversineDistance(lat1, lon1, lat2, lon2));
     } else {
       setDistanceKm(0);
     }

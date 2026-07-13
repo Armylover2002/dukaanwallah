@@ -324,6 +324,7 @@ export const placeOrder = async (req, res) => {
       const deliveryCoords = getOrderAddressPoint({ deliveryAddress });
       if (sellerCoords && deliveryCoords) {
         distanceKm = haversineKm(sellerCoords.lat, sellerCoords.lng, deliveryCoords.lat, deliveryCoords.lng);
+        console.log("distance server----->", distanceKm);
       }
     }
     // NEW — server-side hard cap. Frontend check bypass ho sakta hai (Postman/DevTools se),

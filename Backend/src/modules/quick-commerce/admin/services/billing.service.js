@@ -5,7 +5,7 @@ import { QuickDeliveryCommissionRule } from '../models/deliveryCommissionRule.mo
 import { QuickCategory } from '../../models/category.model.js';
 
 const DEFAULT_QUICK_FEE_SETTINGS = {
-  deliveryFee: 25,
+  deliveryFee: 0,
   deliveryFeeRanges: [],
   freeDeliveryThreshold: 0,
   platformFee: 0,
@@ -116,13 +116,13 @@ export async function updateDeliveryCommissionRule(id, body) {
   const candidate = existing.map((r) =>
     String(r._id) === String(id)
       ? {
-          ...r,
-          minDistance: body.minDistance,
-          maxDistance: body.maxDistance ?? null,
-          commissionPerKm: body.commissionPerKm,
-          basePayout: body.basePayout,
-          status: r.status !== false,
-        }
+        ...r,
+        minDistance: body.minDistance,
+        maxDistance: body.maxDistance ?? null,
+        commissionPerKm: body.commissionPerKm,
+        basePayout: body.basePayout,
+        status: r.status !== false,
+      }
       : r,
   );
 

@@ -58,7 +58,7 @@ const DEFAULT_RECIPIENT_DATA = {
 };
 
 const DEFAULT_QUICK_BILLING_SETTINGS = {
-  deliveryFee: 25, deliveryFeeRanges: [], deliveryCommissionRules: [],
+  deliveryFee: 0, deliveryFeeRanges: [], deliveryCommissionRules: [],
   freeDeliveryThreshold: 0, platformFee: 0, gstRate: 0,
 };
 
@@ -110,6 +110,7 @@ const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
+
 // Returns which admin slab applied + a human-readable breakdown for display
 const getDeliverySlabBreakdown = (distanceKm, rules = []) => {
   const d = Number(distanceKm);
@@ -157,27 +158,36 @@ const getDeliverySlabBreakdown = (distanceKm, rules = []) => {
 
 const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
   const d = Number(distanceKm);
-  if (!Number.isFinite(d) || d < 0) return 0;
-  if (!Array.isArray(rules) || !rules.length) return 0;
+  if (!Number.isFinite(d) || d < 0 || !rules.length) return 0;
 
   const sorted = [...rules]
     .filter((r) => r && r.status !== false)
     .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
 
-  const baseRule = sorted.find((r) => Number(r.minDistance || 0) === 0) || null;
-  if (!baseRule) return 0;
-
-  let earning = Number(baseRule.basePayout || 0);
+  let earning = 0;
   for (const rule of sorted) {
-    const perKm = Number(rule.commissionPerKm || 0);
-    if (!Number.isFinite(perKm) || perKm <= 0) continue;
     const min = Number(rule.minDistance || 0);
-    const max = rule.maxDistance == null ? null : Number(rule.maxDistance);
-    if (d <= min) continue;
-    const upper = max == null ? d : Math.min(d, max);
-    const kmInSlab = Math.max(0, upper - min);
-    if (kmInSlab > 0) {
-      earning += kmInSlab * perKm;
+    const max = rule.maxDistance == null ? Infinity : Number(rule.maxDistance);
+
+    // Check if distance falls within the slab
+    if ((min === 0 && d <= max) || (d >= min && d <= max) || (d > min && d <= max)) {
+      if (d <= max && d >= min) {
+        earning = min === 0 ? Number(rule.basePayout || 0) : Number(rule.commissionPerKm || 0);
+        break;
+      }
+    }
+  }
+
+  // Fallback to the appropriate slab
+  if (earning === 0 && sorted.length > 0) {
+    if (d < Number(sorted[0].minDistance || 0)) {
+      // Distance is less than the first slab, charge the first slab
+      const firstRule = sorted[0];
+      earning = Number(firstRule.minDistance || 0) === 0 ? Number(firstRule.basePayout || 0) : Number(firstRule.commissionPerKm || 0);
+    } else {
+      // Distance exceeds all slabs, charge the last slab
+      const lastRule = sorted[sorted.length - 1];
+      earning = Number(lastRule.minDistance || 0) === 0 ? Number(lastRule.basePayout || 0) : Number(lastRule.commissionPerKm || 0);
     }
   }
 
@@ -196,12 +206,8 @@ const calculateQuickCheckoutPricing = ({
   const freeThreshold = Number(feeSettings?.freeDeliveryThreshold || 0);
 
   let deliveryFeeCharged = 0;
-  if (Number.isFinite(freeThreshold) && freeThreshold > 0 && safeSubtotal >= freeThreshold) {
-    deliveryFeeCharged = 0;
-  } else if (Array.isArray(feeSettings?.deliveryCommissionRules) && feeSettings.deliveryCommissionRules.length > 0) {
+  if (Array.isArray(feeSettings?.deliveryCommissionRules) && feeSettings.deliveryCommissionRules.length > 0) {
     deliveryFeeCharged = calculateFrontendRiderEarning(distanceKm, feeSettings.deliveryCommissionRules);
-  } else {
-    deliveryFeeCharged = Number(feeSettings?.deliveryFee || 0);
   }
 
   const handlingFeeCharged = cartItems.reduce((maxFee, item) => {
@@ -1134,6 +1140,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     let mounted = true;
     const firstCartItem = cart[0];
+    console.log("dsddss-------->", firstCartItem);
     const sellerId =
       firstCartItem?.quickStoreId?._id || firstCartItem?.quickStoreId?.id || (typeof firstCartItem?.quickStoreId === 'string' ? firstCartItem?.quickStoreId : null) ||
       firstCartItem?.storeId?._id || firstCartItem?.storeId?.id || (typeof firstCartItem?.storeId === 'string' ? firstCartItem?.storeId : null) ||
@@ -1179,9 +1186,13 @@ const CheckoutPage = () => {
   useEffect(() => {
     if (!storeLocation) { setDistanceKm(0); return; }
     const lat1 = storeLocation.lat, lon1 = storeLocation.lng;
+    const addrLoc = currentAddress?.location;
+    const globalLoc = (currentLocation?.latitude && currentLocation?.longitude)
+      ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
+      : null;
     const deliveryLoc = savedRecipient
-      ? (currentLocation?.latitude && currentLocation?.longitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : currentAddress?.location)
-      : currentAddress?.location;
+      ? (globalLoc || addrLoc)
+      : ((addrLoc?.lat || addrLoc?.latitude) ? addrLoc : globalLoc);
     const lat2 = Number(deliveryLoc?.lat || deliveryLoc?.latitude);
     const lon2 = Number(deliveryLoc?.lng || deliveryLoc?.longitude);
     if (Number.isFinite(lat1) && Number.isFinite(lon1) && Number.isFinite(lat2) && Number.isFinite(lon2)) {
