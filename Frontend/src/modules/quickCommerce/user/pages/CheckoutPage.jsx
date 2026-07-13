@@ -6,29 +6,39 @@ import { useAuth } from "@core/context/AuthContext";
 import { useProfile } from "@food/context/ProfileContext";
 import { useWishlist } from "../context/WishlistContext";
 import { customerApi } from "../services/customerApi";
-import { initRazorpayPayment, isFlutterWebView, handleFlutterRazorpayPayment } from "@food/utils/razorpay";
+import { initRazorpayPayment /*, isFlutterWebView, handleFlutterRazorpayPayment */ } from "@food/utils/razorpay";
+// NOTE: isFlutterWebView / handleFlutterRazorpayPayment removed from import — the Flutter payment
+// branch below is already commented out in handlePlaceOrder, so these were unused imports.
 import { useLocation as useAppLocation } from "../context/LocationContext";
 import {
   MapPin, Clock, CreditCard, Banknote, ChevronRight, ChevronLeft,
-  Share2, Gift, ShoppingBag, ChevronDown, ChevronUp, Heart, Truck,
-  Tag, Sparkles, Plus, Minus, Search, X, Clipboard, Check, Contact2, Copy, MessageSquare
+  /* Share2, Gift, ShoppingBag, ChevronDown, ChevronUp, */ Heart, /* Truck, */
+  Tag, Sparkles, Plus, Minus, /* Search, X, */ Clipboard, /* Check, Contact2, */ Copy, MessageSquare
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+// NOTE: Share2, Gift, ShoppingBag, ChevronDown, ChevronUp, Truck, Search, X, Check, Contact2
+// are not used anywhere in this file's JSX — commented out of the import to keep bundle clean.
+// import { Button } from "@/components/ui/button"; // NEW: unused — no <Button/> element is rendered in this file (only plain <button>)
+import { motion /*, AnimatePresence */ } from "framer-motion";
+// NOTE: AnimatePresence imported but never used (no <AnimatePresence> wrapper in JSX) — commented out.
 import { useToast } from "@shared/components/ui/Toast";
 import { useSettings } from "@core/context/SettingsContext";
 import SlideToPay from "../components/shared/SlideToPay";
-import { getCachedGeocode, setCachedGeocode } from "@/core/utils/geocodeCache";
+// import { getCachedGeocode, setCachedGeocode } from "@/core/utils/geocodeCache";
+// NOTE: geocodeCache helpers were only used inside resolveAddressCoords/handleSelectSavedAddress,
+// which are themselves dead code (not wired to any UI below) — see commented block further down.
 import {
   getOrderSocket, joinOrderRoom, leaveOrderRoom, onOrderStatusUpdate,
 } from "@/core/services/orderSocket";
 import ProductCard from "../components/shared/ProductCard";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader,
-  DialogTitle, DialogFooter,
+  DialogTitle, /* DialogFooter, */
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+// NOTE: DialogFooter imported but never used in this file — commented out.
+// import { Input } from "@/components/ui/input";
+// import { Label } from "@/components/ui/label";
+// NOTE: Input / Label are not used anywhere in this file's JSX (the add-address / edit-address
+// forms that would have used them are not currently rendered — see commented sections below).
 import emptyBoxAnimation from "../assets/lottie/Empty box.json";
 import {
   getQuickCategoriesPath, getQuickOrderDetailPath, getQuickOrdersPath,
@@ -52,27 +62,37 @@ const DEFAULT_QUICK_BILLING_SETTINGS = {
   freeDeliveryThreshold: 0, platformFee: 0, gstRate: 0,
 };
 
-// Static — never changes, no reason to be inside component
-const TIME_SLOTS = [
-  { id: "now", label: "Now", sublabel: "10-15 min" },
-  { id: "30min", label: "30 min", sublabel: "Standard" },
-  { id: "1hour", label: "1 hour", sublabel: "Scheduled" },
-  { id: "2hours", label: "2 hours", sublabel: "Scheduled" },
-];
+// NOTE: TIME_SLOTS is not rendered anywhere in this file's JSX (no time-slot picker UI currently).
+// `selectedTimeSlot` state itself IS still used (sent as `timeSlot` in the order payload with a
+// default of "now"), so only this options-array is dead — kept here (commented) in case the
+// time-slot picker UI is reintroduced later.
+// const TIME_SLOTS = [
+//   { id: "now", label: "Now", sublabel: "10-15 min" },
+//   { id: "30min", label: "30 min", sublabel: "Standard" },
+//   { id: "1hour", label: "1 hour", sublabel: "Scheduled" },
+//   { id: "2hours", label: "2 hours", sublabel: "Scheduled" },
+// ];
 
-const TIP_AMOUNTS = [
-  { value: 0, label: "No Tip" },
-  { value: 10, label: "₹10" },
-  { value: 20, label: "₹20" },
-  { value: 30, label: "₹30" },
-];
+// NOTE: TIP_AMOUNTS is not rendered anywhere — the "Tip your delivery partner" UI block was
+// already removed from JSX. `selectedTip` state is still used elsewhere (pricing calc, order
+// payload), so only this options-array is dead. Kept here (commented) for future re-enablement.
+// const TIP_AMOUNTS = [
+//   { value: 0, label: "No Tip" },
+//   { value: 10, label: "₹10" },
+//   { value: 20, label: "₹20" },
+//   { value: 30, label: "₹30" },
+// ];
 
-// Mock data outside component (was re-created every render)
-const RECOMMENDED_PRODUCTS = [
-  { id: 101, name: "Uncle Chips", price: 20, image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=200" },
-  { id: 102, name: "Lay's Chips", price: 20, image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=200" },
-  { id: 103, name: "Bread", price: 35, image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200" },
-];
+// NEW — hard delivery-distance cap, independent of store.serviceRadius
+const MAX_DELIVERY_DISTANCE_KM = 20;
+
+// NOTE: RECOMMENDED_PRODUCTS is not rendered anywhere — the "You might also like" section was
+// already removed from JSX. Kept here (commented) in case it's reintroduced later.
+// const RECOMMENDED_PRODUCTS = [
+//   { id: 101, name: "Uncle Chips", price: 20, image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=200" },
+//   { id: 102, name: "Lay's Chips", price: 20, image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=200" },
+//   { id: 103, name: "Bread", price: 35, image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200" },
+// ];
 
 // ─── Pure helpers (unchanged) ─────────────────────────────────────────────────
 
@@ -90,6 +110,51 @@ const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
+// Returns which admin slab applied + a human-readable breakdown for display
+const getDeliverySlabBreakdown = (distanceKm, rules = []) => {
+  const d = Number(distanceKm);
+  if (!Number.isFinite(d) || d < 0 || !Array.isArray(rules) || !rules.length) {
+    return { matchedSlabs: [], baseFee: 0, totalFee: 0, label: "Standard delivery fee" };
+  }
+
+  const sorted = [...rules]
+    .filter((r) => r && r.status !== false)
+    .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
+
+  const baseRule = sorted.find((r) => Number(r.minDistance || 0) === 0) || null;
+  if (!baseRule) return { matchedSlabs: [], baseFee: 0, totalFee: 0, label: "Standard delivery fee" };
+
+  let totalFee = Number(baseRule.basePayout || 0);
+  const matchedSlabs = [{ label: `Base fare (0 km+)`, amount: Number(baseRule.basePayout || 0) }];
+
+  for (const rule of sorted) {
+    const perKm = Number(rule.commissionPerKm || 0);
+    if (!Number.isFinite(perKm) || perKm <= 0) continue;
+    const min = Number(rule.minDistance || 0);
+    const max = rule.maxDistance == null ? null : Number(rule.maxDistance);
+    if (d <= min) continue;
+
+    const upper = max == null ? d : Math.min(d, max);
+    const kmInSlab = Math.max(0, upper - min);
+    if (kmInSlab > 0) {
+      const slabAmount = kmInSlab * perKm;
+      totalFee += slabAmount;
+      matchedSlabs.push({
+        label: `${min}–${max == null ? "∞" : max} km @ ₹${perKm}/km`,
+        amount: Math.round(slabAmount),
+        kmInSlab: Number(kmInSlab.toFixed(2)),
+      });
+    }
+  }
+
+  return {
+    matchedSlabs,
+    baseFee: Number(baseRule.basePayout || 0),
+    totalFee: Math.round(totalFee),
+    label: `${matchedSlabs.length > 1 ? "Distance-based" : "Base"} delivery fee`,
+  };
+};
+
 const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
   const d = Number(distanceKm);
   if (!Number.isFinite(d) || d < 0) return 0;
@@ -99,30 +164,20 @@ const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
     .filter((r) => r && r.status !== false)
     .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
 
-  let earning = 0;
-  for (const rule of sorted) {
-    const min = Number(rule.minDistance || 0);
-    const max = rule.maxDistance == null ? Infinity : Number(rule.maxDistance);
-    
-    // Check if distance falls within the slab
-    if ((min === 0 && d <= max) || (d >= min && d <= max) || (d > min && d <= max)) {
-        if (d <= max && d >= min) {
-            earning = min === 0 ? Number(rule.basePayout || 0) : Number(rule.commissionPerKm || 0);
-            break;
-        }
-    }
-  }
+  const baseRule = sorted.find((r) => Number(r.minDistance || 0) === 0) || null;
+  if (!baseRule) return 0;
 
-  // Fallback to the appropriate slab
-  if (earning === 0 && sorted.length > 0) {
-    if (d < Number(sorted[0].minDistance || 0)) {
-       // Distance is less than the first slab, charge the first slab
-       const firstRule = sorted[0];
-       earning = Number(firstRule.minDistance || 0) === 0 ? Number(firstRule.basePayout || 0) : Number(firstRule.commissionPerKm || 0);
-    } else {
-       // Distance exceeds all slabs, charge the last slab
-       const lastRule = sorted[sorted.length - 1];
-       earning = Number(lastRule.minDistance || 0) === 0 ? Number(lastRule.basePayout || 0) : Number(lastRule.commissionPerKm || 0);
+  let earning = Number(baseRule.basePayout || 0);
+  for (const rule of sorted) {
+    const perKm = Number(rule.commissionPerKm || 0);
+    if (!Number.isFinite(perKm) || perKm <= 0) continue;
+    const min = Number(rule.minDistance || 0);
+    const max = rule.maxDistance == null ? null : Number(rule.maxDistance);
+    if (d <= min) continue;
+    const upper = max == null ? d : Math.min(d, max);
+    const kmInSlab = Math.max(0, upper - min);
+    if (kmInSlab > 0) {
+      earning += kmInSlab * perKm;
     }
   }
 
@@ -251,8 +306,8 @@ const CartItem = React.memo(function CartItem({ item, onMoveToWishlist, onUpdate
       <div className="flex-1 min-w-0">
         <h4 className="font-bold text-slate-800 dark:text-white mb-1">{item.name}</h4>
         <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-          {(item.weight || item.unit || '1 unit') === '1 unit' || (item.weight || item.unit) === 'Default' 
-            ? `${item.quantity} unit${item.quantity > 1 ? 's' : ''}` 
+          {(item.weight || item.unit || '1 unit') === '1 unit' || (item.weight || item.unit) === 'Default'
+            ? `${item.quantity} unit${item.quantity > 1 ? 's' : ''}`
             : (item.weight || item.unit || '1 unit')}
         </p>
         <button
@@ -349,8 +404,9 @@ const CheckoutPage = () => {
   const appName = settings?.appName || "App";
   const {
     savedAddresses: locationSavedAddresses, currentLocation,
-    refreshLocation, isFetchingLocation, updateLocation,
+    refreshLocation, /* isFetchingLocation, */ updateLocation,
   } = useAppLocation();
+  // NOTE: isFetchingLocation destructured but never used anywhere in this file — commented out.
   const navigate = useNavigate();
   const categoriesPath = getQuickCategoriesPath();
   const ordersPath = getQuickOrdersPath();
@@ -362,15 +418,27 @@ const CheckoutPage = () => {
     routerLocation.state?.selectedPayment || storedCheckoutState.selectedPayment || "cash",
   );
   const [selectedTip, setSelectedTip] = useState(Number(storedCheckoutState.selectedTip || 0));
-  const [showAllCartItems, setShowAllCartItems] = useState(false);
+  // const [showAllCartItems, setShowAllCartItems] = useState(false);
+  // NOTE: showAllCartItems/setShowAllCartItems declared but never read or written anywhere else
+  // in this file (no "show more/less" cart toggle currently wired to JSX) — commented out.
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(storedCheckoutState.selectedCoupon || null);
-  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [isResolvingAddressCoords, setIsResolvingAddressCoords] = useState(false);
-  const [showAddNewAddressForm, setShowAddNewAddressForm] = useState(false);
-  const [newAddressForm, setNewAddressForm] = useState({ label: "Home", name: "", phone: "", address: "", landmark: "", city: "", zipCode: "" });
-  const [newAddressErrors, setNewAddressErrors] = useState({});
-  const [isSavingNewAddress, setIsSavingNewAddress] = useState(false);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // NOTE: The address-modal / add-new-address / edit-address states below are
+  // currently NOT rendered anywhere in this file's JSX (no <Dialog> uses them).
+  // The only way to change the delivery address from this page is the
+  // "Change" button, which navigates to /quick-commerce/addresses?from=cart.
+  // Keeping the state + handlers commented out (not deleted) so this feature
+  // can be re-wired later without rewriting it from scratch.
+  // ─────────────────────────────────────────────────────────────────────────
+  // const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  // const [isResolvingAddressCoords, setIsResolvingAddressCoords] = useState(false);
+  // const [showAddNewAddressForm, setShowAddNewAddressForm] = useState(false);
+  // const [newAddressForm, setNewAddressForm] = useState({ label: "Home", name: "", phone: "", address: "", landmark: "", city: "", zipCode: "" });
+  // const [newAddressErrors, setNewAddressErrors] = useState({});
+  // const [isSavingNewAddress, setIsSavingNewAddress] = useState(false);
+
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderId, setOrderId] = useState(null);
@@ -383,16 +451,26 @@ const CheckoutPage = () => {
   const [categoryFeeMap, setCategoryFeeMap] = useState({});
   const postOrderNavigateRef = useRef(null);
   const [currentAddress, setCurrentAddress] = useState(storedCheckoutState.currentAddress || DEFAULT_CURRENT_ADDRESS);
+
+  // isEditAddressOpen / editAddressForm: not rendered as a Dialog anywhere, BUT `setEditAddressForm`
+  // is still called from an active effect below (keeps name/phone in sync with profile data), so
+  // this piece of state is kept ACTIVE (not commented) to avoid breaking that effect.
   const [isEditAddressOpen, setIsEditAddressOpen] = useState(false);
   const [editAddressForm, setEditAddressForm] = useState({ ...(storedCheckoutState.currentAddress || DEFAULT_CURRENT_ADDRESS) });
+
   const [showRecipientForm, setShowRecipientForm] = useState(Boolean(storedCheckoutState.showRecipientForm));
   const [recipientData, setRecipientData] = useState(DEFAULT_RECIPIENT_DATA);
   const [savedRecipient, setSavedRecipient] = useState(null);
-  const [recipientErrors, setRecipientErrors] = useState({});
+  // const [recipientErrors, setRecipientErrors] = useState({});
+  // NOTE: recipientErrors only used inside handleSaveRecipient, which is itself commented out
+  // below (no recipient-form UI renders it) — commented out together.
+
   const [coupons, setCoupons] = useState([]);
   const [manualCode, setManualCode] = useState(storedCheckoutState.manualCode || "");
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [customTip, setCustomTip] = useState("");
+  // const [showShareModal, setShowShareModal] = useState(false);
+  // const [customTip, setCustomTip] = useState("");
+  // NOTE: showShareModal + customTip are dead state — the Share Modal Dialog and the custom-tip
+  // input UI are both commented out further below, so nothing sets or reads these anymore.
   const [deliveryInstruction, setDeliveryInstruction] = useState(storedCheckoutState.deliveryInstruction || "");
 
   const sharedProfileName = useMemo(
@@ -419,7 +497,11 @@ const CheckoutPage = () => {
     () => selectedCoupon ? (selectedCoupon.discountAmount || selectedCoupon.discount || 0) : 0,
     [selectedCoupon],
   );
-
+  // NEW — additive guard, existing distanceKm state ko sirf read karta hai
+  const isDeliveryDistanceExceeded = useMemo(
+    () => Number.isFinite(distanceKm) && distanceKm > MAX_DELIVERY_DISTANCE_KM,
+    [distanceKm],
+  );
   const discountedItemsTotal = useMemo(
     () => cart.reduce((sum, item) => sum + Number(item.salePrice || item.price || 0) * Number(item.quantity || 0), 0),
     [cart],
@@ -560,29 +642,34 @@ const CheckoutPage = () => {
     // FIX 3: currentLocation?.name added so callback updates when live-location name changes
   }, [savedRecipient, currentAddress, currentLocation, user?.name]);
 
-  const handleSaveRecipient = useCallback(() => {
-    const errors = {};
-    if (!recipientData.completeAddress?.trim()) errors.completeAddress = "Complete address is required";
-    else if (recipientData.completeAddress.trim().length < 5) errors.completeAddress = "Address is too short";
-    if (!recipientData.name?.trim()) errors.name = "Receiver's name is required";
-    else if (recipientData.name.trim().length < 2) errors.name = "Name must be at least 2 characters";
-    if (!recipientData.phone) errors.phone = "Phone number is required";
-    else if (recipientData.phone.length !== 10) errors.phone = `Phone number must be exactly 10 digits (entered ${recipientData.phone.length})`;
-    else if (!/^[6-9]\d{9}$/.test(recipientData.phone)) errors.phone = "Enter a valid Indian mobile number starting with 6, 7, 8 or 9";
-    if (recipientData.pincode && recipientData.pincode.length !== 6) errors.pincode = "Pin code must be exactly 6 digits";
-    if (Object.keys(errors).length > 0) {
-      showToast(Object.values(errors)[0], "error");
-      setRecipientErrors(errors);
-      return;
-    }
-    setRecipientErrors({});
-    setSavedRecipient(recipientData);
-    setShowRecipientForm(false);
-    try {
-      if (typeof window !== "undefined") window.localStorage.setItem(RECIPIENT_STORAGE_KEY, JSON.stringify(recipientData));
-    } catch { /* ignore */ }
-    showToast("Recipient details saved!", "success");
-  }, [recipientData, showToast]);
+  // ─────────────────────────────────────────────────────────────────────────
+  // NOTE: handleSaveRecipient is not called from anywhere in this file's JSX
+  // (no recipient-entry form is currently rendered). Commented out — not
+  // deleted — so it can be reconnected later if that UI comes back.
+  // ─────────────────────────────────────────────────────────────────────────
+  // const handleSaveRecipient = useCallback(() => {
+  //   const errors = {};
+  //   if (!recipientData.completeAddress?.trim()) errors.completeAddress = "Complete address is required";
+  //   else if (recipientData.completeAddress.trim().length < 5) errors.completeAddress = "Address is too short";
+  //   if (!recipientData.name?.trim()) errors.name = "Receiver's name is required";
+  //   else if (recipientData.name.trim().length < 2) errors.name = "Name must be at least 2 characters";
+  //   if (!recipientData.phone) errors.phone = "Phone number is required";
+  //   else if (recipientData.phone.length !== 10) errors.phone = `Phone number must be exactly 10 digits (entered ${recipientData.phone.length})`;
+  //   else if (!/^[6-9]\d{9}$/.test(recipientData.phone)) errors.phone = "Enter a valid Indian mobile number starting with 6, 7, 8 or 9";
+  //   if (recipientData.pincode && recipientData.pincode.length !== 6) errors.pincode = "Pin code must be exactly 6 digits";
+  //   if (Object.keys(errors).length > 0) {
+  //     showToast(Object.values(errors)[0], "error");
+  //     setRecipientErrors(errors);
+  //     return;
+  //   }
+  //   setRecipientErrors({});
+  //   setSavedRecipient(recipientData);
+  //   setShowRecipientForm(false);
+  //   try {
+  //     if (typeof window !== "undefined") window.localStorage.setItem(RECIPIENT_STORAGE_KEY, JSON.stringify(recipientData));
+  //   } catch { /* ignore */ }
+  //   showToast("Recipient details saved!", "success");
+  // }, [recipientData, showToast]);
 
   const handleMoveToWishlist = useCallback((item) => {
     const productId = String(item?.productId || item?.itemId || item?.id || item?._id || "").split("::")[0];
@@ -592,175 +679,190 @@ const CheckoutPage = () => {
     showToast(`${item.name} moved to wishlist`, "success");
   }, [addToWishlist, removeFromCart, showToast]);
 
-  const handleOpenEditAddress = useCallback(() => {
-    setEditAddressForm({ ...currentAddress, name: currentAddress.name || sharedProfileName || "", phone: currentAddress.phone || sharedProfilePhone || "" });
-    setIsEditAddressOpen(true);
-  }, [currentAddress, sharedProfileName, sharedProfilePhone]);
+  // NOTE: handleOpenEditAddress is not wired to any button/JSX in this file — commented out.
+  // (Kept because `editAddressForm` state is still touched by the active profile-sync effect
+  // further below, so that piece of state itself remains active.)
+  // const handleOpenEditAddress = useCallback(() => {
+  //   setEditAddressForm({ ...currentAddress, name: currentAddress.name || sharedProfileName || "", phone: currentAddress.phone || sharedProfilePhone || "" });
+  //   setIsEditAddressOpen(true);
+  // }, [currentAddress, sharedProfileName, sharedProfilePhone]);
 
-  const isValidLatLng = useCallback(
-    (loc) => loc && typeof loc.lat === "number" && typeof loc.lng === "number" && Number.isFinite(loc.lat) && Number.isFinite(loc.lng),
-    [],
-  );
+  // ─────────────────────────────────────────────────────────────────────────
+  // NOTE: isValidLatLng / resolveAddressCoords / handleSelectSavedAddress /
+  // handleSaveNewAddress / handleSaveEditedAddress / handleUseCurrentLiveLocation
+  // are not called from anywhere in this file's JSX — the only way to change
+  // the delivery address here is the "Change" button which navigates to
+  // /quick-commerce/addresses?from=cart. Commenting this whole cluster out
+  // (not deleting) since it's genuinely unreachable dead code right now.
+  // ─────────────────────────────────────────────────────────────────────────
+  // const isValidLatLng = useCallback(
+  //   (loc) => loc && typeof loc.lat === "number" && typeof loc.lng === "number" && Number.isFinite(loc.lat) && Number.isFinite(loc.lng),
+  //   [],
+  // );
 
-  const resolveAddressCoords = useCallback(async (addressText) => {
-    const q = String(addressText || "").trim();
-    if (!q) return null;
-    const cacheKey = `addr:${q}`;
-    const cached = getCachedGeocode(cacheKey);
-    if (cached?.location?.lat && cached?.location?.lng) return cached.location;
-    try {
-      const resp = await customerApi.geocodeAddress(q);
-      const loc = resp.data?.result?.location;
-      if (isValidLatLng(loc)) {
-        setCachedGeocode(cacheKey, { location: { lat: loc.lat, lng: loc.lng } });
-        return { lat: loc.lat, lng: loc.lng };
-      }
-    } catch (e) {
-      const serverMsg = e?.response?.data?.message || e?.response?.data?.error?.message || e?.message || null;
-      const err = new Error(serverMsg || "Could not geocode address");
-      err.__serverMsg = serverMsg;
-      throw err;
-    }
-    return null;
-  }, [isValidLatLng]);
+  // const resolveAddressCoords = useCallback(async (addressText) => {
+  //   const q = String(addressText || "").trim();
+  //   if (!q) return null;
+  //   const cacheKey = `addr:${q}`;
+  //   const cached = getCachedGeocode(cacheKey);
+  //   if (cached?.location?.lat && cached?.location?.lng) return cached.location;
+  //   try {
+  //     const resp = await customerApi.geocodeAddress(q);
+  //     const loc = resp.data?.result?.location;
+  //     if (isValidLatLng(loc)) {
+  //       setCachedGeocode(cacheKey, { location: { lat: loc.lat, lng: loc.lng } });
+  //       return { lat: loc.lat, lng: loc.lng };
+  //     }
+  //   } catch (e) {
+  //     const serverMsg = e?.response?.data?.message || e?.response?.data?.error?.message || e?.message || null;
+  //     const err = new Error(serverMsg || "Could not geocode address");
+  //     err.__serverMsg = serverMsg;
+  //     throw err;
+  //   }
+  //   return null;
+  // }, [isValidLatLng]);
 
-  const handleSelectSavedAddress = useCallback(async (addr) => {
-    const rawText = addr?.address || "";
-    const addrLoc = addr?.location;
-    const hasLoc = isValidLatLng(addrLoc);
-    const pid = typeof addr?.placeId === "string" ? addr.placeId.trim() : "";
-    setIsResolvingAddressCoords(true);
-    try {
-      let resolvedLoc = null;
-      try {
-        if (hasLoc) {
-          resolvedLoc = addrLoc;
-        } else if (pid) {
-          const cacheKey = `pid:${pid}`;
-          const cached = getCachedGeocode(cacheKey);
-          if (cached?.location?.lat && cached?.location?.lng) {
-            resolvedLoc = cached.location;
-          } else {
-            const resp = await customerApi.geocodePlaceId(pid);
-            const loc = resp.data?.result?.location;
-            if (isValidLatLng(loc)) {
-              resolvedLoc = { lat: loc.lat, lng: loc.lng };
-              setCachedGeocode(cacheKey, { location: resolvedLoc });
-            }
-          }
-        } else {
-          resolvedLoc = await resolveAddressCoords(rawText);
-        }
-      } catch (e) {
-        showToast(e?.__serverMsg || e?.message || "Could not fetch coordinates for this address.", "error");
-      }
-      if (!resolvedLoc) {
-        showToast("Could not fetch coordinates for this address. Please edit or choose a different one.", "error");
-        return;
-      }
-      setCurrentAddress({
-        id: addr.id, type: addr.label, name: addr.name || user?.name || "",
-        address: rawText, city: addr.city || "", phone: addr.phone || currentAddress.phone,
-        landmark: "", ...(pid ? { placeId: pid } : {}), ...(resolvedLoc ? { location: resolvedLoc } : {}),
-      });
-      if (resolvedLoc) {
-        updateLocation(
-          { name: rawText, time: currentLocation?.time || "12-15 mins", city: currentLocation?.city, state: currentLocation?.state, pincode: currentLocation?.pincode, latitude: resolvedLoc.lat, longitude: resolvedLoc.lng },
-          { persist: true, updateSavedHome: false },
-        );
-      }
-      setIsAddressModalOpen(false);
-    } finally {
-      setIsResolvingAddressCoords(false);
-    }
-  }, [isValidLatLng, resolveAddressCoords, showToast, user?.name, currentAddress.phone, currentLocation, updateLocation]);
+  // const handleSelectSavedAddress = useCallback(async (addr) => {
+  //   const rawText = addr?.address || "";
+  //   const addrLoc = addr?.location;
+  //   const hasLoc = isValidLatLng(addrLoc);
+  //   const pid = typeof addr?.placeId === "string" ? addr.placeId.trim() : "";
+  //   setIsResolvingAddressCoords(true);
+  //   try {
+  //     let resolvedLoc = null;
+  //     try {
+  //       if (hasLoc) {
+  //         resolvedLoc = addrLoc;
+  //       } else if (pid) {
+  //         const cacheKey = `pid:${pid}`;
+  //         const cached = getCachedGeocode(cacheKey);
+  //         if (cached?.location?.lat && cached?.location?.lng) {
+  //           resolvedLoc = cached.location;
+  //         } else {
+  //           const resp = await customerApi.geocodePlaceId(pid);
+  //           const loc = resp.data?.result?.location;
+  //           if (isValidLatLng(loc)) {
+  //             resolvedLoc = { lat: loc.lat, lng: loc.lng };
+  //             setCachedGeocode(cacheKey, { location: resolvedLoc });
+  //           }
+  //         }
+  //       } else {
+  //         resolvedLoc = await resolveAddressCoords(rawText);
+  //       }
+  //     } catch (e) {
+  //       showToast(e?.__serverMsg || e?.message || "Could not fetch coordinates for this address.", "error");
+  //     }
+  //     if (!resolvedLoc) {
+  //       showToast("Could not fetch coordinates for this address. Please edit or choose a different one.", "error");
+  //       return;
+  //     }
+  //     setCurrentAddress({
+  //       id: addr.id, type: addr.label, name: addr.name || user?.name || "",
+  //       address: rawText, city: addr.city || "", phone: addr.phone || currentAddress.phone,
+  //       landmark: "", ...(pid ? { placeId: pid } : {}), ...(resolvedLoc ? { location: resolvedLoc } : {}),
+  //     });
+  //     if (resolvedLoc) {
+  //       updateLocation(
+  //         { name: rawText, time: currentLocation?.time || "12-15 mins", city: currentLocation?.city, state: currentLocation?.state, pincode: currentLocation?.pincode, latitude: resolvedLoc.lat, longitude: resolvedLoc.lng },
+  //         { persist: true, updateSavedHome: false },
+  //       );
+  //     }
+  //     setIsAddressModalOpen(false);
+  //   } finally {
+  //     setIsResolvingAddressCoords(false);
+  //   }
+  // }, [isValidLatLng, resolveAddressCoords, showToast, user?.name, currentAddress.phone, currentLocation, updateLocation]);
 
-  const handleSaveNewAddress = useCallback(async () => {
-    const errors = {};
-    if (!newAddressForm.name.trim()) errors.name = "Name is required";
-    if (!newAddressForm.phone || newAddressForm.phone.length !== 10) errors.phone = "Valid 10-digit phone number is required";
-    if (!newAddressForm.address.trim()) errors.address = "Address is required";
-    if (!newAddressForm.city.trim()) errors.city = "City is required";
-    if (newAddressForm.zipCode && newAddressForm.zipCode.length > 0 && newAddressForm.zipCode.length !== 6) errors.zipCode = "Pincode must be exactly 6 digits";
-    if (Object.keys(errors).length > 0) { setNewAddressErrors(errors); showToast(Object.values(errors)[0], "error"); return; }
-    setNewAddressErrors({});
-    setIsSavingNewAddress(true);
-    try {
-      const query = [newAddressForm.address, newAddressForm.landmark, newAddressForm.city, newAddressForm.zipCode].filter(Boolean).join(", ");
-      let resolvedLoc = null;
-      try {
-        const resp = await customerApi.geocodeAddress(query);
-        const loc = resp.data?.result?.location;
-        if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) resolvedLoc = { lat: loc.lat, lng: loc.lng };
-      } catch { /* optional */ }
-      setCurrentAddress({ type: newAddressForm.label, name: newAddressForm.name.trim(), phone: newAddressForm.phone, address: newAddressForm.address.trim(), landmark: newAddressForm.landmark.trim(), city: newAddressForm.city.trim(), zipCode: newAddressForm.zipCode, ...(resolvedLoc ? { location: resolvedLoc } : {}) });
-      if (resolvedLoc) updateLocation({ name: query, time: currentLocation?.time || "12-15 mins", latitude: resolvedLoc.lat, longitude: resolvedLoc.lng }, { persist: true, updateSavedHome: false });
-      showToast("Address saved!", "success");
-      setShowAddNewAddressForm(false);
-      setNewAddressForm({ label: "Home", name: "", phone: "", address: "", landmark: "", city: "", zipCode: "" });
-      setIsAddressModalOpen(false);
-    } catch (e) {
-      showToast(e?.message || "Failed to save address", "error");
-    } finally {
-      setIsSavingNewAddress(false);
-    }
-  }, [newAddressForm, showToast, currentLocation, updateLocation]);
+  // const handleSaveNewAddress = useCallback(async () => {
+  //   const errors = {};
+  //   if (!newAddressForm.name.trim()) errors.name = "Name is required";
+  //   if (!newAddressForm.phone || newAddressForm.phone.length !== 10) errors.phone = "Valid 10-digit phone number is required";
+  //   if (!newAddressForm.address.trim()) errors.address = "Address is required";
+  //   if (!newAddressForm.city.trim()) errors.city = "City is required";
+  //   if (newAddressForm.zipCode && newAddressForm.zipCode.length > 0 && newAddressForm.zipCode.length !== 6) errors.zipCode = "Pincode must be exactly 6 digits";
+  //   if (Object.keys(errors).length > 0) { setNewAddressErrors(errors); showToast(Object.values(errors)[0], "error"); return; }
+  //   setNewAddressErrors({});
+  //   setIsSavingNewAddress(true);
+  //   try {
+  //     const query = [newAddressForm.address, newAddressForm.landmark, newAddressForm.city, newAddressForm.zipCode].filter(Boolean).join(", ");
+  //     let resolvedLoc = null;
+  //     try {
+  //       const resp = await customerApi.geocodeAddress(query);
+  //       const loc = resp.data?.result?.location;
+  //       if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) resolvedLoc = { lat: loc.lat, lng: loc.lng };
+  //     } catch { /* optional */ }
+  //     setCurrentAddress({ type: newAddressForm.label, name: newAddressForm.name.trim(), phone: newAddressForm.phone, address: newAddressForm.address.trim(), landmark: newAddressForm.landmark.trim(), city: newAddressForm.city.trim(), zipCode: newAddressForm.zipCode, ...(resolvedLoc ? { location: resolvedLoc } : {}) });
+  //     if (resolvedLoc) updateLocation({ name: query, time: currentLocation?.time || "12-15 mins", latitude: resolvedLoc.lat, longitude: resolvedLoc.lng }, { persist: true, updateSavedHome: false });
+  //     showToast("Address saved!", "success");
+  //     setShowAddNewAddressForm(false);
+  //     setNewAddressForm({ label: "Home", name: "", phone: "", address: "", landmark: "", city: "", zipCode: "" });
+  //     setIsAddressModalOpen(false);
+  //   } catch (e) {
+  //     showToast(e?.message || "Failed to save address", "error");
+  //   } finally {
+  //     setIsSavingNewAddress(false);
+  //   }
+  // }, [newAddressForm, showToast, currentLocation, updateLocation]);
 
-  const handleSaveEditedAddress = useCallback(async () => {
-    if (!editAddressForm.address.trim()) { showToast("Please enter your address", "error"); return; }
-    if (!editAddressForm.city.trim()) { showToast("Please enter your city", "error"); return; }
-    if (editAddressForm.zipCode && editAddressForm.zipCode.length > 0 && editAddressForm.zipCode.length !== 6) { showToast("Pincode must be exactly 6 digits", "error"); return; }
-    let location = null, placeId = null, formattedAddress = null;
-    try {
-      const query = [editAddressForm.address, editAddressForm.landmark, editAddressForm.city].filter(Boolean).join(", ");
-      const resp = await customerApi.geocodeAddress(query);
-      const loc = resp.data?.result?.location;
-      if (loc && typeof loc.lat === "number" && typeof loc.lng === "number" && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
-        location = { lat: loc.lat, lng: loc.lng };
-        placeId = resp.data?.result?.placeId || null;
-        formattedAddress = resp.data?.result?.formattedAddress || null;
-        updateLocation({ name: resp.data?.result?.formattedAddress || query, time: currentLocation?.time || "12-15 mins", city: currentLocation?.city, state: currentLocation?.state, pincode: currentLocation?.pincode, latitude: loc.lat, longitude: loc.lng }, { persist: true, updateSavedHome: false });
-      }
-    } catch (e) {
-      showToast(e.response?.data?.message || "Could not fetch coordinates. Delivery charges may be inaccurate.", "error");
-    }
-    setCurrentAddress({ ...editAddressForm, name: editAddressForm.name || currentAddress.name || user?.name || "", ...(location ? { location } : {}), ...(placeId ? { placeId } : {}), ...(formattedAddress ? { formattedAddress } : {}) });
-    setIsEditAddressOpen(false);
-    showToast("Delivery address updated", "success");
-  }, [editAddressForm, showToast, currentLocation, updateLocation, currentAddress.name, user?.name]);
+  // const handleSaveEditedAddress = useCallback(async () => {
+  //   if (!editAddressForm.address.trim()) { showToast("Please enter your address", "error"); return; }
+  //   if (!editAddressForm.city.trim()) { showToast("Please enter your city", "error"); return; }
+  //   if (editAddressForm.zipCode && editAddressForm.zipCode.length > 0 && editAddressForm.zipCode.length !== 6) { showToast("Pincode must be exactly 6 digits", "error"); return; }
+  //   let location = null, placeId = null, formattedAddress = null;
+  //   try {
+  //     const query = [editAddressForm.address, editAddressForm.landmark, editAddressForm.city].filter(Boolean).join(", ");
+  //     const resp = await customerApi.geocodeAddress(query);
+  //     const loc = resp.data?.result?.location;
+  //     if (loc && typeof loc.lat === "number" && typeof loc.lng === "number" && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
+  //       location = { lat: loc.lat, lng: loc.lng };
+  //       placeId = resp.data?.result?.placeId || null;
+  //       formattedAddress = resp.data?.result?.formattedAddress || null;
+  //       updateLocation({ name: resp.data?.result?.formattedAddress || query, time: currentLocation?.time || "12-15 mins", city: currentLocation?.city, state: currentLocation?.state, pincode: currentLocation?.pincode, latitude: loc.lat, longitude: loc.lng }, { persist: true, updateSavedHome: false });
+  //     }
+  //   } catch (e) {
+  //     showToast(e.response?.data?.message || "Could not fetch coordinates. Delivery charges may be inaccurate.", "error");
+  //   }
+  //   setCurrentAddress({ ...editAddressForm, name: editAddressForm.name || currentAddress.name || user?.name || "", ...(location ? { location } : {}), ...(placeId ? { placeId } : {}), ...(formattedAddress ? { formattedAddress } : {}) });
+  //   setIsEditAddressOpen(false);
+  //   showToast("Delivery address updated", "success");
+  // }, [editAddressForm, showToast, currentLocation, updateLocation, currentAddress.name, user?.name]);
 
-  const handleUseCurrentLiveLocation = useCallback(async () => {
-    const result = await refreshLocation();
-    if (result?.ok && result.location) {
-      const liveLocation = result.location;
-      setCurrentAddress((prev) => ({ ...prev, address: liveLocation.name, landmark: "", city: [liveLocation.city, liveLocation.state, liveLocation.pincode].filter(Boolean).join(", "), ...(typeof liveLocation.latitude === "number" && typeof liveLocation.longitude === "number" ? { location: { lat: liveLocation.latitude, lng: liveLocation.longitude } } : {}) }));
-      showToast("Using your current live location", "success");
-      return;
-    }
-    if (currentLocation?.name) {
-      setCurrentAddress((prev) => ({ ...prev, address: currentLocation.name, landmark: "", city: [currentLocation.city, currentLocation.state, currentLocation.pincode].filter(Boolean).join(", "), ...(typeof currentLocation.latitude === "number" && typeof currentLocation.longitude === "number" ? { location: { lat: currentLocation.latitude, lng: currentLocation.longitude } } : {}) }));
-      showToast("Using your last detected location", "success");
-      return;
-    }
-    showToast(result?.error || "Unable to detect current location", "error");
-  }, [refreshLocation, currentLocation, showToast]);
+  // const handleUseCurrentLiveLocation = useCallback(async () => {
+  //   const result = await refreshLocation();
+  //   if (result?.ok && result.location) {
+  //     const liveLocation = result.location;
+  //     setCurrentAddress((prev) => ({ ...prev, address: liveLocation.name, landmark: "", city: [liveLocation.city, liveLocation.state, liveLocation.pincode].filter(Boolean).join(", "), ...(typeof liveLocation.latitude === "number" && typeof liveLocation.longitude === "number" ? { location: { lat: liveLocation.latitude, lng: liveLocation.longitude } } : {}) }));
+  //     showToast("Using your current live location", "success");
+  //     return;
+  //   }
+  //   if (currentLocation?.name) {
+  //     setCurrentAddress((prev) => ({ ...prev, address: currentLocation.name, landmark: "", city: [currentLocation.city, currentLocation.state, currentLocation.pincode].filter(Boolean).join(", "), ...(typeof currentLocation.latitude === "number" && typeof currentLocation.longitude === "number" ? { location: { lat: currentLocation.latitude, lng: currentLocation.longitude } } : {}) }));
+  //     showToast("Using your last detected location", "success");
+  //     return;
+  //   }
+  //   showToast(result?.error || "Unable to detect current location", "error");
+  // }, [refreshLocation, currentLocation, showToast]);
 
-  const handleShare = useCallback(async () => {
-    const shareUrl = window.location.origin;
-    const shareText = `Hey! Check out ${appName} for quick grocery delivery in minutes! 🛒`;
-    const shareData = { title: `${appName} - Quick Delivery`, text: shareText, url: shareUrl };
-    if (typeof navigator.share === "function") {
-      try { await navigator.share(shareData); return; } catch (err) { if (err.name === "AbortError") return; }
-    }
-    setShowShareModal(true);
-  }, [appName]);
+  // NOTE: handleShare / handleCopyLink are not called from anywhere in this file's JSX — the
+  // Share Modal Dialog that used to open via handleShare is also commented out further below
+  // (its buttons already use inline clipboard/WhatsApp handlers instead). Kept here, commented,
+  // in case the "Share" entry point is reintroduced.
+  // const handleShare = useCallback(async () => {
+  //   const shareUrl = window.location.origin;
+  //   const shareText = `Hey! Check out ${appName} for quick grocery delivery in minutes! 🛒`;
+  //   const shareData = { title: `${appName} - Quick Delivery`, text: shareText, url: shareUrl };
+  //   if (typeof navigator.share === "function") {
+  //     try { await navigator.share(shareData); return; } catch (err) { if (err.name === "AbortError") return; }
+  //   }
+  //   setShowShareModal(true);
+  // }, [appName]);
 
-  const handleCopyLink = useCallback(async () => {
-    const shareUrl = window.location.origin;
-    try { await navigator.clipboard.writeText(shareUrl); showToast("Link copied to clipboard!", "success"); }
-    catch { showToast(shareUrl, "info"); }
-    setShowShareModal(false);
-  }, [showToast]);
+  // const handleCopyLink = useCallback(async () => {
+  //   const shareUrl = window.location.origin;
+  //   try { await navigator.clipboard.writeText(shareUrl); showToast("Link copied to clipboard!", "success"); }
+  //   catch { showToast(shareUrl, "info"); }
+  //   setShowShareModal(false);
+  // }, [showToast]);
 
   const handleApplyCoupon = useCallback(async (coupon) => {
     try {
@@ -981,6 +1083,18 @@ const CheckoutPage = () => {
     userProfile, user, displayPhone, displayName, appName,
   ]);
 
+  // NEW — wrapper only, handlePlaceOrder ke andar kuch nahi chheda
+  const handlePlaceOrderSafe = useCallback(() => {
+    if (isDeliveryDistanceExceeded) {
+      showToast(
+        `Delivery abhi available nahi hai — ye address ${distanceKm.toFixed(1)} km door hai (max ${MAX_DELIVERY_DISTANCE_KM} km allowed).`,
+        "error",
+      );
+      return;
+    }
+    handlePlaceOrder();
+  }, [isDeliveryDistanceExceeded, distanceKm, handlePlaceOrder, showToast]);
+
   // ── Effects ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -1020,7 +1134,12 @@ const CheckoutPage = () => {
   useEffect(() => {
     let mounted = true;
     const firstCartItem = cart[0];
-    const sellerId = firstCartItem?.sellerId?._id || firstCartItem?.sellerId || firstCartItem?.seller?._id || firstCartItem?.quickStoreId || firstCartItem?.storeId;
+    const sellerId =
+      firstCartItem?.quickStoreId?._id || firstCartItem?.quickStoreId?.id || (typeof firstCartItem?.quickStoreId === 'string' ? firstCartItem?.quickStoreId : null) ||
+      firstCartItem?.storeId?._id || firstCartItem?.storeId?.id || (typeof firstCartItem?.storeId === 'string' ? firstCartItem?.storeId : null) ||
+      firstCartItem?.sellerId?._id || firstCartItem?.sellerId?.id || (typeof firstCartItem?.sellerId === 'string' ? firstCartItem?.sellerId : null) ||
+      firstCartItem?.seller?._id || firstCartItem?.seller?.id || (typeof firstCartItem?.seller === 'string' ? firstCartItem?.seller : null);
+
     if (!sellerId || typeof sellerId !== 'string') {
       setStoreLocation(null);
       setDistanceKm(0);
@@ -1046,6 +1165,17 @@ const CheckoutPage = () => {
     return () => { mounted = false; };
   }, [cart]);
 
+  // ── BUG FIX 4: distanceKm not updating (→ delivery fee stuck) on address change ──
+  // ROOT CAUSE: the dependency array used the *object reference* `currentAddress?.location`.
+  // React's useEffect dependency comparison uses Object.is() — this only reruns the effect
+  // when the reference itself changes. In practice this made distance/fee recompute
+  // unreliable whenever `currentAddress` was updated in a way that didn't always produce a
+  // brand-new `.location` object (e.g. via the global `currentLocation` sync effect below,
+  // or when only some fields changed) — so the delivery fee could silently stay stale after
+  // the user changed their delivery location.
+  // FIX: depend on the primitive lat/lng values instead of the object reference. Primitives
+  // compare by value, so the effect now reliably reruns any time the actual coordinates change,
+  // no matter how `currentAddress` got updated.
   useEffect(() => {
     if (!storeLocation) { setDistanceKm(0); return; }
     const lat1 = storeLocation.lat, lon1 = storeLocation.lng;
@@ -1059,7 +1189,15 @@ const CheckoutPage = () => {
     } else {
       setDistanceKm(0);
     }
-  }, [storeLocation, currentAddress?.location, savedRecipient, currentLocation?.latitude, currentLocation?.longitude]);
+  }, [
+    storeLocation,
+    // OLD (bug): currentAddress?.location,
+    currentAddress?.location?.lat,
+    currentAddress?.location?.lng,
+    savedRecipient,
+    currentLocation?.latitude,
+    currentLocation?.longitude,
+  ]);
 
   useEffect(() => {
     if (!paymentMethods.length) return;
@@ -1091,47 +1229,61 @@ const CheckoutPage = () => {
   }, []);
 
   // 2. Sync currentAddress with global currentLocation if it changes externally (e.g. from /addresses page)
+  // ── BUG FIX 4 (continued): same object-reference issue existed here too ──
+  // `currentAddress.location` (object) was in the dependency array. Switched to the primitive
+  // `currentAddress.location?.lat` / `?.lng` so this sync effect reliably re-evaluates whenever
+  // the actual coordinates differ — this is the effect that pulls the new address in from the
+  // /quick-commerce/addresses page after the user picks a different location.
   useEffect(() => {
     if (!currentLocation?.latitude || !currentLocation?.longitude) return;
-    
+
     const currLat = Number(currentAddress.location?.lat || currentAddress.location?.latitude || 0);
     const currLng = Number(currentAddress.location?.lng || currentAddress.location?.longitude || 0);
-    
+
     // Check if the global location differs significantly from the checkout location
     const latDiff = Math.abs(currLat - currentLocation.latitude);
     const lngDiff = Math.abs(currLng - currentLocation.longitude);
-    
+
     // If there is no current address at all, or the location differs, we sync it!
     const isLocationDifferent = latDiff > 0.0001 || lngDiff > 0.0001 || !currentAddress.address;
-    
+
     if (isLocationDifferent) {
       const primaryAddress = locationSavedAddresses.find((addr) => addr?.isCurrent) || locationSavedAddresses.find((addr) => addr?.isDefault) || locationSavedAddresses[0];
-      
+
       if (primaryAddress && primaryAddress.address && (Math.abs(Number(primaryAddress.location?.lat || 0) - currentLocation.latitude) < 0.0001)) {
-        setCurrentAddress((prev) => ({ 
-            ...prev, 
-            type: primaryAddress.label || prev.type || "Home", 
-            name: primaryAddress.name || sharedProfileName || "", 
-            address: primaryAddress.address || "", 
-            city: primaryAddress.city || "", 
-            phone: primaryAddress.phone || sharedProfilePhone || "", 
-            landmark: "", 
-            ...(primaryAddress.placeId ? { placeId: primaryAddress.placeId } : {}), 
-            ...(primaryAddress.location ? { location: primaryAddress.location } : {}), 
-            ...(primaryAddress.id ? { id: primaryAddress.id } : {}) 
+        setCurrentAddress((prev) => ({
+          ...prev,
+          type: primaryAddress.label || prev.type || "Home",
+          name: primaryAddress.name || sharedProfileName || "",
+          address: primaryAddress.address || "",
+          city: primaryAddress.city || "",
+          phone: primaryAddress.phone || sharedProfilePhone || "",
+          landmark: "",
+          ...(primaryAddress.placeId ? { placeId: primaryAddress.placeId } : {}),
+          ...(primaryAddress.location ? { location: primaryAddress.location } : {}),
+          ...(primaryAddress.id ? { id: primaryAddress.id } : {})
         }));
       } else {
         setCurrentAddress((prev) => ({
-            ...prev,
-            address: currentLocation.name || prev.address || "Selected Location",
-            city: currentLocation.city || prev.city || "",
-            state: currentLocation.state || prev.state || "",
-            zipCode: currentLocation.pincode || prev.zipCode || "",
-            location: { lat: currentLocation.latitude, lng: currentLocation.longitude }
+          ...prev,
+          address: currentLocation.name || prev.address || "Selected Location",
+          city: currentLocation.city || prev.city || "",
+          state: currentLocation.state || prev.state || "",
+          zipCode: currentLocation.pincode || prev.zipCode || "",
+          location: { lat: currentLocation.latitude, lng: currentLocation.longitude }
         }));
       }
     }
-  }, [currentLocation, locationSavedAddresses, currentAddress.location, currentAddress.address, sharedProfileName, sharedProfilePhone]);
+  }, [
+    currentLocation,
+    locationSavedAddresses,
+    // OLD (bug): currentAddress.location,
+    currentAddress.location?.lat,
+    currentAddress.location?.lng,
+    currentAddress.address,
+    sharedProfileName,
+    sharedProfilePhone,
+  ]);
 
   useEffect(() => {
     const fetchCoupons = async () => {
@@ -1345,17 +1497,9 @@ const CheckoutPage = () => {
               </motion.div>
             )}
 
-            {/* Recommendations */}
-            <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
-              <h3 className="font-black text-slate-800 dark:text-white text-lg mb-4">You might also like</h3>
-              <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
-                {RECOMMENDED_PRODUCTS.map((product) => (
-                  <div key={product.id} className="flex-shrink-0 w-[140px] snap-start">
-                    <ProductCard product={product} compact={true} />
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+            {/* NOTE: "You might also like" recommendations section removed from JSX —
+                RECOMMENDED_PRODUCTS constant is commented out above. */}
+
           </div>
 
           {/* Right Column */}
@@ -1382,29 +1526,8 @@ const CheckoutPage = () => {
               </div>
             </motion.div>
 
-            {/* Tip section disabled
-            <motion.div className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-4 border border-pink-100 dark:border-white/5">
-              <div className="flex items-center gap-2 mb-3">
-                <Heart size={18} className="text-pink-500 fill-pink-500" />
-                <h3 className="font-black text-slate-800">Tip your delivery partner</h3>
-              </div>
-              <p className="text-xs text-slate-600 mb-3">100% of the tip goes to them</p>
-              <div className="grid grid-cols-4 gap-2 mb-3">
-                {TIP_AMOUNTS.map((tip) => (
-                  <button key={tip.value} onClick={() => { setSelectedTip(tip.value); setCustomTip(""); }}
-                    className={`py-2 rounded-xl border-2 transition-all font-bold text-sm ${selectedTip === tip.value && !customTip ? "border-pink-500 bg-pink-100 text-pink-700" : "border-pink-200 bg-white text-slate-700 hover:border-pink-300"}`}>
-                    {tip.label}
-                  </button>
-                ))}
-              </div>
-              <div className="relative">
-                <input type="number" min="1" placeholder="Enter custom tip amount (₹)" value={customTip}
-                  onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ""); setCustomTip(val); setSelectedTip(val ? Number(val) : 0); }}
-                  className="w-full h-10 rounded-xl border-2 border-pink-200 bg-white px-3 text-sm font-bold text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-pink-400 transition-colors" />
-                {customTip && <button onClick={() => { setCustomTip(""); setSelectedTip(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X size={14} /></button>}
-              </div>
-            </motion.div>
-            */}
+            {/* NOTE: "Tip your delivery partner" UI removed from JSX — TIP_AMOUNTS / customTip
+                are commented out above. selectedTip state is still active (defaults to 0). */}
 
             {/* Payment Methods — memoized PaymentMethodButton */}
             <motion.div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
@@ -1483,11 +1606,11 @@ const CheckoutPage = () => {
                   </div>
                   <div className="hidden lg:block">
                     {selectedPayment === "cash" ? (
-                      <button onClick={handlePlaceOrder} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
+                      <button onClick={handlePlaceOrderSafe} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview || isDeliveryDistanceExceeded || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
                         {isPlacingOrder ? "Placing Order..." : (storeLocation && distanceKm > serviceRadius) ? "Out of Delivery Zone" : `Place Order | ₹${totalAmount}`}
                       </button>
                     ) : (
-                      <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrder} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={(storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Order Now"} />
+                      <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrderSafe} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Slide to Pay"} />
                     )}
                     <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-4 uppercase tracking-[0.1em]">🔒 SSL encrypted secure checkout</p>
                   </div>
@@ -1502,11 +1625,11 @@ const CheckoutPage = () => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-slate-200 dark:border-white/10 px-4 py-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 rounded-t-3xl transition-colors">
         <div className="max-w-4xl mx-auto">
           {selectedPayment === "cash" ? (
-            <button onClick={handlePlaceOrder} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
+            <button onClick={handlePlaceOrderSafe} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview || isDeliveryDistanceExceeded || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
               {isPlacingOrder ? "Placing Order..." : (storeLocation && distanceKm > serviceRadius) ? "Out of Delivery Zone" : `Place Order | ₹${totalAmount}`}
             </button>
           ) : (
-            <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrder} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={(storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Slide to Pay"} />
+            <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrderSafe} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Slide to Pay"} />
           )}
         </div>
       </div>
@@ -1542,26 +1665,31 @@ const CheckoutPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Share Modal */}
+      {/* NOTE: Share Modal — kept in JSX since the buttons inside it work standalone (inline
+          WhatsApp link + inline clipboard-copy handler), but nothing in this file currently
+          sets showShareModal to true (handleShare, which used to do that, is commented out
+          above), so this dialog is effectively unreachable right now. Commented out entirely
+          — not deleted — so it can be re-enabled by restoring a "Share" button + handleShare. */}
+      {/*
       <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
         <DialogContent className="sm:max-w-md w-[95vw] rounded-3xl p-6 border-0 shadow-2xl bg-white dark:bg-card z-[700]">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white text-center">Share Checkout</DialogTitle>
           </DialogHeader>
           <div className="flex justify-around items-center py-4">
-            <a 
+            <a
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Check out ${appName} for quick grocery delivery in minutes! 🛒\n\n${window.location.origin}`)}`}
               target="_blank" rel="noreferrer"
               className="flex flex-col items-center gap-2 cursor-pointer"
               onClick={() => setShowShareModal(false)}
             >
               <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center text-green-600 hover:scale-110 transition-transform">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
               </div>
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">WhatsApp</span>
             </a>
-            
-            <button 
+
+            <button
               onClick={() => {
                 navigator.clipboard.writeText(window.location.origin);
                 showToast("Link copied to clipboard!", "success");
@@ -1577,6 +1705,7 @@ const CheckoutPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+      */}
 
       <style dangerouslySetInnerHTML={{ __html: `.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}` }} />
     </div>

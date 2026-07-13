@@ -77,12 +77,12 @@ const normalizeOrderSummary = (order) => {
     createdAt: order.createdAt,
     items: Array.isArray(order.items)
       ? order.items.map((item) => ({
-          itemId: item.itemId || item.productId || '',
-          name: item.name,
-          image: item.image,
-          price: item.price,
-          quantity: item.quantity,
-        }))
+        itemId: item.itemId || item.productId || '',
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+      }))
       : [],
     pricing: order.pricing || {},
   };
@@ -111,11 +111,11 @@ const normalizeDeliveryAddress = (address) => {
     phone,
     ...(Number.isFinite(lat) && Number.isFinite(lng)
       ? {
-          location: {
-            type: 'Point',
-            coordinates: [lng, lat],
-          },
-        }
+        location: {
+          type: 'Point',
+          coordinates: [lng, lat],
+        },
+      }
       : {}),
   };
 };
@@ -127,13 +127,13 @@ const normalizeRequestedItems = (items) => {
     .map((item) => {
       let productId = String(item?.productId || item?.itemId || item?.id || item?._id || '').trim();
       let variantId = item?.variantId ? String(item.variantId).trim() : null;
-      
+
       if (productId.includes('-')) {
         const parts = productId.split('-');
         productId = parts[0];
         if (!variantId) variantId = parts[1];
       }
-      
+
       return {
         productId,
         variantId: variantId && mongoose.isValidObjectId(variantId) ? variantId : null,
@@ -226,7 +226,7 @@ export const placeOrder = async (req, res) => {
       .map((item) => {
         const product = productMap[String(item.productId)];
         if (!product) return null;
-        
+
         let variant = null;
         if (item.variantId && Array.isArray(product.variants)) {
           variant = product.variants.find(v => String(v._id) === String(item.variantId) || String(v.id) === String(item.variantId));
@@ -264,7 +264,7 @@ export const placeOrder = async (req, res) => {
         .map((item) => {
           const product = fallbackProductMap[String(item.productId)];
           if (!product) return null;
-          
+
           let variant = null;
           if (item.variantId && Array.isArray(product.variants)) {
             variant = product.variants.find(v => String(v._id) === String(item.variantId) || String(v.id) === String(item.variantId));
@@ -297,7 +297,7 @@ export const placeOrder = async (req, res) => {
     for (const item of items) {
       const prodIdStr = String(item.productId);
       const product = products.find((p) => String(p._id) === prodIdStr) ||
-                      (typeof fallbackProducts !== 'undefined' ? fallbackProducts.find((p) => String(p._id) === prodIdStr) : null);
+        (typeof fallbackProducts !== 'undefined' ? fallbackProducts.find((p) => String(p._id) === prodIdStr) : null);
       if (product) {
         const availableStock = Number(product.stock ?? 0);
         if (item.quantity > availableStock) {
@@ -325,6 +325,16 @@ export const placeOrder = async (req, res) => {
       if (sellerCoords && deliveryCoords) {
         distanceKm = haversineKm(sellerCoords.lat, sellerCoords.lng, deliveryCoords.lat, deliveryCoords.lng);
       }
+    }
+    // NEW — server-side hard cap. Frontend check bypass ho sakta hai (Postman/DevTools se),
+    // isliye backend pe bhi enforce karna zaroori hai. Ye sirf ek naya check hai,
+    // baaki pricing/order-creation logic bilkul waisa hi hai.
+    const MAX_QUICK_DELIVERY_DISTANCE_KM = 20;
+    if (Number.isFinite(distanceKm) && distanceKm > MAX_QUICK_DELIVERY_DISTANCE_KM) {
+      return res.status(400).json({
+        success: false,
+        message: `Delivery not available for this address — it is ${distanceKm.toFixed(1)} km away (maximum ${MAX_QUICK_DELIVERY_DISTANCE_KM} km allowed).`,
+      });
     }
 
     const { pricing } = await calculateQuickPricing({
@@ -449,84 +459,84 @@ export const placeOrder = async (req, res) => {
     });
 
     const sellerOrdersResults = sellerBuckets.size > 0
-        ? await Promise.all(Array.from(sellerBuckets.entries()).map(async ([sellerId, sellerItems]) => {
-            const sellerSubtotal = sellerItems.reduce(
-              (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
-              0,
-            );
-            const allocatedDeliveryFee = Number(
-              ((deliveryFee * sellerSubtotal) / Math.max(subtotal, 1)).toFixed(2),
-            );
+      ? await Promise.all(Array.from(sellerBuckets.entries()).map(async ([sellerId, sellerItems]) => {
+        const sellerSubtotal = sellerItems.reduce(
+          (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+          0,
+        );
+        const allocatedDeliveryFee = Number(
+          ((deliveryFee * sellerSubtotal) / Math.max(subtotal, 1)).toFixed(2),
+        );
 
-            // Calculate commission for this specific seller
-            const { commissionAmount } = await getSellerCommissionSnapshot(sellerId, sellerSubtotal);
-            const sellerReceivable = Math.max(
-              0,
-              Number((sellerSubtotal - commissionAmount).toFixed(2)),
-            );
+        // Calculate commission for this specific seller
+        const { commissionAmount } = await getSellerCommissionSnapshot(sellerId, sellerSubtotal);
+        const sellerReceivable = Math.max(
+          0,
+          Number((sellerSubtotal - commissionAmount).toFixed(2)),
+        );
 
-            return {
-              orderType: 'quick',
-              parentOrderId: order._id,
-              sellerId,
-              orderId: order.orderId,
-              customer: {
-                name: String(req.body?.address?.name || 'Customer').trim() || 'Customer',
-                phone: String(req.body?.address?.phone || '').trim(),
-              },
-              items: sellerItems.map((item) => ({
-                productId: item.productId,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity,
-                image: item.image,
-              })),
-              pricing: {
-                subtotal: sellerSubtotal,
-                commission: commissionAmount,
-                total: sellerSubtotal + allocatedDeliveryFee,
-                receivable: sellerReceivable,
-              },
-              status: 'pending',
-              workflowStatus: 'SELLER_PENDING',
-              sellerPendingExpiresAt: new Date(Date.now() + 2 * 60 * 1000),
-              address: {
-                address: deliveryAddress?.street || '',
-                city: deliveryAddress?.city || '',
-                ...(Array.isArray(deliveryAddress?.location?.coordinates)
-                  ? {
-                      location: {
-                        lat: deliveryAddress.location.coordinates[1],
-                        lng: deliveryAddress.location.coordinates[0],
-                      },
-                    }
-                  : {}),
-              },
-              payment: {
-                method: sellerPaymentMode,
-              },
-            };
-          }))
-        : [];
+        return {
+          orderType: 'quick',
+          parentOrderId: order._id,
+          sellerId,
+          orderId: order.orderId,
+          customer: {
+            name: String(req.body?.address?.name || 'Customer').trim() || 'Customer',
+            phone: String(req.body?.address?.phone || '').trim(),
+          },
+          items: sellerItems.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+          })),
+          pricing: {
+            subtotal: sellerSubtotal,
+            commission: commissionAmount,
+            total: sellerSubtotal + allocatedDeliveryFee,
+            receivable: sellerReceivable,
+          },
+          status: 'pending',
+          workflowStatus: 'SELLER_PENDING',
+          sellerPendingExpiresAt: new Date(Date.now() + 2 * 60 * 1000),
+          address: {
+            address: deliveryAddress?.street || '',
+            city: deliveryAddress?.city || '',
+            ...(Array.isArray(deliveryAddress?.location?.coordinates)
+              ? {
+                location: {
+                  lat: deliveryAddress.location.coordinates[1],
+                  lng: deliveryAddress.location.coordinates[0],
+                },
+              }
+              : {}),
+          },
+          payment: {
+            method: sellerPaymentMode,
+          },
+        };
+      }))
+      : [];
 
     const totalSellerCommission = sellerOrdersResults.reduce((sum, so) => sum + (so.pricing?.commission || 0), 0);
-    
+
     // Update the main order with the total commission
     if (totalSellerCommission > 0) {
       const platformProfit = Math.max(
         0,
         deliveryFee +
-          Number(pricing.platformFee || 0) +
-          totalSellerCommission -
-          (riderEarning || 0),
+        Number(pricing.platformFee || 0) +
+        totalSellerCommission -
+        (riderEarning || 0),
       );
       await QuickOrder.updateOne(
         { _id: order._id },
-        { 
-          $set: { 
+        {
+          $set: {
             'pricing.restaurantCommission': totalSellerCommission,
             platformProfit: platformProfit
-          } 
+          }
         }
       );
       order.pricing.restaurantCommission = totalSellerCommission;
@@ -626,7 +636,7 @@ export const getMyOrders = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .lean();
-      
+
     // Estimate total results based on this chunk to avoid slow countDocuments queries
     const hasMore = orders.length === limit;
     const totalResults = skip + orders.length + (hasMore ? 1 : 0);
@@ -662,10 +672,10 @@ export const getMyOrders = async (req, res) => {
         storeName: seller?.shopName || seller?.name || '',
         seller: seller
           ? {
-              _id: seller._id,
-              name: seller.name || '',
-              shopName: seller.shopName || seller.name || 'Store',
-            }
+            _id: seller._id,
+            name: seller.name || '',
+            shopName: seller.shopName || seller.name || 'Store',
+          }
           : null,
       };
     });
@@ -728,9 +738,9 @@ export const getOrderById = async (req, res) => {
     const deliveryAddress = order.deliveryAddress || {};
     const deliveryCoords = Array.isArray(deliveryAddress.location?.coordinates)
       ? {
-          lat: Number(deliveryAddress.location.coordinates[1]),
-          lng: Number(deliveryAddress.location.coordinates[0]),
-        }
+        lat: Number(deliveryAddress.location.coordinates[1]),
+        lng: Number(deliveryAddress.location.coordinates[0]),
+      }
       : null;
     const dropOtp = order.deliveryVerification?.dropOtp || {};
     const handoverOtp = String(order.deliveryOtp || '').trim();
@@ -753,21 +763,21 @@ export const getOrderById = async (req, res) => {
         },
         seller: seller
           ? {
-              _id: seller._id,
-              id: seller._id,
-              name: seller.shopName || seller.name || 'Store',
-              shopName: seller.shopName || seller.name || 'Store',
-              location: seller.location || null,
-              phone: seller.phone || '',
-            }
+            _id: seller._id,
+            id: seller._id,
+            name: seller.shopName || seller.name || 'Store',
+            shopName: seller.shopName || seller.name || 'Store',
+            location: seller.location || null,
+            phone: seller.phone || '',
+          }
           : null,
         sellerOrder: sellerOrder
           ? {
-              _id: sellerOrder._id,
-              status: sellerOrder.status,
-              workflowStatus: sellerOrder.workflowStatus,
-              address: sellerOrder.address || null,
-            }
+            _id: sellerOrder._id,
+            status: sellerOrder.status,
+            workflowStatus: sellerOrder.workflowStatus,
+            address: sellerOrder.address || null,
+          }
           : null,
         deliveryVerification: {
           ...(order.deliveryVerification || {}),
@@ -829,7 +839,7 @@ export const cancelOrder = async (req, res) => {
     }
 
     const isOnlinePayment = String(order.payment?.method || '').toLowerCase() === 'razorpay' ||
-                            String(order.payment?.method || '').toLowerCase() === 'razorpay_qr';
+      String(order.payment?.method || '').toLowerCase() === 'razorpay_qr';
     const isWalletPayment = String(order.payment?.method || '').toLowerCase() === 'wallet';
     const isPaid = String(order.payment?.status || '').toLowerCase() === 'paid';
 
