@@ -9,12 +9,14 @@ import {
     cancelOrderController,
     submitOrderRatingsController,
     getOrderDropOtpUserController,
-    updateOrderInstructionsController
+    updateOrderInstructionsController,
+    estimateRestaurantDeliveryDistance
 } from '../controllers/order.controller.js';
 
 const router = express.Router();
 
 router.post('/calculate', calculateOrderController);
+router.post('/estimate-distance', estimateRestaurantDeliveryDistance);
 router.post('/', createOrderController);
 router.post('/verify-payment', verifyPaymentController);
 router.get('/', listOrdersUserController);

@@ -2475,6 +2475,10 @@ export const uploadAPI = {
 };
 /** Order API (user app – Bearer USER token). Minimal calls: single create/verify, list/details cached by caller. */
 export const orderAPI = {
+  estimateDistance: (payload) =>
+    apiClient.post("/food/orders/estimate-distance", payload ?? {}, {
+      contextModule: "user",
+    }),
   calculateOrder: (payload) =>
     apiClient.post("/food/orders/calculate", payload ?? {}, {
       contextModule: "user",

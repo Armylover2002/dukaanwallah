@@ -11,6 +11,13 @@ import {
     validateDispatchSettingsDto,
     validateOrderRatingsDto
 } from '../validators/order.validator.js';
+import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { haversineKm } from '../services/order.helpers.js';
+import { calculateOrderPricing, calculateBaseDeliveryFeeForDistance, resolveSponsorRule } from '../services/order-pricing.service.js';
+import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
+import { getRiderEarning as getFoodRiderEarning } from '../services/foodTransaction.service.js';
+import mongoose from 'mongoose';
+import { logger } from '../../../../utils/logger.js';
 
 export async function calculateOrderController(req, res, next) {
     try {
@@ -376,3 +383,105 @@ export async function resendDeliveryNotificationRestaurantController(req, res, n
     }
 }
 
+export const estimateRestaurantDeliveryDistance = async (req, res) => {
+    try {
+        const restaurantId = String(req.body?.restaurantId || '').trim();
+
+        if (!restaurantId) {
+            return res.status(400).json({ success: false, message: 'Valid restaurantId is required' });
+        }
+
+        // Frontend se location aayegi (address form / map pin se select kiya gaya point)
+        const lat = Number(req.body?.location?.lat ?? req.body?.lat);
+        const lng = Number(req.body?.location?.lng ?? req.body?.lng);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            return res.status(400).json({ success: false, message: 'Valid location {lat, lng} is required' });
+        }
+
+        const query = mongoose.isValidObjectId(restaurantId)
+            ? { _id: restaurantId }
+            : { slug: restaurantId };
+
+        const restaurant = await FoodRestaurant.findOne(query).select('location').lean();
+        if (!restaurant) {
+            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
+
+        // Restaurant ka location field
+        const restCoords = restaurant?.location?.coordinates?.length === 2
+            ? { lat: Number(restaurant.location.coordinates[1]), lng: Number(restaurant.location.coordinates[0]) }
+            : null;
+
+        if (!restCoords || !Number.isFinite(restCoords.lat) || !Number.isFinite(restCoords.lng)) {
+            return res.status(400).json({ success: false, message: 'Restaurant location not available' });
+        }
+
+        const distanceKm = haversineKm(restCoords.lat, restCoords.lng, lat, lng);
+
+        const MAX_FOOD_DELIVERY_DISTANCE_KM = 20;
+        const isDeliverable = Number.isFinite(distanceKm) && distanceKm <= MAX_FOOD_DELIVERY_DISTANCE_KM;
+
+        // Estimated delivery fee + platform fee + rider earning
+        let estimatedDeliveryFee = 0;
+        let estimatedPlatformFee = 0;
+        let riderEarning = 0;
+        try {
+            const subtotal = Number(req.body?.subtotal || 0);
+
+            // Bypass calculateOrderPricing to avoid 'restaurant not approved' validation on simple distance check
+            const feeDoc = await FoodFeeSettings.findOne({ isActive: true }).sort({ createdAt: -1 }).lean();
+            const feeSettings = {
+                deliveryFee: 25,
+                baseDistanceKm: 3,
+                baseDeliveryFee: 25,
+                perKmCharge: 10,
+                sponsorRules: [],
+                platformFee: 5,
+                gstRate: 5,
+                ...(feeDoc || {}),
+            };
+            feeSettings.deliveryDistanceSlabs = Array.isArray(feeSettings.deliveryDistanceSlabs) ? feeSettings.deliveryDistanceSlabs : [];
+
+            estimatedPlatformFee = Number(feeSettings.platformFee || 0);
+
+            const totalDeliveryFee = calculateBaseDeliveryFeeForDistance(distanceKm, feeSettings);
+
+            const matchedRule = (Array.isArray(feeSettings?.deliveryDistanceSlabs) && feeSettings.deliveryDistanceSlabs.length > 0)
+                ? null
+                : resolveSponsorRule(subtotal, distanceKm, feeSettings.sponsorRules);
+
+            let userDeliveryFee = totalDeliveryFee;
+            if (matchedRule?.sponsorType === 'RESTAURANT_FULL') {
+                userDeliveryFee = 0;
+            } else if (matchedRule?.sponsorType === 'SPLIT') {
+                const safeSponsoredKm = Math.max(0, Math.min(Number(distanceKm || 0), Number(matchedRule.sponsoredKm || 0)));
+                const restaurantDeliveryFee = Math.min(totalDeliveryFee, calculateBaseDeliveryFeeForDistance(safeSponsoredKm, feeSettings));
+                userDeliveryFee = Math.max(0, totalDeliveryFee - restaurantDeliveryFee);
+            }
+
+            estimatedDeliveryFee = Number(userDeliveryFee.toFixed(2));
+            riderEarning = await getFoodRiderEarning(distanceKm);
+        } catch (feeErr) {
+            logger.error(`estimateRestaurantDeliveryDistance fee calc failed: ${feeErr?.message || feeErr}`);
+        }
+
+        return res.json({
+            success: true,
+            result: {
+                distanceKm: Number(distanceKm.toFixed(2)),
+                isDeliverable,
+                maxAllowedKm: MAX_FOOD_DELIVERY_DISTANCE_KM,
+                estimatedDeliveryFee,
+                estimatedPlatformFee,
+                riderEarning,
+            },
+        });
+    } catch (error) {
+        logger.error(`estimateRestaurantDeliveryDistance failed: ${error?.message || error}`);
+        return res.status(500).json({
+            success: false,
+            error: error?.message || 'Failed to estimate distance',
+        });
+    }
+};

@@ -181,6 +181,8 @@ export default function Cart() {
   const [showPaymentSheet, setShowPaymentSheet] = useState(false)
   const [walletBalance, setWalletBalance] = useState(0)
   const [isLoadingWallet, setIsLoadingWallet] = useState(false)
+  const [estimatedDistanceFee, setEstimatedDistanceFee] = useState(null)
+  const [isDeliverable, setIsDeliverable] = useState(true)
   const [note, setNote] = useState(() => {
     try {
       if (typeof window === "undefined") return ""
@@ -282,11 +284,11 @@ export default function Cart() {
 
   // Fee settings from database (used for platform fee and GST fallback only)
   const [feeSettings, setFeeSettings] = useState({
-    baseDistanceKm: 3,
-    baseDeliveryFee: 25,
-    perKmCharge: 10,
-    platformFee: 5,
-    gstRate: 5,
+    baseDistanceKm: 0,
+    baseDeliveryFee: 0,
+    perKmCharge: 0,
+    platformFee: 0,
+    gstRate: 0,
   })
 
 
@@ -943,7 +945,14 @@ export default function Cart() {
         setLoadingPricing(true)
         const items = cart.map(mapOrderItem)
 
-        const resolvedRestaurantId = restaurantData?.restaurantId || restaurantData?._id || restaurantId || undefined
+        const resolvedRestaurantId = restaurantData?._id || restaurantData?.restaurantId || restaurantId || undefined
+
+        // Wait until it's a valid 24-char MongoDB ID
+        if (!/^[0-9a-fA-F]{24}$/.test(String(resolvedRestaurantId))) {
+          setLoadingPricing(false);
+          return;
+        }
+
         const resolvedCouponCode = appliedCoupon?.code || couponCode || undefined
 
         const response = await orderAPI.calculateOrder({
@@ -979,6 +988,65 @@ export default function Cart() {
 
     calculatePricing()
   }, [cart, defaultAddress, appliedCoupon, couponCode, restaurantId])
+
+  // Fetch estimated distance fee explicitly
+  useEffect(() => {
+    const fetchEstimatedDistance = async () => {
+      // Skip for non-food or mixed carts as they handle their own fee
+      if (cart.length === 0 || (hasQuickItems && hasFoodItems) || isQuickCart) {
+        setEstimatedDistanceFee(null)
+        return
+      }
+
+      const locCoords = defaultAddress?.location?.coordinates || defaultAddress?.coordinates;
+      // If we don't have location coordinates yet, we can't estimate distance
+      if (!hasSavedAddress || !locCoords || !Array.isArray(locCoords) || locCoords.length < 2) {
+        setEstimatedDistanceFee(null)
+        return
+      }
+
+      const resolvedRestaurantId = restaurantData?._id || restaurantData?.restaurantId || restaurantId || undefined;
+      // Ensure we have an ID
+      if (!resolvedRestaurantId || String(resolvedRestaurantId) === 'undefined') {
+        console.warn("[Cart] estimateDistance: Invalid restaurantId:", resolvedRestaurantId)
+        setEstimatedDistanceFee(null)
+        return;
+      }
+
+      // Check if it's a valid MongoDB ObjectId (24 hex characters)
+      // Otherwise wait for the next render when restaurantData is fully loaded
+      if (!/^[0-9a-fA-F]{24}$/.test(String(resolvedRestaurantId))) {
+        return;
+      }
+
+      const subtotalVal = cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+
+      try {
+        const payload = {
+          restaurantId: resolvedRestaurantId,
+          location: {
+            lat: Number(locCoords[1]),
+            lng: Number(locCoords[0])
+          },
+          subtotal: subtotalVal
+        };
+        const response = await orderAPI.estimateDistance(payload);
+        if (response?.data?.success && response?.data?.result) {
+          setEstimatedDistanceFee(Number(response.data.result.estimatedDeliveryFee || 0));
+          setIsDeliverable(response.data.result.isDeliverable ?? true);
+        } else {
+          setEstimatedDistanceFee(null);
+          setIsDeliverable(true);
+        }
+      } catch (err) {
+        console.error("[Cart] estimateDistance error:", err?.response?.data || err.message)
+        setEstimatedDistanceFee(null);
+        setIsDeliverable(true);
+      }
+    };
+
+    fetchEstimatedDistance();
+  }, [defaultAddress, restaurantData, restaurantId, cart]);
 
   // Fetch wallet balance
   useEffect(() => {
@@ -1025,14 +1093,14 @@ export default function Cart() {
         const response = await adminAPI.getPublicFeeSettings()
         if (response.data.success && response.data.data.feeSettings) {
           setFeeSettings({
-            baseDistanceKm: response.data.data.feeSettings.baseDistanceKm || 3,
+            baseDistanceKm: response.data.data.feeSettings.baseDistanceKm || 0,
             baseDeliveryFee:
               response.data.data.feeSettings.baseDeliveryFee ||
               response.data.data.feeSettings.deliveryFee ||
-              25,
-            perKmCharge: response.data.data.feeSettings.perKmCharge || 10,
-            platformFee: response.data.data.feeSettings.platformFee || 5,
-            gstRate: response.data.data.feeSettings.gstRate || 5,
+              0,
+            perKmCharge: response.data.data.feeSettings.perKmCharge || 0,
+            platformFee: response.data.data.feeSettings.platformFee || 0,
+            gstRate: response.data.data.feeSettings.gstRate || 0,
           })
         }
       } catch (error) {
@@ -1064,9 +1132,11 @@ export default function Cart() {
     return Number(feeSettings.baseDeliveryFee || 0)
   })()
   const deliveryFee =
-    pricing?.deliveryFee !== undefined && pricing?.deliveryFee !== null
-      ? Number(pricing.deliveryFee || 0)
-      : fallbackDeliveryFee
+    estimatedDistanceFee !== null
+      ? estimatedDistanceFee
+      : pricing?.deliveryFee !== undefined && pricing?.deliveryFee !== null
+        ? Number(pricing.deliveryFee || 0)
+        : fallbackDeliveryFee
   const deliveryFeeBreakdown = pricing?.deliveryFeeBreakdown || null
   const hasDistanceDeliveryBreakdown =
     deliveryFeeBreakdown?.source === "distance" &&
@@ -3006,10 +3076,10 @@ export default function Cart() {
             {/* Place Order Button */}
             <button
               onClick={handlePlaceOrder}
-              disabled={isPlacingOrder || (selectedPaymentMethod === "wallet" && walletBalance < total)}
-              className="w-full bg-gradient-to-r from-[#FE5502] to-[#FE5502] hover:from-[#C83C00] hover:to-[#CF2834] text-white px-6 h-12 md:h-14 rounded-2xl font-bold shadow-lg shadow-[#FE5502]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between transition-transform active:scale-[0.98]"
+              disabled={isPlacingOrder || !isDeliverable || (selectedPaymentMethod === "wallet" && walletBalance < total)}
+              className={`w-full ${!isDeliverable ? 'bg-gray-400' : 'bg-gradient-to-r from-[#FE5502] to-[#FE5502] hover:from-[#C83C00] hover:to-[#CF2834] shadow-[#FE5502]/30 shadow-lg'} text-white px-6 h-12 md:h-14 rounded-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between transition-transform active:scale-[0.98]`}
             >
-              {(selectedPaymentMethod === "razorpay" || selectedPaymentMethod === "wallet" || selectedPaymentMethod === "cash") && (
+              {(selectedPaymentMethod === "razorpay" || selectedPaymentMethod === "wallet" || selectedPaymentMethod === "cash") && isDeliverable && (
                 <div className="text-left flex flex-col justify-center border-r-[1.5px] border-white/20 pr-4">
                   <span className="text-xs md:text-sm font-semibold text-white/90">{RUPEE_SYMBOL}{total.toFixed(2)}</span>
                   <span className="text-[9px] md:text-[10px] uppercase font-bold tracking-wider text-white/80 mt-[-2px]">Total</span>
@@ -3020,7 +3090,9 @@ export default function Cart() {
                   ? "Processing..."
                   : !hasSavedAddress
                     ? "Select Address"
-                    : "Place Order"}
+                    : !isDeliverable
+                      ? "Out of zone"
+                      : "Place Order"}
                 <div className="flex align-center h-full">
                   <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
                 </div>

@@ -12,13 +12,13 @@ function roundCurrency(value) {
   return Number(num.toFixed(2));
 }
 
-function calculateBaseDeliveryFeeForDistance(distanceKm, feeSettings) {
+export function calculateBaseDeliveryFeeForDistance(distanceKm, feeSettings) {
   const distance = Number(distanceKm);
   if (!Number.isFinite(distance) || distance < 0) return 0;
 
   if (Array.isArray(feeSettings?.deliveryDistanceSlabs) && feeSettings.deliveryDistanceSlabs.length > 0) {
     const baseSlab = feeSettings.deliveryDistanceSlabs.find((s) => Number(s.fromKm || 0) === 0);
-    
+
     if (!baseSlab) {
       // Fallback: If no base slab exists starting at 0, do traditional range matching
       const matchedSlab = feeSettings.deliveryDistanceSlabs.find(
@@ -70,7 +70,7 @@ function calculateBaseDeliveryFeeForDistance(distanceKm, feeSettings) {
   return 60;
 }
 
-function resolveSponsorRule(subtotal, distanceKm, sponsorRules = []) {
+export function resolveSponsorRule(subtotal, distanceKm, sponsorRules = []) {
   const safeSubtotal = Number(subtotal);
   const safeDistance = Number(distanceKm);
   if (!Number.isFinite(safeSubtotal) || !Number.isFinite(safeDistance)) return null;
@@ -116,9 +116,9 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -141,13 +141,13 @@ export async function calculateOrderPricing(userId, dto) {
     .sort({ createdAt: -1 })
     .lean();
   const feeSettings = {
-    deliveryFee: 25,
-    baseDistanceKm: 3,
-    baseDeliveryFee: 25,
-    perKmCharge: 10,
+    deliveryFee: 0,
+    baseDistanceKm: 0,
+    baseDeliveryFee: 0,
+    perKmCharge: 0,
     sponsorRules: [],
-    platformFee: 5,
-    gstRate: 5,
+    platformFee: 0,
+    gstRate: 0,
     ...(feeDoc || {}),
   };
   feeSettings.deliveryDistanceSlabs = Array.isArray(feeSettings.deliveryDistanceSlabs)
@@ -161,15 +161,15 @@ export async function calculateOrderPricing(userId, dto) {
   const customerCoords = dto?.address?.location?.coordinates;
   const distanceKm =
     Array.isArray(restaurantCoords) &&
-    restaurantCoords.length === 2 &&
-    Array.isArray(customerCoords) &&
-    customerCoords.length === 2
+      restaurantCoords.length === 2 &&
+      Array.isArray(customerCoords) &&
+      customerCoords.length === 2
       ? haversineKm(
-          Number(restaurantCoords[1]),
-          Number(restaurantCoords[0]),
-          Number(customerCoords[1]),
-          Number(customerCoords[0]),
-        )
+        Number(restaurantCoords[1]),
+        Number(restaurantCoords[0]),
+        Number(customerCoords[1]),
+        Number(customerCoords[0]),
+      )
       : 0;
 
   const totalDeliveryFee = calculateBaseDeliveryFeeForDistance(distanceKm, feeSettings);
@@ -212,7 +212,7 @@ export async function calculateOrderPricing(userId, dto) {
 
   if (codeRaw) {
     const now = new Date();
-    
+
     let resolvedRestaurantId = dto.restaurantId;
     if (resolvedRestaurantId && !mongoose.Types.ObjectId.isValid(resolvedRestaurantId)) {
       const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');

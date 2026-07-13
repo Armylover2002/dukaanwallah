@@ -132,12 +132,25 @@ export default function FeeSettings() {
 
   const handleSaveFeeSettings = async () => {
     try {
+      // Auto-add slab draft if user typed something but forgot to click "+ Add Slab"
+      let finalSlabs = [...feeSettings.deliveryDistanceSlabs]
+      if (slabDraft.fromKm !== "" || slabDraft.toKm !== "" || slabDraft.deliveryFee !== "") {
+        const nextSlab = validateSlabDraft()
+        if (!nextSlab) {
+          toast.error("Please fix or clear the distance slab draft before saving.")
+          return
+        }
+        finalSlabs.push(nextSlab)
+        setFeeSettings((prev) => ({ ...prev, deliveryDistanceSlabs: finalSlabs }))
+        setSlabDraft({ fromKm: "", toKm: "", deliveryFee: "", maxDistanceUnlimited: false })
+      }
+
       setSavingFeeSettings(true)
       const response = await adminAPI.createOrUpdateFeeSettings({
         baseDistanceKm: null,
         baseDeliveryFee: null,
         perKmCharge: null,
-        deliveryDistanceSlabs: feeSettings.deliveryDistanceSlabs,
+        deliveryDistanceSlabs: finalSlabs,
         platformFee: toNullableNumber(feeSettings.platformFee),
         gstRate: toNullableNumber(feeSettings.gstRate),
         isActive: true,
