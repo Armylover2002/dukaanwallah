@@ -315,6 +315,10 @@ const CartPage = () => {
             setDistanceKm(result.distanceKm || 0);
             setApiDeliveryFee(result.estimatedDeliveryFee || 0);
             setIsDeliverable(result.isDeliverable ?? true);
+            
+            if (result.isDeliverable === false && result.distanceKm > (result.maxAllowedKm || 20)) {
+              showToast(`Delivery not available for this location. Distance is ${result.distanceKm.toFixed(1)} km (Max allowed: ${result.maxAllowedKm || 20} km)`, "error");
+            }
           }
         })
         .catch(err => console.error("Failed to estimate distance/fee:", err))

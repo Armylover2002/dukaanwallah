@@ -470,18 +470,19 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize }) => {
   const { distanceKm, etaMins } = useMemo(() => {
     if (!order) return { distanceKm: null, etaMins: null };
 
-    // A. Use provided data if available (Direct distance from socket)
-    const rawDist = order.pickupDistanceKm || order.distanceKm;
+    // A. Use actual store→customer delivery distance (preferred for display)
+    //    pickupDistanceKm = rider→store distance (not shown to delivery boy as main distance)
+    const deliveryDist = order.distanceKm;  // store → customer (actual delivery distance)
     const rawEta = order.estimatedTime || order.duration || order.eta;
 
-    if (rawDist != null) {
+    if (deliveryDist != null) {
       return {
-        distanceKm: Number(rawDist).toFixed(1),
-        etaMins: rawEta && rawEta > 0 ? Math.ceil(rawEta) : Math.ceil((rawDist * 1000) / 416) + 5
+        distanceKm: Number(deliveryDist).toFixed(1),
+        etaMins: rawEta && rawEta > 0 ? Math.ceil(rawEta) : Math.ceil((Number(deliveryDist) * 1000) / 416) + 5
       };
     }
 
-    // B. Calculate from locations (Local calculation fallback)
+    // B. Calculate from locations (Local calculation fallback - rider to customer)
     const rest = primaryPickup?.location || order.restaurantLocation || order.restaurantId?.location || {};
     const resLat = parseFloat(order.restaurant_lat || order.restaurantLat || rest.latitude || rest.lat);
     const resLng = parseFloat(order.restaurant_lng || order.restaurantLng || rest.longitude || rest.lng);
