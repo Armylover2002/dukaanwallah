@@ -96,119 +96,18 @@ const MAX_DELIVERY_DISTANCE_KM = 20;
 
 // ─── Pure helpers (unchanged) ─────────────────────────────────────────────────
 
-const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
 
-
-// Returns which admin slab applied + a human-readable breakdown for display
-const getDeliverySlabBreakdown = (distanceKm, rules = []) => {
-  const d = Number(distanceKm);
-  if (!Number.isFinite(d) || d < 0 || !Array.isArray(rules) || !rules.length) {
-    return { matchedSlabs: [], baseFee: 0, totalFee: 0, label: "Standard delivery fee" };
-  }
-
-  const sorted = [...rules]
-    .filter((r) => r && r.status !== false)
-    .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
-
-  const baseRule = sorted.find((r) => Number(r.minDistance || 0) === 0) || null;
-  if (!baseRule) return { matchedSlabs: [], baseFee: 0, totalFee: 0, label: "Standard delivery fee" };
-
-  let totalFee = Number(baseRule.basePayout || 0);
-  const matchedSlabs = [{ label: `Base fare (0 km+)`, amount: Number(baseRule.basePayout || 0) }];
-
-  for (const rule of sorted) {
-    const perKm = Number(rule.commissionPerKm || 0);
-    if (!Number.isFinite(perKm) || perKm <= 0) continue;
-    const min = Number(rule.minDistance || 0);
-    const max = rule.maxDistance == null ? null : Number(rule.maxDistance);
-    if (d <= min) continue;
-
-    const upper = max == null ? d : Math.min(d, max);
-    const kmInSlab = Math.max(0, upper - min);
-    if (kmInSlab > 0) {
-      const slabAmount = kmInSlab * perKm;
-      totalFee += slabAmount;
-      matchedSlabs.push({
-        label: `${min}–${max == null ? "∞" : max} km @ ₹${perKm}/km`,
-        amount: Math.round(slabAmount),
-        kmInSlab: Number(kmInSlab.toFixed(2)),
-      });
-    }
-  }
-
-  return {
-    matchedSlabs,
-    baseFee: Number(baseRule.basePayout || 0),
-    totalFee: Math.round(totalFee),
-    label: `${matchedSlabs.length > 1 ? "Distance-based" : "Base"} delivery fee`,
-  };
-};
-
-const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
-  const d = Number(distanceKm);
-  if (!Number.isFinite(d) || d < 0 || !rules.length) return 0;
-
-  const sorted = [...rules]
-    .filter((r) => r && r.status !== false)
-    .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
-
-  let earning = 0;
-  for (const rule of sorted) {
-    const min = Number(rule.minDistance || 0);
-    const max = rule.maxDistance == null ? Infinity : Number(rule.maxDistance);
-
-    // Check if distance falls within the slab
-    if ((min === 0 && d <= max) || (d >= min && d <= max) || (d > min && d <= max)) {
-      if (d <= max && d >= min) {
-        earning = min === 0 ? Number(rule.basePayout || 0) : Number(rule.commissionPerKm || 0);
-        break;
-      }
-    }
-  }
-
-  // Fallback to the appropriate slab
-  if (earning === 0 && sorted.length > 0) {
-    if (d < Number(sorted[0].minDistance || 0)) {
-      // Distance is less than the first slab, charge the first slab
-      const firstRule = sorted[0];
-      earning = Number(firstRule.minDistance || 0) === 0 ? Number(firstRule.basePayout || 0) : Number(firstRule.commissionPerKm || 0);
-    } else {
-      // Distance exceeds all slabs, charge the last slab
-      const lastRule = sorted[sorted.length - 1];
-      earning = Number(lastRule.minDistance || 0) === 0 ? Number(lastRule.basePayout || 0) : Number(lastRule.commissionPerKm || 0);
-    }
-  }
-
-  if (!Number.isFinite(earning) || earning <= 0) return 0;
-  return Math.round(earning);
-};
 
 const calculateQuickCheckoutPricing = ({
   subtotal = 0, discountAmount = 0, selectedTip = 0,
   feeSettings = DEFAULT_QUICK_BILLING_SETTINGS, cartItems = [],
-  categoryFeeMap = {}, distanceKm = 0,
+  categoryFeeMap = {}, apiDeliveryFee = 0, distanceKm = 0,
 }) => {
   const safeSubtotal = Number(subtotal || 0);
   const safeDiscount = Math.max(0, Number(discountAmount || 0));
   const safeTip = Math.max(0, Number(selectedTip || 0));
-  const freeThreshold = Number(feeSettings?.freeDeliveryThreshold || 0);
 
-  let deliveryFeeCharged = 0;
-  if (Array.isArray(feeSettings?.deliveryCommissionRules) && feeSettings.deliveryCommissionRules.length > 0) {
-    deliveryFeeCharged = calculateFrontendRiderEarning(distanceKm, feeSettings.deliveryCommissionRules);
-  }
+  let deliveryFeeCharged = Number(apiDeliveryFee || 0);
 
   const handlingFeeCharged = cartItems.reduce((maxFee, item) => {
     const candidateIds = [item?.headerId, item?.categoryId, item?.subcategoryId];
@@ -424,11 +323,12 @@ const CheckoutPage = () => {
     routerLocation.state?.selectedPayment || storedCheckoutState.selectedPayment || "cash",
   );
   const [selectedTip, setSelectedTip] = useState(Number(storedCheckoutState.selectedTip || 0));
-  // const [showAllCartItems, setShowAllCartItems] = useState(false);
-  // NOTE: showAllCartItems/setShowAllCartItems declared but never read or written anywhere else
-  // in this file (no "show more/less" cart toggle currently wired to JSX) — commented out.
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(storedCheckoutState.selectedCoupon || null);
+
+  const [isDeliverable, setIsDeliverable] = useState(true);
+  const [apiDeliveryFee, setApiDeliveryFee] = useState(0);
+  const [isEstimating, setIsEstimating] = useState(false);
 
   // ─────────────────────────────────────────────────────────────────────────
   // NOTE: The address-modal / add-new-address / edit-address states below are
@@ -504,10 +404,8 @@ const CheckoutPage = () => {
     [selectedCoupon],
   );
   // NEW — additive guard, existing distanceKm state ko sirf read karta hai
-  const isDeliveryDistanceExceeded = useMemo(
-    () => Number.isFinite(distanceKm) && distanceKm > MAX_DELIVERY_DISTANCE_KM,
-    [distanceKm],
-  );
+  // NEW — additive guard, checks if delivery is available based on backend API
+  const isDeliveryDistanceExceeded = !isDeliverable;
   const discountedItemsTotal = useMemo(
     () => cart.reduce((sum, item) => sum + Number(item.salePrice || item.price || 0) * Number(item.quantity || 0), 0),
     [cart],
@@ -1137,55 +1035,31 @@ const CheckoutPage = () => {
     return () => { mounted = false; };
   }, []);
 
+  // Combined effect: estimate distance + fee whenever cart or delivery location changes
   useEffect(() => {
-    let mounted = true;
-    const firstCartItem = cart[0];
-    console.log("dsddss-------->", firstCartItem);
+    const firstCartItem = cart && cart.length > 0 ? cart[0] : null;
+    if (!firstCartItem) {
+      setDistanceKm(0);
+      setApiDeliveryFee(0);
+      setIsDeliverable(true);
+      return;
+    }
+
     const sellerId =
       firstCartItem?.quickStoreId?._id || firstCartItem?.quickStoreId?.id || (typeof firstCartItem?.quickStoreId === 'string' ? firstCartItem?.quickStoreId : null) ||
       firstCartItem?.storeId?._id || firstCartItem?.storeId?.id || (typeof firstCartItem?.storeId === 'string' ? firstCartItem?.storeId : null) ||
       firstCartItem?.sellerId?._id || firstCartItem?.sellerId?.id || (typeof firstCartItem?.sellerId === 'string' ? firstCartItem?.sellerId : null) ||
       firstCartItem?.seller?._id || firstCartItem?.seller?.id || (typeof firstCartItem?.seller === 'string' ? firstCartItem?.seller : null);
 
-    if (!sellerId || typeof sellerId !== 'string') {
-      setStoreLocation(null);
+    const productId = firstCartItem?.productId || firstCartItem?.id || firstCartItem?._id || null;
+
+    if (!sellerId && !productId) {
       setDistanceKm(0);
+      setApiDeliveryFee(0);
+      setIsDeliverable(true);
       return;
     }
-    const fetchStoreDetails = async () => {
-      try {
-        const response = await customerApi.getStoreDetails(sellerId);
-        const store = response?.data?.result || response?.data?.data || null;
-        if (!mounted || !store) return;
-        setServiceRadius(Number(store.serviceRadius) || 5);
-        const loc = store.location;
-        let sCoords = null;
-        if (Array.isArray(loc?.coordinates) && loc.coordinates.length === 2) {
-          sCoords = { lat: Number(loc.coordinates[1]), lng: Number(loc.coordinates[0]) };
-        } else if (Number.isFinite(Number(loc?.latitude)) && Number.isFinite(Number(loc?.longitude))) {
-          sCoords = { lat: Number(loc.latitude), lng: Number(loc.longitude) };
-        }
-        setStoreLocation(sCoords);
-      } catch (error) { console.error("Failed to fetch store details:", error); }
-    };
-    void fetchStoreDetails();
-    return () => { mounted = false; };
-  }, [cart]);
 
-  // ── BUG FIX 4: distanceKm not updating (→ delivery fee stuck) on address change ──
-  // ROOT CAUSE: the dependency array used the *object reference* `currentAddress?.location`.
-  // React's useEffect dependency comparison uses Object.is() — this only reruns the effect
-  // when the reference itself changes. In practice this made distance/fee recompute
-  // unreliable whenever `currentAddress` was updated in a way that didn't always produce a
-  // brand-new `.location` object (e.g. via the global `currentLocation` sync effect below,
-  // or when only some fields changed) — so the delivery fee could silently stay stale after
-  // the user changed their delivery location.
-  // FIX: depend on the primitive lat/lng values instead of the object reference. Primitives
-  // compare by value, so the effect now reliably reruns any time the actual coordinates change,
-  // no matter how `currentAddress` got updated.
-  useEffect(() => {
-    if (!storeLocation) { setDistanceKm(0); return; }
-    const lat1 = storeLocation.lat, lon1 = storeLocation.lng;
     const addrLoc = currentAddress?.location;
     const globalLoc = (currentLocation?.latitude && currentLocation?.longitude)
       ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
@@ -1193,22 +1067,45 @@ const CheckoutPage = () => {
     const deliveryLoc = savedRecipient
       ? (globalLoc || addrLoc)
       : ((addrLoc?.lat || addrLoc?.latitude) ? addrLoc : globalLoc);
-    const lat2 = Number(deliveryLoc?.lat || deliveryLoc?.latitude);
-    const lon2 = Number(deliveryLoc?.lng || deliveryLoc?.longitude);
-    if (Number.isFinite(lat1) && Number.isFinite(lon1) && Number.isFinite(lat2) && Number.isFinite(lon2)) {
-      setDistanceKm(calculateHaversineDistance(lat1, lon1, lat2, lon2));
-    } else {
+
+    const lat = Number(deliveryLoc?.lat || deliveryLoc?.latitude);
+    const lng = Number(deliveryLoc?.lng || deliveryLoc?.longitude);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       setDistanceKm(0);
+      setApiDeliveryFee(0);
+      setIsDeliverable(true);
+      return;
     }
+
+    setIsEstimating(true);
+    const timer = setTimeout(() => {
+      const subtotal = cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+      customerApi.estimateDistance({ sellerId, productId, location: { lat, lng }, subtotal })
+        .then(res => {
+          const result = res.data?.result;
+          if (result) {
+            setDistanceKm(result.distanceKm || 0);
+            setApiDeliveryFee(result.estimatedDeliveryFee || 0);
+            setIsDeliverable(result.isDeliverable ?? true);
+          }
+        })
+        .catch(err => console.error("Failed to estimate distance/fee:", err))
+        .finally(() => setIsEstimating(false));
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
   }, [
-    storeLocation,
-    // OLD (bug): currentAddress?.location,
+    cart,
     currentAddress?.location?.lat,
     currentAddress?.location?.lng,
+    currentAddress?.location?.latitude,
+    currentAddress?.location?.longitude,
     savedRecipient,
     currentLocation?.latitude,
     currentLocation?.longitude,
   ]);
+
 
   useEffect(() => {
     if (!paymentMethods.length) return;
@@ -1318,10 +1215,10 @@ const CheckoutPage = () => {
   useEffect(() => {
     if (cart.length === 0) { setPricingPreview(null); return; }
     setIsPreviewLoading(true);
-    const result = calculateQuickCheckoutPricing({ subtotal: cartTotal, discountAmount, selectedTip, feeSettings: quickBillingSettings, cartItems: cart, categoryFeeMap, distanceKm });
+    const result = calculateQuickCheckoutPricing({ subtotal: cartTotal, discountAmount, selectedTip, feeSettings: quickBillingSettings, cartItems: cart, categoryFeeMap, apiDeliveryFee });
     setPricingPreview({ subtotal: cartTotal, ...result });
     setIsPreviewLoading(false);
-  }, [cart, cartTotal, categoryFeeMap, discountAmount, quickBillingSettings, selectedTip, distanceKm]);
+  }, [cart, cartTotal, categoryFeeMap, discountAmount, quickBillingSettings, selectedTip, apiDeliveryFee]);
 
   useEffect(() => {
     if (!orderId || !showSuccess) return undefined;

@@ -95,20 +95,30 @@ const buildSellerMap = async (products = []) => {
       .filter(Boolean)
   )];
 
-  if (!sellerIds.length) return {};
+  const centralStore = await Seller.findOne({ isActive: true }).select('_id shopName name').lean();
+  const centralStoreId = centralStore ? String(centralStore._id) : null;
+
+  if (centralStoreId && !sellerIds.includes(centralStoreId)) {
+    sellerIds.push(centralStoreId);
+  }
+
+  if (!sellerIds.length) return { centralStoreId };
 
   const sellers = await Seller.find({ _id: { $in: sellerIds } })
     .select('_id shopName name')
     .lean();
 
-  return sellers.reduce((acc, seller) => {
+  const map = sellers.reduce((acc, seller) => {
     acc[String(seller._id)] = seller;
     return acc;
   }, {});
+  map.centralStoreId = centralStoreId;
+  return map;
 };
 
 const mapProduct = (product, sellerMap = {}) => {
-  const seller = sellerMap[String(product?.sellerId || '')] || null;
+  const finalSellerId = String(product?.sellerId || '').trim() || sellerMap.centralStoreId || '';
+  const seller = sellerMap[finalSellerId] || null;
   return ({
     id: product._id,
     _id: product._id,
@@ -135,7 +145,7 @@ const mapProduct = (product, sellerMap = {}) => {
     rating: product.rating,
     badge: product.badge,
     approvalStatus: product.approvalStatus || 'approved',
-    sellerId: product.sellerId || seller?._id || null,
+    sellerId: finalSellerId || null,
     seller: seller
       ? {
         _id: seller._id,

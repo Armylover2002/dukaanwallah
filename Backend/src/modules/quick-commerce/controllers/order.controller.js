@@ -1086,3 +1086,93 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
+export const estimateDeliveryDistance = async (req, res) => {
+  try {
+    let sellerId = String(req.body?.sellerId || '').trim();
+    const productId = String(req.body?.productId || '').trim();
+
+    let seller = null;
+
+    // Option 1: productId diya to usse seller nikalo
+    if ((!sellerId || sellerId === 'quick-commerce') && productId && mongoose.isValidObjectId(productId)) {
+      const product = await QuickProduct.findById(productId).select('sellerId').lean();
+      if (product?.sellerId) {
+        sellerId = String(product.sellerId);
+      }
+    }
+
+    // Option 2: sellerId "quick-commerce" string hai ya missing — first active seller lo
+    if (!sellerId || sellerId === 'quick-commerce' || !mongoose.isValidObjectId(sellerId)) {
+      seller = await Seller.findOne({ isActive: true }).select('location').lean();
+      if (!seller) seller = await Seller.findOne().select('location').lean();
+      if (seller) sellerId = String(seller._id);
+    }
+
+    if (!sellerId || !mongoose.isValidObjectId(sellerId)) {
+      return res.status(400).json({ success: false, message: 'Valid sellerId or productId is required' });
+    }
+
+    // Frontend se location aayegi (address form / map pin se select kiya gaya point)
+    const lat = Number(req.body?.location?.lat ?? req.body?.lat);
+    const lng = Number(req.body?.location?.lng ?? req.body?.lng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ success: false, message: 'Valid location {lat, lng} is required' });
+    }
+
+    if (!seller) {
+      seller = await Seller.findById(sellerId).select('location').lean();
+    }
+    if (!seller) {
+      return res.status(404).json({ success: false, message: 'Seller not found' });
+    }
+
+    const sellerCoords = getSellerLocation(seller);
+    if (!sellerCoords) {
+      return res.status(400).json({ success: false, message: 'Seller location not available' });
+    }
+
+    const distanceKm = haversineKm(sellerCoords.lat, sellerCoords.lng, lat, lng);
+
+    const MAX_QUICK_DELIVERY_DISTANCE_KM = 20;
+    const isDeliverable = Number.isFinite(distanceKm) && distanceKm <= MAX_QUICK_DELIVERY_DISTANCE_KM;
+
+    // Estimated delivery fee + rider earning bhi calculate kar do
+    let estimatedDeliveryFee = 0;
+    let estimatedPlatformFee = 0;
+    let riderEarning = 0;
+    try {
+      const { pricing } = await calculateQuickPricing({
+        subtotal: Number(req.body?.subtotal || 0),
+        discount: 0,
+        products: [],
+        distanceKm,
+      });
+      estimatedDeliveryFee = Number(pricing?.deliveryFee || 0);
+      estimatedPlatformFee = Number(pricing?.platformFee || 0);
+      riderEarning = await getQuickRiderEarning(distanceKm);
+    } catch (feeErr) {
+      logger.error(`estimateDeliveryDistance fee calc failed: ${feeErr?.message || feeErr}`);
+      // fee calc fail ho to bhi distance return kar do
+    }
+
+    return res.json({
+      success: true,
+      result: {
+        distanceKm: Number(distanceKm.toFixed(2)),
+        isDeliverable,
+        maxAllowedKm: MAX_QUICK_DELIVERY_DISTANCE_KM,
+        estimatedDeliveryFee,
+        estimatedPlatformFee,
+        riderEarning,
+      },
+    });
+  } catch (error) {
+    logger.error(`estimateDeliveryDistance failed: ${error?.message || error}`);
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Failed to estimate distance',
+    });
+  }
+};
+

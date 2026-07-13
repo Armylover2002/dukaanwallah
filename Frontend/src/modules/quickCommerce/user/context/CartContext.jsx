@@ -112,6 +112,7 @@ const normalizeQuickProductForSharedCart = (product) => {
     originalPrice,
     quickStoreName,
     quickStoreId,
+    sellerId: quickStoreId,
     sourceId: quickStoreId,
     sourceName: quickStoreName,
     restaurant: quickStoreName,
@@ -142,6 +143,7 @@ const shrinkCartItem = (item) => {
     headerId: item.headerId || null,
     quickStoreId: item.quickStoreId,
     quickStoreName: item.quickStoreName,
+    sellerId: item.sellerId || item.quickStoreId,
     orderType: "quick",
     type: "quick",
   };
@@ -214,7 +216,7 @@ const useStandaloneQuickCart = (isBridged = false) => {
       ...item,
       quickStoreId: getQuickStoreId(item),
       quickStoreName: getQuickStoreName(item),
-      ...item,
+      sellerId: item.sellerId || getQuickStoreId(item),
       id: getProductId(item),
       _id: getProductId(item),
       productId: item.productId || getProductId(item),
@@ -304,7 +306,7 @@ const useStandaloneQuickCart = (isBridged = false) => {
     // Check seller constraint
     const currentSellerId = cart.length > 0 ? getQuickStoreId(cart[0]) : null;
     const newSellerId = getQuickStoreId(product);
-    
+    console.log("sellerid", newSellerId);
     if (currentSellerId && newSellerId && String(currentSellerId) !== String(newSellerId)) {
       showToast("You can only add items from one seller at a time. Please clear your cart first.", "error");
       return;
@@ -533,7 +535,7 @@ export const CartProvider = ({ children }) => {
       // Check seller constraint
       const currentSellerId = quickItemsFromFoodCart.length > 0 ? getQuickStoreId(quickItemsFromFoodCart[0]) : null;
       const newSellerId = getQuickStoreId(normalizedProduct);
-      
+
       if (currentSellerId && newSellerId && String(currentSellerId) !== String(newSellerId)) {
         showToast("You can only add items from one seller at a time. Please clear your cart first.", "error");
         return;

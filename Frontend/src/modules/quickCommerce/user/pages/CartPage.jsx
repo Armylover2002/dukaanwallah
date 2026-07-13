@@ -40,70 +40,11 @@ const DEFAULT_QUICK_BILLING_SETTINGS = {
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=200&auto=format&fit=crop';
 
-const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-console.log("123456789----->", calculateHaversineDistance);
-const calculateFrontendRiderEarning = (distanceKm, rules = []) => {
-  console.log("distance cartpage----->", distanceKm);
-  console.log(" rules cartpage----->", rules);
-  const d = Number(distanceKm);
-  if (!Number.isFinite(d) || d < 0 || !rules.length) return 0;
 
-  const sorted = [...rules]
-    .filter((r) => r && r.status !== false)
-    .sort((a, b) => (Number(a.minDistance) || 0) - (Number(b.minDistance) || 0));
 
-  let earning = 0;
-  for (const rule of sorted) {
-    const min = Number(rule.minDistance || 0);
-    const max = rule.maxDistance == null ? Infinity : Number(rule.maxDistance);
-
-    // Check if distance falls within the slab
-    if ((min === 0 && d <= max) || (d >= min && d <= max) || (d > min && d <= max)) {
-      // We use d >= min for the first slab if it doesn't start at 0, so distances smaller than min still get caught if we want, but better to strictly check boundaries and use a fallback for < min.
-      if (d <= max && d >= min) {
-        earning = min === 0 ? Number(rule.basePayout || 0) : Number(rule.commissionPerKm || 0);
-        break;
-      }
-    }
-  }
-
-  // Fallback to the appropriate slab
-  if (earning === 0 && sorted.length > 0) {
-    if (d < Number(sorted[0].minDistance || 0)) {
-      // Distance is less than the first slab, charge the first slab
-      const firstRule = sorted[0];
-      earning = Number(firstRule.minDistance || 0) === 0 ? Number(firstRule.basePayout || 0) : Number(firstRule.commissionPerKm || 0);
-    } else {
-      // Distance exceeds all slabs, charge the last slab
-      const lastRule = sorted[sorted.length - 1];
-      earning = Number(lastRule.minDistance || 0) === 0 ? Number(lastRule.basePayout || 0) : Number(lastRule.commissionPerKm || 0);
-    }
-  }
-
-  return Number.isFinite(earning) && earning > 0 ? Math.round(earning) : 0;
-};
-
-const calculateQuickCartPricing = ({ subtotal = 0, cartItems = [], feeSettings = DEFAULT_QUICK_BILLING_SETTINGS, categoryFeeMap = {}, distanceKm = 0 }) => {
+const calculateQuickCartPricing = ({ subtotal = 0, cartItems = [], feeSettings = DEFAULT_QUICK_BILLING_SETTINGS, categoryFeeMap = {}, apiDeliveryFee = 0 }) => {
   const safeSubtotal = Number(subtotal || 0);
-  const freeThreshold = Number(feeSettings?.freeDeliveryThreshold || 0);
-
-  let deliveryFee = 0;
-  if (safeSubtotal > 0) {
-    if (Array.isArray(feeSettings?.deliveryCommissionRules) && feeSettings.deliveryCommissionRules.length > 0) {
-      deliveryFee = calculateFrontendRiderEarning(distanceKm, feeSettings.deliveryCommissionRules);
-    }
-  }
+  const deliveryFee = Number(apiDeliveryFee || 0);
 
   const handlingFee = cartItems.reduce((maxFee, item) => {
     const candidateIds = [item?.headerId, item?.categoryId, item?.subcategoryId];
@@ -245,6 +186,9 @@ const CartPage = () => {
   const [isUserCodAllowed, setIsUserCodAllowed] = useState(true);
   const [storeLocation, setStoreLocation] = useState(null);
   const [distanceKm, setDistanceKm] = useState(0);
+  const [isDeliverable, setIsDeliverable] = useState(true);
+  const [apiDeliveryFee, setApiDeliveryFee] = useState(0);
+  const [isEstimating, setIsEstimating] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState('cash');
 
   // ── Stable path constants ──────────────────────────────────────────────────
@@ -264,9 +208,9 @@ const CartPage = () => {
         cartItems: cart,
         feeSettings: quickBillingSettings,
         categoryFeeMap,
-        distanceKm,
+        apiDeliveryFee,
       }),
-    [cartTotal, cart, quickBillingSettings, categoryFeeMap, distanceKm],
+    [cartTotal, cart, quickBillingSettings, categoryFeeMap, apiDeliveryFee],
   );
 
   const paymentMethods = useMemo(
@@ -292,12 +236,13 @@ const CartPage = () => {
   useEffect(() => {
     let mounted = true;
     const firstItem = cart[0];
+    console.log("seller id----->", firstItem)
     const sellerId =
-      firstItem?.sellerId?._id ||
-      firstItem?.sellerId ||
-      firstItem?.seller?._id ||
-      firstItem?.quickStoreId ||
-      firstItem?.storeId;
+      firstItem?.quickStoreId?._id || firstItem?.quickStoreId?.id || (typeof firstItem?.quickStoreId === 'string' ? firstItem?.quickStoreId : null) ||
+      firstItem?.storeId?._id || firstItem?.storeId?.id || (typeof firstItem?.storeId === 'string' ? firstItem?.storeId : null) ||
+      firstItem?.sellerId?._id || firstItem?.sellerId?.id || (typeof firstItem?.sellerId === 'string' ? firstItem?.sellerId : null) ||
+      firstItem?.seller?._id || firstItem?.seller?.id || (typeof firstItem?.seller === 'string' ? firstItem?.seller : null) ||
+      firstItem?.productId?.sellerId || firstItem?.item?.sellerId;
 
     if (!sellerId || typeof sellerId !== 'string') {
       setStoreLocation(null);
@@ -323,22 +268,61 @@ const CartPage = () => {
     return () => { mounted = false; };
   }, [cart]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Compute distance whenever store or user location changes
+  // Compute distance and fee via Backend API whenever user location changes
   useEffect(() => {
-    if (!storeLocation) { setDistanceKm(0); return; }
-
-    const lat1 = storeLocation.lat;
-    const lon1 = storeLocation.lng;
-    const lat2 = Number(currentLocation?.latitude || currentLocation?.lat);
-    const lon2 = Number(currentLocation?.longitude || currentLocation?.lng);
-
-    if (Number.isFinite(lat1) && Number.isFinite(lon1) && Number.isFinite(lat2) && Number.isFinite(lon2)) {
-      setDistanceKm(calculateHaversineDistance(lat1, lon1, lat2, lon2));
-      console.log("next----->", calculateHaversineDistance(lat1, lon1, lat2, lon2));
-    } else {
+    const firstItem = cart && cart.length > 0 ? cart[0] : null;
+    if (!firstItem) {
       setDistanceKm(0);
+      setApiDeliveryFee(0);
+      setIsDeliverable(true);
+      return;
     }
-  }, [storeLocation, currentLocation]);
+
+    const sellerId =
+      firstItem?.quickStoreId?._id || firstItem?.quickStoreId?.id || (typeof firstItem?.quickStoreId === 'string' ? firstItem?.quickStoreId : null) ||
+      firstItem?.storeId?._id || firstItem?.storeId?.id || (typeof firstItem?.storeId === 'string' ? firstItem?.storeId : null) ||
+      firstItem?.sellerId?._id || firstItem?.sellerId?.id || (typeof firstItem?.sellerId === 'string' ? firstItem?.sellerId : null) ||
+      firstItem?.seller?._id || firstItem?.seller?.id || (typeof firstItem?.seller === 'string' ? firstItem?.seller : null);
+
+    // productId as fallback so backend can resolve seller
+    const productId = firstItem?.productId || firstItem?.id || firstItem?._id || null;
+
+    // Need at least one identifier
+    if (!sellerId && !productId) {
+      setDistanceKm(0);
+      setApiDeliveryFee(0);
+      setIsDeliverable(true);
+      return;
+    }
+
+    const lat = Number(currentLocation?.latitude || currentLocation?.lat);
+    const lng = Number(currentLocation?.longitude || currentLocation?.lng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setDistanceKm(0);
+      setApiDeliveryFee(0);
+      setIsDeliverable(true);
+      return;
+    }
+
+    setIsEstimating(true);
+    const timer = setTimeout(() => {
+      const subtotal = cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+      customerApi.estimateDistance({ sellerId, productId, location: { lat, lng }, subtotal })
+        .then(res => {
+          const result = res.data?.result;
+          if (result) {
+            setDistanceKm(result.distanceKm || 0);
+            setApiDeliveryFee(result.estimatedDeliveryFee || 0);
+            setIsDeliverable(result.isDeliverable ?? true);
+          }
+        })
+        .catch(err => console.error("Failed to estimate distance/fee:", err))
+        .finally(() => setIsEstimating(false));
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [cart, currentLocation]);
 
   // Load billing settings + category fee map (single parallel fetch)
   useEffect(() => {
@@ -779,15 +763,25 @@ const CartPage = () => {
               <ShoppingBag size={18} className="mr-2 inline" />
               Proceed to Checkout
             </Button>
+          ) : !isDeliverable ? (
+            <div className="flex-1 sm:min-w-[220px]">
+              <Button disabled className="h-12 w-full rounded-2xl bg-red-100 text-red-600 font-medium px-4 whitespace-normal sm:whitespace-nowrap">
+                Delivery unavailable ({distanceKm} km away)
+              </Button>
+            </div>
           ) : (
             <Link
               to={checkoutPath}
               state={{ selectedPayment }}
               className="block w-full flex-1 sm:min-w-[220px]"
             >
-              <Button className="h-12 w-full rounded-2xl bg-[#0c831f] px-4 text-sm text-white whitespace-normal sm:whitespace-nowrap hover:bg-[#0b721b]">
-                <ShoppingBag size={18} className="mr-2" />
-                Proceed to Checkout
+              <Button disabled={isEstimating} className="h-12 w-full rounded-2xl bg-[#0c831f] px-4 text-sm text-white whitespace-normal sm:whitespace-nowrap hover:bg-[#0b721b]">
+                {isEstimating ? (
+                  <Timer size={18} className="mr-2 animate-spin" />
+                ) : (
+                  <ShoppingBag size={18} className="mr-2" />
+                )}
+                {isEstimating ? "Calculating..." : "Proceed to Checkout"}
               </Button>
             </Link>
           )}
