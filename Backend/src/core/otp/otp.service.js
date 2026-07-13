@@ -4,6 +4,7 @@ import { FoodOtp } from './otp.model.js';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import { ValidationError } from '../auth/errors.js';
+import { sendUserOtpEmail } from '../../utils/email.js';
 
 const generateOtpCode = () => {
     const code = crypto.randomInt(1000, 9999);
@@ -106,7 +107,8 @@ export const createOrUpdateOtp = async (phone, options = {}) => {
         }
     }
 
-    const shouldUseDefaultOtp = config.useDefaultOtp && !forceRandom;
+    const isEmail = String(phone || '').includes('@');
+    const shouldUseDefaultOtp = config.useDefaultOtp && !forceRandom && !isEmail;
 
     let otp;
     if (shouldUseDefaultOtp) {
@@ -144,11 +146,15 @@ export const createOrUpdateOtp = async (phone, options = {}) => {
         });
     }
 
-    // Only send SMS if not in default OTP mode and credentials exist.
-    if (!shouldUseDefaultOtp && config.smsApiKey && config.smsSenderId) {
-        await sendSmsViaIndiaHub(phone, otp);
+    // Only send SMS or Email if not in default OTP mode and credentials exist.
+    if (isEmail) {
+        await sendUserOtpEmail(phone, otp);
     } else if (!shouldUseDefaultOtp) {
-        logger.warn(`OTP generated for ${phone}, but SMS delivery is skipped because SMS India Hub credentials are missing.`);
+        if (config.smsApiKey && config.smsSenderId) {
+            await sendSmsViaIndiaHub(phone, otp);
+        } else {
+            logger.warn(`OTP generated for ${phone}, but SMS delivery is skipped because SMS India Hub credentials are missing.`);
+        }
     }
 
     return otp;

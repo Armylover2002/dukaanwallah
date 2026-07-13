@@ -501,7 +501,7 @@ export default function OTP() {
                       disabled={isLoading}
                       className="text-[#EB590E] hover:text-[#D94F0C] font-bold transition-colors disabled:opacity-50"
                     >
-                      Resend SMS
+                      {contactType === "email" ? "Resend Code" : "Resend SMS"}
                     </button>
                   )}
                 </p>

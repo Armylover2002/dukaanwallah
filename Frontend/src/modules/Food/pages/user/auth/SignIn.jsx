@@ -42,10 +42,16 @@ export default function SignIn() {
     }
   }, [])
 
-  const validatePhone = (phone) => {
-    if (!phone.trim()) return "Phone number is required"
-    const cleanPhone = phone.replace(/\D/g, "")
-    if (!/^\d{10}$/.test(cleanPhone)) return "Phone number must be exactly 10 digits"
+  const validateInput = (value) => {
+    if (!value.trim()) return "Phone number or email is required"
+    const isEmail = value.includes("@") || /[a-zA-Z]/.test(value)
+    if (isEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(value)) return "Please enter a valid email address"
+    } else {
+      const cleanPhone = value.replace(/\D/g, "")
+      if (!/^\d{10}$/.test(cleanPhone)) return "Phone number must be exactly 10 digits"
+    }
     return ""
   }
 
@@ -54,8 +60,8 @@ export default function SignIn() {
     let { value } = e.target
 
     if (name === "phone") {
-      value = value.replace(/\D/g, "").slice(0, 10)
-      setError(validatePhone(value))
+      value = value.trim()
+      setError(validateInput(value))
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -63,31 +69,31 @@ export default function SignIn() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const phoneError = validatePhone(formData.phone)
-    setError(phoneError)
-    if (phoneError) return
+    const inputError = validateInput(formData.phone)
+    setError(inputError)
+    if (inputError) return
     if (submittingRef.current) return
     submittingRef.current = true
     setIsLoading(true)
     setError("")
 
     try {
-      const countryCode = formData.countryCode?.trim() || "+91"
-      const phoneDigits = String(formData.phone ?? "").replace(/\D/g, "").slice(0, 10)
-      if (phoneDigits.length !== 10) {
-        setError("Phone number must be exactly 10 digits")
-        setIsLoading(false)
-        submittingRef.current = false
-        return
+      const isEmail = formData.phone.includes("@") || /[a-zA-Z]/.test(formData.phone)
+      let fullIdentifier = formData.phone.trim()
+
+      if (!isEmail) {
+        const countryCode = formData.countryCode?.trim() || "+91"
+        const phoneDigits = String(formData.phone ?? "").replace(/\D/g, "").slice(0, 10)
+        fullIdentifier = `${countryCode} ${phoneDigits}`
       }
-      const fullPhone = `${countryCode} ${phoneDigits}`
-      await authAPI.sendOTP(fullPhone, "login", null)
+
+      await authAPI.sendOTP(fullIdentifier, "login", null)
 
       const ref = String(searchParams.get("ref") || "").trim()
       const authData = {
-        method: "phone",
-        phone: fullPhone,
-        email: null,
+        method: isEmail ? "email" : "phone",
+        phone: isEmail ? null : fullIdentifier,
+        email: isEmail ? fullIdentifier : null,
         name: null,
         referralCode: ref || null,
         isSignUp: false,
@@ -129,27 +135,26 @@ export default function SignIn() {
               Login or Signup
             </h2>
             <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
-              Enter your phone number to continue
+              Enter your phone number or email to continue
             </p>
           </div>
 
           <form id="user-signin-form" onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <div className="relative flex items-center">
-                <div className="flex items-center px-4 h-12 md:h-14 border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white rounded-lg border-r-0 rounded-r-none font-medium">
-                  <span>+91</span>
-                </div>
+                {(!formData.phone.includes("@") && !/[a-zA-Z]/.test(formData.phone)) && (
+                  <div className="flex items-center px-4 h-12 md:h-14 border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white rounded-lg border-r-0 rounded-r-none font-medium">
+                    <span>+91</span>
+                  </div>
+                )}
                 <Input
                   id="phone"
                   name="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={10}
-                  placeholder="Phone number"
+                  type="text"
+                  placeholder="Phone number or Email"
                   value={formData.phone}
                   onChange={handleChange}
-                  className={`flex-1 h-12 md:h-14 text-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 rounded-lg rounded-l-none focus-visible:ring-1 focus-visible:ring-[#EB590E] focus-visible:border-[#EB590E] ${error ? "border-red-500" : ""} transition-all`}
+                  className={`flex-1 h-12 md:h-14 text-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 rounded-lg ${(!formData.phone.includes("@") && !/[a-zA-Z]/.test(formData.phone)) ? "rounded-l-none" : ""} focus-visible:ring-1 focus-visible:ring-[#EB590E] focus-visible:border-[#EB590E] ${error ? "border-red-500" : ""} transition-all`}
                   aria-invalid={error ? "true" : "false"}
                 />
               </div>
