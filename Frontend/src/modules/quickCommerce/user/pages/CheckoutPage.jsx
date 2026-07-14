@@ -984,7 +984,7 @@ const CheckoutPage = () => {
     buildAddressForOrder, getCheckoutCartItemsForSync, selectedPayment,
     discountAmount, gstAmount, platformFee, selectedTimeSlot,
     syncVisibleCartToBackend, clearCart, showToast, navigate, getCheckoutErrorMessage,
-    userProfile, user, displayPhone, displayName, appName,
+    userProfile, user, displayPhone, displayName, appName, deliveryFee, deliveryInstruction,
   ]);
 
   // NEW — wrapper only, handlePlaceOrder ke andar kuch nahi chheda
