@@ -244,16 +244,12 @@ export default function SellerOnboarding() {
       toast.error("FSSAI expiry date cannot be a past date");
       return false;
     }
-    if (!form.shopLicenseNumber || !/^[A-Z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) || /^0+$/.test(form.shopLicenseNumber)) {
+    if (form.shopLicenseNumber && (!/^[A-Z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) || /^0+$/.test(form.shopLicenseNumber))) {
       toast.error("Shop license number must be 5–20 characters and cannot be all zeros");
       return false;
     }
-    if (!form.shopLicenseExpiry || form.shopLicenseExpiry < new Date().toISOString().split("T")[0]) {
+    if (form.shopLicenseExpiry && form.shopLicenseExpiry < new Date().toISOString().split("T")[0]) {
       toast.error("Shop license expiry date cannot be a past date");
-      return false;
-    }
-    if (!licenseFile) {
-      toast.error("Shop License Image is required.");
       return false;
     }
     return true;
@@ -1223,9 +1219,8 @@ export default function SellerOnboarding() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-900">Shop license number <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-900">Shop license number</label>
                     <input
-                      required
                       className={`w-full rounded-2xl border px-4 py-3 font-medium outline-none focus:border-slate-900 ${form.shopLicenseNumber && !/^[A-Z0-9\/\-]{5,20}$/.test(form.shopLicenseNumber) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
                       placeholder="Shop license number (e.g. MH/2023/12345)"
                       value={form.shopLicenseNumber}
@@ -1237,9 +1232,8 @@ export default function SellerOnboarding() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-900">Shop license expiry date <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-900">Shop license expiry date</label>
                     <input
-                      required
                       className={`w-full rounded-2xl border px-4 py-3 font-medium outline-none focus:border-slate-900 ${form.shopLicenseExpiry && form.shopLicenseExpiry < new Date().toISOString().split("T")[0] ? "border-red-400 bg-red-50" : "border-slate-200"}`}
                       type="date"
                       value={form.shopLicenseExpiry}
@@ -1251,7 +1245,7 @@ export default function SellerOnboarding() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-900">Shop license image <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-900">Shop license image</label>
                     <div
                       onClick={() => setIsLicensePickerOpen(true)}
                       className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
