@@ -28,19 +28,22 @@ export default function UnifiedOTPFastLogin() {
   const [phoneNumber, setPhoneNumber] = useState(() => sessionStorage.getItem("userPhoneNumber") || "")
   const [emailAddress, setEmailAddress] = useState(() => sessionStorage.getItem("userEmailAddress") || "")
   const [otp, setOtp] = useState("")
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(() => Number(sessionStorage.getItem("userLoginStep")) || 1)
+
+  const [loading, setLoading] = useState(false)
+  const [otpSent, setOtpSent] = useState(() => sessionStorage.getItem("userOtpSent") === "true")
 
   useEffect(() => {
     sessionStorage.setItem("userLoginType", loginType)
     sessionStorage.setItem("userPhoneNumber", phoneNumber)
     sessionStorage.setItem("userEmailAddress", emailAddress)
-  }, [loginType, phoneNumber, emailAddress])
+    sessionStorage.setItem("userLoginStep", step)
+    sessionStorage.setItem("userOtpSent", otpSent)
+  }, [loginType, phoneNumber, emailAddress, step, otpSent])
 
   const getIdentifier = () => {
     return loginType === "email" ? emailAddress.trim().toLowerCase() : phoneNumber;
   }
-  const [loading, setLoading] = useState(false)
-  const [otpSent, setOtpSent] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
   const [showNameInput, setShowNameInput] = useState(false)
   const [name, setName] = useState("")
@@ -253,6 +256,8 @@ export default function UnifiedOTPFastLogin() {
       sessionStorage.removeItem("userLoginType")
       sessionStorage.removeItem("userPhoneNumber")
       sessionStorage.removeItem("userEmailAddress")
+      sessionStorage.removeItem("userLoginStep")
+      sessionStorage.removeItem("userOtpSent")
       toast.success("Login successful!")
       navigate(redirectTo, { replace: true })
     } catch (err) {
