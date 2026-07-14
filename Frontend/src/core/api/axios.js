@@ -19,7 +19,10 @@ axiosInstance.interceptors.request.use(
     (config) => {
         let token = null;
         const url = config.url;
-        const pagePath = window.location.pathname;
+        let pagePath = window.location.pathname;
+        if (window.location.hash.startsWith('#/')) {
+            pagePath = window.location.hash.slice(1).split('?')[0];
+        }
 
         // Determination strategy: 
         // 1. If we are on a module-specific page (e.g. /seller/dashboard), prioritize that module's token
@@ -80,7 +83,10 @@ axiosInstance.interceptors.response.use(
             if (!hasToken) {
                 return Promise.reject(error);
             }
-            const path = window.location.pathname;
+            let path = window.location.pathname;
+            if (window.location.hash.startsWith('#/')) {
+                path = window.location.hash.slice(1).split('?')[0];
+            }
             const requestUrl = String(originalRequest?.url || '');
             const currentModule = path.startsWith('/seller')
                 ? 'seller'
