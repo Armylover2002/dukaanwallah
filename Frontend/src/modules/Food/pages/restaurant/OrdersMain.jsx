@@ -2283,7 +2283,7 @@ export default function OrdersMain() {
         {showNewOrderPopup && (
           <>
             <motion.div
-              className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}>
@@ -2635,7 +2635,7 @@ export default function OrdersMain() {
         {showRejectPopup && (
           <>
             <motion.div
-              className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
