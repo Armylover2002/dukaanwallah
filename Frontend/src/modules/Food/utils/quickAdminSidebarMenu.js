@@ -41,16 +41,16 @@ export const quickAdminSidebarMenu = [
           // { label: "Shop by Store", path: "/admin/quick-commerce/shop-by-store", permissionKey: "shop_by_store" },
         ],
       },
-      {
-        type: "expandable",
-        label: "Customer Support",
-        permissionKey: "customer_support",
-        icon: "MessageSquare",
-        subItems: [
-          { label: "Help Tickets", path: "/admin/quick-commerce/support-tickets", permissionKey: "tickets" },
-          { label: "Review Content", path: "/admin/quick-commerce/moderation", permissionKey: "moderation" },
-        ],
-      },
+      // {
+      //   type: "expandable",
+      //   label: "Customer Support",
+      //   permissionKey: "customer_support",
+      //   icon: "MessageSquare",
+      //   subItems: [
+      //     { label: "Help Tickets", path: "/admin/quick-commerce/support-tickets", permissionKey: "tickets" },
+      //     { label: "Review Content", path: "/admin/quick-commerce/moderation", permissionKey: "moderation" },
+      //   ],
+      // },
       {
         type: "expandable",
         label: "Sellers",
@@ -59,7 +59,7 @@ export const quickAdminSidebarMenu = [
         subItems: [
           { label: "Active Sellers", path: "/admin/quick-commerce/sellers/active", permissionKey: "active" },
           { label: "Seller Requests", path: "/admin/quick-commerce/sellers/pending", permissionKey: "pending" },
-          { label: "Seller Locations", path: "/admin/quick-commerce/seller-locations", permissionKey: "locations" },
+          // { label: "Seller Locations", path: "/admin/quick-commerce/seller-locations", permissionKey: "locations" },
           { label: "Seller Commission", path: "/admin/quick-commerce/sellers/commission", permissionKey: "commission" },
           { label: "COD Deposit Verification", path: "/admin/quick-commerce/sellers/cod-deposit-verification", permissionKey: "commission" },
         ],
@@ -68,7 +68,7 @@ export const quickAdminSidebarMenu = [
       { type: "link", label: "Seller Transactions", permissionKey: "wallet", path: "/admin/quick-commerce/seller-order-transactions", icon: "Receipt" },
       { type: "link", label: "Money Requests", permissionKey: "withdrawals", path: "/admin/quick-commerce/withdrawals", icon: "CreditCard" },
       { type: "link", label: "Seller Payments", permissionKey: "seller_payments", path: "/admin/quick-commerce/seller-transactions", icon: "Receipt" },
-      { type: "link", label: "Customers", permissionKey: "customers", path: "/admin/quick-commerce/customers", icon: "Users" },
+      // { type: "link", label: "Customers", permissionKey: "customers", path: "/admin/quick-commerce/customers", icon: "Users" },
       // { type: "link", label: "FAQs", permissionKey: "faqs", path: "/admin/quick-commerce/faqs", icon: "MessageSquare" },
       { type: "link", label: "Return Orders", permissionKey: "return_orders", path: "/admin/quick-commerce/return-orders", icon: "RotateCcw" },
       {

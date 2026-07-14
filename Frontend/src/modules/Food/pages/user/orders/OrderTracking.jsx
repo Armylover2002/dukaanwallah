@@ -433,12 +433,13 @@ function mapBackendOrderStatusToUi(raw) {
 function mapOrderToTrackingUiStatus(orderLike) {
   if (!orderLike) return "placed";
   const statusRaw = orderLike.status || orderLike.orderStatus;
+  const normalizedStatus = String(statusRaw || "").toLowerCase();
   const phase = orderLike.deliveryState?.currentPhase;
   if (isFoodOrderCancelledStatus(statusRaw)) return "cancelled";
-  if (statusRaw === "delivered" || statusRaw === "completed") return "delivered";
+  if (normalizedStatus === "delivered" || normalizedStatus === "completed") return "delivered";
   const isRiderAccepted = orderLike.dispatch?.status === "accepted" || orderLike.assignmentInfo?.status === "accepted" || orderLike.deliveryPartner?.status === "accepted";
-  if (phase === "reached_drop" || phase === "at_drop" || statusRaw === "at_drop") return "at_drop";
-  if (phase === "en_route_to_delivery" || statusRaw === "picked_up" || statusRaw === "out_for_delivery") return "on_way";
+  if (phase === "reached_drop" || phase === "at_drop" || normalizedStatus === "at_drop") return "at_drop";
+  if (phase === "en_route_to_delivery" || normalizedStatus === "picked_up" || normalizedStatus === "out_for_delivery") return "on_way";
   if (phase === "at_pickup" && orderLike.deliveryPartnerId && isRiderAccepted) return "at_pickup";
   if (phase === "en_route_to_pickup" && orderLike.deliveryPartnerId && isRiderAccepted) return "assigned";
   return mapBackendOrderStatusToUi(statusRaw);

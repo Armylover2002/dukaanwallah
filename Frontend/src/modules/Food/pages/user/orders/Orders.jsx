@@ -88,13 +88,17 @@ export default function Orders() {
 
   // Get order status text
   const getOrderStatus = (order) => {
-    const status = order.status
+    const originalStatus = order.status
+    if (!originalStatus) return 'confirmed'
+    const status = String(originalStatus).toLowerCase()
+    
     if (status === 'delivered' || status === 'completed') return 'delivered'
-    if (status === 'out_for_delivery' || status === 'outForDelivery') return 'outForDelivery'
+    if (status === 'out_for_delivery' || status === 'outfordelivery') return 'outForDelivery'
     if (status === 'ready' || status === 'preparing') return 'preparing'
     if (status === 'scheduled') return 'scheduled'
-    if (String(status).toLowerCase().includes('cancel')) return 'cancelled'
-    return status || 'confirmed'
+    if (status.includes('cancel')) return 'cancelled'
+    
+    return originalStatus
   }
 
   // Auto-show rating popup when order is delivered (only once per order)
