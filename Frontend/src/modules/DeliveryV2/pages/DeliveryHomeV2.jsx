@@ -31,7 +31,7 @@ import {
   Contact, Package, ShieldCheck, Loader2, Zap
 } from 'lucide-react';
 import { subscriptionAPI } from '@food/api';
-
+import PullToRefresh from 'react-simple-pull-to-refresh';
 import { getHaversineDistance, calculateETA, calculateHeading } from '@/modules/DeliveryV2/utils/geo';
 import { getPrimaryPickupLocation, normalizePickupPoints } from '@/modules/DeliveryV2/utils/orderRouting';
 import { useCompanyName } from "@food/hooks/useCompanyName";
@@ -1087,23 +1087,27 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                 </button>
              </div>
            </div>
-         ) : currentTab === 'pocket' ? (
-            <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center font-poppins"><div className="w-10 h-10 border-4 border-[#ff8100] border-t-transparent rounded-full animate-spin mb-4" /><p className="text-xs font-semibold text-gray-500">Loading Pocket...</p></div>}>
-              <PocketV2 />
-            </React.Suspense>
-          ) : currentTab === 'history' ? (
-            <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20 gap-3"><Loader2 className="w-8 h-8 animate-spin text-[#10B981]" /><p className="text-gray-400 text-xs font-medium">Loading History...</p></div>}>
-              <HistoryV2 />
-            </React.Suspense>
-          ) : currentTab === 'returns' ? (
-            <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20 gap-3"><Loader2 className="w-8 h-8 animate-spin text-[#ff8100]" /><p className="text-gray-400 text-xs font-medium">Loading Return Pickups...</p></div>}>
-              <ReturnPickups />
-            </React.Suspense>
-          ) : (
-            <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /><p className="text-xs font-semibold text-gray-500">Loading Profile...</p></div>}>
-              <ProfileV2 />
-            </React.Suspense>
-          )}
+         ) : (
+           <PullToRefresh onRefresh={async () => window.location.reload()}>
+             {currentTab === 'pocket' ? (
+                <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center font-poppins"><div className="w-10 h-10 border-4 border-[#ff8100] border-t-transparent rounded-full animate-spin mb-4" /><p className="text-xs font-semibold text-gray-500">Loading Pocket...</p></div>}>
+                  <PocketV2 />
+                </React.Suspense>
+              ) : currentTab === 'history' ? (
+                <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20 gap-3"><Loader2 className="w-8 h-8 animate-spin text-[#10B981]" /><p className="text-gray-400 text-xs font-medium">Loading History...</p></div>}>
+                  <HistoryV2 />
+                </React.Suspense>
+              ) : currentTab === 'returns' ? (
+                <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20 gap-3"><Loader2 className="w-8 h-8 animate-spin text-[#ff8100]" /><p className="text-gray-400 text-xs font-medium">Loading Return Pickups...</p></div>}>
+                  <ReturnPickups />
+                </React.Suspense>
+              ) : (
+                <React.Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /><p className="text-xs font-semibold text-gray-500">Loading Profile...</p></div>}>
+                  <ProfileV2 />
+                </React.Suspense>
+              )}
+           </PullToRefresh>
+         )}
 
          {/* OVERLAYS (Persistent if active) */}
       </div>
