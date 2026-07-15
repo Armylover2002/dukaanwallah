@@ -126,6 +126,8 @@ export default function SellerOnboarding() {
   const [qrFile, setQrFile] = useState(null);
   const [licenseFile, setLicenseFile] = useState(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [manualAddressInput, setManualAddressInput] = useState("");
+  const [isGeocodingManual, setIsGeocodingManual] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [zones, setZones] = useState([]);
   const [zonesLoading, setZonesLoading] = useState(true);
@@ -538,6 +540,86 @@ export default function SellerOnboarding() {
       radius: location?.radius !== undefined ? location.radius : prev.radius,
       address: location?.address || prev.address,
     }));
+  };
+
+  const handleManualAddressGeocode = async () => {
+    const query = manualAddressInput.trim();
+    if (!query) {
+      toast.error("Please enter an address, pincode, or state to search");
+      return;
+    }
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+    if (!apiKey) {
+      toast.error("Google Maps API key is not configured");
+      return;
+    }
+
+    // Zone must be selected before manual address search
+    if (!selectedZone) {
+      toast.error("Please select a service zone first before searching for a location");
+      return;
+    }
+
+    setIsGeocodingManual(true);
+    try {
+      const encodedQuery = encodeURIComponent(query + ", India");
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedQuery}&key=${apiKey}`
+      );
+      const data = await response.json();
+      if (data.status === "OK" && data.results?.length > 0) {
+        const result = data.results[0];
+        const { lat, lng } = result.geometry.location;
+        const formattedAddress = result.formatted_address || query;
+
+        // Zone boundary check using Ray Casting algorithm (same logic as MapPicker)
+        const zoneCoords = Array.isArray(selectedZone?.coordinates)
+          ? selectedZone.coordinates
+              .map((c) => ({
+                lat: Number(c?.latitude ?? c?.lat),
+                lng: Number(c?.longitude ?? c?.lng),
+              }))
+              .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lng))
+          : [];
+
+        if (zoneCoords.length >= 3) {
+          // Ray casting point-in-polygon algorithm
+          let inside = false;
+          for (let i = 0, j = zoneCoords.length - 1; i < zoneCoords.length; j = i++) {
+            const xi = zoneCoords[i].lng, yi = zoneCoords[i].lat;
+            const xj = zoneCoords[j].lng, yj = zoneCoords[j].lat;
+            const intersect =
+              yi > lat !== yj > lat &&
+              lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+            if (intersect) inside = !inside;
+          }
+
+          if (!inside) {
+            toast.error(
+              `This location is outside the selected zone "${selectedZone.label}". Please enter an address within the zone boundary.`
+            );
+            setIsGeocodingManual(false);
+            return;
+          }
+        }
+
+        setForm((prev) => ({
+          ...prev,
+          lat: Number(lat.toFixed(6)),
+          lng: Number(lng.toFixed(6)),
+          address: formattedAddress,
+        }));
+        toast.success("Location found on map! You can adjust the pin if needed.");
+        // Open map so seller can see the pin within the zone boundary
+        setIsMapOpen(true);
+      } else {
+        toast.error("Could not find location. Try a more specific address or pincode.");
+      }
+    } catch (err) {
+      toast.error("Failed to fetch location. Check your internet connection.");
+    } finally {
+      setIsGeocodingManual(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -988,7 +1070,7 @@ export default function SellerOnboarding() {
                     <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div className="space-y-1">
                         <p className="text-sm font-black text-slate-900">Store location</p>
-                        <p className="text-xs font-medium text-slate-500">Pin your storefront on the map so deliveries route correctly.</p>
+                        <p className="text-xs font-medium text-slate-500">Pin your storefront on the map, or type your address to locate it automatically.</p>
                       </div>
                       <button
                         type="button"
@@ -999,12 +1081,48 @@ export default function SellerOnboarding() {
                         {form.lat && form.lng ? "Change Pin" : "Pick On Map"}
                       </button>
                     </div>
+
+                    {/* Manual Address Entry */}
+                    <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 mb-2">Or enter address manually</p>
+                      <p className="text-xs text-slate-500 mb-3">Type your full address, pincode, or city+state — we'll find it on the map for you.</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-orange-400 transition"
+                          placeholder="e.g. 123 Main Street, Mumbai, Maharashtra 400001"
+                          value={manualAddressInput}
+                          onChange={(e) => setManualAddressInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleManualAddressGeocode(); } }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleManualAddressGeocode}
+                          disabled={isGeocodingManual}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95 whitespace-nowrap"
+                        >
+                          {isGeocodingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+                          {isGeocodingManual ? "Searching..." : "Find"}
+                        </button>
+                      </div>
+                      {form.lat && form.lng && (
+                        <p className="mt-2 text-xs text-green-600 font-semibold">
+                          ✓ Location pinned — you can fine-tune it using "Change Pin" above.
+                        </p>
+                      )}
+                    </div>
+
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="rounded-2xl border border-slate-200 bg-white p-4 md:col-span-2">
                         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Selected address</p>
                         <p className="mt-2 text-sm font-medium leading-6 text-slate-700">
-                          {form.address || "Choose your store location on the map to auto-fill the address."}
+                          {form.address || "Choose your store location on the map or search manually above."}
                         </p>
+                        {form.lat && form.lng && (
+                          <p className="mt-1 text-xs text-slate-400">
+                            Coordinates: {Number(form.lat).toFixed(5)}, {Number(form.lng).toFixed(5)}
+                          </p>
+                        )}
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 md:col-span-2">
                         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Area / Locality</p>

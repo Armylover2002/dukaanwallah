@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { HiXMark, HiOutlineMapPin } from 'react-icons/hi2';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApi } from '../services/adminApi';
 import MapPicker from '@shared/components/MapPicker';
@@ -41,6 +42,8 @@ const isPointInPolygon = (lat, lng, polygon) => {
 const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [manualAddressInput, setManualAddressInput] = useState('');
+  const [isGeocodingManual, setIsGeocodingManual] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     shopName: '',
@@ -84,6 +87,12 @@ const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
     }
   }, [isOpen]);
 
+  // Derived: currently selected zone object — must be before any early return (Rules of Hooks)
+  const selectedZone = useMemo(
+    () => zones.find(z => z._id === formData.zoneId) || null,
+    [zones, formData.zoneId]
+  );
+
   if (!isOpen) return null;
 
   const handleLocationSelect = (location) => {
@@ -94,6 +103,63 @@ const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
       radius: location?.radius !== undefined ? String(location.radius) : prev.radius,
       address: location?.address || prev.address,
     }));
+  };
+
+
+  const handleManualAddressGeocode = async () => {
+    const query = manualAddressInput.trim();
+    if (!query) {
+      toast.error('Please enter an address, pincode, or city to search');
+      return;
+    }
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+    if (!apiKey) {
+      toast.error('Google Maps API key is not configured');
+      return;
+    }
+    if (!selectedZone) {
+      toast.error('Please select a service zone first before searching for a location');
+      return;
+    }
+    setIsGeocodingManual(true);
+    try {
+      const encodedQuery = encodeURIComponent(query + ', India');
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedQuery}&key=${apiKey}`
+      );
+      const data = await response.json();
+      if (data.status === 'OK' && data.results?.length > 0) {
+        const result = data.results[0];
+        const { lat, lng } = result.geometry.location;
+        const formattedAddress = result.formatted_address || query;
+
+        // Zone boundary check using Ray Casting algorithm
+        if (Array.isArray(selectedZone?.coordinates) && selectedZone.coordinates.length >= 3) {
+          const inside = isPointInPolygon(lat, lng, selectedZone.coordinates);
+          if (!inside) {
+            toast.error(`This location is outside the selected zone "${selectedZone.name || selectedZone.zoneName || 'Selected Zone'}". Please enter an address within the zone boundary.`);
+            setIsGeocodingManual(false);
+            return;
+          }
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          lat: Number(lat.toFixed(6)).toString(),
+          lng: Number(lng.toFixed(6)).toString(),
+          address: formattedAddress,
+        }));
+        toast.success('Location found on map! You can adjust the pin if needed.');
+        // Open map so admin can see the pin within the zone boundary
+        setIsMapOpen(true);
+      } else {
+        toast.error('Could not find location. Try a more specific address or pincode.');
+      }
+    } catch (err) {
+      toast.error('Failed to fetch location. Check your internet connection.');
+    } finally {
+      setIsGeocodingManual(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -285,6 +351,37 @@ const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
                     </div>
                     <input type="text" name="address" required maxLength={250} value={formData.address} onChange={handleChange} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-slate-900" placeholder="Full store address" />
                   </div>
+
+                  {/* Manual Address Search */}
+                  <div className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Or search address manually</p>
+                    <p className="text-xs text-slate-400 mb-3">Type address, pincode, or city+state — we'll find it on the map and validate it's within the selected zone.</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-slate-900 transition"
+                        placeholder="e.g. 123 Main St, Mumbai, Maharashtra 400001"
+                        value={manualAddressInput}
+                        onChange={(e) => setManualAddressInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleManualAddressGeocode(); } }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleManualAddressGeocode}
+                        disabled={isGeocodingManual}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest text-white transition hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                      >
+                        {isGeocodingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <HiOutlineMapPin className="h-4 w-4" />}
+                        {isGeocodingManual ? 'Searching...' : 'Find'}
+                      </button>
+                    </div>
+                    {formData.lat && formData.lng && (
+                      <p className="mt-2 text-xs text-emerald-600 font-semibold">
+                        ✓ Location pinned ({Number(formData.lat).toFixed(5)}, {Number(formData.lng).toFixed(5)}) — use "Pick on Map" to fine-tune.
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Latitude</label>
                     <input type="text" name="lat" maxLength={20} value={formData.lat} onChange={handleChange} className="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-slate-900" placeholder="e.g. 28.7041" />
@@ -453,8 +550,10 @@ const AdminSellerCreateModal = ({ isOpen, onClose, onSuccess }) => {
           isOpen={isMapOpen}
           onClose={() => setIsMapOpen(false)}
           onConfirm={handleLocationSelect}
-          initialLocation={{ lat: Number(formData.lat) || 0, lng: Number(formData.lng) || 0 }}
+          initialLocation={formData.lat && formData.lng ? { lat: Number(formData.lat), lng: Number(formData.lng) } : null}
           defaultAddress={formData.address}
+          zoneCoordinates={selectedZone?.coordinates || []}
+          zoneLabel={selectedZone?.name || selectedZone?.zoneName || ''}
         />
       )}
     </>
