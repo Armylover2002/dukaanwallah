@@ -525,7 +525,7 @@ const CheckoutPage = () => {
     return buildNormalizedQuickOrderAddress({
       label: currentAddress.type || "Home",
       name: currentAddress.name || user?.name || "",
-      phone: currentAddress.phone || "",
+      phone: currentAddress.phone || sharedProfilePhone || "",
       street: streetValue,
       additionalDetails: currentAddress.landmark || currentAddressParts.slice(1, -1).join(", "),
       city:

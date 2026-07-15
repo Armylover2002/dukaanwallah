@@ -958,11 +958,14 @@ export default function OrderTracking() {
       if (idMatches) {
         const next = mapOrderToTrackingUiStatus({ status, orderStatus: payload.orderStatus || status, deliveryState: payload.deliveryState });
         setOrderStatus(next);
-        const now = Date.now();
-        if (now - lastRealtimeRefreshRef.current > 1500 && !isRefreshing) {
-          lastRealtimeRefreshRef.current = now;
+        // const now = Date.now();
+        // if (now - lastRealtimeRefreshRef.current > 1500 && !isRefreshing) {
+        //   lastRealtimeRefreshRef.current = now;
+        //   handleRefresh();
+        // }
+        setTimeout(() => {
           handleRefresh();
-        }
+        }, 100);
       }
       if (message) {
         toast.success(message, { id: `order-status-${orderId}`, duration: 4000, description: estimatedDeliveryTime ? `Estimated delivery in ${Math.round(estimatedDeliveryTime / 60)} minutes` : undefined });
