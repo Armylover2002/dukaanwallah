@@ -677,7 +677,33 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
     return () => clearInterval(pingInterval);
   }, [isOnline]);
 
-  useEffect(() => { if (newOrder) setIncomingOrder(newOrder); }, [newOrder]);
+  useEffect(() => {
+    if (!newOrder) return;
+    setIncomingOrder((prev) => {
+      if (!prev) return newOrder;
+
+      // Same order already shown — keep whichever copy has richer data.
+      // Socket payloads are rich (earnings > 0, restaurantName).
+      // Recovery/API payloads are lean (earnings = 0, no restaurantName).
+      const prevId = prev?.orderId || prev?._id || prev?.orderMongoId || '';
+      const nextId = newOrder?.orderId || newOrder?._id || newOrder?.orderMongoId || '';
+      const isSameOrder = prevId && nextId && prevId === nextId;
+
+      if (isSameOrder) {
+        const prevEarnings = Number(prev?.earnings || prev?.riderEarning || prev?.pricing?.deliveryFee || 0);
+        const nextEarnings = Number(newOrder?.earnings || newOrder?.riderEarning || newOrder?.pricing?.deliveryFee || 0);
+        const prevHasName = Boolean(prev?.restaurantName || prev?.restaurant_name || prev?.restaurantId?.restaurantName);
+        const nextHasName = Boolean(newOrder?.restaurantName || newOrder?.restaurant_name || newOrder?.restaurantId?.restaurantName);
+        const prevIsRich = prevEarnings > 0 || prevHasName;
+        const nextIsRich = nextEarnings > 0 || nextHasName;
+        // Keep prev if it's richer than the incoming lean recovery payload
+        if (prevIsRich && !nextIsRich) return prev;
+        // If both are rich or next is richer, use next (handles genuine resend with new data)
+      }
+
+      return newOrder;
+    });
+  }, [newOrder]);
 
   useEffect(() => {
     if (activeOrder && incomingOrder) {
@@ -746,7 +772,26 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                 nextIncomingOrder?.legId ||
                 '',
             ].filter(Boolean).join(':');
-            return prevKey === nextKey && prev ? prev : nextIncomingOrder;
+
+            // Same order — always keep the existing rich data (socket payload has
+            // earnings, addresses, etc. that the REST list endpoint may not include).
+            if (prevKey === nextKey && prev) return prev;
+
+            // Different order, but the current one is already richly populated
+            // from the socket (earnings > 0 or restaurantName present). In this
+            // window, the API may still be returning the old order; keep the
+            // socket-provided data until it genuinely disappears from the API.
+            if (prev) {
+              const prevOrderId = prev?.orderId || prev?._id || prev?.orderMongoId || '';
+              const nextOrderId = nextIncomingOrder?.orderId || nextIncomingOrder?._id || nextIncomingOrder?.orderMongoId || '';
+              const sameOrder = prevOrderId && nextOrderId && prevOrderId === nextOrderId;
+              const prevIsRich =
+                Number(prev?.earnings || prev?.riderEarning || 0) > 0 ||
+                Boolean(prev?.restaurantName || prev?.restaurant_name || prev?.restaurantId?.restaurantName);
+              if (sameOrder && prevIsRich) return prev;
+            }
+
+            return nextIncomingOrder;
           });
         }
       } catch (error) {

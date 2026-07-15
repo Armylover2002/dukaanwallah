@@ -331,8 +331,18 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
       restaurant?.addressLine1 ||
       restaurant?.address ||
       "",
-    riderEarning: order?.riderEarning || 0,
-    earnings: order?.riderEarning || order?.pricing?.deliveryFee || 0,
+    riderEarning:
+      order?.riderEarning ||
+      order?.pricing?.riderEarning ||
+      order?.pricing?.deliveryFee ||
+      order?.pricing?.deliveryCharge ||
+      0,
+    earnings:
+      order?.riderEarning ||
+      order?.pricing?.riderEarning ||
+      order?.pricing?.deliveryFee ||
+      order?.pricing?.deliveryCharge ||
+      0,
     deliveryFee: order?.pricing?.deliveryFee || 0,
     deliveryFleet: order?.deliveryFleet,
     dispatch: order?.dispatch,

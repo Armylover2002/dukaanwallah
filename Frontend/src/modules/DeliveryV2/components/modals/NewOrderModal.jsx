@@ -507,7 +507,17 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize }) => {
 
   if (!order) return null;
 
-  const earnings = order.earnings || order.riderEarning || (order.orderAmount ? order.orderAmount * 0.1 : 0);
+  // Earnings: try every field the backend might send — resend payloads sometimes
+  // only carry pricing.deliveryFee or pricing.riderEarning instead of the top-level earnings field.
+  const earnings =
+    Number(order.earnings || 0) ||
+    Number(order.riderEarning || 0) ||
+    Number(order.deliveryFee || 0) ||
+    Number(order.pricing?.riderEarning || 0) ||
+    Number(order.pricing?.deliveryFee || 0) ||
+    Number(order.pricing?.deliveryCharge || 0) ||
+    0;
+
   const isQuickOrder = String(order?.orderType || order?.serviceType || order?.type || '').trim().toLowerCase() === 'quick';
   const restaurantName =
     order?.dispatchLeg?.sourceName ||
