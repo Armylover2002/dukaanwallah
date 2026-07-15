@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import Modal from '@shared/components/ui/Modal';
@@ -69,17 +70,30 @@ const WithdrawalRequests = () => {
     const permissionKey = "quick::core_management::withdrawals";
     const canEdit = canPerformAdminPermissionAction(currentUser, resolvedPermissions, permissionKey, "edit");
 
-    const [activeTab, setActiveTab] = useState('sellers');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'sellers');
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+    const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || 'all');
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionModal, setActionModal] = useState({ isOpen: false, type: null, request: null });
 
     const [sellerRequests, setSellerRequests] = useState([]);
     const [deliveryRequests, setDeliveryRequests] = useState([]);
-    const [sellerPage, setSellerPage] = useState(1);
-    const [deliveryPage, setDeliveryPage] = useState(1);
+    const [sellerPage, setSellerPage] = useState(Number(searchParams.get('sellerPage')) || 1);
+    const [deliveryPage, setDeliveryPage] = useState(Number(searchParams.get('deliveryPage')) || 1);
+
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (activeTab !== 'sellers') params.set('tab', activeTab);
+        if (searchTerm) params.set('search', searchTerm);
+        if (filterStatus !== 'all') params.set('status', filterStatus);
+        if (sellerPage > 1) params.set('sellerPage', sellerPage.toString());
+        if (deliveryPage > 1) params.set('deliveryPage', deliveryPage.toString());
+        
+        setSearchParams(params, { replace: true });
+    }, [activeTab, searchTerm, filterStatus, sellerPage, deliveryPage, setSearchParams]);
     const [pageSize, setPageSize] = useState(25);
     const [sellerTotal, setSellerTotal] = useState(0);
     const [deliveryTotal, setDeliveryTotal] = useState(0);
@@ -189,12 +203,7 @@ const WithdrawalRequests = () => {
     };
 
     const handleRefresh = () => {
-        setSearchTerm('');
-        setFilterStatus('all');
-        setActiveTab('sellers');
-        setSellerPage(1);
-        setDeliveryPage(1);
-        fetchData(1, 1);
+        fetchData(sellerPage, deliveryPage);
     };
 
     const handleExportAll = () => {
