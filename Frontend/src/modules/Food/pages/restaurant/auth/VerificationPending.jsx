@@ -44,9 +44,25 @@ export default function VerificationPending() {
 
         if (cancelled) return
 
-        if (String(restaurant?.status || "").toLowerCase() === "approved") {
+        const status = String(restaurant?.status || "").toLowerCase()
+
+        if (status === "approved") {
           clearRestaurantPendingPhone()
           navigate("/food/restaurant", { replace: true })
+          return
+        }
+
+        // If rejected, redirect to re-onboarding without requiring re-login
+        if (status === "rejected") {
+          clearRestaurantPendingPhone()
+          sessionStorage.setItem("restaurantReonboard", "true")
+          navigate("/food/restaurant/onboarding", {
+            replace: true,
+            state: {
+              isRejected: true,
+              rejectionReason: restaurant?.rejectionReason || "Your application was rejected. Please update your details and re-apply.",
+            },
+          })
           return
         }
       } catch (_) {

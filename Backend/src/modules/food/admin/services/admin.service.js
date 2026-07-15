@@ -3521,18 +3521,32 @@ export async function approveRestaurant(id, performer = null) {
 
         try {
             const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
-            await notifyOwnersSafely(
-                [{ ownerType: 'RESTAURANT', ownerId: updated._id }],
-                {
-                    title: 'Congratulations! 🎉',
-                    body: `Your restaurant "${updated.restaurantName}" has been approved. You can now start receiving orders!`,
-                    image: updated.profileImage || 'https://i.ibb.co/3m2Yh7r/Appzeto-Brand-Image.png',
-                    data: {
-                        type: 'restaurant_approved',
-                        restaurantId: String(updated._id)
+            const { FoodUser } = await import('../../../../core/users/user.model.js');
+
+            const userOwner = await FoodUser.findOne({
+                $or: [
+                    { phone: updated.ownerPhone },
+                    { phone: updated.ownerPhoneDigits },
+                    ...(updated.ownerPhoneLast10 ? [{ phone: { $regex: new RegExp(updated.ownerPhoneLast10 + '$') } }] : [])
+                ]
+            }).lean();
+
+            if (userOwner) {
+                await notifyOwnersSafely(
+                    [{ ownerType: 'USER', ownerId: userOwner._id }],
+                    {
+                        title: 'Congratulations! 🎉',
+                        body: `Your restaurant "${updated.restaurantName}" has been approved. You can now start receiving orders!`,
+                        image: updated.profileImage || 'https://i.ibb.co/3m2Yh7r/Appzeto-Brand-Image.png',
+                        data: {
+                            type: 'restaurant_approved',
+                            restaurantId: String(updated._id)
+                        }
                     }
-                }
-            );
+                );
+            } else {
+                console.warn(`[admin.service] Could not find FoodUser with phone ${updated.ownerPhone} to send approval notification for restaurant ${updated._id}`);
+            }
         } catch (e) {
             console.error('Failed to send restaurant approval notification:', e);
         }
