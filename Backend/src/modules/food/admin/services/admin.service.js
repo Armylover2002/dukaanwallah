@@ -2504,21 +2504,38 @@ export async function updateRestaurantStatus(id, body = {}) {
     if (updated) {
         try {
             const { sendNotificationToOwner } = await import('../../../../core/notifications/firebase.service.js');
-            await sendNotificationToOwner({
-                ownerType: 'RESTAURANT',
-                ownerId: updated._id,
-                payload: {
-                    title: isActive ? 'Restaurant Approved! 🎉' : 'Restaurant Disabled 🏪',
-                    body: isActive
-                        ? `Congratulations! Your restaurant "${updated.name}" has been approved. You can now log in and manage your menu.`
-                        : `Your restaurant "${updated.name}" has been disabled/rejected. Please contact support.`,
-                    data: {
-                        type: 'restaurant_status_update',
-                        status: status,
-                        id: String(updated._id)
+            const { FoodUser } = await import('../../../../core/users/user.model.js');
+
+            // The restaurant is registered by a user via their phone number.
+            // Notifications for status updates need to go to that user because the restaurant app
+            // doesn't have an active login/FCM token until it is approved.
+            const userOwner = await FoodUser.findOne({
+                $or: [
+                    { phone: updated.ownerPhone },
+                    { phone: updated.ownerPhoneDigits },
+                    ...(updated.ownerPhoneLast10 ? [{ phone: { $regex: new RegExp(updated.ownerPhoneLast10 + '$') } }] : [])
+                ]
+            }).lean();
+
+            if (userOwner) {
+                await sendNotificationToOwner({
+                    ownerType: 'USER',
+                    ownerId: userOwner._id,
+                    payload: {
+                        title: isActive ? 'Restaurant Approved! ' : 'Restaurant Disabled ',
+                        body: isActive
+                            ? `Congratulations! Your restaurant "${updated.restaurantName || updated.name}" has been approved. You can now log in and manage your menu.`
+                            : `Your restaurant "${updated.restaurantName || updated.name}" has been disabled/rejected. Please contact support.`,
+                        data: {
+                            type: 'restaurant_status_update',
+                            status: status,
+                            id: String(updated._id)
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                console.warn(`[admin.service] Could not find FoodUser with phone ${updated.ownerPhone} for restaurant ${updated._id}. Notification skipped.`);
+            }
         } catch (e) {
             console.error('Failed to notify restaurant partner of status change:', e);
         }
