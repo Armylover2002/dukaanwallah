@@ -324,76 +324,39 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
                 {!selectedExistingHeaderId && (
                   <>
                     {/* Icon/Image Selection */}
-                <div className="flex flex-col items-center gap-4">
-                  <div className="flex gap-4">
-                    {/* SVG Icon Display */}
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-24 h-24 rounded-full bg-linear-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 flex items-center justify-center">
-                        {headerForm.iconId && iconComponents[headerForm.iconId] ? (
-                          <div className="w-12 h-12 text-indigo-600 flex items-center justify-center">
-                            {(() => {
-                              const IconComp = iconComponents[headerForm.iconId];
-                              return <IconComp fontSize="large" />;
-                            })()}
-                          </div>
-                        ) : headerForm.iconId && getIconSvg(headerForm.iconId) ? (
-                          <div
-                            className="w-12 h-12 text-indigo-600"
-                            dangerouslySetInnerHTML={{
-                              __html: getIconSvg(headerForm.iconId),
-                            }}
-                          />
-                        ) : (
-                          <Sparkles className="w-10 h-10 text-indigo-300" />
-                        )}
+                    {/* Icon Selection */}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-24 h-24 rounded-full bg-linear-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 flex items-center justify-center">
+                          {headerForm.iconId && iconComponents[headerForm.iconId] ? (
+                            <div className="w-12 h-12 text-indigo-600 flex items-center justify-center">
+                              {(() => {
+                                const IconComp = iconComponents[headerForm.iconId];
+                                return <IconComp fontSize="large" />;
+                              })()}
+                            </div>
+                          ) : headerForm.iconId && getIconSvg(headerForm.iconId) ? (
+                            <div
+                              className="w-12 h-12 text-indigo-600"
+                              dangerouslySetInnerHTML={{
+                                __html: getIconSvg(headerForm.iconId),
+                              }}
+                            />
+                          ) : (
+                            <Sparkles className="w-10 h-10 text-indigo-300" />
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsIconSelectorOpen(true)}
+                          className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                          {headerForm.iconId ? 'Change Icon' : 'Select Icon'}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsIconSelectorOpen(true)}
-                        className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                        {headerForm.iconId ? 'Change Icon' : 'Select Icon'}
-                      </button>
+                      <p className="text-xs text-gray-500 text-center">
+                        Choose an SVG icon for this category
+                      </p>
                     </div>
-
-                    {/* OR Divider */}
-                    <div className="flex items-center">
-                      <span className="text-gray-400 font-medium">OR</span>
-                    </div>
-
-                    {/* Image Upload */}
-                    <div className="flex flex-col items-center gap-2">
-                      <div
-                        onClick={() => headerFileRef.current?.click()}
-                        className="w-24 h-24 rounded-full bg-gray-50 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden transition-colors">
-                        {headerPreview ? (
-                          <img
-                            src={headerPreview}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="text-center">
-                            <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                            <span className="text-xs text-gray-500 mt-1">
-                              Upload
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        ref={headerFileRef}
-                        className="hidden"
-                        onChange={(e) => handleImageChange(e, setHeaderImage, setHeaderPreview)}
-                        accept="image/*"
-                      />
-                      <span className="text-xs text-gray-500">Custom Image</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 text-center">
-                    Choose an SVG icon or upload a custom image
-                  </p>
-                </div>
 
                 {/* Header Color Picker */}
                 <div className="space-y-2">
