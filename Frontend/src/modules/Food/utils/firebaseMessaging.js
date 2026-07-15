@@ -233,52 +233,56 @@ async function triggerWebViewNativeNotification(payload = {}) {
   return false;
 }
 
+// async function playPushSound(payload = {}) {
+//   try {
+//     pushDebugLog(PUSH_DEBUG_PREFIX, "playPushSound called", {
+//       notificationKey: getNotificationKey(payload),
+//       pushSoundUnlocked,
+//       notificationPermission: typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+//       payload,
+//     });
+//     const usedNativeBridge = await triggerWebViewNativeNotification(payload);
+
+//     if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+//       pushDebugLog(PUSH_DEBUG_PREFIX, "Triggering vibration");
+//       navigator.vibrate([200, 100, 200, 100, 300]);
+//     }
+
+//     if (usedNativeBridge) {
+//       pushDebugLog(PUSH_DEBUG_PREFIX, "Push sound handled by native bridge");
+//       return;
+//     }
+
+//     if (!pushSoundUnlocked) {
+//       pushDebugWarn(PUSH_DEBUG_PREFIX, "Push sound blocked because sound is not enabled/unlocked");
+//       return;
+//     }
+
+//     const players = createPushPlaybackAudio();
+//     for (const audio of players) {
+//       try {
+//         audio.currentTime = 0;
+//         await audio.play();
+//         pushDebugLog(PUSH_DEBUG_PREFIX, "Audio playback succeeded", { source: audio.src });
+//         return;
+//       } catch (error) {
+//         pushDebugWarn(PUSH_DEBUG_PREFIX, "Audio playback failed", {
+//           source: audio.src,
+//           error: error?.message || error,
+//         });
+//         // Try next fallback sound source.
+//       }
+//     }
+
+//     await playSynthNotificationBeep();
+//   } catch (error) {
+//     pushDebugWarn(PUSH_DEBUG_PREFIX, "playPushSound failed", { error: error?.message || error });
+//   }
+// }
 async function playPushSound(payload = {}) {
-  try {
-    pushDebugLog(PUSH_DEBUG_PREFIX, "playPushSound called", {
-      notificationKey: getNotificationKey(payload),
-      pushSoundUnlocked,
-      notificationPermission: typeof Notification !== "undefined" ? Notification.permission : "unsupported",
-      payload,
-    });
-    const usedNativeBridge = await triggerWebViewNativeNotification(payload);
-
-    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-      pushDebugLog(PUSH_DEBUG_PREFIX, "Triggering vibration");
-      navigator.vibrate([200, 100, 200, 100, 300]);
-    }
-
-    if (usedNativeBridge) {
-      pushDebugLog(PUSH_DEBUG_PREFIX, "Push sound handled by native bridge");
-      return;
-    }
-
-    if (!pushSoundUnlocked) {
-      pushDebugWarn(PUSH_DEBUG_PREFIX, "Push sound blocked because sound is not enabled/unlocked");
-      return;
-    }
-
-    const players = createPushPlaybackAudio();
-    for (const audio of players) {
-      try {
-        audio.currentTime = 0;
-        await audio.play();
-        pushDebugLog(PUSH_DEBUG_PREFIX, "Audio playback succeeded", { source: audio.src });
-        return;
-      } catch (error) {
-        pushDebugWarn(PUSH_DEBUG_PREFIX, "Audio playback failed", {
-          source: audio.src,
-          error: error?.message || error,
-        });
-        // Try next fallback sound source.
-      }
-    }
-
-    await playSynthNotificationBeep();
-  } catch (error) {
-    pushDebugWarn(PUSH_DEBUG_PREFIX, "playPushSound failed", { error: error?.message || error });
-  }
+  return true; // Iske niche ka sara code (line 237 se 280 tak) hata dena
 }
+
 
 function setupPushSoundUnlock() {
   if (typeof window === "undefined" || pushSoundUnlocked) return;
@@ -362,7 +366,7 @@ export async function enablePushNotificationSound() {
       pushSoundUnlocked = true;
       localStorage.setItem(pushSoundEnabledStorageKey, "true");
       window.dispatchEvent(new CustomEvent("push-sound-enabled"));
-      }
+    }
     catch (beepError) {
       pushDebugWarn(PUSH_DEBUG_PREFIX, "Synth beep fallback failed", {
         error: beepError?.message || beepError,
@@ -393,11 +397,11 @@ async function getFirebasePublicEnv() {
         measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
         vapidKey: sanitize(import.meta.env.VITE_FIREBASE_VAPID_KEY),
       };
-      
+
       if (!config.apiKey || config.apiKey.length < 10) {
         pushDebugWarn(PUSH_DEBUG_PREFIX, "Firebase API Key is missing or invalid in .env");
       }
-      
+
       return config;
     } catch (e) {
       pushDebugWarn(PUSH_DEBUG_PREFIX, "Error loading Firebase public env", e);
@@ -804,7 +808,7 @@ export async function registerWebPushForCurrentModule(pathname = window.location
         pushDebugWarn(PUSH_DEBUG_PREFIX, "Failed to check Firebase Messaging support", { error: err?.message || err });
         return false;
       });
-      
+
       pushDebugLog(PUSH_DEBUG_PREFIX, "Firebase messaging browser support verified", { supported });
       if (!supported) return;
 
@@ -869,12 +873,12 @@ export async function registerWebPushForCurrentModule(pathname = window.location
       }
 
     })()
-    .catch((e) => {
-      console.error("FCM web registration failed:", e);
-    })
-    .finally(() => {
-      delete registrationInFlightByModule[moduleName];
-    });
+      .catch((e) => {
+        console.error("FCM web registration failed:", e);
+      })
+      .finally(() => {
+        delete registrationInFlightByModule[moduleName];
+      });
 
     // Assign to map so concurrent calls wait on the same promise
     registrationInFlightByModule[moduleName] = inFlight;

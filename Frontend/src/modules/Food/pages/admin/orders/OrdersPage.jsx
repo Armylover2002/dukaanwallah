@@ -17,9 +17,9 @@ import { OrdersDashboardSkeleton } from "@food/components/ui/loading-skeletons"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
 import alertSound from "@food/assets/audio/alert.mp3"
 import originalSound from "@food/assets/audio/original.mp3"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 const USER_CANCEL_FULL_REFUND_WINDOW_MS = 30 * 1000
 
 
@@ -70,103 +70,114 @@ export default function OrdersPage({ statusKey = "all" }) {
     return `${source}${separator}devcache=${cacheKey}`
   }, [])
 
+  // const playDeliveryStyleBuzz = useCallback(async () => {
+  //   const selectedSound = localStorage.getItem("delivery_alert_sound") || "zomato_tone"
+  //   const soundFile = selectedSound === "original"
+  //     ? resolveAudioSource(originalSound, "admin-original")
+  //     : resolveAudioSource(alertSound, "admin-alert")
+
+  //   try {
+  //     if (!notificationAudioRef.current) {
+  //       notificationAudioRef.current = new Audio(soundFile)
+  //       notificationAudioRef.current.preload = "auto"
+  //       notificationAudioRef.current.volume = 1
+  //     } else if (!notificationAudioRef.current.src.includes(soundFile.split("/").pop())) {
+  //       notificationAudioRef.current.pause()
+  //       notificationAudioRef.current.src = soundFile
+  //       notificationAudioRef.current.load()
+  //     }
+
+  //     if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+  //       navigator.vibrate([200, 100, 200, 100, 300])
+  //     }
+
+  //     notificationAudioRef.current.muted = false
+  //     notificationAudioRef.current.volume = 1
+  //     notificationAudioRef.current.currentTime = 0
+  //     await notificationAudioRef.current.play()
+  //     return true
+  //   } catch (_) {
+  //     return false
+  //   }
+  // }, [resolveAudioSource])
+
+
+
+
+  // const playDefaultRing = useCallback(() => {
+  //   playDeliveryStyleBuzz().then((played) => {
+  //     if (played) return
+
+  //     try {
+  //       if (!fallbackAudioRef.current) {
+  //         fallbackAudioRef.current = new Audio(alertSound)
+  //         fallbackAudioRef.current.preload = "auto"
+  //         fallbackAudioRef.current.volume = 1
+  //       }
+
+  //       fallbackAudioRef.current.muted = false
+  //       fallbackAudioRef.current.volume = 1
+  //       fallbackAudioRef.current.currentTime = 0
+  //       fallbackAudioRef.current.play().catch(() => {})
+  //     } catch (_) {}
+
+  //     const AudioCtx = window.AudioContext || window.webkitAudioContext
+  //     if (AudioCtx) {
+  //       if (!audioContextRef.current) {
+  //         audioContextRef.current = new AudioCtx()
+  //       }
+  //       const ctx = audioContextRef.current
+  //       const playWithContext = async () => {
+  //         if (ctx.state === "suspended") {
+  //           await ctx.resume()
+  //         }
+
+  //         const beep = (startAt, frequency = 880, duration = 0.2) => {
+  //           const osc = ctx.createOscillator()
+  //           const gain = ctx.createGain()
+  //           osc.type = "sine"
+  //           osc.frequency.value = frequency
+  //           gain.gain.value = 0.0001
+  //           osc.connect(gain)
+  //           gain.connect(ctx.destination)
+
+  //           const start = ctx.currentTime + startAt
+  //           osc.start(start)
+  //           gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02)
+  //           gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+  //           osc.stop(start + duration + 0.02)
+  //         }
+
+  //         beep(0, 880, 0.2)
+  //         beep(0.26, 880, 0.2)
+  //         beep(0.52, 988, 0.26)
+
+  //         setTimeout(() => {
+  //           if (ctx.state === "running") {
+  //             ctx.suspend().catch(() => {})
+  //           }
+  //         }, 1200)
+  //       }
+  //       playWithContext().catch(async () => {
+  //         if (fallbackAudioRef.current) {
+  //           fallbackAudioRef.current.currentTime = 0
+  //           await fallbackAudioRef.current.play()
+  //         }
+  //       })
+  //       return
+  //     }
+  //   }).catch((error) => {
+  //     debugWarn("Ring sound could not be played:", error)
+  //   })
+  // }, [playDeliveryStyleBuzz])
+
   const playDeliveryStyleBuzz = useCallback(async () => {
-    const selectedSound = localStorage.getItem("delivery_alert_sound") || "zomato_tone"
-    const soundFile = selectedSound === "original"
-      ? resolveAudioSource(originalSound, "admin-original")
-      : resolveAudioSource(alertSound, "admin-alert")
+    return true
+  }, [])
 
-    try {
-      if (!notificationAudioRef.current) {
-        notificationAudioRef.current = new Audio(soundFile)
-        notificationAudioRef.current.preload = "auto"
-        notificationAudioRef.current.volume = 1
-      } else if (!notificationAudioRef.current.src.includes(soundFile.split("/").pop())) {
-        notificationAudioRef.current.pause()
-        notificationAudioRef.current.src = soundFile
-        notificationAudioRef.current.load()
-      }
-
-      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-        navigator.vibrate([200, 100, 200, 100, 300])
-      }
-
-      notificationAudioRef.current.muted = false
-      notificationAudioRef.current.volume = 1
-      notificationAudioRef.current.currentTime = 0
-      await notificationAudioRef.current.play()
-      return true
-    } catch (_) {
-      return false
-    }
-  }, [resolveAudioSource])
-
-  const playDefaultRing = useCallback(() => {
-    playDeliveryStyleBuzz().then((played) => {
-      if (played) return
-
-      try {
-        if (!fallbackAudioRef.current) {
-          fallbackAudioRef.current = new Audio(alertSound)
-          fallbackAudioRef.current.preload = "auto"
-          fallbackAudioRef.current.volume = 1
-        }
-
-        fallbackAudioRef.current.muted = false
-        fallbackAudioRef.current.volume = 1
-        fallbackAudioRef.current.currentTime = 0
-        fallbackAudioRef.current.play().catch(() => {})
-      } catch (_) {}
-
-      const AudioCtx = window.AudioContext || window.webkitAudioContext
-      if (AudioCtx) {
-        if (!audioContextRef.current) {
-          audioContextRef.current = new AudioCtx()
-        }
-        const ctx = audioContextRef.current
-        const playWithContext = async () => {
-          if (ctx.state === "suspended") {
-            await ctx.resume()
-          }
-
-          const beep = (startAt, frequency = 880, duration = 0.2) => {
-            const osc = ctx.createOscillator()
-            const gain = ctx.createGain()
-            osc.type = "sine"
-            osc.frequency.value = frequency
-            gain.gain.value = 0.0001
-            osc.connect(gain)
-            gain.connect(ctx.destination)
-
-            const start = ctx.currentTime + startAt
-            osc.start(start)
-            gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02)
-            gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
-            osc.stop(start + duration + 0.02)
-          }
-
-          beep(0, 880, 0.2)
-          beep(0.26, 880, 0.2)
-          beep(0.52, 988, 0.26)
-
-          setTimeout(() => {
-            if (ctx.state === "running") {
-              ctx.suspend().catch(() => {})
-            }
-          }, 1200)
-        }
-        playWithContext().catch(async () => {
-          if (fallbackAudioRef.current) {
-            fallbackAudioRef.current.currentTime = 0
-            await fallbackAudioRef.current.play()
-          }
-        })
-        return
-      }
-    }).catch((error) => {
-      debugWarn("Ring sound could not be played:", error)
-    })
-  }, [playDeliveryStyleBuzz])
+  const playDefaultRing = useCallback(async () => {
+    return true
+  }, [])
 
   const stopAlertLoop = useCallback(() => {
     if (alertLoopTimerRef.current) {
@@ -222,7 +233,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         window.focus()
         notification.close()
       }
-    } catch (_) {}
+    } catch (_) { }
   }, [])
 
   // Unlock audio on first user gesture so rings can play reliably later
@@ -296,7 +307,7 @@ export default function OrdersPage({ statusKey = "all" }) {
     return () => {
       stopAlertLoop()
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        audioContextRef.current.close().catch(() => {})
+        audioContextRef.current.close().catch(() => { })
       }
       if (notificationAudioRef.current) {
         notificationAudioRef.current.pause()
@@ -309,7 +320,7 @@ export default function OrdersPage({ statusKey = "all" }) {
     if (statusKey !== "all") return
     if (typeof window === "undefined" || typeof Notification === "undefined") return
     if (Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {})
+      Notification.requestPermission().catch(() => { })
     }
   }, [statusKey])
 
@@ -352,8 +363,8 @@ export default function OrdersPage({ statusKey = "all" }) {
           )
           if (hasNewOrder) {
             activeOrderAlertRef.current = { orderId: "polling-new-order" }
-            playDefaultRing()
-            startAlertLoop()
+            // playDefaultRing()
+            // startAlertLoop()
             if (typeof document !== "undefined" && document.visibilityState === "hidden") {
               showBrowserNotification(
                 "New order received",
@@ -396,17 +407,17 @@ export default function OrdersPage({ statusKey = "all" }) {
           : null
       const date = createdAt
         ? createdAt.toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }).toUpperCase()
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }).toUpperCase()
         : ""
       const time = createdAt
         ? createdAt.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }).toUpperCase()
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }).toUpperCase()
         : ""
 
       const pricing = order.pricing || {}
@@ -449,8 +460,8 @@ export default function OrdersPage({ statusKey = "all" }) {
       const backendStatus = String(order.orderStatus || "").toLowerCase()
       const cancelledAtCandidate = Array.isArray(order.statusHistory)
         ? [...order.statusHistory]
-            .reverse()
-            .find((entry) => String(entry?.to || "").toLowerCase() === backendStatus)?.at
+          .reverse()
+          .find((entry) => String(entry?.to || "").toLowerCase() === backendStatus)?.at
         : null
       const cancelledAt = cancelledAtCandidate ? new Date(cancelledAtCandidate) : null
       const cancelledAtMs =
@@ -489,10 +500,10 @@ export default function OrdersPage({ statusKey = "all" }) {
 
       const items = Array.isArray(order.items)
         ? order.items.map((item) => ({
-            quantity: item.quantity || 1,
-            name: item.name || item.foodName || item.title || "Item",
-            price: item.price || 0,
-          }))
+          quantity: item.quantity || 1,
+          name: item.name || item.foodName || item.title || "Item",
+          price: item.price || 0,
+        }))
         : []
 
       const customerName = order.customerName || order.userId?.name || "N/A"
@@ -628,8 +639,8 @@ export default function OrdersPage({ statusKey = "all" }) {
       const orderId = payload?.orderId || payload?.orderMongoId || ""
       if (!orderId) {
         activeOrderAlertRef.current = payload || { orderId: "socket-new-order" }
-        playDefaultRing()
-        startAlertLoop()
+        // playDefaultRing()
+        // startAlertLoop()
         toast.info("New order received")
         showBrowserNotification(
           "New order received",
@@ -801,13 +812,13 @@ export default function OrdersPage({ statusKey = "all" }) {
     // Backend accepts either MongoDB ObjectId (24 chars) or orderId string
     // Using MongoDB _id is more reliable for route matching (no dashes/special chars)
     const orderIdToUse = order.id || order._id || order.orderId
-    
+
     if (!orderIdToUse) {
       debugError('? No orderId found in order object:', order)
       toast.error('Order ID not found. Please refresh the page and try again.')
       return
     }
-    
+
     debugLog('?? Order details for refund:', {
       orderIdString: order.orderId,
       mongoId: order.id,
@@ -818,7 +829,7 @@ export default function OrdersPage({ statusKey = "all" }) {
 
     try {
       setProcessingRefund(orderIdToUse)
-      
+
       debugLog('?? Processing refund for order:', {
         orderId: order.orderId,
         id: order.id,
@@ -827,7 +838,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         refundAmount,
         url: `/api/admin/orders/${orderIdToUse}/refund`
       })
-      
+
       // Include refundAmount in request body if provided (ensure it's a number)
       const requestData = {
         ...(refundAmount !== null ? { refundAmount: parseFloat(refundAmount) } : {}),
@@ -835,34 +846,34 @@ export default function OrdersPage({ statusKey = "all" }) {
       }
       debugLog('?? Request data being sent:', requestData)
       const response = await adminAPI.processRefund(orderIdToUse, requestData)
-      
+
       if (response.data?.success) {
         const effectiveRefundMethod =
           refundTo ||
           order?.refundPreference?.requestedMethod ||
           (order.paymentType === "Wallet" || order.payment?.method === "wallet" ? "wallet" : "gateway")
         const isWalletPayment = order.paymentType === "Wallet" || order.payment?.method === "wallet";
-        toast.success(response.data?.message || (isWalletPayment 
+        toast.success(response.data?.message || (isWalletPayment
           ? `Wallet refund of \u20B9${refundAmount || order.totalAmount} processed successfully for order ${order.orderId}`
           : `Refund to ${effectiveRefundMethod === "wallet" ? "wallet" : "original payment method"} processed successfully for order ${order.orderId}`))
         // Update the order in the local state immediately to show "Refunded" status
-        setOrders(prevOrders => 
-          prevOrders.map(o => 
+        setOrders(prevOrders =>
+          prevOrders.map(o =>
             (o.id === order.id || o.orderId === order.orderId)
               ? {
-                  ...o,
-                  refundStatus: 'processed',
-                  payment: {
-                    ...(o.payment || {}),
-                    refund: {
-                      ...(o.payment?.refund || {}),
-                      status: 'processed',
-                      processedMethod: effectiveRefundMethod,
-                      requestedMethod:
-                        o.payment?.refund?.requestedMethod || effectiveRefundMethod,
-                    },
+                ...o,
+                refundStatus: 'processed',
+                payment: {
+                  ...(o.payment || {}),
+                  refund: {
+                    ...(o.payment?.refund || {}),
+                    status: 'processed',
+                    processedMethod: effectiveRefundMethod,
+                    requestedMethod:
+                      o.payment?.refund?.requestedMethod || effectiveRefundMethod,
                   },
-                }
+                },
+              }
               : o
           )
         )
@@ -873,7 +884,7 @@ export default function OrdersPage({ statusKey = "all" }) {
       }
     } catch (error) {
       debugError("? Error processing refund:", error)
-      
+
       // Log full error details for debugging
       const errorDetails = {
         message: error.message,
@@ -893,10 +904,10 @@ export default function OrdersPage({ statusKey = "all" }) {
         stack: error.stack
       }
       debugError("? Error details:", JSON.stringify(errorDetails, null, 2))
-      
+
       // Show more specific error message
       let errorMessage = "Failed to process refund"
-      
+
       if (error.response) {
         // Server responded with error
         if (error.response.status === 404) {
@@ -917,7 +928,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         // Error in setting up the request
         errorMessage = error.message || "Failed to process refund"
       }
-      
+
       debugError("? Final error message:", errorMessage)
       toast.error(errorMessage)
     } finally {
@@ -944,9 +955,9 @@ export default function OrdersPage({ statusKey = "all" }) {
 
   return (
     <div className="p-4 lg:p-6 bg-slate-50 min-h-screen w-full max-w-full overflow-x-hidden">
-      <OrdersTopbar 
-        title={config.title} 
-        count={count} 
+      <OrdersTopbar
+        title={config.title}
+        count={count}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onFilterClick={() => setIsFilterOpen(true)}
@@ -982,8 +993,8 @@ export default function OrdersPage({ statusKey = "all" }) {
         onConfirm={handleRefundConfirm}
         isProcessing={processingRefund !== null}
       />
-      <OrdersTable 
-        orders={filteredOrders} 
+      <OrdersTable
+        orders={filteredOrders}
         visibleColumns={visibleColumns}
         onViewOrder={handleViewOrder}
         onPrintOrder={handlePrintOrder}

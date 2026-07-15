@@ -599,22 +599,22 @@ export const useRestaurantNotifications = () => {
     });
 
     // Listen for sound notification event
-    socketRef.current.on('play_notification_sound', (data) => {
-      debugLog('?? Sound notification:', data);
-      const normalizedData = {
-        orderId: data?.orderId || data?.order_id,
-        orderMongoId: data?.orderMongoId || data?.order_mongo_id,
-        ...data
-      };
-      // Force immediate buzz for notification events, even if dedupe would skip.
-      activeOrderRef.current = normalizedData || { id: Date.now() };
-      playNotificationSound(normalizedData);
-      startAlertLoop();
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-        showBackgroundOrderNotification(normalizedData);
-      }
-      handleIncomingOrderAlert(normalizedData);
-    });
+    // socketRef.current.on('play_notification_sound', (data) => {
+    //   debugLog('?? Sound notification:', data);
+    //   const normalizedData = {
+    //     orderId: data?.orderId || data?.order_id,
+    //     orderMongoId: data?.orderMongoId || data?.order_mongo_id,
+    //     ...data
+    //   };
+    //   // Force immediate buzz for notification events, even if dedupe would skip.
+    //   activeOrderRef.current = normalizedData || { id: Date.now() };
+    //   playNotificationSound(normalizedData);
+    //   startAlertLoop();
+    //   if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    //     showBackgroundOrderNotification(normalizedData);
+    //   }
+    //   handleIncomingOrderAlert(normalizedData);
+    // });
 
     // Listen for order status updates
     socketRef.current.on('order_status_update', (data) => {
@@ -746,44 +746,44 @@ export const useRestaurantNotifications = () => {
   }, []);
 
   const playNotificationSound = async (orderData = {}) => {
-    try {
-      const usedNativeBridge = await triggerWebViewNativeNotification(orderData);
-      if (
-        userInteractedRef.current &&
-        typeof navigator !== 'undefined' &&
-        typeof navigator.vibrate === 'function'
-      ) {
-        navigator.vibrate([200, 100, 200, 100, 300]);
-      }
-      if (usedNativeBridge) {
-        return;
-      }
-
-      if (audioRef.current) {
-        audioRef.current.muted = false;
-        audioRef.current.volume = 1;
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(error => {
-          // Don't log autoplay policy errors as they're expected
-          if (!error.message?.includes('user didn\'t interact') && !error.name?.includes('NotAllowedError')) {
-            debugWarn('Error playing notification sound:', error);
-            // Fallback: try one-shot audio instance (more reliable in background tabs on some browsers)
-            try {
-              const fallbackAudio = new Audio(resolveAudioSource(alertSound, `restaurant-alert-${Date.now()}`));
-              fallbackAudio.volume = 1;
-              fallbackAudio.play().catch(() => { });
-            } catch (fallbackError) {
-              debugWarn('Fallback audio playback failed:', fallbackError);
-            }
-          }
-        });
-      }
-    } catch (error) {
-      // Don't log autoplay policy errors
-      if (!error.message?.includes('user didn\'t interact') && !error.name?.includes('NotAllowedError')) {
-        debugWarn('Error playing sound:', error);
-      }
+    // try {
+    const usedNativeBridge = await triggerWebViewNativeNotification(orderData);
+    if (
+      userInteractedRef.current &&
+      typeof navigator !== 'undefined' &&
+      typeof navigator.vibrate === 'function'
+    ) {
+      navigator.vibrate([200, 100, 200, 100, 300]);
     }
+    if (usedNativeBridge) {
+      return;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.muted = false;
+      audioRef.current.volume = 1;
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(error => {
+        // Don't log autoplay policy errors as they're expected
+        if (!error.message?.includes('user didn\'t interact') && !error.name?.includes('NotAllowedError')) {
+          debugWarn('Error playing notification sound:', error);
+          // Fallback: try one-shot audio instance (more reliable in background tabs on some browsers)
+          try {
+            const fallbackAudio = new Audio(resolveAudioSource(alertSound, `restaurant-alert-${Date.now()}`));
+            fallbackAudio.volume = 1;
+            fallbackAudio.play().catch(() => { });
+          } catch (fallbackError) {
+            debugWarn('Fallback audio playback failed:', fallbackError);
+          }
+        }
+      });
+    }
+    // } catch (error) {
+    //   // Don't log autoplay policy errors
+    //   if (!error.message?.includes('user didn\'t interact') && !error.name?.includes('NotAllowedError')) {
+    //     debugWarn('Error playing sound:', error);
+    //   }
+    // }
   };
 
   const clearNewOrder = () => {
