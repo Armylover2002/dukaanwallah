@@ -32,6 +32,7 @@ const debugError = (...args) => { }
 
 
 
+
 // Removed hardcoded suggested items - now fetching approved addons from backend
 // Coupons will be fetched from backend based on items in cart
 
@@ -137,6 +138,7 @@ const normalizeOrderAddress = (address, { recipientName = "", recipientPhone = "
 }
 
 export default function Cart() {
+  const [isCalculatingFee, setIsCalculatingFee] = useState(false);
   const companyName = useCompanyName()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
@@ -992,6 +994,7 @@ export default function Cart() {
   // Fetch estimated distance fee explicitly
   useEffect(() => {
     const fetchEstimatedDistance = async () => {
+      setIsCalculatingFee(true);
       // Skip for non-food or mixed carts as they handle their own fee
       if (cart.length === 0 || (hasQuickItems && hasFoodItems) || isQuickCart) {
         setEstimatedDistanceFee(null)
@@ -1042,6 +1045,8 @@ export default function Cart() {
         console.error("[Cart] estimateDistance error:", err?.response?.data || err.message)
         setEstimatedDistanceFee(null);
         setIsDeliverable(true);
+      } finally {
+        setIsCalculatingFee(false);
       }
     };
 
@@ -3076,7 +3081,7 @@ export default function Cart() {
             {/* Place Order Button */}
             <button
               onClick={handlePlaceOrder}
-              disabled={isPlacingOrder || !isDeliverable || (selectedPaymentMethod === "wallet" && walletBalance < total)}
+              disabled={isPlacingOrder || !isDeliverable || isCalculatingFee || (selectedPaymentMethod === "wallet" && walletBalance < total)}
               className={`w-full ${!isDeliverable ? 'bg-gray-400' : 'bg-gradient-to-r from-[#FE5502] to-[#FE5502] hover:from-[#C83C00] hover:to-[#CF2834] shadow-[#FE5502]/30 shadow-lg'} text-white px-6 h-12 md:h-14 rounded-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between transition-transform active:scale-[0.98]`}
             >
               {(selectedPaymentMethod === "razorpay" || selectedPaymentMethod === "wallet" || selectedPaymentMethod === "cash") && isDeliverable && (
@@ -3088,11 +3093,14 @@ export default function Cart() {
               <div className="flex items-center gap-1 mx-auto text-sm md:text-lg tracking-wide">
                 {isPlacingOrder
                   ? "Processing..."
-                  : !hasSavedAddress
-                    ? "Select Address"
-                    : !isDeliverable
-                      ? "Out of zone"
-                      : "Place Order"}
+                  : isCalculatingFee
+                    ? "Calculating Fee..."
+
+                    : !hasSavedAddress
+                      ? "Select Address"
+                      : !isDeliverable
+                        ? "Out of zone"
+                        : "Place Order"}
                 <div className="flex align-center h-full">
                   <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
                 </div>

@@ -1518,11 +1518,11 @@ const CheckoutPage = () => {
                   </div>
                   <div className="hidden lg:block">
                     {selectedPayment === "cash" ? (
-                      <button onClick={handlePlaceOrderSafe} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview || isDeliveryDistanceExceeded || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
-                        {isPlacingOrder ? "Placing Order..." : (storeLocation && distanceKm > serviceRadius) ? "Out of Delivery Zone" : `Place Order | ₹${totalAmount}`}
+                      <button onClick={handlePlaceOrderSafe} disabled={isPlacingOrder || isPreviewLoading || isEstimating || !pricingPreview || isDeliveryDistanceExceeded || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
+                        {isPlacingOrder ? "Placing Order..." : isEstimating ? "Calculating Fee..." : isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : `Place Order | ₹${totalAmount}`}
                       </button>
                     ) : (
-                      <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrderSafe} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Slide to Pay"} />
+                      <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrderSafe} isLoading={isPlacingOrder || isEstimating || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={isEstimating ? "Calculating Fee..." : isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Slide to Pay"} />
                     )}
                     <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-4 uppercase tracking-[0.1em]">🔒 SSL encrypted secure checkout</p>
                   </div>

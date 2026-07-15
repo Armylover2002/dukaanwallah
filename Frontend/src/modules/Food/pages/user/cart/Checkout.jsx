@@ -16,6 +16,7 @@ import { useOrders } from "@food/context/OrdersContext"
 import { restaurantAPI } from "@food/api"
 
 export default function Checkout() {
+  const [isCalculatingFee, setIsCalculatingFee] = useState(false);
   const navigate = useNavigate()
   const { cart, clearCart } = useCart()
   const { getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods } = useProfile()
@@ -60,7 +61,7 @@ export default function Checkout() {
         const response = await restaurantAPI.getCouponsByItemIdPublic(restaurantId, "")
         const list = response?.data?.data?.coupons || []
         setAvailableCoupons(list.map(c => {
-          const discountVal = c.discountPercentage 
+          const discountVal = c.discountPercentage
             ? Math.floor(subtotal * (Number(c.discountPercentage) / 100))
             : Number(c.originalPrice || 0);
 
@@ -235,8 +236,8 @@ export default function Checkout() {
                           <div
                             key={addressId || `${address.label}-${address.street}-${address.city}`}
                             className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${isSelected
-                                ? "border-[#FE5502] bg-red-50"
-                                : "border-gray-200 hover:border-red-300"
+                              ? "border-[#FE5502] bg-red-50"
+                              : "border-gray-200 hover:border-red-300"
                               }`}
                             onClick={() => {
                               setSelectedAddressId(addressId)
@@ -294,8 +295,8 @@ export default function Checkout() {
                           <div
                             key={payment.id}
                             className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${isSelected
-                                ? "border-[#FE5502] bg-red-50"
-                                : "border-gray-200 hover:border-red-300"
+                              ? "border-[#FE5502] bg-red-50"
+                              : "border-gray-200 hover:border-red-300"
                               }`}
                             onClick={() => setSelectedPayment(payment.id)}
                           >
