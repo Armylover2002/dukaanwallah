@@ -63,6 +63,7 @@ const categoryNode = (doc) => ({
   slug: doc.slug,
   type: doc.type || "header",
   parentId: doc.parentId || null,
+  adminCommission: doc.adminCommission || 0,
   children: [],
 });
 

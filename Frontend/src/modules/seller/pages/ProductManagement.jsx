@@ -1038,6 +1038,11 @@ const ProductManagement = () => {
                       icon: HiOutlineTag,
                     },
                     {
+                      id: "category",
+                      label: "Groups",
+                      icon: HiOutlineFolderOpen,
+                    },
+                    {
                       id: "pricing",
                       label: "Pricing & Stock",
                       icon: HiOutlineCurrencyDollar,
@@ -1046,11 +1051,6 @@ const ProductManagement = () => {
                       id: "variants",
                       label: "Item Variants",
                       icon: HiOutlineSwatch,
-                    },
-                    {
-                      id: "category",
-                      label: "Groups",
-                      icon: HiOutlineFolderOpen,
                     },
                     { id: "media", label: "Photos", icon: HiOutlinePhoto },
                   ].map((tab) => (
@@ -1198,10 +1198,13 @@ const ProductManagement = () => {
 
                   {modalTab === "pricing" && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-2 duration-300">
+                      <div className="bg-orange-50 text-orange-700 p-3 rounded-lg text-xs font-semibold border border-orange-100 flex items-center gap-2">
+                        Note: Please enter the product price including GST.
+                      </div>
                       <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-1.5 flex flex-col">
                           <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
-                            Price (₹)
+                            Price (Inclusive of GST) (₹)
                           </label>
                           <input
                             type="number"
@@ -1217,7 +1220,7 @@ const ProductManagement = () => {
                         </div>
                         <div className="space-y-1.5 flex flex-col">
                           <label className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest ml-1">
-                            Discounted Price (₹)
+                            Discounted Price (Inclusive of GST) (₹)
                           </label>
                           <input
                             type="number"
@@ -1286,7 +1289,7 @@ const ProductManagement = () => {
                             <option value="">Select Main Group</option>
                             {categories.map((h) => (
                               <option key={h._id || h.id} value={h._id || h.id}>
-                                {h.name}
+                                {h.name} {h.adminCommission !== undefined ? `(Commission: ${h.adminCommission}%)` : ""}
                               </option>
                             ))}
                           </select>
