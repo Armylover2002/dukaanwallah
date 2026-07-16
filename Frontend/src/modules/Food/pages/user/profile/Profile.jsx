@@ -326,7 +326,7 @@ export default function Profile() {
 
   const handleBecomeSellerSubmit = async (e) => {
     e.preventDefault();
-    if (!sellerForm.name || !sellerForm.shopName || !sellerForm.email || !sellerForm.phone || !sellerForm.zoneId || !sellerForm.address || !sellerForm.supportEmail || !sellerForm.openingTime || !sellerForm.closingTime) {
+    if (!sellerForm.name || !sellerForm.shopName || !sellerForm.email || !sellerForm.phone || !sellerForm.zoneId || !sellerForm.address || !sellerForm.openingTime || !sellerForm.closingTime) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -2097,8 +2097,8 @@ export default function Profile() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Support Email <span className="text-red-500">*</span></label>
-                <input required type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="support@email.com" value={sellerForm.supportEmail} onChange={e => setSellerForm({...sellerForm, supportEmail: e.target.value})} />
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Support Email</label>
+                <input type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="support@email.com" value={sellerForm.supportEmail} onChange={e => setSellerForm({...sellerForm, supportEmail: e.target.value})} />
               </div>
             </div>
 

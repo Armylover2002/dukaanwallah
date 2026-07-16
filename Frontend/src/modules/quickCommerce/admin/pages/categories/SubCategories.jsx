@@ -194,7 +194,8 @@ const SubCategories = () => {
       setDeleteTarget(null);
       fetchCategories();
     } catch (error) {
-      toast.error("Failed to delete subcategory");
+      const errorMsg = error.response?.data?.message || error.message || "Failed to delete subcategory";
+      toast.error(errorMsg);
     }
   };
 

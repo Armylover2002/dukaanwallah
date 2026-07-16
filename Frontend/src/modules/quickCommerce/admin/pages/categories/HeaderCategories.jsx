@@ -268,7 +268,8 @@ const HeaderCategories = () => {
       setDeleteTarget(null);
       fetchCategories(page);
     } catch (error) {
-      toast.error("Failed to delete category");
+      const errorMsg = error.response?.data?.message || error.message || "Failed to delete category";
+      toast.error(errorMsg);
     }
   };
 

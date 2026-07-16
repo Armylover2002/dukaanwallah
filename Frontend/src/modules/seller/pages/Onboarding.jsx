@@ -184,11 +184,7 @@ export default function SellerOnboarding() {
       toast.error("Service zone is required");
       return false;
     }
-    if (!form.supportEmail) {
-      toast.error("Support email is required");
-      return false;
-    }
-    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.supportEmail)) {
+    if (form.supportEmail && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.supportEmail)) {
       toast.error("Enter a valid support email address (e.g. support@example.com)");
       return false;
     }
@@ -988,9 +984,8 @@ export default function SellerOnboarding() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-900">Support email <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-slate-900">Support email</label>
                     <input
-                      required
                       maxLength={100}
                       className={`w-full rounded-2xl border px-4 py-3 font-medium outline-none focus:border-slate-900 ${form.supportEmail && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.supportEmail) ? "border-red-400 bg-red-50" : "border-slate-200"}`}
                       placeholder="Support email (e.g. support@example.com)"
