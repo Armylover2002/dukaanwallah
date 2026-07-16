@@ -104,8 +104,8 @@ export async function recordTransaction(payload) {
             ? currentBalance + amount
             : currentBalance - amount;
 
-        // Debit guard: prevent negative balance (except admin wallet which can go negative)
-        if (type === 'debit' && entityType !== 'admin' && newBalance < 0) {
+        // Debit guard: prevent negative balance (except admin wallet which can go negative or for penalties)
+        if (type === 'debit' && entityType !== 'admin' && newBalance < 0 && category !== 'penalty') {
             throw new Error(`Insufficient balance. Current: ${currentBalance}, Debit: ${amount}`);
         }
 

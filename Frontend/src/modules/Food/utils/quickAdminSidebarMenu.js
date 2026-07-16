@@ -65,9 +65,18 @@ export const quickAdminSidebarMenu = [
         ],
       },
 
-      { type: "link", label: "Seller Transactions", permissionKey: "wallet", path: "/admin/quick-commerce/seller-order-transactions", icon: "Receipt" },
-      { type: "link", label: "Money Requests", permissionKey: "withdrawals", path: "/admin/quick-commerce/withdrawals", icon: "CreditCard" },
-      { type: "link", label: "Seller Payments", permissionKey: "seller_payments", path: "/admin/quick-commerce/seller-transactions", icon: "Receipt" },
+      {
+        type: "expandable",
+        label: "Transaction Management",
+        permissionKey: "wallet",
+        icon: "Receipt",
+        subItems: [
+          { label: "Seller Transactions", path: "/admin/quick-commerce/seller-order-transactions", permissionKey: "wallet" },
+          { label: "Money Requests", path: "/admin/quick-commerce/withdrawals", permissionKey: "withdrawals" },
+          { label: "Seller Payments", path: "/admin/quick-commerce/seller-transactions", permissionKey: "seller_payments" },
+          { label: "Seller Penalty", path: "/admin/quick-commerce/seller-penalty", permissionKey: "seller_penalty" }
+        ]
+      },
       // { type: "link", label: "Customers", permissionKey: "customers", path: "/admin/quick-commerce/customers", icon: "Users" },
       // { type: "link", label: "FAQs", permissionKey: "faqs", path: "/admin/quick-commerce/faqs", icon: "MessageSquare" },
       { type: "link", label: "Return Orders", permissionKey: "return_orders", path: "/admin/quick-commerce/return-orders", icon: "RotateCcw" },

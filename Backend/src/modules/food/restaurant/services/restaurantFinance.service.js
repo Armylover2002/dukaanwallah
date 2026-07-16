@@ -6,6 +6,7 @@ import { FoodRestaurantWallet } from '../models/restaurantWallet.model.js';
 import { FoodRestaurantWithdrawal } from '../models/foodRestaurantWithdrawal.model.js';
 import { FoodDailyPass } from '../../subscriptions/models/foodDailyPass.model.js';
 import { FoodWalletLedger } from '../../subscriptions/models/foodWalletLedger.model.js';
+import { Transaction } from '../../../../core/payments/models/transaction.model.js';
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone.js';
 import utc from 'dayjs/plugin/utc.js';
@@ -160,7 +161,14 @@ export async function getRestaurantFinance(restaurantId, query = {}) {
         { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     const totalPendingWithdrawals = Number(pendingWithdrawalsAgg?.[0]?.total || 0);
-    const availableBalance = Math.max(0, globalEstimatedPayout + referralBalance - totalPendingWithdrawals);
+
+    const penaltyTxns = await Transaction.aggregate([
+        { $match: { entityType: 'restaurant', entityId: rid, category: 'penalty', type: 'debit', status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalPenalties = Number(penaltyTxns?.[0]?.total || 0);
+
+    const availableBalance = Math.max(0, globalEstimatedPayout + referralBalance - totalPendingWithdrawals - totalPenalties);
 
     const currentCycle = {
         start: { ...nowWindow.startMeta },

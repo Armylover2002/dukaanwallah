@@ -1935,3 +1935,42 @@ export const createActiveSeller = async (req, res, next) => {
   }
 };
 
+import { SellerTransaction } from '../seller/models/sellerTransaction.model.js';
+
+/**
+ * POST /admin/penalties/seller
+ * Body: { sellerId, amount, reason }
+ * Deducts amount from seller earnings by creating a negative Adjustment transaction.
+ */
+export const applySellerPenalty = async (req, res, next) => {
+  try {
+    const { sellerId, amount, reason } = req.body || {};
+    if (!mongoose.isValidObjectId(sellerId)) {
+      return res.status(400).json({ success: false, message: 'Invalid sellerId' });
+    }
+    const penaltyAmount = Number(amount);
+    if (!penaltyAmount || penaltyAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Amount must be a positive number' });
+    }
+    const seller = await Seller.findById(sellerId);
+    if (!seller) {
+      return res.status(404).json({ success: false, message: 'Seller not found' });
+    }
+
+    const txn = await SellerTransaction.create({
+      sellerId,
+      type: 'Adjustment',
+      amount: -Math.abs(penaltyAmount),
+      status: 'Settled',
+      reference: `PENALTY-${Date.now()}`,
+      reason: reason || 'Admin penalty',
+      adminNote: `Penalty applied by admin: ${reason || ''}`,
+      processedAt: new Date(),
+    });
+
+    return res.status(201).json({ success: true, message: 'Penalty applied successfully', result: txn });
+  } catch (error) {
+    next(error);
+  }
+};
+

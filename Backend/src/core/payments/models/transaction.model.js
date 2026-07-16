@@ -75,6 +75,7 @@ const transactionSchema = new mongoose.Schema(
                 'settlement_payout',
                 'referral_reward',
                 'adjustment',
+                'penalty',
                 'other'
             ],
             default: 'other'

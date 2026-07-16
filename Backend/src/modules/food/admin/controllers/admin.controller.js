@@ -1746,6 +1746,19 @@ export async function settleCODVerification(req, res, next) {
     }
 }
 
+export async function applyFoodPenalty(req, res, next) {
+    try {
+        const { targetType, targetId, amount, reason } = req.body;
+        if (!targetType || !['restaurant', 'deliveryPartner'].includes(targetType)) {
+            return res.status(400).json({ success: false, message: 'Invalid target type' });
+        }
+        if (!targetId || !amount || amount <= 0) {
+            return res.status(400).json({ success: false, message: 'Target ID and positive amount are required' });
+        }
 
-
-
+        const data = await adminService.applyFoodPenalty(req.body);
+        res.status(200).json({ success: true, message: 'Penalty applied successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}

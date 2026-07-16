@@ -5882,6 +5882,7 @@ export async function settleCODVerification(id, { action, adminNote, performer }
     }
 
     const updated = await FoodDeliveryCashDeposit.findByIdAndUpdate(
+
         id,
         { $set: updateFields },
         { new: true }
@@ -5892,6 +5893,17 @@ export async function settleCODVerification(id, { action, adminNote, performer }
     return updated;
 }
 
+export async function applyFoodPenalty({ targetType, targetId, amount, reason }) {
+    const entityType = targetType === 'restaurant' ? 'restaurant' : 'deliveryBoy';
+    
+    const { transaction } = await debitWallet({
+        entityType,
+        entityId: targetId,
+        amount,
+        description: reason || 'Penalty applied by admin',
+        category: 'penalty',
+        module: 'food'
+    });
 
-
-
+    return transaction;
+}

@@ -230,6 +230,9 @@ router.put('/pages-social-media/:key', checkPermission('food::pages_social_media
 router.get('/sidebar-badges', adminController.getSidebarBadges);
 router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifications);
 
+// ----- Penalties -----
+router.post('/penalties/apply', checkPermission('food::transaction_management::penalties', 'create'), adminController.applyFoodPenalty);
+
 // ----- Deleted Accounts -----
 router.get('/deleted-accounts', adminController.getDeletedAccounts);
 router.post('/deleted-accounts/:id/reactivate', adminController.reactivateAccount);

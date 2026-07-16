@@ -147,6 +147,7 @@ const AdminSignup = lazy(() => import("@food/pages/admin/auth/AdminSignup"));
 const AdminForgotPassword = lazy(() => import("@food/pages/admin/auth/AdminForgotPassword"));
 const QuickCommerceAdminRoutes = lazy(() => import("@/modules/quickCommerce/admin/routes"));
 
+const Penalties = lazy(() => import("@food/pages/admin/transactions/Penalties"));
 
 const GlobalApplicationSettings = lazy(() => import("@/modules/common/admin/pages/GlobalApplicationSettings"));
 const ModuleManagement = lazy(() => import("@/modules/common/admin/pages/ModuleManagement"));
@@ -344,6 +345,7 @@ export default function AdminRouter() {
             <Route path="withdraw-method" element={<WithdrawMethod />} />
             <Route path="onboarding-fee-management" element={<OnboardingFeeManagement />} />
             <Route path="onboarding-payments" element={<OnboardingPayments />} />
+            <Route path="penalties" element={<Penalties />} />
             
             <Route path="employee-role" element={<RoleList />} />
             <Route path="employee-role/create" element={<CreateRole />} />

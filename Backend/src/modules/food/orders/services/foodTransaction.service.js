@@ -1,4 +1,6 @@
 import { FoodTransaction } from '../models/foodTransaction.model.js';
+import { FoodRestaurantWallet } from '../../restaurant/models/restaurantWallet.model.js';
+import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.js';
 import { FoodDeliveryCommissionRule } from '../../admin/models/deliveryCommissionRule.model.js';
 import mongoose from 'mongoose';
 
@@ -202,6 +204,8 @@ export async function updateTransactionStatus(orderId, kind, details = {}) {
     const transaction = await FoodTransaction.findOne(query);
     if (!transaction) return null;
 
+    const oldStatus = transaction.status;
+
     if (details.status) transaction.status = details.status;
     if (details.razorpayPaymentId) transaction.gateway.razorpayPaymentId = details.razorpayPaymentId;
     if (details.razorpaySignature) transaction.gateway.razorpaySignature = details.razorpaySignature;
@@ -215,6 +219,39 @@ export async function updateTransactionStatus(orderId, kind, details = {}) {
     });
 
     await transaction.save();
+
+    const newStatus = transaction.status;
+    const isNowSuccess = (newStatus === 'captured' || newStatus === 'authorized');
+    const wasSuccess = (oldStatus === 'captured' || oldStatus === 'authorized');
+
+    if (!wasSuccess && isNowSuccess) {
+        if (transaction.restaurantId && transaction.amounts.restaurantShare > 0) {
+            await FoodRestaurantWallet.updateOne(
+                { restaurantId: transaction.restaurantId },
+                { $inc: { totalEarnings: transaction.amounts.restaurantShare } }
+            );
+        }
+        if (transaction.deliveryPartnerId && transaction.amounts.riderShare > 0) {
+            await FoodDeliveryWallet.updateOne(
+                { deliveryPartnerId: transaction.deliveryPartnerId },
+                { $inc: { totalEarnings: transaction.amounts.riderShare } }
+            );
+        }
+    } else if (wasSuccess && !isNowSuccess) {
+        if (transaction.restaurantId && transaction.amounts.restaurantShare > 0) {
+            await FoodRestaurantWallet.updateOne(
+                { restaurantId: transaction.restaurantId },
+                { $inc: { totalEarnings: -transaction.amounts.restaurantShare } }
+            );
+        }
+        if (transaction.deliveryPartnerId && transaction.amounts.riderShare > 0) {
+            await FoodDeliveryWallet.updateOne(
+                { deliveryPartnerId: transaction.deliveryPartnerId },
+                { $inc: { totalEarnings: -transaction.amounts.riderShare } }
+            );
+        }
+    }
+
     return transaction;
 }
 

@@ -47,6 +47,7 @@ const SellerCommission = React.lazy(() => import("../pages/SellerCommission"))
 const SellerCouponRequest = React.lazy(() => import("../pages/SellerCouponRequest"))
 const QuickZoneHubs = React.lazy(() => import("../pages/QuickZoneHubs"))
 const CODDepositVerification = React.lazy(() => import("../pages/CODDepositVerification"))
+const SellerPenalty = React.lazy(() => import("../pages/SellerPenalty"))
 
 
 
@@ -89,6 +90,7 @@ function QuickCommerceAdminRoutesInner() {
       <Route path="/seller-order-transactions" element={<SellerOrderTransactions />} />
       <Route path="/withdrawals" element={<WithdrawalRequests />} />
       <Route path="/seller-transactions" element={<SellerTransactions />} />
+      <Route path="/seller-penalty" element={<SellerPenalty />} />
       <Route path="/cash-collection" element={<CashCollection />} />
       <Route path="/customers" element={<CustomerManagement />} />
       <Route path="/customers/:id" element={<CustomerDetail />} />
