@@ -274,6 +274,17 @@ export default function HomeHeader({
       className={cn("relative transition-all duration-400 pb-0 border-none outline-none z-50 backdrop-blur-xl shadow-sm", isFood ? "bg-white/80 dark:bg-[#0a0a0a]/80" : "")}
       style={!isFood ? { backgroundColor: withAlpha(theme.accent, 0.85) } : undefined}
     >
+      {headerVideoUrl && isFood && (
+        <video
+          ref={videoRef}
+          src={headerVideoUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-[-1]"
+        />
+      )}
       {/* 1. Sticky Main Header Top Section */}
       <header
         className="px-4 py-3 transition-colors duration-300 outline-none bg-transparent"
