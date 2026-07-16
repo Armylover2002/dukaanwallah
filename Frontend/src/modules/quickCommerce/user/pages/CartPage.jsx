@@ -5,7 +5,9 @@ import {
   ArrowLeft,
   Banknote,
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   CreditCard,
   MapPin,
   Minus,
@@ -170,6 +172,7 @@ const CartPage = () => {
   const [activeTab, setActiveTab] = useState('Home');
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showCommissionBreakdown, setShowCommissionBreakdown] = useState(false);
 
   useEffect(() => {
     if (showClearConfirm) {
@@ -183,6 +186,7 @@ const CartPage = () => {
   }, [showClearConfirm]);
   const [quickBillingSettings, setQuickBillingSettings] = useState(DEFAULT_QUICK_BILLING_SETTINGS);
   const [categoryFeeMap, setCategoryFeeMap] = useState({});
+  const [categoryCommissionMap, setCategoryCommissionMap] = useState({});
   const [isUserCodAllowed, setIsUserCodAllowed] = useState(true);
   const [storeLocation, setStoreLocation] = useState(null);
   const [distanceKm, setDistanceKm] = useState(0);
@@ -354,15 +358,20 @@ const CartPage = () => {
       const results = categoriesResponse?.data?.results || categoriesResponse?.data?.result || [];
       if (Array.isArray(results)) {
         const nextFeeMap = {};
+        const nextCommMap = {};
         const visit = (items = []) => {
           items.forEach((item) => {
             const id = String(item?._id || item?.id || '').trim();
-            if (id) nextFeeMap[id] = Number(item?.handlingFees || 0);
+            if (id) {
+               nextFeeMap[id] = Number(item?.handlingFees || 0);
+               nextCommMap[id] = Number(item?.adminCommission || 0);
+            }
             if (Array.isArray(item?.children) && item.children.length > 0) visit(item.children);
           });
         };
         visit(results);
         setCategoryFeeMap(nextFeeMap);
+        setCategoryCommissionMap(nextCommMap);
       }
     }).catch((err) => console.error('Failed to load quick cart billing settings:', err));
 
@@ -679,9 +688,45 @@ const CartPage = () => {
               ['Platform fee', platformFee],
               ['GST', gstAmount],
             ].map(([label, value]) => (
-              <div key={label} className="flex items-center justify-between">
-                <span>{label}</span>
-                <span className="font-semibold text-slate-900">₹{value}</span>
+              <div key={label} className="flex flex-col space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    {label}
+                    {label === 'Items total' && (
+                      <button
+                        onClick={() => setShowCommissionBreakdown(!showCommissionBreakdown)}
+                        className="flex items-center text-[10px] text-[#0c831f] dark:text-emerald-400 font-semibold hover:bg-green-100 dark:hover:bg-emerald-900/50 bg-green-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded transition-colors"
+                      >
+                        (incl. of all taxes)
+                        {showCommissionBreakdown ? <ChevronUp size={12} className="ml-0.5" /> : <ChevronDown size={12} className="ml-0.5" />}
+                      </button>
+                    )}
+                  </span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-200">₹{value}</span>
+                </div>
+                {label === 'Items total' && showCommissionBreakdown && (
+                  <div className="mt-1 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-2.5 space-y-2 shadow-sm">
+                    {cart.map((item, idx) => {
+                      const cIds = [item?.headerId, item?.categoryId, item?.subcategoryId];
+                      let comm = item.adminCommission || item.commission;
+                      if (!comm) {
+                        for (const rawId of cIds) {
+                          const id = rawId && typeof rawId === 'object' && rawId._id ? String(rawId._id) : String(rawId || '').trim();
+                          if (id && categoryCommissionMap[id]) {
+                            comm = categoryCommissionMap[id];
+                            break;
+                          }
+                        }
+                      }
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                          <span className="truncate pr-3 w-[80%]">{item.name}</span>
+                          <span className="font-medium">{comm || 0}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
             <div className="border-t border-dashed border-slate-200 pt-3">

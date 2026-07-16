@@ -528,6 +528,17 @@ export const createCategory = async (req, res) => {
   const count = await QuickCategory.countDocuments({ slug: { $regex: `^${baseSlug}` } });
   const slug = count > 0 ? `${baseSlug}-${count + 1}` : baseSlug;
 
+  let finalAdminCommission = adminCommission !== undefined && adminCommission !== '' ? parseNumber(adminCommission, 0) : null;
+  let finalHandlingFees = handlingFees !== undefined && handlingFees !== '' ? parseNumber(handlingFees, 0) : null;
+
+  if (mongoose.isValidObjectId(parentId)) {
+    const parentCategory = await QuickCategory.findById(parentId);
+    if (parentCategory) {
+      if (finalAdminCommission === null) finalAdminCommission = parentCategory.adminCommission || 0;
+      if (finalHandlingFees === null) finalHandlingFees = parentCategory.handlingFees || 0;
+    }
+  }
+
   const category = await QuickCategory.create({
     name,
     slug,
@@ -535,18 +546,12 @@ export const createCategory = async (req, res) => {
     description: description || '',
     type: type || 'header',
     status: status || 'active',
-    approvalStatus:
-      type === 'subcategory'
-        ? (approvalStatus || 'pending')
-        : (approvalStatus || 'approved'),
-    approvedAt:
-      (type === 'subcategory' ? approvalStatus || 'pending' : approvalStatus || 'approved') === 'approved'
-        ? new Date()
-        : null,
+    approvalStatus: approvalStatus || 'approved',
+    approvedAt: (approvalStatus || 'approved') === 'approved' ? new Date() : null,
     parentId: mongoose.isValidObjectId(parentId) ? parentId : null,
     iconId: iconId || '',
-    adminCommission: parseNumber(adminCommission, 0),
-    handlingFees: parseNumber(handlingFees, 0),
+    adminCommission: finalAdminCommission ?? 0,
+    handlingFees: finalHandlingFees ?? 0,
     headerColor: headerColor || accentColor || '#0c831f',
     accentColor: accentColor || '#0c831f',
     sortOrder: Number(sortOrder || 0),
@@ -597,10 +602,29 @@ export const updateCategory = async (req, res) => {
   if (sortOrder !== undefined) category.sortOrder = parseNumber(sortOrder, 0);
   if (parentId !== undefined) category.parentId = mongoose.isValidObjectId(parentId) ? parentId : null;
   if (iconId !== undefined) category.iconId = iconId || '';
+
   if (adminCommission !== undefined) category.adminCommission = parseNumber(adminCommission, 0);
   if (handlingFees !== undefined) category.handlingFees = parseNumber(handlingFees, 0);
 
   await category.save();
+
+  // Unconditionally cascade current commission/fees to all descendants to ensure synchronization
+  const updates = {
+    adminCommission: category.adminCommission,
+    handlingFees: category.handlingFees,
+  };
+
+  const updateDescendants = async (parentCatId) => {
+    const children = await QuickCategory.find({ parentId: parentCatId });
+    if (children.length === 0) return;
+    const childIds = children.map((c) => c._id);
+    await QuickCategory.updateMany({ _id: { $in: childIds } }, { $set: updates });
+    for (const childId of childIds) {
+      await updateDescendants(childId);
+    }
+  };
+  await updateDescendants(category._id);
+
   return res.json({ success: true, result: toCategory(category) });
 };
 
