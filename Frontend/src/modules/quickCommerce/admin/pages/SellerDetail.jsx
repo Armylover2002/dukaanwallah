@@ -169,8 +169,12 @@ const SellerDetail = () => {
             <Card className="border-none p-6 shadow-xl ring-1 ring-slate-100">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                    <HiOutlineBuildingOffice2 className="h-8 w-8" />
+                  <div className="flex h-16 w-16 shrink-0 overflow-hidden items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                    {seller?.documents?.shopLicenseImage ? (
+                      <img src={seller.documents.shopLicenseImage} alt="Shop" className="h-full w-full object-cover" />
+                    ) : (
+                      <HiOutlineBuildingOffice2 className="h-8 w-8" />
+                    )}
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -240,6 +244,40 @@ const SellerDetail = () => {
                 <p className="mt-4 text-sm font-semibold text-slate-500">
                   No store verification documents were added yet.
                 </p>
+              )}
+
+              {(seller?.documents?.shopLicenseImage || seller?.bankInfo?.upiQrImage) && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-4">
+                    Uploaded Photos & Documents
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {seller?.documents?.shopLicenseImage && (
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold text-slate-600">Shop License Image</span>
+                        <a href={seller.documents.shopLicenseImage} target="_blank" rel="noopener noreferrer" className="block w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-opacity hover:opacity-90">
+                          <img 
+                            src={seller.documents.shopLicenseImage} 
+                            alt="Shop License" 
+                            className="w-full h-auto max-h-[300px] object-contain bg-slate-50"
+                          />
+                        </a>
+                      </div>
+                    )}
+                    {seller?.bankInfo?.upiQrImage && (
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold text-slate-600">UPI QR Code</span>
+                        <a href={seller.bankInfo.upiQrImage} target="_blank" rel="noopener noreferrer" className="block w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-opacity hover:opacity-90">
+                          <img 
+                            src={seller.bankInfo.upiQrImage} 
+                            alt="UPI QR Code" 
+                            className="w-full h-auto max-h-[300px] object-contain bg-slate-50"
+                          />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </Card>
           </div>
