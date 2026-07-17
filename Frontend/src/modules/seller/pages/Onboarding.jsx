@@ -1100,7 +1100,7 @@ export default function SellerOnboarding() {
                     <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
                       <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 mb-2">Or enter address manually</p>
                       <p className="text-xs text-slate-500 mb-3">Type your full address, pincode, or city+state — we'll find it on the map for you.</p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="text"
                           className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-orange-400 transition"
@@ -1113,7 +1113,7 @@ export default function SellerOnboarding() {
                           type="button"
                           onClick={handleManualAddressGeocode}
                           disabled={isGeocodingManual}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95 whitespace-nowrap"
+                          className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95 whitespace-nowrap"
                         >
                           {isGeocodingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
                           {isGeocodingManual ? "Searching..." : "Find"}
@@ -1244,7 +1244,7 @@ export default function SellerOnboarding() {
                       onClick={() => setIsQrPickerOpen(true)}
                       className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
                     >
-                      <span className="truncate max-w-[200px]">{qrFile?.name || "Upload UPI QR image"}</span>
+                      <span className="truncate max-w-[150px] sm:max-w-[200px]">{qrFile?.name || "Upload UPI QR image"}</span>
                       <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
                         <Upload className="h-3.5 w-3.5" />
                         Choose
@@ -1382,7 +1382,7 @@ export default function SellerOnboarding() {
                       onClick={() => setIsLicensePickerOpen(true)}
                       className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700"
                     >
-                      <span className="truncate max-w-[200px]">{licenseFile?.name || "Upload shop license image"}</span>
+                      <span className="truncate max-w-[150px] sm:max-w-[200px]">{licenseFile?.name || "Upload shop license image"}</span>
                       <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-orange-500 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white">
                         <Upload className="h-3.5 w-3.5" />
                         Choose
@@ -1419,12 +1419,12 @@ export default function SellerOnboarding() {
                 Step {currentStep} of 3. Ensure all fields marked with * are filled correctly before proceeding.
               </p>
 
-              <div className="flex items-center justify-between gap-3 w-full">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 w-full">
                 {currentStep > 1 ? (
                   <button
                     type="button"
                     onClick={() => setCurrentStep((prev) => prev - 1)}
-                    className="inline-flex items-center justify-center rounded-2xl bg-slate-100 px-6 py-4 text-xs font-black uppercase tracking-[0.22em] text-slate-700 transition hover:bg-slate-200 active:scale-95"
+                    className="inline-flex w-full sm:w-auto items-center justify-center rounded-2xl bg-slate-100 px-6 py-4 text-xs font-black uppercase tracking-[0.22em] text-slate-700 transition hover:bg-slate-200 active:scale-95"
                   >
                     Back
                   </button>
@@ -1442,7 +1442,7 @@ export default function SellerOnboarding() {
                         setCurrentStep(3);
                       }
                     }}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-4 text-xs font-black uppercase tracking-[0.22em] text-white transition hover:bg-orange-600 active:scale-95 shadow-md shadow-orange-100"
+                    className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-4 text-xs font-black uppercase tracking-[0.22em] text-white transition hover:bg-orange-600 active:scale-95 shadow-md shadow-orange-100"
                   >
                     Next Step
                     <ArrowRight className="h-4 w-4" />
@@ -1451,7 +1451,7 @@ export default function SellerOnboarding() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-4 text-xs font-black uppercase tracking-[0.22em] text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70 active:scale-95 shadow-md shadow-orange-100"
+                    className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-4 text-xs font-black uppercase tracking-[0.22em] text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70 active:scale-95 shadow-md shadow-orange-100"
                   >
                     {isSubmitting ? "Submitting..." : "Submit for approval"}
                     {!isSubmitting && <ArrowRight className="h-4 w-4" />}
