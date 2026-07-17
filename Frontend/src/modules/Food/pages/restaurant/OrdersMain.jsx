@@ -3111,7 +3111,7 @@ const OrderCard = memo(function OrderCard({
           </div>
 
           {/* Bottom row */}
-          <div className="mt-2 flex items-end justify-between gap-2">
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-y-2 gap-x-2">
             <div className="flex flex-col gap-1">
               <p className="text-[11px] text-gray-500">
                 {type}
