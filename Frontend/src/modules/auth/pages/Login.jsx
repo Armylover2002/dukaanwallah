@@ -52,6 +52,7 @@ export default function UnifiedOTPFastLogin() {
   const [mobileError, setMobileError] = useState("")
   const [logoUrl, setLogoUrl] = useState(() => getAppLogo('user'))
   const [companyName, setCompanyName] = useState(() => getCompanyName())
+  const [supportEmail, setSupportEmail] = useState(() => getCachedSettings()?.email || "admin@dukaanwallah.com")
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -63,6 +64,7 @@ export default function UnifiedOTPFastLogin() {
         if (settings) {
           setLogoUrl(getAppLogo('user'))
           setCompanyName(getCompanyName())
+          if (settings.email) setSupportEmail(settings.email)
         }
       } catch (error) { }
     }
@@ -678,6 +680,16 @@ export default function UnifiedOTPFastLogin() {
             By continuing, you agree to our <br />
             <Link to="/food/user/profile/terms" className="text-gray-900 dark:text-white underline cursor-pointer hover:text-primary-orange transition-colors">Terms & Service</Link> & <Link to="/food/user/profile/privacy" className="text-gray-900 dark:text-white underline cursor-pointer hover:text-primary-orange transition-colors">Privacy Policy</Link>
           </p>
+          {/* Naya Contact Support Section */}
+          <div className="mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Need help? Contact support at{" "}
+              <a href={`mailto:${supportEmail}`} className="font-semibold text-orange-500 hover:text-orange-600 transition-colors">
+                {supportEmail}
+              </a>
+            </p>
+          </div>
+
         </div>
       </div>
     </div>

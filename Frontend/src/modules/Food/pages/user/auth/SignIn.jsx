@@ -239,6 +239,16 @@ export default function SignIn() {
                 Content Policy
               </Link>
             </div>
+            {/* Naya Contact Support Section */}
+            <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <p>
+                Need help? Contact support at{" "}
+                <a href="mailto:[EMAIL_ADDRESS]" className="font-semibold text-orange-500 hover:text-orange-600 transition-colors">
+                  admin@dukaanwallah.com
+                </a>
+              </p>
+            </div>
+
           </div>
         </div>
       </div>
