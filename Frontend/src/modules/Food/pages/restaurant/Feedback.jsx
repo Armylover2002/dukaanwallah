@@ -84,6 +84,7 @@ export default function Feedback() {
   })
   const [isFilterLoading, setIsFilterLoading] = useState(false)
   const [displayedReviews, setDisplayedReviews] = useState([])
+  const [reviewSearchQuery, setReviewSearchQuery] = useState("")
   
   const [isComplaintsFilterOpen, setIsComplaintsFilterOpen] = useState(false)
   const [selectedComplaintsFilterCategory, setSelectedComplaintsFilterCategory] = useState("issueType")
@@ -288,6 +289,16 @@ export default function Feedback() {
 
   useEffect(() => {
     let filtered = [...reviews]
+
+    if (reviewSearchQuery) {
+      const query = reviewSearchQuery.toLowerCase()
+      filtered = filtered.filter(review => 
+        review.userName?.toLowerCase().includes(query) ||
+        review.reviewText?.toLowerCase().includes(query) ||
+        review.orderNumber?.toLowerCase().includes(query)
+      )
+    }
+
     if (filterValues.sortBy) {
       filtered.sort((a, b) => {
         const dateA = new Date(a.date); const dateB = new Date(b.date)
@@ -299,7 +310,7 @@ export default function Feedback() {
       })
     }
     setDisplayedReviews(filtered)
-  }, [reviews, filterValues])
+  }, [reviews, filterValues, reviewSearchQuery])
 
   const handleFilterReset = () => { setFilterValues({ duration: null, sortBy: "newest", reviewType: [] }); setIsFilterApply() }
   const handleFilterApply = () => { setIsFilterLoading(true); setIsFilterOpen(false); setTimeout(() => setIsFilterLoading(false), 200) }
@@ -503,7 +514,13 @@ export default function Feedback() {
             <div className="flex gap-2">
               <div className="flex-1 bg-white p-3 rounded-xl border border-gray-200 flex items-center gap-2">
                 <Search className="w-4 h-4 text-gray-400" />
-                <input type="text" placeholder="Search reviews" className="flex-1 text-sm bg-transparent focus:outline-none" />
+                <input 
+                  type="text" 
+                  placeholder="Search reviews" 
+                  className="flex-1 text-sm bg-transparent focus:outline-none" 
+                  value={reviewSearchQuery}
+                  onChange={(e) => setReviewSearchQuery(e.target.value)}
+                />
               </div>
               <button onClick={() => setIsFilterOpen(true)} className="bg-white p-3 rounded-xl border border-gray-200">
                 <SlidersHorizontal className="w-4 h-4 text-gray-900" />

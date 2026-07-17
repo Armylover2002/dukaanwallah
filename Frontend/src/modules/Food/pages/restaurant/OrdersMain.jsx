@@ -123,7 +123,7 @@ const transformOrderForList = (order) => ({
 });
 
 // Completed Orders List Component
-function CompletedOrders({ onSelectOrder, refreshToken = 0 }) {
+function CompletedOrders({ onSelectOrder, refreshToken = 0, searchQuery }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -225,7 +225,12 @@ function CompletedOrders({ onSelectOrder, refreshToken = 0 }) {
         </div>
       ) : (
         <div>
-          {orders.map((order) => {
+          {orders
+            .filter((order) => {
+              if (!searchQuery) return true;
+              return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
+            })
+            .map((order) => {
             const deliveredDate = order.deliveredAt
               ? new Date(order.deliveredAt).toLocaleDateString("en-US", {
                 month: "short",
@@ -327,7 +332,7 @@ function CompletedOrders({ onSelectOrder, refreshToken = 0 }) {
 }
 
 // Cancelled Orders List Component
-function CancelledOrders({ onSelectOrder, refreshToken = 0 }) {
+function CancelledOrders({ onSelectOrder, refreshToken = 0, searchQuery }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -432,7 +437,12 @@ function CancelledOrders({ onSelectOrder, refreshToken = 0 }) {
         </div>
       ) : (
         <div>
-          {orders.map((order) => {
+          {orders
+            .filter((order) => {
+              if (!searchQuery) return true;
+              return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
+            })
+            .map((order) => {
             const cancelledDate = order.cancelledAt
               ? new Date(order.cancelledAt).toLocaleDateString("en-US", {
                 month: "short",
@@ -721,7 +731,7 @@ function TableBookings() {
   );
 }
 
-function AllOrders({ onSelectOrder, onCancel }) {
+function AllOrders({ onSelectOrder, onCancel, searchQuery }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -841,7 +851,12 @@ function AllOrders({ onSelectOrder, onCancel }) {
         </div>
       ) : (
         <div>
-          {orders.map((order) => {
+          {orders
+            .filter((order) => {
+              if (!searchQuery) return true;
+              return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
+            })
+            .map((order) => {
             const normalizedStatus = String(order.status || "").toLowerCase();
             let etaDisplay = order.eta;
 
@@ -907,6 +922,7 @@ export default function OrdersMain() {
 
   // no sound 
   const [playPopupSound, setPlayPopupSound] = useState(false); // NAYI LINE
+  const [searchQuery, setSearchQuery] = useState(""); // <-- NAYA STATE
 
   // New order popup states
   const [showNewOrderPopup, setShowNewOrderPopup] = useState(false);
@@ -1984,6 +2000,7 @@ export default function OrdersMain() {
           <AllOrders
             onSelectOrder={handleSelectOrder}
             onCancel={handleCancelClick}
+            searchQuery={searchQuery}
           />
         );
       case "preparing":
@@ -1993,6 +2010,7 @@ export default function OrdersMain() {
             onCancel={handleCancelClick}
             refreshToken={ordersRefreshToken}
             onStatusChanged={requestOrdersRefresh}
+            searchQuery={searchQuery}
           />
         );
       case "ready":
@@ -2000,6 +2018,7 @@ export default function OrdersMain() {
           <ReadyOrders
             onSelectOrder={handleSelectOrder}
             refreshToken={ordersRefreshToken}
+            searchQuery={searchQuery}
           />
         );
       case "out-for-delivery":
@@ -2007,6 +2026,7 @@ export default function OrdersMain() {
           <OutForDeliveryOrders
             onSelectOrder={handleSelectOrder}
             refreshToken={ordersRefreshToken}
+            searchQuery={searchQuery}
           />
         );
       case "scheduled":
@@ -2014,6 +2034,7 @@ export default function OrdersMain() {
           <ScheduledOrders
             onSelectOrder={handleSelectOrder}
             refreshToken={ordersRefreshToken}
+            searchQuery={searchQuery}
           />
         );
       case "completed":
@@ -2021,6 +2042,7 @@ export default function OrdersMain() {
           <CompletedOrders
             onSelectOrder={handleSelectOrder}
             refreshToken={ordersRefreshToken}
+            searchQuery={searchQuery}
           />
         );
       case "table-booking":
@@ -2030,6 +2052,7 @@ export default function OrdersMain() {
           <CancelledOrders
             onSelectOrder={handleSelectOrder}
             refreshToken={ordersRefreshToken}
+            searchQuery={searchQuery}
           />
         );
       default:
@@ -2045,7 +2068,7 @@ export default function OrdersMain() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Restaurant Navbar - Sticky at top */}
       <div className="sticky top-0 z-50 bg-white">
-        <RestaurantNavbar showNotifications={true} />
+        <RestaurantNavbar showNotifications={true} onSearch={setSearchQuery} />
       </div>
 
       {/* Top Filter Bar - Sticky below navbar */}
@@ -3181,6 +3204,7 @@ function PreparingOrders({
   onCancel,
   refreshToken = 0,
   onStatusChanged,
+  searchQuery,
 }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3440,7 +3464,12 @@ function PreparingOrders({
         </div>
       ) : (
         <div>
-          {orders.map((order) => {
+          {orders
+            .filter((order) => {
+              if (!searchQuery) return true;
+              return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
+            })
+            .map((order) => {
             // Calculate remaining ETA (countdown)
             const elapsedMs = currentTime - order.preparingTimestamp;
             const elapsedMinutes = Math.floor(elapsedMs / 60000);
@@ -3498,7 +3527,7 @@ function PreparingOrders({
 }
 
 // Ready Orders List
-function ReadyOrders({ onSelectOrder, refreshToken = 0 }) {
+function ReadyOrders({ onSelectOrder, refreshToken = 0, searchQuery }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -3599,7 +3628,12 @@ function ReadyOrders({ onSelectOrder, refreshToken = 0 }) {
         </div>
       ) : (
         <div>
-          {orders.map((order) => (
+          {orders
+            .filter((order) => {
+              if (!searchQuery) return true;
+              return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
+            })
+            .map((order) => (
             <OrderCard
               key={order.orderId || order.mongoId}
               {...order}
@@ -3613,7 +3647,7 @@ function ReadyOrders({ onSelectOrder, refreshToken = 0 }) {
 }
 
 // Out for Delivery Orders List
-const OutForDeliveryOrders = ({ onSelectOrder, refreshToken = 0 }) => {
+const OutForDeliveryOrders = ({ onSelectOrder, refreshToken = 0, searchQuery }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -3714,7 +3748,12 @@ const OutForDeliveryOrders = ({ onSelectOrder, refreshToken = 0 }) => {
         </div>
       ) : (
         <div>
-          {orders.map((order) => (
+          {orders
+            .filter((order) => {
+              if (!searchQuery) return true;
+              return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
+            })
+            .map((order) => (
             <OrderCard
               key={order.orderId || order.mongoId}
               {...order}
@@ -3728,7 +3767,7 @@ const OutForDeliveryOrders = ({ onSelectOrder, refreshToken = 0 }) => {
 };
 
 // Scheduled Orders List
-function ScheduledOrders({ onSelectOrder, refreshToken = 0 }) {
+function ScheduledOrders({ onSelectOrder, refreshToken = 0, searchQuery }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -3810,7 +3849,12 @@ function ScheduledOrders({ onSelectOrder, refreshToken = 0 }) {
         </div>
       ) : (
         <div>
-          {orders.map((order) => {
+          {orders
+            .filter((order) => {
+              if (!searchQuery) return true;
+              return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
+            })
+            .map((order) => {
             const scheduledTime = new Date(order.scheduledAt).toLocaleString("en-US", {
               day: "numeric",
               month: "short",

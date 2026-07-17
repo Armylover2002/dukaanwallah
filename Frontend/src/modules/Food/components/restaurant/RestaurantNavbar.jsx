@@ -31,6 +31,7 @@ export default function RestaurantNavbar({
   showSearch = true,
   showOfflineOnlineTag = true,
   showNotifications = true,
+  onSearch,
 }) {
   const navigate = useNavigate()
   const [isSearchActive, setIsSearchActive] = useState(false)
@@ -291,6 +292,8 @@ export default function RestaurantNavbar({
 
   const handleSearchClick = () => {
     setIsSearchActive(true)
+    setSearchValue("")
+    if (onSearch) onSearch("")
   }
 
   const handleSearchClose = () => {
@@ -300,6 +303,7 @@ export default function RestaurantNavbar({
 
   const handleSearchChange = (e) => {
     setSearchValue(e.target.value)
+    if (onSearch) onSearch(e.target.value)
   }
 
   const handleMenuClick = () => {
@@ -371,8 +375,8 @@ export default function RestaurantNavbar({
           <button
             onClick={handleStatusClick}
             className={`flex items-center gap-1.5 px-2 py-1 border rounded-full hover:opacity-80 transition-all ${status === "Online"
-                ? "bg-[#FE5502]/10 border-[#FE5502]/30"
-                : "bg-gray-100 border-gray-300"
+              ? "bg-[#FE5502]/10 border-[#FE5502]/30"
+              : "bg-gray-100 border-gray-300"
               }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${status === "Online" ? "bg-[#FE5502]" : "bg-gray-500"
