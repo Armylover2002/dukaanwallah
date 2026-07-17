@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import { adminApi } from '../services/adminApi';
+import AdminSellerEditModal from '../components/AdminSellerEditModal';
 
 const formatDate = (value) => {
   if (!value) return 'N/A';
@@ -43,6 +44,7 @@ const SellerDetail = () => {
   const navigate = useNavigate();
   const [seller, setSeller] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const loadSeller = async () => {
     setIsLoading(true);
@@ -76,14 +78,23 @@ const SellerDetail = () => {
   }, [id]);
 
   const documentItems = useMemo(() => {
-    if (!seller?.documents) return [];
-
     return [
-      { label: 'GST Number', value: seller.documents.gstNumber },
-      { label: 'PAN Number', value: seller.documents.panNumber },
-      { label: 'FSSAI Number', value: seller.documents.fssaiNumber },
-      { label: 'Shop License', value: seller.documents.shopLicenseNumber },
-    ].filter((item) => item.value);
+      { label: 'GST Number', value: seller?.documents?.gstNumber },
+      { label: 'PAN Number', value: seller?.documents?.panNumber },
+      { label: 'FSSAI Number', value: seller?.documents?.fssaiNumber },
+      { label: 'Shop License', value: seller?.documents?.shopLicenseNumber },
+    ];
+  }, [seller]);
+
+  const bankItems = useMemo(() => {
+    return [
+      { label: 'Bank Name', value: seller?.bankInfo?.bankName },
+      { label: 'Account Name', value: seller?.bankInfo?.accountHolderName },
+      { label: 'Account No', value: seller?.bankInfo?.accountNumber },
+      { label: 'IFSC Code', value: seller?.bankInfo?.ifscCode },
+      { label: 'Account Type', value: seller?.bankInfo?.accountType },
+      { label: 'UPI ID', value: seller?.bankInfo?.upiId },
+    ];
   }, [seller]);
 
   const detailCards = useMemo(() => {
@@ -132,14 +143,23 @@ const SellerDetail = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={loadSeller}
-          className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.22em] text-white"
-        >
-          <HiOutlineArrowPath className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsEditModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 hover:bg-orange-600 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.22em] text-white transition-colors"
+          >
+            Edit Details
+          </button>
+          <button
+            type="button"
+            onClick={loadSeller}
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.22em] text-white"
+          >
+            <HiOutlineArrowPath className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -236,7 +256,7 @@ const SellerDetail = () => {
                       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
                         {doc.label}
                       </p>
-                      <p className="mt-1 break-all text-sm font-bold text-slate-800">{doc.value}</p>
+                      <p className="mt-1 break-all text-sm font-bold text-slate-800">{infoValue(doc.value)}</p>
                     </div>
                   ))}
                 </div>
@@ -245,6 +265,20 @@ const SellerDetail = () => {
                   No store verification documents were added yet.
                 </p>
               )}
+
+              <div className="mt-6 border-t border-slate-100 pt-6">
+                <h3 className="text-lg font-black text-slate-900 mb-5">Bank details</h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {bankItems.map((bank) => (
+                    <div key={bank.label} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                        {bank.label}
+                      </p>
+                      <p className="mt-1 break-all text-sm font-bold text-slate-800">{infoValue(bank.value)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               {(seller?.documents?.shopLicenseImage || seller?.bankInfo?.upiQrImage) && (
                 <div className="mt-6 border-t border-slate-100 pt-6">
@@ -359,6 +393,15 @@ const SellerDetail = () => {
             </Card>
           </div>
         </div>
+      )}
+
+      {isEditModalOpen && (
+        <AdminSellerEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          seller={seller}
+          onSuccess={loadSeller}
+        />
       )}
     </div>
   );

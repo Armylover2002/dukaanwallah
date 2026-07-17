@@ -377,6 +377,10 @@ export const adminApi = {
     const response = await axiosInstance.put(`/quick-commerce/admin/sellers/${id}/toggle-status`, { isActive });
     return response.data;
   },
+  updateActiveSeller: async (id, data) => {
+    const response = await axiosInstance.put(`/quick-commerce/admin/sellers/${id}`, data);
+    return response.data;
+  },
   getSellerRequests: (params) => axiosInstance.get('/quick-commerce/admin/seller-requests', { params }),
   createActiveSeller: (formData) => axiosInstance.post('/quick-commerce/admin/create-active-seller', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }

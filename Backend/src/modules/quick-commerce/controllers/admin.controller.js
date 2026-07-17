@@ -2014,3 +2014,30 @@ export const getSellerPenalties = async (req, res, next) => {
   }
 };
 
+export const updateActiveSeller = async (req, res, next) => {
+  try {
+    const { sellerId } = req.params;
+    const updateData = req.body;
+
+    delete updateData._id; // prevent _id overwrite
+    
+    const seller = await Seller.findByIdAndUpdate(
+      sellerId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!seller) {
+      return res.status(404).json({ success: false, message: 'Seller not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Seller updated successfully',
+      result: seller
+    });
+  } catch (error) {
+    console.error('Error in updateActiveSeller:', error);
+    res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+  }
+};
