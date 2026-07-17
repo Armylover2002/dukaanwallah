@@ -231,100 +231,100 @@ function CompletedOrders({ onSelectOrder, refreshToken = 0, searchQuery }) {
               return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
             })
             .map((order) => {
-            const deliveredDate = order.deliveredAt
-              ? new Date(order.deliveredAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-              : "N/A";
+              const deliveredDate = order.deliveredAt
+                ? new Date(order.deliveredAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : "N/A";
 
-            return (
-              <div
-                key={order.orderId || order.mongoId}
-                className="w-full bg-white rounded-2xl p-4 mb-3 border border-gray-200">
-                <button
-                  type="button"
-                  onClick={() =>
-                    onSelectOrder?.({
-                      orderId: order.orderId,
-                      status: "Delivered",
-                      customerName: order.customerName,
-                      type: order.type,
-                      tableOrToken: order.tableOrToken,
-                      timePlaced: deliveredDate,
-                      itemsSummary: order.itemsSummary,
-                      paymentMethod: order.paymentMethod,
-                    })
-                  }
-                  className="w-full text-left flex gap-3 items-stretch">
-                  <div className="h-20 w-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0 my-auto">
-                    {order.photoUrl ? (
-                      <img
-                        src={order.photoUrl}
-                        alt={order.photoAlt}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
-                        <span className="text-[11px] font-medium text-gray-500 text-center leading-tight">
-                          {order.photoAlt}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 flex flex-col justify-between min-h-[80px]">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-black leading-tight">
-                          Order #{order.orderId}
-                        </p>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          {order.customerName}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border border-[#FE5502]/40 text-[#FE5502]">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#FE5502]" />
-                          Delivered
-                        </span>
-                        <span className="text-[11px] text-gray-500 text-right">
-                          {deliveredDate}
-                        </span>
-                      </div>
+              return (
+                <div
+                  key={order.orderId || order.mongoId}
+                  className="w-full bg-white rounded-2xl p-4 mb-3 border border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onSelectOrder?.({
+                        orderId: order.orderId,
+                        status: "Delivered",
+                        customerName: order.customerName,
+                        type: order.type,
+                        tableOrToken: order.tableOrToken,
+                        timePlaced: deliveredDate,
+                        itemsSummary: order.itemsSummary,
+                        paymentMethod: order.paymentMethod,
+                      })
+                    }
+                    className="w-full text-left flex gap-3 items-stretch">
+                    <div className="h-20 w-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0 my-auto">
+                      {order.photoUrl ? (
+                        <img
+                          src={order.photoUrl}
+                          alt={order.photoAlt}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
+                          <span className="text-[11px] font-medium text-gray-500 text-center leading-tight">
+                            {order.photoAlt}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-600 line-clamp-1">
-                        {order.itemsSummary}
-                      </p>
-                    </div>
+                    <div className="flex-1 flex flex-col justify-between min-h-[80px]">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-black leading-tight">
+                            Order #{order.orderId}
+                          </p>
+                          <p className="text-[11px] text-gray-500 mt-1">
+                            {order.customerName}
+                          </p>
+                        </div>
 
-                    <div className="mt-2 flex items-end justify-between gap-2">
-                      <div className="flex flex-col gap-1">
-                        <p className="text-[11px] text-gray-500">
-                          {order.type}
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border border-[#FE5502]/40 text-[#FE5502]">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#FE5502]" />
+                            Delivered
+                          </span>
+                          <span className="text-[11px] text-gray-500 text-right">
+                            {deliveredDate}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-600 line-clamp-1">
+                          {order.itemsSummary}
                         </p>
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[11px] text-gray-500">
-                          Amount
-                        </span>
-                        <span className="text-xs font-medium text-black">
-                          ₹{order.amount.toFixed(2)}
-                        </span>
+
+                      <div className="mt-2 flex items-end justify-between gap-2">
+                        <div className="flex flex-col gap-1">
+                          <p className="text-[11px] text-gray-500">
+                            {order.type}
+                          </p>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-[11px] text-gray-500">
+                            Amount
+                          </span>
+                          <span className="text-xs font-medium text-black">
+                            ₹{order.amount.toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              </div>
-            );
-          })}
+                  </button>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>
@@ -443,121 +443,121 @@ function CancelledOrders({ onSelectOrder, refreshToken = 0, searchQuery }) {
               return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
             })
             .map((order) => {
-            const cancelledDate = order.cancelledAt
-              ? new Date(order.cancelledAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-              : "N/A";
+              const cancelledDate = order.cancelledAt
+                ? new Date(order.cancelledAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : "N/A";
 
-            const cancelledByText =
-              order.cancelledBy === "user"
-                ? "Cancelled by User"
-                : order.cancelledBy === "restaurant"
-                  ? "Cancelled by Restaurant"
-                  : "Cancelled";
+              const cancelledByText =
+                order.cancelledBy === "user"
+                  ? "Cancelled by User"
+                  : order.cancelledBy === "restaurant"
+                    ? "Cancelled by Restaurant"
+                    : "Cancelled";
 
-            return (
-              <div
-                key={order.orderId || order.mongoId}
-                className="w-full bg-white rounded-2xl p-4 mb-3 border border-gray-200">
-                <button
-                  type="button"
-                  onClick={() =>
-                    onSelectOrder?.({
-                      orderId: order.orderId,
-                      status: "Cancelled",
-                      customerName: order.customerName,
-                      type: order.type,
-                      tableOrToken: order.tableOrToken,
-                      timePlaced: cancelledDate,
-                      itemsSummary: order.itemsSummary,
-                      paymentMethod: order.paymentMethod,
-                    })
-                  }
-                  className="w-full text-left flex gap-3 items-stretch">
-                  <div className="h-20 w-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0 my-auto">
-                    {order.photoUrl ? (
-                      <img
-                        src={order.photoUrl}
-                        alt={order.photoAlt}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
-                        <span className="text-[11px] font-medium text-gray-500 text-center leading-tight">
-                          {order.photoAlt}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 flex flex-col justify-between min-h-[80px]">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-black leading-tight">
-                          Order #{order.orderId}
-                        </p>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          {order.customerName}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border ${order.cancelledBy === "user"
-                            ? "border-orange-500 text-orange-600"
-                            : "border-red-500 text-red-600"
-                            }`}>
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${order.cancelledBy === "user"
-                              ? "bg-orange-500"
-                              : "bg-red-500"
-                              }`}
-                          />
-                          {cancelledByText}
-                        </span>
-                        <span className="text-[11px] text-gray-500 text-right">
-                          {cancelledDate}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-600 line-clamp-1">
-                        {order.itemsSummary}
-                      </p>
-                      {order.cancellationReason && (
-                        <p className="text-[10px] text-red-600 mt-1 line-clamp-1">
-                          Reason: {order.cancellationReason}
-                        </p>
+              return (
+                <div
+                  key={order.orderId || order.mongoId}
+                  className="w-full bg-white rounded-2xl p-4 mb-3 border border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onSelectOrder?.({
+                        orderId: order.orderId,
+                        status: "Cancelled",
+                        customerName: order.customerName,
+                        type: order.type,
+                        tableOrToken: order.tableOrToken,
+                        timePlaced: cancelledDate,
+                        itemsSummary: order.itemsSummary,
+                        paymentMethod: order.paymentMethod,
+                      })
+                    }
+                    className="w-full text-left flex gap-3 items-stretch">
+                    <div className="h-20 w-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0 my-auto">
+                      {order.photoUrl ? (
+                        <img
+                          src={order.photoUrl}
+                          alt={order.photoAlt}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-2">
+                          <span className="text-[11px] font-medium text-gray-500 text-center leading-tight">
+                            {order.photoAlt}
+                          </span>
+                        </div>
                       )}
                     </div>
 
-                    <div className="mt-2 flex items-end justify-between gap-2">
-                      <div className="flex flex-col gap-1">
-                        <p className="text-[11px] text-gray-500">
-                          {order.type}
-                        </p>
+                    <div className="flex-1 flex flex-col justify-between min-h-[80px]">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-black leading-tight">
+                            Order #{order.orderId}
+                          </p>
+                          <p className="text-[11px] text-gray-500 mt-1">
+                            {order.customerName}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border ${order.cancelledBy === "user"
+                              ? "border-orange-500 text-orange-600"
+                              : "border-red-500 text-red-600"
+                              }`}>
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${order.cancelledBy === "user"
+                                ? "bg-orange-500"
+                                : "bg-red-500"
+                                }`}
+                            />
+                            {cancelledByText}
+                          </span>
+                          <span className="text-[11px] text-gray-500 text-right">
+                            {cancelledDate}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[11px] text-gray-500">
-                          Amount
-                        </span>
-                        <span className="text-xs font-medium text-black">
-                          ₹{order.amount.toFixed(2)}
-                        </span>
+
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-600 line-clamp-1">
+                          {order.itemsSummary}
+                        </p>
+                        {order.cancellationReason && (
+                          <p className="text-[10px] text-red-600 mt-1 line-clamp-1">
+                            Reason: {order.cancellationReason}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mt-2 flex items-end justify-between gap-2">
+                        <div className="flex flex-col gap-1">
+                          <p className="text-[11px] text-gray-500">
+                            {order.type}
+                          </p>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-[11px] text-gray-500">
+                            Amount
+                          </span>
+                          <span className="text-xs font-medium text-black">
+                            ₹{order.amount.toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              </div>
-            );
-          })}
+                  </button>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>
@@ -857,47 +857,47 @@ function AllOrders({ onSelectOrder, onCancel, searchQuery }) {
               return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
             })
             .map((order) => {
-            const normalizedStatus = String(order.status || "").toLowerCase();
-            let etaDisplay = order.eta;
+              const normalizedStatus = String(order.status || "").toLowerCase();
+              let etaDisplay = order.eta;
 
-            if (normalizedStatus === "preparing" && order.preparingTimestamp) {
-              const elapsedMs = currentTime - order.preparingTimestamp;
-              const elapsedMinutes = Math.floor(elapsedMs / 60000);
-              const remainingMinutes = Math.max(
-                0,
-                order.initialETA - elapsedMinutes,
-              );
-
-              if (remainingMinutes <= 0) {
-                const remainingSeconds = Math.max(
+              if (normalizedStatus === "preparing" && order.preparingTimestamp) {
+                const elapsedMs = currentTime - order.preparingTimestamp;
+                const elapsedMinutes = Math.floor(elapsedMs / 60000);
+                const remainingMinutes = Math.max(
                   0,
-                  Math.floor(order.initialETA * 60 - elapsedMs / 1000),
+                  order.initialETA - elapsedMinutes,
                 );
-                etaDisplay =
-                  remainingSeconds > 0 ? `${remainingSeconds} secs` : "0 mins";
-              } else {
-                etaDisplay = `${remainingMinutes} mins`;
-              }
-            }
 
-            return (
-              <OrderCard
-                key={order.orderId || order.mongoId}
-                {...order}
-                eta={etaDisplay}
-                onSelect={onSelectOrder}
-                onCancel={
-                  normalizedStatus === "preparing" ? onCancel : undefined
+                if (remainingMinutes <= 0) {
+                  const remainingSeconds = Math.max(
+                    0,
+                    Math.floor(order.initialETA * 60 - elapsedMs / 1000),
+                  );
+                  etaDisplay =
+                    remainingSeconds > 0 ? `${remainingSeconds} secs` : "0 mins";
+                } else {
+                  etaDisplay = `${remainingMinutes} mins`;
                 }
-                onMarkReady={
-                  normalizedStatus === "preparing" ? handleMarkReady : undefined
-                }
-                isMarkingReady={Boolean(
-                  markingReadyOrderIds[order.mongoId || order.orderId],
-                )}
-              />
-            );
-          })}
+              }
+
+              return (
+                <OrderCard
+                  key={order.orderId || order.mongoId}
+                  {...order}
+                  eta={etaDisplay}
+                  onSelect={onSelectOrder}
+                  onCancel={
+                    normalizedStatus === "preparing" ? onCancel : undefined
+                  }
+                  onMarkReady={
+                    normalizedStatus === "preparing" ? handleMarkReady : undefined
+                  }
+                  isMarkingReady={Boolean(
+                    markingReadyOrderIds[order.mongoId || order.orderId],
+                  )}
+                />
+              );
+            })}
         </div>
       )}
     </div>
@@ -954,6 +954,18 @@ export default function OrdersMain() {
   const showNewOrderPopupRef = useRef(showNewOrderPopup);
   const isMutedRef = useRef(isMuted);
   const newOrderRef = useRef(null);
+
+  // Handle background scroll lock for popups
+  useEffect(() => {
+    if (isSheetOpen || showNewOrderPopup || showRejectPopup || showCancelPopup) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isSheetOpen, showNewOrderPopup, showRejectPopup, showCancelPopup]);
 
   // Timer persistence helpers
   const getInitialCountdown = (orderId) => {
@@ -2312,6 +2324,7 @@ export default function OrdersMain() {
         {showNewOrderPopup && (
           <>
             <motion.div
+              data-lenis-prevent="true"
               className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -2334,12 +2347,12 @@ export default function OrdersMain() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    {/* <button
                       onClick={handlePrint}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                       aria-label="Print">
                       <Printer className="w-5 h-5 text-gray-700" />
-                    </button>
+                    </button> */}
                     <button
                       onClick={toggleMute}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -2850,6 +2863,7 @@ export default function OrdersMain() {
       <AnimatePresence>
         {isSheetOpen && selectedOrder && (
           <motion.div
+            data-lenis-prevent="true"
             className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -2863,10 +2877,8 @@ export default function OrdersMain() {
               exit={{ y: 80 }}
               transition={{ duration: 0.25 }}
               onClick={(e) => e.stopPropagation()}>
-              {/* Drag handle */}
-              <div className="flex justify-center mb-3">
-                <div className="h-1 w-10 rounded-full bg-gray-300" />
-              </div>
+              {/* Drag handle removed */}
+              <div className="pt-4" />
 
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
@@ -3470,56 +3482,56 @@ function PreparingOrders({
               return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
             })
             .map((order) => {
-            // Calculate remaining ETA (countdown)
-            const elapsedMs = currentTime - order.preparingTimestamp;
-            const elapsedMinutes = Math.floor(elapsedMs / 60000);
-            const remainingMinutes = Math.max(
-              0,
-              order.initialETA - elapsedMinutes,
-            );
-
-            // Format ETA display
-            let etaDisplay = "";
-            if (remainingMinutes <= 0) {
-              const remainingSeconds = Math.max(
+              // Calculate remaining ETA (countdown)
+              const elapsedMs = currentTime - order.preparingTimestamp;
+              const elapsedMinutes = Math.floor(elapsedMs / 60000);
+              const remainingMinutes = Math.max(
                 0,
-                Math.floor(order.initialETA * 60 - elapsedMs / 1000),
+                order.initialETA - elapsedMinutes,
               );
-              if (remainingSeconds > 0) {
-                etaDisplay = `${remainingSeconds} secs`;
-              } else {
-                etaDisplay = "0 mins";
-              }
-            } else {
-              etaDisplay = `${remainingMinutes} mins`;
-            }
 
-            return (
-              <OrderCard
-                key={order.orderId || order.mongoId}
-                orderId={order.orderId}
-                mongoId={order.mongoId}
-                status={order.status}
-                customerName={order.customerName}
-                type={order.type}
-                tableOrToken={order.tableOrToken}
-                timePlaced={order.timePlaced}
-                eta={etaDisplay}
-                itemsSummary={order.itemsSummary}
-                photoUrl={order.photoUrl}
-                photoAlt={order.photoAlt}
-                paymentMethod={order.paymentMethod}
-                deliveryPartnerId={order.deliveryPartnerId}
-                dispatchStatus={order.dispatchStatus}
-                onSelect={onSelectOrder}
-                onCancel={onCancel}
-                onMarkReady={handleMarkReady}
-                isMarkingReady={Boolean(
-                  markingReadyOrderIds[order.mongoId || order.orderId],
-                )}
-              />
-            );
-          })}
+              // Format ETA display
+              let etaDisplay = "";
+              if (remainingMinutes <= 0) {
+                const remainingSeconds = Math.max(
+                  0,
+                  Math.floor(order.initialETA * 60 - elapsedMs / 1000),
+                );
+                if (remainingSeconds > 0) {
+                  etaDisplay = `${remainingSeconds} secs`;
+                } else {
+                  etaDisplay = "0 mins";
+                }
+              } else {
+                etaDisplay = `${remainingMinutes} mins`;
+              }
+
+              return (
+                <OrderCard
+                  key={order.orderId || order.mongoId}
+                  orderId={order.orderId}
+                  mongoId={order.mongoId}
+                  status={order.status}
+                  customerName={order.customerName}
+                  type={order.type}
+                  tableOrToken={order.tableOrToken}
+                  timePlaced={order.timePlaced}
+                  eta={etaDisplay}
+                  itemsSummary={order.itemsSummary}
+                  photoUrl={order.photoUrl}
+                  photoAlt={order.photoAlt}
+                  paymentMethod={order.paymentMethod}
+                  deliveryPartnerId={order.deliveryPartnerId}
+                  dispatchStatus={order.dispatchStatus}
+                  onSelect={onSelectOrder}
+                  onCancel={onCancel}
+                  onMarkReady={handleMarkReady}
+                  isMarkingReady={Boolean(
+                    markingReadyOrderIds[order.mongoId || order.orderId],
+                  )}
+                />
+              );
+            })}
         </div>
       )}
     </div>
@@ -3634,12 +3646,12 @@ function ReadyOrders({ onSelectOrder, refreshToken = 0, searchQuery }) {
               return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
             })
             .map((order) => (
-            <OrderCard
-              key={order.orderId || order.mongoId}
-              {...order}
-              onSelect={onSelectOrder}
-            />
-          ))}
+              <OrderCard
+                key={order.orderId || order.mongoId}
+                {...order}
+                onSelect={onSelectOrder}
+              />
+            ))}
         </div>
       )}
     </div>
@@ -3754,12 +3766,12 @@ const OutForDeliveryOrders = ({ onSelectOrder, refreshToken = 0, searchQuery }) 
               return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
             })
             .map((order) => (
-            <OrderCard
-              key={order.orderId || order.mongoId}
-              {...order}
-              onSelect={onSelectOrder}
-            />
-          ))}
+              <OrderCard
+                key={order.orderId || order.mongoId}
+                {...order}
+                onSelect={onSelectOrder}
+              />
+            ))}
         </div>
       )}
     </div>
@@ -3855,21 +3867,21 @@ function ScheduledOrders({ onSelectOrder, refreshToken = 0, searchQuery }) {
               return order.orderId?.toLowerCase().includes(searchQuery.toLowerCase());
             })
             .map((order) => {
-            const scheduledTime = new Date(order.scheduledAt).toLocaleString("en-US", {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            return (
-              <OrderCard
-                key={order.orderId || order.mongoId}
-                {...order}
-                timePlaced={`For: ${scheduledTime}`}
-                onSelect={onSelectOrder}
-              />
-            );
-          })}
+              const scheduledTime = new Date(order.scheduledAt).toLocaleString("en-US", {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return (
+                <OrderCard
+                  key={order.orderId || order.mongoId}
+                  {...order}
+                  timePlaced={`For: ${scheduledTime}`}
+                  onSelect={onSelectOrder}
+                />
+              );
+            })}
         </div>
       )}
     </div>
