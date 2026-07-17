@@ -23,12 +23,15 @@ import { initRazorpayPayment } from "@food/utils/razorpay";
 import MapPicker from "@shared/components/MapPicker";
 
 const businessTypes = [
-  "Grocery",
-  "Bakery",
-  "Pharmacy",
-  "Electronics",
   "Fashion",
-  "General Store",
+  "Pharmacy",
+  "Grocery",
+  "Kirana store",
+  "Electronics",
+  "Stationary",
+  "Home appliances",
+  "Gift shops",
+  "Others"
 ];
 
 const initialState = {
@@ -43,6 +46,7 @@ const initialState = {
   lng: "",
   radius: 5,
   businessType: "",
+  customBusinessType: "",
   alternatePhone: "",
   supportEmail: "",
   openingHours: "",
@@ -571,11 +575,11 @@ export default function SellerOnboarding() {
         // Zone boundary check using Ray Casting algorithm (same logic as MapPicker)
         const zoneCoords = Array.isArray(selectedZone?.coordinates)
           ? selectedZone.coordinates
-              .map((c) => ({
-                lat: Number(c?.latitude ?? c?.lat),
-                lng: Number(c?.longitude ?? c?.lng),
-              }))
-              .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lng))
+            .map((c) => ({
+              lat: Number(c?.latitude ?? c?.lat),
+              lng: Number(c?.longitude ?? c?.lng),
+            }))
+            .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lng))
           : [];
 
         if (zoneCoords.length >= 3) {
@@ -687,6 +691,7 @@ export default function SellerOnboarding() {
       const nextForm = {
         ...form,
         zoneName: selectedZone?.label || "",
+        businessType: form.businessType === "Others" && form.customBusinessType ? form.customBusinessType : form.businessType,
       };
       Object.entries(nextForm).forEach(([key, value]) => {
         payload.append(
@@ -937,6 +942,20 @@ export default function SellerOnboarding() {
                       ))}
                     </select>
                   </div>
+                  {form.businessType === "Others" && (
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <label className="text-xs font-bold text-slate-900">Specify Business Type <span className="text-red-500">*</span></label>
+                      <input
+                        required
+                        type="text"
+                        className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-medium outline-none focus:border-slate-900"
+                        placeholder="E.g., Hardware, Auto Parts..."
+                        value={form.customBusinessType}
+                        maxLength={25}
+                        onChange={(e) => updateField("customBusinessType", e.target.value)}
+                      />
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-bold text-slate-900">Alternate phone <span className="text-red-500">*</span></label>
                     <input
