@@ -1422,10 +1422,10 @@ export default function OrderTracking() {
   // ── Early returns (after all hooks) ─────────────────────────────────────────
   if (loading) {
     return (
-      <AnimatedPage className="min-h-screen bg-gray-50 p-4">
+      <AnimatedPage className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] p-4">
         <div className="max-w-lg mx-auto text-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading order details...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-gray-600 dark:text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading order details...</p>
         </div>
       </AnimatedPage>
     );
@@ -1433,11 +1433,11 @@ export default function OrderTracking() {
 
   if (error || !order) {
     return (
-      <AnimatedPage className="min-h-screen bg-gray-50 p-4">
+      <AnimatedPage className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] p-4">
         <div className="max-w-lg mx-auto text-center py-20">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4">Order Not Found</h1>
-          <p className="text-gray-600 mb-6">{error || "The order you're looking for doesn't exist."}</p>
-          <Link to={backPath}><Button>Back to Orders</Button></Link>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 dark:text-white">Order Not Found</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error || "The order you're looking for doesn't exist."}</p>
+          <Link to={backPath}><Button className="dark:bg-[#1a1a1a] dark:text-white dark:hover:bg-gray-800">Back to Orders</Button></Link>
         </div>
       </AnimatedPage>
     );

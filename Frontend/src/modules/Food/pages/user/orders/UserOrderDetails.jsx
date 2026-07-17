@@ -120,17 +120,17 @@ export default function UserOrderDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600 text-sm">Loading order details...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <p className="text-gray-600 dark:text-gray-400 text-sm">Loading order details...</p>
       </div>
     )
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <p className="text-gray-700 text-sm font-medium">Order not found</p>
+          <p className="text-gray-700 dark:text-gray-300 text-sm font-medium">Order not found</p>
           <button
             onClick={() => navigate("/user/orders")}
             className="px-4 py-2 rounded-lg bg-[#FE5502] text-white text-sm font-semibold"
@@ -432,30 +432,30 @@ export default function UserOrderDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans relative">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 font-sans relative">
       {/* Header */}
-      <div className="bg-white p-4 flex items-center sticky top-0 z-20 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 p-4 flex items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate('/food/user')}
-            className="p-1 rounded-full hover:bg-gray-100"
+            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-700 cursor-pointer" />
+            <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-200 cursor-pointer" />
           </button>
-          <h1 className="text-lg font-semibold text-gray-800">Order Details</h1>
+          <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Order Details</h1>
         </div>
       </div>
 
       {/* Scrollable Content */}
       <div className="p-4 space-y-4">
         {/* Status Card */}
-        <div className="bg-white p-4 rounded-xl flex items-center gap-3 shadow-sm">
-          <div className="bg-gray-100 p-2 rounded-lg">
-            <ShoppingBag className="w-6 h-6 text-gray-600" />
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl flex items-center gap-3 shadow-sm">
+          <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+            <ShoppingBag className="w-6 h-6 text-gray-600 dark:text-gray-300" />
           </div>
           <div>
-            <h2 className="font-semibold text-gray-800">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">
               {order.status === "delivered"
                 ? "Order was delivered"
                 : order.status === "scheduled"
@@ -471,12 +471,12 @@ export default function UserOrderDetails() {
         </div>
 
         {/* Pickup Info Card */}
-        <div className="bg-white p-4 rounded-xl shadow-sm">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
           <div className="mb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400 dark:text-gray-500">
               {order?.orderType === "mixed" ? "Pickup Details" : "Restaurant Details"}
             </p>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {order?.orderType === "mixed"
                 ? "Both your restaurant and store sources are listed below."
                 : "Pickup source for this order."}
@@ -487,13 +487,13 @@ export default function UserOrderDetails() {
             {pickupSources.map((source, index) => {
               const isQuick = source.pickupType === "quick"
               const badgeClasses = isQuick
-                ? "bg-sky-50 text-sky-700 border-sky-200"
-                : "bg-red-50 text-red-700 border-red-200"
+                ? "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800"
+                : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
 
               return (
                 <div
                   key={source.id || `${source.pickupType}-${index}`}
-                  className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4"
+                  className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/80 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
@@ -512,8 +512,8 @@ export default function UserOrderDetails() {
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${badgeClasses}`}>
                           {pickupSources.length > 1 ? `${source.label} ${index + 1}` : source.label}
                         </span>
-                        <h3 className="mt-2 font-semibold text-gray-800">{source.name}</h3>
-                        <p className="text-xs text-gray-500 mt-1">{source.address}</p>
+                        <h3 className="mt-2 font-semibold text-gray-800 dark:text-gray-100">{source.name}</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{source.address}</p>
                       </div>
                     </div>
 
@@ -521,7 +521,7 @@ export default function UserOrderDetails() {
                       <button
                         type="button"
                         onClick={() => handleCallPickupSource(source.phone)}
-                        className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#FE5502] hover:bg-red-50 shrink-0"
+                        className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 flex items-center justify-center text-[#FE5502] hover:bg-red-50 dark:hover:bg-red-900/30 shrink-0"
                       >
                         <Phone className="w-4 h-4" />
                       </button>
@@ -533,34 +533,34 @@ export default function UserOrderDetails() {
           </div>
 
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">
               Order ID: #{orderIdDisplay}
             </span>
             <button type="button" onClick={handleCopyOrderId}>
-              <Copy className="w-3 h-3 text-gray-400 cursor-pointer" />
+              <Copy className="w-3 h-3 text-gray-400 dark:text-gray-500 cursor-pointer" />
             </button>
           </div>
 
           <div className="flex items-center gap-2 mb-4">
             <span
               className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${sendsCutlery
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : "bg-red-50 text-red-700 border border-red-200"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+                  : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
                 }`}
             >
               {sendsCutlery ? "Send cutlery" : "Don't send cutlery"}
             </span>
           </div>
 
-          <div className="border-t border-dashed border-gray-200 my-3" />
+          <div className="border-t border-dashed border-gray-200 dark:border-gray-700 my-3" />
 
           {/* Restaurant Instructions */}
           {order?.note && (
-            <div className="bg-orange-50/80 rounded-xl p-4 border border-orange-100 flex gap-3 mb-4">
-              <FileText className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+            <div className="bg-orange-50/80 dark:bg-orange-900/20 rounded-xl p-4 border border-orange-100 dark:border-orange-900/50 flex gap-3 mb-4">
+              <FileText className="w-5 h-5 text-orange-500 dark:text-orange-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs text-orange-600 font-bold uppercase tracking-wider mb-1">Restaurant Instructions</p>
-                <p className="text-sm text-gray-800 leading-relaxed font-medium capitalize">{order.note}</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider mb-1">Restaurant Instructions</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-medium capitalize">{order.note}</p>
               </div>
             </div>
           )}
@@ -572,19 +572,19 @@ export default function UserOrderDetails() {
             <div key={idx} className="flex justify-between items-start mt-2">
               <div className="flex items-center gap-2">
                 <div
-                  className={`w-3 h-3 border ${item.isVeg ? "border-green-600" : "border-red-600"
+                  className={`w-3 h-3 border ${item.isVeg ? "border-green-600 dark:border-green-500" : "border-red-600 dark:border-red-500"
                     } flex items-center justify-center p-[1px]`}
                 >
                   <div
-                    className={`w-full h-full rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"
+                    className={`w-full h-full rounded-full ${item.isVeg ? "bg-green-600 dark:bg-green-500" : "bg-red-600 dark:bg-red-500"
                       }`}
                   />
                 </div>
-                <span className="text-sm text-gray-700 font-medium">
+                <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">
                   {item.quantity || item.qty || 1} x {item.name}{varName ? ` (${varName})` : ""}
                 </span>
               </div>
-              <span className="text-sm text-gray-800 font-medium">
+              <span className="text-sm text-gray-800 dark:text-gray-100 font-medium">
                 ₹{((item.selectedVariant?.price || item.variant?.price || item.price) || 0).toFixed(2)}
               </span>
             </div>
@@ -592,36 +592,36 @@ export default function UserOrderDetails() {
         </div>
 
         {/* Bill Summary Card */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 flex justify-between items-center border-b border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-gray-600" />
-              <h3 className="font-semibold text-gray-800">Bill Summary</h3>
+              <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Bill Summary</h3>
             </div>
           </div>
 
           <div className="p-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-500">Item total</span>
+              <span className="text-gray-500 dark:text-gray-400">Item total</span>
               <div>
                 {pricing.originalItemTotal && (
-                  <span className="text-gray-400 line-through mr-1">
+                  <span className="text-gray-400 dark:text-gray-500 line-through mr-1">
                     ₹{Number(pricing.originalItemTotal).toFixed(2)}
                   </span>
                 )}
-                <span className="text-gray-800">
+                <span className="text-gray-800 dark:text-gray-200">
                   ₹{Number(pricing.subtotal || pricing.total || 0).toFixed(2)}
                 </span>
               </div>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">GST (govt. taxes)</span>
-              <span className="text-gray-800">
+              <span className="text-gray-500 dark:text-gray-400">GST (govt. taxes)</span>
+              <span className="text-gray-800 dark:text-gray-200">
                 ₹{Number(pricing.tax || 0).toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400 font-medium">Delivery fee</span>
+              <span className="text-gray-400 dark:text-gray-400 font-medium">Delivery fee</span>
               {pricing.deliveryFee === 0 && (
                 <span className="text-[#FE5502] text-[10px] font-bold border border-[#FE5502] px-1 rounded ml-1">
                   FREE
@@ -632,21 +632,21 @@ export default function UserOrderDetails() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Platform fee</span>
-              <span className="text-gray-800">
+              <span className="text-gray-500 dark:text-gray-400">Platform fee</span>
+              <span className="text-gray-800 dark:text-gray-200">
                 ₹{Number(pricing.platformFee || 0).toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Subscription / other fees</span>
-              <span className="text-gray-800">
+              <span className="text-gray-500 dark:text-gray-400">Subscription / other fees</span>
+              <span className="text-gray-800 dark:text-gray-200">
                 ₹{Number(pricing.subscriptionFee || 0).toFixed(2)}
               </span>
             </div>
 
-            <div className="border-t border-gray-100 my-2 pt-2 flex justify-between items-center">
-              <span className="font-bold text-gray-800">Paid</span>
-              <span className="font-bold text-gray-800">
+            <div className="border-t border-gray-100 dark:border-gray-700 my-2 pt-2 flex justify-between items-center">
+              <span className="font-bold text-gray-800 dark:text-gray-100">Paid</span>
+              <span className="font-bold text-gray-800 dark:text-gray-100">
                 ₹{Number(pricing.total || 0).toFixed(2)}
               </span>
             </div>
@@ -654,7 +654,7 @@ export default function UserOrderDetails() {
 
           {/* Savings Banner */}
           {savings > 0 && (
-            <div className="relative bg-red-50 p-3 pb-4 mt-2">
+            <div className="relative bg-red-50 dark:bg-red-900/20 p-3 pb-4 mt-2">
               <div className="absolute -top-1.5 left-0 w-full overflow-hidden leading-none">
                 <svg
                   className="relative block w-[calc(100%+1.3px)] h-[8px]"
@@ -664,8 +664,7 @@ export default function UserOrderDetails() {
                 >
                   <path
                     d="M0,0V46.29c47,0,47,69.5,94,69.5s47-69.5,94-69.5,47,69.5,94,69.5,47-69.5,94-69.5,47,69.5,94,69.5,47-69.5,94-69.5,47,69.5,94,69.5,47-69.5,94-69.5,47,69.5,94,69.5V0Z"
-                    fill="#ffffff"
-                    className="fill-white"
+                    className="fill-white dark:fill-gray-800"
                   />
                 </svg>
               </div>
@@ -681,30 +680,30 @@ export default function UserOrderDetails() {
         </div>
 
         {/* User & Delivery Details */}
-        <div className="bg-white p-4 rounded-xl shadow-sm space-y-5">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-5">
           {/* User */}
           <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-              <User className="w-5 h-5 text-gray-500" />
+            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </div>
             <div>
-              <h4 className="font-semibold text-gray-800 text-sm">
+              <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                 {userName || "Customer"}
               </h4>
-              <p className="text-gray-500 text-xs">{userPhone}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs">{userPhone}</p>
             </div>
           </div>
 
           {/* Payment */}
           <div className="flex gap-3">
             <div className="mt-0.5">
-              <CreditCard className="w-5 h-5 text-gray-500" />
+              <CreditCard className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </div>
             <div>
-              <h4 className="font-semibold text-gray-800 text-sm">
+              <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                 Payment method
               </h4>
-              <p className="text-gray-500 text-xs mt-0.5">
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
                 Paid via: {paymentMethod.toUpperCase()}
               </p>
             </div>
@@ -713,26 +712,26 @@ export default function UserOrderDetails() {
           {/* Date */}
           <div className="flex gap-3">
             <div className="mt-0.5">
-              <Calendar className="w-5 h-5 text-gray-500" />
+              <Calendar className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </div>
             <div>
-              <h4 className="font-semibold text-gray-800 text-sm">
+              <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                 Payment date
               </h4>
-              <p className="text-gray-500 text-xs mt-0.5">{paymentDate}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">{paymentDate}</p>
             </div>
           </div>
 
           {/* Address */}
           <div className="flex gap-3">
             <div className="mt-0.5">
-              <MapPin className="w-5 h-5 text-gray-500" />
+              <MapPin className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </div>
             <div>
-              <h4 className="font-semibold text-gray-800 text-sm">
+              <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                 Delivery address
               </h4>
-              <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 leading-relaxed">
                 {addressText || "Address not available"}
               </p>
             </div>
@@ -741,7 +740,7 @@ export default function UserOrderDetails() {
       </div>
 
       {/* Fixed Bottom Buttons */}
-      <div className="fixed bottom-0 w-full bg-white border-t border-gray-200 p-4 flex gap-3 z-20">
+      <div className="fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 flex gap-3 z-20">
         <button
           type="button"
           onClick={() => handleReorder(order)}
@@ -753,7 +752,7 @@ export default function UserOrderDetails() {
         <button
           type="button"
           onClick={handleDownloadSummary}
-          className="flex-1 bg-white border border-[#FE5502] text-[#FE5502] py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-50 transition-colors"
+          className="flex-1 bg-white dark:bg-gray-800 border border-[#FE5502] text-[#FE5502] py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
         >
           <Download className="w-4 h-4" />
           Invoice
@@ -787,7 +786,7 @@ export default function UserOrderDetails() {
               debugLog("Navigating to complaint page with orderId:", orderIdString)
               navigate(`/user/complaints/submit/${encodeURIComponent(orderIdString)}`)
             }}
-            className="w-full bg-red-50 border border-red-200 text-red-700 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+            className="w-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
           >
             <FileText className="w-4 h-4" />
             Restaurant Complaint
@@ -797,6 +796,3 @@ export default function UserOrderDetails() {
     </div>
   )
 }
-
-
-

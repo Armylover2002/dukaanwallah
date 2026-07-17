@@ -3575,7 +3575,7 @@ export async function rejectRestaurant(id, reason, performer = null) {
         try {
             const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
             const { FoodUser } = await import('../../../../core/users/user.model.js');
-            
+
             const userOwner = await FoodUser.findOne({
                 $or: [
                     { phone: updated.ownerPhone },
@@ -5896,7 +5896,7 @@ export async function settleCODVerification(id, { action, adminNote, performer }
 
 export async function applyFoodPenalty({ targetType, targetId, amount, reason }) {
     const entityType = targetType === 'restaurant' ? 'restaurant' : 'deliveryBoy';
-    
+
     const { transaction } = await debitWallet({
         entityType,
         entityId: targetId,
@@ -5927,7 +5927,7 @@ export async function getFoodPenalties(query = {}) {
         .lean();
 
     const total = await Transaction.countDocuments(filter);
-    
+
     // Manual population of entityId
     const formattedPenalties = await Promise.all(penalties.map(async (p) => {
         let target = null;
