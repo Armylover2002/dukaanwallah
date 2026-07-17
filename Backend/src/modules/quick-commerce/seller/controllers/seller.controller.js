@@ -2494,9 +2494,11 @@ export const requestSellerWithdrawalController = async (req, res) => {
       bankDetails: {
         bankName: bankInfo.bankName || "",
         accountHolderName: bankInfo.accountHolderName || "",
+        accountNumber: bankInfo.accountNumber || "",
         accountNumberLast4: String(bankInfo.accountNumber || "").slice(-4),
         ifscCode: bankInfo.ifscCode || "",
         upiId: bankInfo.upiId || "",
+        upiQrImage: bankInfo.upiQrImage || "",
       },
     });
 
