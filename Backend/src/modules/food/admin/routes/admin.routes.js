@@ -232,7 +232,7 @@ router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifi
 
 // ----- Penalties -----
 router.post('/penalties/apply', checkPermission('food::transaction_management::penalties', 'create'), adminController.applyFoodPenalty);
-
+router.get('/penalties', checkPermission('food::transaction_management::penalties', 'view'), adminController.getFoodPenalties);
 // ----- Deleted Accounts -----
 router.get('/deleted-accounts', adminController.getDeletedAccounts);
 router.post('/deleted-accounts/:id/reactivate', adminController.reactivateAccount);

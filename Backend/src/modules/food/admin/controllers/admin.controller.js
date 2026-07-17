@@ -1762,3 +1762,12 @@ export async function applyFoodPenalty(req, res, next) {
         next(error);
     }
 }
+
+export async function getFoodPenalties(req, res, next) {
+    try {
+        const data = await adminService.getFoodPenalties(req.query || {});
+        res.status(200).json({ success: true, message: 'Penalties fetched successfully', data });
+    } catch (error) {
+        next(error);
+    }
+}

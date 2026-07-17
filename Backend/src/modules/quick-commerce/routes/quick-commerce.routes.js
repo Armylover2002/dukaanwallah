@@ -495,9 +495,9 @@ router.patch('/admin/coupons/:couponId/toggle-status', ...adminOrEmployee, check
 import { getSellerOrderTransactions } from '../controllers/admin.controller.js';
 router.get('/admin/seller-order-transactions', ...adminOrEmployee, checkPermission('quick::core_management::wallet', 'view'), getSellerOrderTransactions);
 
-import { applySellerPenalty } from '../controllers/admin.controller.js';
+import { applySellerPenalty, getSellerPenalties } from '../controllers/admin.controller.js';
 router.post('/admin/penalties/seller', ...adminOrEmployee, applySellerPenalty);
-
+router.get('/admin/penalties/seller', ...adminOrEmployee, getSellerPenalties);
 router.use('/', returnRoutes);
 
 export default router;

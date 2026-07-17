@@ -30,6 +30,7 @@ import { FoodOrder } from '../../orders/models/order.model.js';
 import { Seller } from '../../../quick-commerce/seller/models/seller.model.js';
 import { SellerProduct } from '../../../quick-commerce/seller/models/sellerProduct.model.js';
 import { FoodTransaction } from '../../orders/models/foodTransaction.model.js';
+import { Transaction } from '../../../../core/payments/models/transaction.model.js';
 import { FoodRestaurantWithdrawal } from '../../restaurant/models/foodRestaurantWithdrawal.model.js';
 import { sendPromotionalOfferToUsers } from '../../../whatsapp/services/whatsapp.service.js';
 import {
@@ -5906,4 +5907,43 @@ export async function applyFoodPenalty({ targetType, targetId, amount, reason })
     });
 
     return transaction;
+}
+
+export async function getFoodPenalties(query = {}) {
+    const limit = parseInt(query.limit, 10) || 50;
+    const page = parseInt(query.page, 10) || 1;
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        category: 'penalty',
+        module: 'food',
+        type: 'debit'
+    };
+
+    const penalties = await Transaction.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+    const total = await Transaction.countDocuments(filter);
+    
+    // Manual population of entityId
+    const formattedPenalties = await Promise.all(penalties.map(async (p) => {
+        let target = null;
+        if (p.entityType === 'restaurant') {
+            target = await FoodRestaurant.findById(p.entityId).select('restaurantName ownerName ownerPhone phone').lean();
+        } else if (p.entityType === 'deliveryBoy') {
+            target = await FoodDeliveryPartner.findById(p.entityId).select('name phone').lean();
+        }
+        return {
+            ...p,
+            target
+        };
+    }));
+
+    return {
+        items: formattedPenalties,
+        pagination: { total, page, limit, pages: Math.ceil(total / limit) || 1 }
+    };
 }

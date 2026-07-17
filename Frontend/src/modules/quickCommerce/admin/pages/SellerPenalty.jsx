@@ -25,7 +25,29 @@ const SellerPenalty = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [history, setHistory] = useState([]);
 
+  const fetchPenalties = async () => {
+    try {
+      const res = await adminApi.getSellerPenalties({ limit: 50 });
+      const items = res.data?.result?.items || [];
+      setHistory(
+        items.map((item) => ({
+          id: item._id,
+          seller: item.sellerId?.shopName || item.sellerId?.name || 'Unknown Seller',
+          amount: Math.abs(item.amount),
+          reason: item.reason,
+          time: new Date(item.createdAt || item.processedAt).toLocaleString('en-IN', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          }),
+        }))
+      );
+    } catch (err) {
+      console.error('Failed to fetch penalty history:', err);
+    }
+  };
+
   useEffect(() => {
+    fetchPenalties();
     setLoadingSellers(true);
     axiosInstance
       .get('/quick-commerce/admin/seller-requests', {
@@ -68,25 +90,13 @@ const SellerPenalty = () => {
         reason: penaltyReason,
       });
 
-      // Add to local history
-      setHistory((prev) => [
-        {
-          id: Date.now(),
-          seller: selectedSellerName,
-          amount: Number(penaltyAmount),
-          reason: penaltyReason,
-          time: new Date().toLocaleString('en-IN', {
-            day: '2-digit', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-          }),
-        },
-        ...prev,
-      ]);
-
       toast.success(`Penalty of ₹${penaltyAmount} applied to ${selectedSellerName}`);
       setPenaltySellerId('');
       setPenaltyAmount('');
       setPenaltyReason('');
+      
+      // Refresh penalty history
+      fetchPenalties();
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to apply penalty');
     } finally {
@@ -225,7 +235,7 @@ const SellerPenalty = () => {
         </div>
       </Card>
 
-      {/* Applied Penalties History (session only) */}
+      {/* Applied Penalties History */}
       <AnimatePresence>
         {history.length > 0 && (
           <motion.div
@@ -237,7 +247,7 @@ const SellerPenalty = () => {
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="h-4 w-4 text-slate-400" />
                 <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest">
-                  Applied This Session
+                  Penalty History
                 </h3>
               </div>
               <div className="space-y-3">

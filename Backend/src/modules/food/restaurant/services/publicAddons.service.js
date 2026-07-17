@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
-// import { FoodRestaurant } from '../models/restaurantWallet.model.js';
-import { FoodRestaurant } from './src/modules/Food/restaurant/models/restaurantWallet.model.js';
+import { FoodRestaurant } from '../models/restaurant.model.js';
 import { FoodAddon } from '../models/foodAddon.model.js';
 
 export async function getPublicApprovedRestaurantAddons(restaurantIdOrSlug) {

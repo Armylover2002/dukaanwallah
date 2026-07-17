@@ -1974,3 +1974,43 @@ export const applySellerPenalty = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /admin/penalties/seller
+ * Fetch all penalties applied to sellers
+ */
+export const getSellerPenalties = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    
+    // Penalties are saved as Adjustments with negative amounts and references starting with PENALTY-
+    const filter = {
+      type: 'Adjustment',
+      reference: { $regex: /^PENALTY-/i }
+    };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const limitNum = parseInt(limit);
+
+    const penalties = await SellerTransaction.find(filter)
+      .populate('sellerId', 'shopName name phone ownerPhone')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    const total = await SellerTransaction.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      result: {
+        items: penalties,
+        total,
+        page: parseInt(page),
+        limit: limitNum
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

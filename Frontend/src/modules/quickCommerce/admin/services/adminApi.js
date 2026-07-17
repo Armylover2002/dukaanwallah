@@ -465,6 +465,6 @@ export const adminApi = {
   updateReturnSettings: (data) => axiosInstance.put('/quick-commerce/admin/return-settings', data),
   getSellerOrderTransactions: (params) => axiosInstance.get('/quick-commerce/admin/seller-order-transactions', { params }),
   applySellerPenalty: (body) => axiosInstance.post('/quick-commerce/admin/penalties/seller', body),
+  getSellerPenalties: (params) => axiosInstance.get('/quick-commerce/admin/penalties/seller', { params }),
   // For Food module sellers (restaurants) and delivery men, penalties are handled via food backend
 };
-
