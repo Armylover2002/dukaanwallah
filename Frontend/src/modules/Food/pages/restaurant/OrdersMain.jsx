@@ -905,6 +905,9 @@ export default function OrdersMain() {
   const mouseEndX = useRef(0);
   const isMouseDown = useRef(false);
 
+  // no sound 
+  const [playPopupSound, setPlayPopupSound] = useState(false); // NAYI LINE
+
   // New order popup states
   const [showNewOrderPopup, setShowNewOrderPopup] = useState(false);
   const [popupOrder, setPopupOrder] = useState(null); // Store order for popup (from Socket.IO or API)
@@ -1193,6 +1196,7 @@ export default function OrdersMain() {
         markOrderAsShown(newOrder);
         setPopupOrder(newOrder);
         setShowNewOrderPopup(true);
+        setPlayPopupSound(true);
         const orderId = newOrder.orderMongoId || newOrder.orderId || newOrder._id;
         setCountdown(getInitialCountdown(orderId));
         requestOrdersRefresh();
@@ -1335,6 +1339,7 @@ export default function OrdersMain() {
             debugLog("?? Found order ready for popup:", orderForPopup);
             markOrderAsShown({ orderId, _id: orderToPopup._id });
             setPopupOrder(orderForPopup);
+            setPlayPopupSound(false);
             setShowNewOrderPopup(true);
             setCountdown(getInitialCountdown(orderId));
           }
@@ -1355,7 +1360,8 @@ export default function OrdersMain() {
 
   // Play audio when popup opens
   useEffect(() => {
-    if (showNewOrderPopup && !isMuted) {
+    if (showNewOrderPopup && !isMuted && playPopupSound) {
+      // if (showNewOrderPopup && !isMuted) {
       if (audioRef.current) {
         audioRef.current.loop = true;
         audioRef.current.muted = false;

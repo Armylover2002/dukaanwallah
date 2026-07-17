@@ -28,7 +28,7 @@ async function syncWallets() {
                 );
             }
         }
-        
+
         // Aggregate total earnings for each delivery partner
         const riderEarnings = await FoodTransaction.aggregate([
             { $match: { status: { $in: ['captured', 'authorized'] } } },

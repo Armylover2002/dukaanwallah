@@ -662,8 +662,8 @@ export default function OrdersPage({ statusKey = "all" }) {
         : `Order ${orderId}`
 
       activeOrderAlertRef.current = payload || { orderId }
-      playDefaultRing()
-      startAlertLoop()
+      // playDefaultRing()
+      // startAlertLoop()
       toast.info(title, { description: body })
       showBrowserNotification(title, body, `admin-order-${orderId}`)
       fetchOrders({ silent: true, withRingCheck: false })
@@ -689,7 +689,7 @@ export default function OrdersPage({ statusKey = "all" }) {
       if (document.visibilityState !== "hidden") return
       if (!activeOrderAlertRef.current) return
 
-      playDefaultRing()
+      // playDefaultRing()
       showBrowserNotification(
         "New order received",
         "A new order arrived",
