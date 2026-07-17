@@ -29,28 +29,68 @@ import DiamondIcon from "@mui/icons-material/Diamond";
 import ColorLensIcon from "@mui/icons-material/ColorLens";
 import BuildIcon from "@mui/icons-material/Build";
 import LuggageIcon from "@mui/icons-material/Luggage";
+import ChairIcon from "@mui/icons-material/Chair";
+import BlenderIcon from "@mui/icons-material/Blender";
+import BakeryDiningIcon from "@mui/icons-material/BakeryDining";
+import LocalBarIcon from "@mui/icons-material/LocalBar";
+import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
+import PedalBikeIcon from "@mui/icons-material/PedalBike";
+import MedicationIcon from "@mui/icons-material/Medication";
+import EditNoteIcon from "@mui/icons-material/EditNote";
+import HardwareIcon from "@mui/icons-material/Hardware";
+import ConstructionIcon from "@mui/icons-material/Construction";
+import ElectricalServicesIcon from "@mui/icons-material/ElectricalServices";
+import FlightIcon from "@mui/icons-material/Flight";
+import LocalFloristIcon from "@mui/icons-material/LocalFlorist";
+import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
+import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
+import SmartphoneIcon from "@mui/icons-material/Smartphone";
+import LaptopIcon from "@mui/icons-material/Laptop";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import WatchIcon from "@mui/icons-material/Watch";
 
 const iconComponents = {
   electronics: DevicesIcon,
   fashion: CheckroomIcon,
   home: HomeIcon,
+  furniture: ChairIcon,
+  kitchen: KitchenIcon,
+  appliances: BlenderIcon,
   food: LocalCafeIcon,
+  grocery: LocalGroceryStoreIcon,
+  bakery: BakeryDiningIcon,
+  drinks: LocalBarIcon,
   sports: SportsSoccerIcon,
   books: MenuBookIcon,
   beauty: SpaIcon,
   toys: ToysIcon,
   automotive: DirectionsCarIcon,
+  motorcycle: TwoWheelerIcon,
+  bicycle: PedalBikeIcon,
   pets: PetsIcon,
   health: LocalHospitalIcon,
+  pharmacy: MedicationIcon,
   garden: YardIcon,
   office: BusinessCenterIcon,
+  stationery: EditNoteIcon,
   music: MusicNoteIcon,
   jewelry: DiamondIcon,
   baby: ChildCareIcon,
   tools: BuildIcon,
+  hardware: HardwareIcon,
+  construction: ConstructionIcon,
+  electrical: ElectricalServicesIcon,
   luggage: LuggageIcon,
+  travel: FlightIcon,
+  gifts: CardGiftcardIcon,
   art: ColorLensIcon,
-  grocery: LocalGroceryStoreIcon,
+  flowers: LocalFloristIcon,
+  cleaning: CleaningServicesIcon,
+  gaming: SportsEsportsIcon,
+  mobile: SmartphoneIcon,
+  laptop: LaptopIcon,
+  camera: PhotoCameraIcon,
+  watches: WatchIcon,
 };
 
 const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
@@ -313,8 +353,8 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   >
                     <option value="">-- Create New Header Category --</option>
-                    {headerCategories.map(cat => (
-                      <option key={cat._id || cat.id} value={cat._id || cat.id}>
+                    {headerCategories.map((cat, index) => (
+                      <option key={cat._id || cat.id || `header-${index}`} value={cat._id || cat.id}>
                         {cat.name}
                       </option>
                     ))}
@@ -518,8 +558,8 @@ const CategoryWizardModal = ({ isOpen, onClose, onComplete }) => {
                       className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     >
                       <option value="">-- Create New Main Category --</option>
-                      {level2Categories.map(cat => (
-                        <option key={cat._id || cat.id} value={cat._id || cat.id}>
+                      {level2Categories.map((cat, index) => (
+                        <option key={cat._id || cat.id || `level2-${index}`} value={cat._id || cat.id}>
                           {cat.name}
                         </option>
                       ))}

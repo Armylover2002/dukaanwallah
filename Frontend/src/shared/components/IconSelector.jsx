@@ -26,6 +26,25 @@ import DiamondIcon from '@mui/icons-material/Diamond';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import BuildIcon from '@mui/icons-material/Build';
 import LuggageIcon from '@mui/icons-material/Luggage';
+import ChairIcon from '@mui/icons-material/Chair';
+import BlenderIcon from '@mui/icons-material/Blender';
+import BakeryDiningIcon from '@mui/icons-material/BakeryDining';
+import LocalBarIcon from '@mui/icons-material/LocalBar';
+import TwoWheelerIcon from '@mui/icons-material/TwoWheeler';
+import PedalBikeIcon from '@mui/icons-material/PedalBike';
+import MedicationIcon from '@mui/icons-material/Medication';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import HardwareIcon from '@mui/icons-material/Hardware';
+import ConstructionIcon from '@mui/icons-material/Construction';
+import ElectricalServicesIcon from '@mui/icons-material/ElectricalServices';
+import FlightIcon from '@mui/icons-material/Flight';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
+import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import SmartphoneIcon from '@mui/icons-material/Smartphone';
+import LaptopIcon from '@mui/icons-material/Laptop';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import WatchIcon from '@mui/icons-material/Watch';
 
 const IconSelector = ({ selectedIcon, onSelect, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,23 +54,44 @@ const IconSelector = ({ selectedIcon, onSelect, onClose }) => {
     electronics: DevicesIcon,
     fashion: CheckroomIcon,
     home: HomeIcon,
+    furniture: ChairIcon,
+    kitchen: KitchenIcon,
+    appliances: BlenderIcon,
     food: LocalCafeIcon,
+    grocery: LocalGroceryStoreIcon,
+    bakery: BakeryDiningIcon,
+    drinks: LocalBarIcon,
     sports: SportsSoccerIcon,
     books: MenuBookIcon,
     beauty: SpaIcon,
     toys: ToysIcon,
     automotive: DirectionsCarIcon,
+    motorcycle: TwoWheelerIcon,
+    bicycle: PedalBikeIcon,
     pets: PetsIcon,
     health: LocalHospitalIcon,
+    pharmacy: MedicationIcon,
     garden: YardIcon,
     office: BusinessCenterIcon,
+    stationery: EditNoteIcon,
     music: MusicNoteIcon,
     jewelry: DiamondIcon,
     baby: ChildCareIcon,
     tools: BuildIcon,
+    hardware: HardwareIcon,
+    construction: ConstructionIcon,
+    electrical: ElectricalServicesIcon,
     luggage: LuggageIcon,
+    travel: FlightIcon,
+    gifts: CardGiftcardIcon,
     art: ColorLensIcon,
-    grocery: LocalGroceryStoreIcon,
+    flowers: LocalFloristIcon,
+    cleaning: CleaningServicesIcon,
+    gaming: SportsEsportsIcon,
+    mobile: SmartphoneIcon,
+    laptop: LaptopIcon,
+    camera: PhotoCameraIcon,
+    watches: WatchIcon,
   };
 
   const filteredIcons = categoryIcons.filter(icon =>
@@ -65,7 +105,7 @@ const IconSelector = ({ selectedIcon, onSelect, onClose }) => {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-        
+
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex justify-between items-center shrink-0">
           <h2 className="text-lg font-bold text-gray-900">Select Category Icon</h2>
@@ -100,18 +140,17 @@ const IconSelector = ({ selectedIcon, onSelect, onClose }) => {
                 className={`
                   flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all
                   hover:border-indigo-500 hover:bg-indigo-50 group
-                  ${selectedIcon === icon.id 
-                    ? 'border-indigo-600 bg-indigo-50' 
+                  ${selectedIcon === icon.id
+                    ? 'border-indigo-600 bg-indigo-50'
                     : 'border-gray-200 bg-white'
                   }
                 `}
                 title={icon.name}>
                 <div
-                  className={`w-8 h-8 flex items-center justify-center transition-colors ${
-                    selectedIcon === icon.id
-                      ? 'text-indigo-600'
-                      : 'text-gray-600 group-hover:text-indigo-600'
-                  }`}
+                  className={`w-8 h-8 flex items-center justify-center transition-colors ${selectedIcon === icon.id
+                    ? 'text-indigo-600'
+                    : 'text-gray-600 group-hover:text-indigo-600'
+                    }`}
                 >
                   {iconComponents[icon.id] ? (
                     (() => {

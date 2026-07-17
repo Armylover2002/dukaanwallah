@@ -51,6 +51,25 @@ import DiamondIcon from "@mui/icons-material/Diamond";
 import ColorLensIcon from "@mui/icons-material/ColorLens";
 import BuildIcon from "@mui/icons-material/Build";
 import LuggageIcon from "@mui/icons-material/Luggage";
+import ChairIcon from "@mui/icons-material/Chair";
+import BlenderIcon from "@mui/icons-material/Blender";
+import BakeryDiningIcon from "@mui/icons-material/BakeryDining";
+import LocalBarIcon from "@mui/icons-material/LocalBar";
+import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
+import PedalBikeIcon from "@mui/icons-material/PedalBike";
+import MedicationIcon from "@mui/icons-material/Medication";
+import EditNoteIcon from "@mui/icons-material/EditNote";
+import HardwareIcon from "@mui/icons-material/Hardware";
+import ConstructionIcon from "@mui/icons-material/Construction";
+import ElectricalServicesIcon from "@mui/icons-material/ElectricalServices";
+import FlightIcon from "@mui/icons-material/Flight";
+import LocalFloristIcon from "@mui/icons-material/LocalFlorist";
+import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
+import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
+import SmartphoneIcon from "@mui/icons-material/Smartphone";
+import LaptopIcon from "@mui/icons-material/Laptop";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import WatchIcon from "@mui/icons-material/Watch";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import SearchIcon from "@mui/icons-material/Search";
@@ -65,22 +84,44 @@ const ICON_COMPONENTS = {
   electronics: DevicesIcon,
   fashion: CheckroomIcon,
   home: HomeIcon,
+  furniture: ChairIcon,
+  kitchen: KitchenIcon,
+  appliances: BlenderIcon,
   food: LocalCafeIcon,
+  grocery: LocalGroceryStoreIcon,
+  bakery: BakeryDiningIcon,
+  drinks: LocalBarIcon,
   sports: SportsSoccerIcon,
   books: MenuBookIcon,
   beauty: SpaIcon,
   toys: ToysIcon,
   automotive: DirectionsCarIcon,
+  motorcycle: TwoWheelerIcon,
+  bicycle: PedalBikeIcon,
   pets: PetsIcon,
   health: LocalHospitalIcon,
+  pharmacy: MedicationIcon,
   garden: YardIcon,
   office: BusinessCenterIcon,
+  stationery: EditNoteIcon,
   music: MusicNoteIcon,
   jewelry: DiamondIcon,
   baby: ChildCareIcon,
   tools: BuildIcon,
+  hardware: HardwareIcon,
+  construction: ConstructionIcon,
+  electrical: ElectricalServicesIcon,
   luggage: LuggageIcon,
-  grocery: LocalGroceryStoreIcon,
+  travel: FlightIcon,
+  gifts: CardGiftcardIcon,
+  art: ColorLensIcon,
+  flowers: LocalFloristIcon,
+  cleaning: CleaningServicesIcon,
+  gaming: SportsEsportsIcon,
+  mobile: SmartphoneIcon,
+  laptop: LaptopIcon,
+  camera: PhotoCameraIcon,
+  watches: WatchIcon,
 };
 
 const SERVICE_TAB_NAMES = new Set(["food", "quick", "instamart", "dineout"]);
