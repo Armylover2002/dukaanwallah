@@ -40,9 +40,9 @@ import { restaurantAPI } from "@food/api"
 import { firebaseAuth, ensureFirebaseInitialized } from "@food/firebase"
 import BottomNavOrders from "@food/components/restaurant/BottomNavOrders"
 import RestaurantProfile from "@food/pages/restaurant/RestaurantProfile"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 
 
 // Time Picker Wheel Component
@@ -235,8 +235,8 @@ function TimePickerWheel({
                   >
                     <span
                       className={`text-lg transition-all duration-200 ${selectedHour === hour
-                          ? "font-bold text-gray-900 text-xl"
-                          : "font-normal text-gray-400 text-base"
+                        ? "font-bold text-gray-900 text-xl"
+                        : "font-normal text-gray-400 text-base"
                         }`}
                     >
                       {hour}
@@ -272,8 +272,8 @@ function TimePickerWheel({
                   >
                     <span
                       className={`text-lg transition-all duration-200 ${selectedMinute === minute
-                          ? "font-bold text-gray-900 text-xl"
-                          : "font-normal text-gray-400 text-base"
+                        ? "font-bold text-gray-900 text-xl"
+                        : "font-normal text-gray-400 text-base"
                         }`}
                     >
                       {minute.toString().padStart(2, "0")}
@@ -305,8 +305,8 @@ function TimePickerWheel({
                   >
                     <span
                       className={`text-lg transition-all duration-200 ${selectedPeriod === period
-                          ? "font-bold text-gray-900 text-xl"
-                          : "font-normal text-gray-400 text-base"
+                        ? "font-bold text-gray-900 text-xl"
+                        : "font-normal text-gray-400 text-base"
                         }`}
                     >
                       {period.toUpperCase()}
@@ -444,7 +444,7 @@ export default function ExploreMore() {
   // Get user data from logged in session and restaurant data
   const userData = useMemo(() => {
     const sessionUser = getCurrentUser("restaurant")
-    
+
     // Priority 1: Data from the currently logged in session user
     if (sessionUser && sessionUser.name && sessionUser.role) {
       return {
@@ -455,7 +455,7 @@ export default function ExploreMore() {
         profileImage: sessionUser.profileImage || restaurantData?.profileImage
       }
     }
-    
+
     // Priority 2: Data from the restaurant document owner fields
     if (restaurantData) {
       return {
@@ -466,7 +466,7 @@ export default function ExploreMore() {
         profileImage: restaurantData.profileImage
       }
     }
-    
+
     // Priority 3: Loading / Initial state
     return {
       name: loadingRestaurant ? "Loading..." : "Restaurant Owner",
@@ -835,7 +835,7 @@ export default function ExploreMore() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   if (item.route) {
-                    navigate(item.route)
+                    navigate(item.route, { state: { from: "/food/restaurant/explore" } })
                   }
                 }}
                 className="w-full flex items-center justify-center p-6 bg-white rounded-lg shadow-md border-2 border-gray-200 hover:shadow-md transition-shadow duration-200 min-h-[110px]"
@@ -1151,7 +1151,7 @@ export default function ExploreMore() {
                                     if (item.id === 5) {
                                       handleScheduleOffClick()
                                     } else if (item.route) {
-                                      navigate(item.route)
+                                      navigate(item.route, { state: { from: "/food/restaurant/explore" } })
                                     }
                                     setSearchOpen(false)
                                     setSearchQuery("")
@@ -1448,7 +1448,7 @@ export default function ExploreMore() {
                   }}
                   className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors"
                 >
-                  Done 
+                  Done
                 </button>
               </div>
             </motion.div>
