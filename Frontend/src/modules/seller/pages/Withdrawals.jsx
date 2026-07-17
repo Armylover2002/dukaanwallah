@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import Button from '@shared/components/ui/Button';
 import Modal from '@shared/components/ui/Modal';
+import { useNavigate } from 'react-router-dom';
 import {
     Wallet,
     ArrowUpRight,
@@ -15,7 +16,8 @@ import {
     Info,
     ArrowRight,
     Search,
-    AlertCircle
+    AlertCircle,
+    Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,12 +29,29 @@ import Pagination from "@shared/components/ui/Pagination";
 
 const Withdrawals = () => {
     const { earningsData: data, earningsLoading: loading, refreshEarnings } = useSellerEarnings();
+    const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [bankInfo, setBankInfo] = useState(null);
+
+    useEffect(() => {
+        const loadProfile = async () => {
+            try {
+                const response = await sellerApi.getProfile();
+                const profile = response?.data?.result || response?.data?.data || response?.data || {};
+                if (profile.bankInfo) {
+                    setBankInfo(profile.bankInfo);
+                }
+            } catch (error) {
+                console.error('Failed to load profile for bank details', error);
+            }
+        };
+        loadProfile();
+    }, []);
 
     const ledger = Array.isArray(data?.ledger) ? data.ledger : [];
     const withdrawalHistory = ledger.filter((t) => (t.type || '').toString() === 'Withdrawal');
@@ -303,19 +322,32 @@ const Withdrawals = () => {
                             </div>
                         </div>
 
-                        <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50 space-y-3">
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                setIsModalOpen(false);
+                                navigate('/seller/bank-details');
+                            }}
+                            className="w-full text-left p-4 bg-orange-50/50 hover:bg-orange-100/50 rounded-2xl border border-orange-100/50 space-y-3 cursor-pointer transition-colors"
+                        >
                             <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Transfer Destination</p>
                             <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
                                     <Building2 className="h-5 w-5 text-orange-400" />
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-xs font-black text-slate-900 uppercase">HDFC Bank Limited</p>
-                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Acct Ending in **** 4589</p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-black text-slate-900 uppercase truncate">
+                                        {bankInfo?.bankName || 'No Bank Added'}
+                                    </p>
+                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter truncate">
+                                        {bankInfo?.accountNumber 
+                                            ? `Acct Ending in **** ${bankInfo.accountNumber.slice(-4)}` 
+                                            : 'Please update bank details'}
+                                    </p>
                                 </div>
-                                <ArrowRight className="h-4 w-4 text-slate-300" />
+                                <ArrowRight className="h-4 w-4 text-slate-400 shrink-0" />
                             </div>
-                        </div>
+                        </button>
                     </div>
 
                     <div className="flex flex-col gap-3 pt-4">

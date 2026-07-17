@@ -384,12 +384,15 @@ export async function getQuickCommerceSellerWithdrawals({
           phone: seller.phoneLast10 || seller.phone || "",
           email: seller.email || "",
         },
-        bankDetails: item.bankDetails || {
-          bankName: seller.bankInfo?.bankName || "",
-          accountHolderName: seller.bankInfo?.accountHolderName || "",
-          accountNumberLast4: String(seller.bankInfo?.accountNumber || "").slice(-4),
-          ifscCode: seller.bankInfo?.ifscCode || "",
-          upiId: seller.bankInfo?.upiId || "",
+        bankDetails: {
+          ...(item.bankDetails || {}),
+          bankName: item.bankDetails?.bankName || seller.bankInfo?.bankName || "",
+          accountHolderName: item.bankDetails?.accountHolderName || seller.bankInfo?.accountHolderName || "",
+          accountNumber: item.bankDetails?.accountNumber || seller.bankInfo?.accountNumber || "",
+          accountNumberLast4: item.bankDetails?.accountNumberLast4 || String(seller.bankInfo?.accountNumber || "").slice(-4),
+          ifscCode: item.bankDetails?.ifscCode || seller.bankInfo?.ifscCode || "",
+          upiId: item.bankDetails?.upiId || seller.bankInfo?.upiId || "",
+          upiQrImage: item.bankDetails?.upiQrImage || seller.bankInfo?.upiQrImage || "",
         },
         sellerId: seller._id || item.sellerId,
       };

@@ -76,6 +76,7 @@ const WithdrawalRequests = () => {
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
     const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || 'all');
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [showQR, setShowQR] = useState(false);
     const [loading, setLoading] = useState(true);
     const [actionModal, setActionModal] = useState({ isOpen: false, type: null, request: null });
 
@@ -467,7 +468,10 @@ const WithdrawalRequests = () => {
             {/* Request Detail Modal */}
             <Modal
                 isOpen={!!selectedRequest}
-                onClose={() => setSelectedRequest(null)}
+                onClose={() => {
+                    setSelectedRequest(null);
+                    setShowQR(false);
+                }}
                 title="Withdrawal Intel"
                 size="md"
             >
@@ -492,12 +496,52 @@ const WithdrawalRequests = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Card className="p-5 border-none bg-slate-50 ring-1 ring-slate-100 rounded-xl">
                                 <p className="ds-label mb-2">Request Amount</p>
                                 <h4 className="text-2xl font-black text-slate-900">₹{Math.abs(selectedRequest.amount).toLocaleString()}</h4>
                                 <p className="text-[10px] font-semibold text-slate-400 mt-1">Reference: {selectedRequest.reference}</p>
                             </Card>
+                            {selectedRequest.bankDetails && (
+                                <Card className="p-5 border-none bg-slate-50 ring-1 ring-slate-100 rounded-xl">
+                                    <p className="ds-label mb-2">Transfer Destination</p>
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-bold text-slate-900">{selectedRequest.bankDetails.bankName || 'No Bank Name'}</p>
+                                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">A/C: {selectedRequest.bankDetails.accountNumber || selectedRequest.bankDetails.accountNumberLast4 || 'N/A'}</p>
+                                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">IFSC: {selectedRequest.bankDetails.ifscCode || 'N/A'}</p>
+                                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Holder: {selectedRequest.bankDetails.accountHolderName || 'N/A'}</p>
+                                        {selectedRequest.bankDetails.upiId && <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">UPI: {selectedRequest.bankDetails.upiId}</p>}
+                                        {selectedRequest.bankDetails.upiQrImage && (
+                                            <div className="pt-2">
+                                                {!showQR ? (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setShowQR(true)}
+                                                        className="text-[10px] font-bold text-blue-500 hover:underline uppercase tracking-wide"
+                                                    >
+                                                        View UPI QR Image
+                                                    </button>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        <img 
+                                                            src={selectedRequest.bankDetails.upiQrImage} 
+                                                            alt="UPI QR" 
+                                                            className="w-full max-w-[200px] h-auto rounded-xl border border-slate-200 shadow-sm"
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setShowQR(false)}
+                                                            className="text-[10px] font-bold text-slate-500 hover:underline uppercase tracking-wide"
+                                                        >
+                                                            Hide QR Image
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </Card>
+                            )}
                         </div>
 
                         <div className="flex gap-3 pt-2">
