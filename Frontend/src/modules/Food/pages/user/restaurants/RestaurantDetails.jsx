@@ -1377,7 +1377,7 @@ function RestaurantDetailsContent() {
   // Dynamically check if the menu actually contains any Non-veg items
   const hasNonVegItems = useMemo(() => {
     if (!restaurant?.menuSections || !Array.isArray(restaurant.menuSections)) return false;
-    
+
     // Scan all sections and subsections for non-veg items
     return restaurant.menuSections.some(section => {
       // Check direct items in section
@@ -1387,17 +1387,17 @@ function RestaurantDetailsContent() {
       })) {
         return true;
       }
-      
+
       // Check items in subsections
       if (Array.isArray(section.subsections)) {
-        return section.subsections.some(sub => 
+        return section.subsections.some(sub =>
           Array.isArray(sub.items) && sub.items.some(item => {
             const foodType = item.foodType || "Veg";
             return foodType.toLowerCase() === "non-veg" || foodType.toLowerCase() === "nonveg" || item.isVeg === false;
           })
         );
       }
-      
+
       return false;
     });
   }, [restaurant?.menuSections]);
@@ -1522,7 +1522,8 @@ function RestaurantDetailsContent() {
     const restaurantName = restaurant?.name || "this restaurant"
 
     // Create share URL
-    const shareUrl = `${window.location.origin}/user/restaurants/${restaurantSlug}`
+    // const shareUrl = `${window.location.origin}/user/restaurants/${restaurantSlug}`
+    const shareUrl = `https://play.google.com/store/apps/details?id=com.dukaanwallah.user1`
     const shareText = `Check out ${restaurantName} on ${companyName}! ${shareUrl}`
 
     const payload = {
@@ -1556,7 +1557,8 @@ function RestaurantDetailsContent() {
     const restaurantSlug = restaurant?.slug || slug || ""
 
     // Create share URL
-    const shareUrl = `${window.location.origin}/user/restaurants/${restaurantSlug}?dish=${dishId}`
+    // const shareUrl = `${window.location.origin}/user/restaurants/${restaurantSlug}?dish=${dishId}`
+    const shareUrl = `https://play.google.com/store/apps/details?id=com.dukaanwallah.user1`
     const shareText = `Check out ${item.name} from ${restaurant?.name || "this restaurant"}! ${shareUrl}`
 
     const payload = {

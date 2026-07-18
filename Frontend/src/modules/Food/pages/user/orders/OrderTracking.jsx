@@ -2103,7 +2103,9 @@ export default function OrderTracking() {
           </DialogHeader>
           <div className="flex justify-around items-center py-4">
             <a
-              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Track my order from ${order?.restaurant || companyName} with ID #${order?.orderId || order?.id}.\n\n${window.location.href}`)}`}
+              // href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Track my order from ${order?.restaurant || companyName} with ID #${order?.orderId || order?.id}.\n\n${window.location.href}`)}`}
+              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Download the app from Play Store.\n\nhttps://play.google.com/store/apps/details?id=com.dukaanwallah.user1`)}`}
+
               target="_blank" rel="noreferrer"
               className="flex flex-col items-center gap-2 cursor-pointer"
               onClick={() => setShowShareModal(false)}
@@ -2116,7 +2118,8 @@ export default function OrderTracking() {
 
             <button
               onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
+                // navigator.clipboard.writeText(window.location.href);
+                navigator.clipboard.writeText("https://play.google.com/store/apps/details?id=com.dukaanwallah.user1");
                 toast.success("Link copied!");
                 setShowShareModal(false);
               }}
@@ -2131,7 +2134,9 @@ export default function OrderTracking() {
             {navigator.share && (
               <button
                 onClick={() => {
-                  navigator.share({ title: `Track my order from ${order?.restaurant || companyName}`, text: `Hey! Track my order from ${order?.restaurant || companyName} with ID #${order?.orderId || order?.id}.`, url: window.location.href }).catch(err => {
+                  // navigator.share({ title: `Track my order from ${order?.restaurant || companyName}`, text: `Hey! Track my order from ${order?.restaurant || companyName} with ID #${order?.orderId || order?.id}.`, url: window.location.href }).catch(err => {
+                  navigator.share({ title: `Download Dukaanwallah`, text: `Hey! Download our app from Play Store.`, url: "https://play.google.com/store/apps/details?id=com.dukaanwallah.user1" }).catch(err => {
+
                     if (err.name !== 'AbortError') toast.error("Failed to share link");
                   });
                   setShowShareModal(false);

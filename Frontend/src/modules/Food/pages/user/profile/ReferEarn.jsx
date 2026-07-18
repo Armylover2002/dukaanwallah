@@ -80,7 +80,7 @@ export default function ReferEarn() {
 
   const refId = userProfile?._id || userProfile?.id || userProfile?.referralCode || "";
   const referralLink = refId
-    ? `${window.location.origin}/food/user/auth/login?ref=${encodeURIComponent(String(refId))}`
+    ? `https://play.google.com/store/apps/details?id=com.dukaanwallah.user1`
     : "";
 
   const shareText = useMemo(() => {
