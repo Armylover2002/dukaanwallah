@@ -253,6 +253,13 @@ const buildQuickAdminOrderResponse = (order, sellerMap = {}, sellerOrderMap = {}
         '',
       email: order.customer?.email || '',
     },
+    deliveryProof: order.deliveryState?.billImageUrl || "",
+    deliveryBoy: order.dispatch?.deliveryPartnerId ? {
+      name: order.dispatch.deliveryPartnerId.name || 'Unknown Rider',
+      phone: order.dispatch.deliveryPartnerId.phone || 'N/A'
+    } : null,
+
+
     seller: seller
       ? {
         _id: seller._id,
@@ -944,7 +951,7 @@ export const getAdminOrderById = async (req, res) => {
     ],
   };
 
-  const order = await QuickOrder.findOne(query).lean();
+  const order = await QuickOrder.findOne(query).populate('userId').populate('dispatch.deliveryPartnerId').lean();
   if (!order) {
     return res.status(404).json({ success: false, message: 'Order not found' });
   }
@@ -1985,7 +1992,7 @@ export const applySellerPenalty = async (req, res, next) => {
 export const getSellerPenalties = async (req, res, next) => {
   try {
     const { page = 1, limit = 50 } = req.query;
-    
+
     // Penalties are saved as Adjustments with negative amounts and references starting with PENALTY-
     const filter = {
       type: 'Adjustment',

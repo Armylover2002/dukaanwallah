@@ -158,8 +158,8 @@ export default function OrderDetail() {
         if (!order) return;
 
         const headers = [
-            'Order ID', 'Date', 'Customer Name', 'Customer Phone', 'Shop Name', 
-            'Status', 'Item Name', 'Item ID', 'Unit Price', 'Quantity', 
+            'Order ID', 'Date', 'Customer Name', 'Customer Phone', 'Shop Name',
+            'Status', 'Item Name', 'Item ID', 'Unit Price', 'Quantity',
             'Total Price', 'Subtotal', 'Delivery Fee', 'Platform Fee', 'Tax', 'Total Payable'
         ];
 
@@ -499,7 +499,19 @@ export default function OrderDetail() {
                                 <div>
                                     <h5 className="text-sm font-black text-slate-900">{deliveryBoy?.name || 'Pending Rider Assignment'}</h5>
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Contact: {deliveryBoy?.phone || 'N/A'}</p>
+
                                 </div>
+                                {order.deliveryProof && (
+                                    <div className="mt-4">
+                                        <h3 className="font-semibold mb-2">Delivery Proof</h3>
+                                        <img
+                                            src={order.deliveryProof}
+                                            alt="Delivery Proof"
+                                            className="w-full max-w-sm rounded-lg shadow-md border"
+                                        />
+                                    </div>
+                                )}
+
                             </div>
                         </div>
                     </Card>
