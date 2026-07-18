@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion /*, AnimatePresence */ } from "framer-motion";
 import Lottie from 'lottie-react';
 import {
   ArrowLeft,
@@ -41,9 +42,29 @@ const DEFAULT_QUICK_BILLING_SETTINGS = {
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=200&auto=format&fit=crop';
+const CHECKOUT_STORAGE_KEY = "quick_commerce_checkout_state_v1";
 
+const DEFAULT_CURRENT_ADDRESS = {
+  type: "Home", name: "", address: "", landmark: "", city: "", phone: "",
+};
 
+const sanitizeCheckoutAddress = (addr) => {
+  if (!addr || typeof addr !== "object") return DEFAULT_CURRENT_ADDRESS;
+  return { ...DEFAULT_CURRENT_ADDRESS, ...addr };
+};
 
+const readStoredCheckoutState = () => {
+  try {
+    if (typeof window === "undefined") return {};
+    const raw = window.localStorage.getItem(CHECKOUT_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return { ...parsed, currentAddress: sanitizeCheckoutAddress(parsed.currentAddress) };
+  } catch {
+    return {};
+  }
+};
 const calculateQuickCartPricing = ({ subtotal = 0, cartItems = [], feeSettings = DEFAULT_QUICK_BILLING_SETTINGS, categoryFeeMap = {}, apiDeliveryFee = 0 }) => {
   const safeSubtotal = Number(subtotal || 0);
   const deliveryFee = Number(apiDeliveryFee || 0);
@@ -91,7 +112,6 @@ const CartItem = React.memo(({ item, onRemove, onUpdateQuantity, showToast }) =>
   }, [onUpdateQuantity, item.id, item._id, item.quantity, stock, showToast]);
 
   const handleImgError = useCallback((e) => { e.currentTarget.src = FALLBACK_IMAGE; }, []);
-
   return (
     <article className="rounded-[24px] bg-white dark:bg-card p-4 shadow-sm border border-slate-100 dark:border-white/5 transition-colors">
       <div className="flex gap-4">
@@ -170,6 +190,13 @@ const CartPage = () => {
 
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Home');
+
+  const storedCheckoutState = useMemo(() => readStoredCheckoutState(), []);
+  const [currentAddress, setCurrentAddress] = useState(storedCheckoutState.currentAddress || DEFAULT_CURRENT_ADDRESS);
+
+  const displayName = currentAddress?.name || "Customer";
+  const displayPhone = currentAddress?.phone || "Phone not provided";
+  const displayAddress = [currentAddress?.address, currentAddress?.landmark, currentAddress?.city].filter(Boolean).join(", ");
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showCommissionBreakdown, setShowCommissionBreakdown] = useState(false);
@@ -319,7 +346,7 @@ const CartPage = () => {
             setDistanceKm(result.distanceKm || 0);
             setApiDeliveryFee(result.estimatedDeliveryFee || 0);
             setIsDeliverable(result.isDeliverable ?? true);
-            
+
             if (result.isDeliverable === false && result.distanceKm > (result.maxAllowedKm || 20)) {
               showToast(`Delivery not available for this location. Distance is ${result.distanceKm.toFixed(1)} km (Max allowed: ${result.maxAllowedKm || 20} km)`, "error");
             }
@@ -363,8 +390,8 @@ const CartPage = () => {
           items.forEach((item) => {
             const id = String(item?._id || item?.id || '').trim();
             if (id) {
-               nextFeeMap[id] = Number(item?.handlingFees || 0);
-               nextCommMap[id] = Number(item?.adminCommission || 0);
+              nextFeeMap[id] = Number(item?.handlingFees || 0);
+              nextCommMap[id] = Number(item?.adminCommission || 0);
             }
             if (Array.isArray(item?.children) && item.children.length > 0) visit(item.children);
           });
@@ -646,7 +673,39 @@ const CartPage = () => {
         </section>
 
         {/* Delivery Address Section Removed */}
-
+        <motion.div className="bg-white dark:bg-card rounded-2xl p-5 mb-4 shadow-sm border border-slate-100 dark:border-white/5 mt-3 transition-colors">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-green-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <MapPin size={24} className="text-[#0c831f]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-slate-800 dark:text-white text-lg">
+                    Delivery Address
+                  </span>
+                  {currentAddress.type && (
+                    <span className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      {currentAddress.type}
+                    </span>
+                  )}
+                </div>
+                <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm mt-1">
+                  {displayName} • {displayPhone}
+                </p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-relaxed line-clamp-2">
+                  {displayAddress || "No delivery address selected. Please add one."}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/quick-commerce/addresses?from=cart")}
+              className="px-4 py-2 rounded-xl bg-green-50 hover:bg-green-100 text-[#0c831f] font-black text-xs uppercase tracking-widest transition-all border border-green-100"
+            >
+              Change
+            </button>
+          </div>
+        </motion.div>
         {/* Cart Items — each item is memoized */}
         <div className="space-y-3">
           {cart.map((item, index) => (

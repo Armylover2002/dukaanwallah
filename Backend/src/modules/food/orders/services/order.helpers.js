@@ -68,10 +68,10 @@ export function shouldShowDeliveryPartnerPhone(order) {
   const deliveryStatus = String(order.deliveryState?.status || "").toLowerCase();
 
   // Robust fallback: if order is already picked up or delivered, show phone number anyway
-  const isPostPickup = ["picked_up", "reached_drop", "delivered"].includes(status) || 
-                       deliveryStatus === "picked_up" || 
-                       deliveryStatus === "reached_drop";
-                       
+  const isPostPickup = ["picked_up", "reached_drop", "delivered"].includes(status) ||
+    deliveryStatus === "picked_up" ||
+    deliveryStatus === "reached_drop";
+
   if (isPostPickup) return true;
 
   const reachedPickup = deliveryStatus === "reached_pickup" || status === "reached_pickup";
@@ -187,12 +187,12 @@ export function buildOrderIdentityFilter(orderIdOrMongoId) {
   if (!raw) return null;
   if (mongoose.isValidObjectId(raw))
     return { _id: new mongoose.Types.ObjectId(raw) };
-  
+
   // Search BOTH underscore and camelCase variants for robust lookup
-  return { 
+  return {
     $or: [
-        { order_id: raw },
-        { orderId: raw }
+      { order_id: raw },
+      { orderId: raw }
     ]
   };
 }
@@ -349,6 +349,19 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
     distanceKm: order?.pricing?.distanceKm || order?.distanceKm || null,
     createdAt: order?.createdAt,
     updatedAt: order?.updatedAt,
+    earningAmount:
+      order?.riderEarning ||
+      order?.pricing?.riderEarning ||
+      order?.pricing?.deliveryFee ||
+      order?.pricing?.deliveryCharge ||
+      0,
+    deliveryEarning:
+      order?.riderEarning ||
+      order?.pricing?.riderEarning ||
+      order?.pricing?.deliveryFee ||
+      order?.pricing?.deliveryCharge ||
+      0,
+
   };
 }
 
@@ -415,13 +428,13 @@ export const STATUS_PRIORITY = {
 export function isStatusAdvance(current, next) {
   // If current status is missing, it's effectively 'created' or start of flow
   if (!current) return true;
-  
+
   const currentPrio = STATUS_PRIORITY[current] || 0;
   const nextPrio = STATUS_PRIORITY[next] || 0;
 
   // Terminal states (100) cannot transition to anything else
   if (currentPrio >= 100) return false;
-  
+
   // Delivered (80) cannot transition to anything (except maybe cancellation if allowed, but here we say no)
   if (currentPrio === 80) return false;
 

@@ -48,6 +48,8 @@ import {
   getDispatchSettings,
   updateDispatchSettings
 } from './order-dispatch.service.js';
+import { emitQuickCommerceStatusUpdate } from '../../../quick-commerce/services/quickStatusRealtime.service.js';
+
 
 export {
   tryAutoAssign,
@@ -3961,6 +3963,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId, body = {})
         orderStatus: order.orderStatus,
         dispatchStatus: order.dispatch?.status,
       });
+      emitQuickCommerceStatusUpdate(order)
     }
   } catch (e) {
     logger.warn(`Socket emit on acceptOrderDelivery failed: ${e?.message || e}`);
