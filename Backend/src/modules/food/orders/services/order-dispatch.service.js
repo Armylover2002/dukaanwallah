@@ -36,7 +36,7 @@ export async function filterEligiblePartners(partners) {
   if (!partners.length) return [];
   const partnerIds = partners.map(p => p.partnerId);
   const today = dayjs().tz("Asia/Kolkata").format("YYYY-MM-DD");
-  
+
   const [activePasses, activeSubs] = await Promise.all([
     FoodDailyPass.find({
       userId: { $in: partnerIds },
@@ -58,7 +58,7 @@ export async function filterEligiblePartners(partners) {
   // Use a bypassed subscription list if needed, or strictly use subEligibleIds.
   // For now, we apply both subscription eligibility AND cash limit eligibility.
   const fullyEligiblePartners = [];
-  
+
   for (const p of partners) {
     // Check cash limit with cache (5 mins TTL)
 
@@ -78,14 +78,14 @@ export async function filterEligiblePartners(partners) {
           { _id: p.partnerId, availabilityStatus: 'online' },
           { $set: { availabilityStatus: 'offline' } }
         ).exec().catch(err => logger.error(`Auto-offline save failed: ${err.message}`));
-        
+
         const io = getIO();
         if (io) {
           io.to(rooms.delivery(p.partnerId)).emit('forced_offline', { reason: 'CASH_LIMIT_EXCEEDED' });
         }
         continue; // Skip this partner
       }
-      
+
       // Cash limit is fine — include this partner
       fullyEligiblePartners.push(p);
     } catch (err) {
@@ -290,6 +290,7 @@ export async function tryAutoAssign(orderId, options = {}) {
   const attempt = options.attempt || 1;
   const lockTimeout = 55000; // 55 seconds lock interval
 
+
   const order = await FoodOrder.findOneAndUpdate(
     {
       _id: new mongoose.Types.ObjectId(orderId),
@@ -315,11 +316,19 @@ export async function tryAutoAssign(orderId, options = {}) {
     );
     return null;
   }
+  // ADD THIS FIX: Forcefully set rider earning before building payload for Quick Commerce
+  if (order.orderType === "quick" || order.orderType === "mixed") {
+    order.riderEarning = order.riderEarning || order.pricing?.riderEarning || order.pricing?.deliveryFee || 0;
+    order.earnings = order.riderEarning;
+  }
+
+  // Existing code
+  const payload = buildDeliverySocketPayload(order, source);
 
   const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
     ? (order.restaurantId ||
-       order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
-       order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
+      order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+      order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
     : null;
 
   if (qcSellerId) {
@@ -365,6 +374,12 @@ export async function tryAutoAssign(orderId, options = {}) {
       dispatchSourceId,
       searchOptions,
     );
+
+
+    if (order.orderType === "quick" || order.orderType === "mixed") {
+      order.riderEarning = order.riderEarning || order.pricing?.riderEarning || order.pricing?.deliveryFee || 0;
+      order.earnings = order.riderEarning;
+    }
 
     // TIERED ALERT LOGIC
     // Phase 2: Broadcast to all (Attempt 3+)
