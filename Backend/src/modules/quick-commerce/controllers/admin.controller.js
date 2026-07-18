@@ -2020,10 +2020,31 @@ export const updateActiveSeller = async (req, res, next) => {
     const updateData = req.body;
 
     delete updateData._id; // prevent _id overwrite
-    
+
+    const flatUpdate = {};
+    for (const key in updateData) {
+      if (['documents', 'bankInfo', 'shopInfo', 'location'].includes(key) && updateData[key] !== null && typeof updateData[key] === 'object') {
+        for (const subKey in updateData[key]) {
+          flatUpdate[`${key}.${subKey}`] = updateData[key][subKey];
+        }
+      } else {
+        flatUpdate[key] = updateData[key];
+      }
+    }
+
+    // Fix location coordinates for 2dsphere index if lat/lng are provided
+    if (updateData.location) {
+      const lat = Number(updateData.location.latitude);
+      const lng = Number(updateData.location.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        flatUpdate['location.coordinates'] = [lng, lat];
+        flatUpdate['location.type'] = 'Point';
+      }
+    }
+
     const seller = await Seller.findByIdAndUpdate(
       sellerId,
-      { $set: updateData },
+      { $set: flatUpdate },
       { new: true, runValidators: true }
     );
 

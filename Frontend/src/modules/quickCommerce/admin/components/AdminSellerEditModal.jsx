@@ -44,37 +44,43 @@ const AdminSellerEditModal = ({ isOpen, onClose, onSuccess, seller }) => {
 
   useEffect(() => {
     if (isOpen && seller) {
+      let openingTime = '';
+      let closingTime = '';
+      if (seller.shopInfo?.openingHours) {
+        const parts = seller.shopInfo.openingHours.split(' - ');
+        if (parts.length === 2) {
+          openingTime = parts[0];
+          closingTime = parts[1];
+        }
+      }
+
       setFormData({
-        name: seller.name || "",
+        name: seller.ownerName || seller.name || "",
         shopName: seller.shopName || "",
         email: seller.email || "",
         phone: seller.phone || "",
-        location: {
-          address: seller.location?.address || seller.location?.formattedAddress || "",
-          lat: seller.location?.latitude || seller.location?.coordinates?.[1] || 28.6139,
-          lng: seller.location?.longitude || seller.location?.coordinates?.[0] || 77.2090,
-        },
-        bankInfo: {
-          bankName: seller.bankInfo?.bankName || "",
-          accountHolderName: seller.bankInfo?.accountHolderName || "",
-          accountNumber: seller.bankInfo?.accountNumber || "",
-          ifscCode: seller.bankInfo?.ifscCode || "",
-          accountType: seller.bankInfo?.accountType || "",
-          upiId: seller.bankInfo?.upiId || "",
-          upiQrImage: seller.bankInfo?.upiQrImage || "",
-        },
-        documents: {
-          panNumber: seller.documents?.panNumber || "",
-          gstNumber: seller.documents?.gstNumber || "",
-          fssaiNumber: seller.documents?.fssaiNumber || "",
-          shopLicenseNumber: seller.documents?.shopLicenseNumber || "",
-          shopLicenseImage: seller.documents?.shopLicenseImage || "",
-        },
-        shopInfo: {
-          businessType: seller.shopInfo?.businessType || seller.category || "",
-          supportEmail: seller.shopInfo?.supportEmail || "",
-          openingHours: seller.shopInfo?.openingHours || "09:00 AM - 09:00 PM",
-        },
+        address: typeof seller.location === 'string' ? seller.location : (seller.location?.address || seller.location?.formattedAddress || ""),
+        lat: seller.location?.latitude || seller.location?.coordinates?.[1] || "",
+        lng: seller.location?.longitude || seller.location?.coordinates?.[0] || "",
+        radius: '5',
+        businessType: seller.shopInfo?.businessType || seller.category || "",
+        bankName: seller.bankInfo?.bankName || "",
+        accountHolderName: seller.bankInfo?.accountHolderName || "",
+        accountNumber: seller.bankInfo?.accountNumber || "",
+        ifscCode: seller.bankInfo?.ifscCode || "",
+        accountType: seller.bankInfo?.accountType || "",
+        upiId: seller.bankInfo?.upiId || "",
+        panNumber: seller.documents?.panNumber || "",
+        gstRegistered: seller.documents?.gstRegistered ? 'true' : 'false',
+        gstNumber: seller.documents?.gstNumber || "",
+        gstLegalName: seller.documents?.gstLegalName || "",
+        fssaiNumber: seller.documents?.fssaiNumber || "",
+        shopLicenseNumber: seller.documents?.shopLicenseNumber || "",
+        zoneId: seller.shopInfo?.zoneId || "",
+        zoneName: seller.shopInfo?.zoneName || "",
+        zoneSource: 'quick',
+        openingTime: openingTime,
+        closingTime: closingTime
       });
     }
   }, [isOpen, seller]);
@@ -358,7 +364,7 @@ const AdminSellerEditModal = ({ isOpen, onClose, onSuccess, seller }) => {
       <div className={`fixed inset-0 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 ${isMapOpen ? 'z-40 opacity-0 pointer-events-none' : 'z-[9999]'}`}>
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           <div className="flex items-center justify-between p-6 border-b border-slate-100">
-            <h2 className="text-xl font-bold text-slate-900">Add New Active Seller</h2>
+            <h2 className="text-xl font-bold text-slate-900">Edit Seller</h2>
             <button
               type="button"
               onClick={onClose}
@@ -538,6 +544,13 @@ const AdminSellerEditModal = ({ isOpen, onClose, onSuccess, seller }) => {
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">UPI QR Image</label>
+                    {seller?.bankInfo?.upiQrImage && (
+                      <div className="mb-2">
+                        <a href={seller.bankInfo.upiQrImage} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-emerald-600 hover:underline">
+                          View Current Image
+                        </a>
+                      </div>
+                    )}
                     <input type="file" accept="image/*" onChange={(e) => setUpiQrImage(e.target.files[0])} className="w-full text-xs font-semibold" />
                   </div>
                 </div>
@@ -582,6 +595,14 @@ const AdminSellerEditModal = ({ isOpen, onClose, onSuccess, seller }) => {
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Shop License Image</label>
+                    {seller?.documents?.shopLicenseImage && (
+                      <div className="mb-2 flex items-center gap-2">
+                        <img src={seller.documents.shopLicenseImage} alt="Shop License" className="h-10 w-10 object-cover rounded bg-slate-100" />
+                        <a href={seller.documents.shopLicenseImage} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-emerald-600 hover:underline">
+                          View Current Image
+                        </a>
+                      </div>
+                    )}
                     <input type="file" accept="image/*" onChange={(e) => setShopLicenseImage(e.target.files[0])} className="w-full text-xs font-semibold" />
                   </div>
                 </div>
@@ -603,7 +624,7 @@ const AdminSellerEditModal = ({ isOpen, onClose, onSuccess, seller }) => {
               disabled={isSubmitting}
               className="px-6 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-slate-900/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
             >
-              {isSubmitting ? 'Creating...' : 'Create Active Seller'}
+              {isSubmitting ? 'Updating...' : 'Update Seller'}
             </button>
           </div>
         </div>
