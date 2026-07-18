@@ -80,6 +80,7 @@ const ProductManagement = () => {
 
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]); // All categories for dropdowns
+    const [sellers, setSellers] = useState([]); // All sellers for dropdown
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
     const [total, setTotal] = useState(0);
@@ -109,6 +110,7 @@ const ProductManagement = () => {
         header: '',
         categoryId: '',
         subcategoryId: '',
+        sellerId: '',
         status: 'active',
         isFeatured: false,
         tags: '',
@@ -138,6 +140,18 @@ const ProductManagement = () => {
         }
     };
 
+    const fetchSellers = async () => {
+        try {
+            const response = await adminApi.getSellers();
+            if (response.data?.success) {
+                const sellersData = response.data?.result?.items || response.data?.results || response.data?.result || [];
+                setSellers(sellersData);
+            }
+        } catch (error) {
+            console.error('Failed to fetch sellers');
+        }
+    };
+
     const fetchProducts = async (requestedPage = 1) => {
         setIsLoading(true);
         try {
@@ -163,6 +177,7 @@ const ProductManagement = () => {
 
     useEffect(() => {
         fetchCategories();
+        fetchSellers();
     }, []);
 
     useEffect(() => {
@@ -173,24 +188,27 @@ const ProductManagement = () => {
     }, [searchTerm, filterCategory, filterStatus, pageSize]);
 
     const handleSave = async () => {
-        if (!editingItem) {
-            return toast.error('Only product editing is allowed for admins');
-        }
+        const effPrice = formData.price || (formData.variants && formData.variants.length > 0 ? formData.variants[0].price : '');
+        const effStock = formData.stock !== '' ? formData.stock : (formData.variants && formData.variants.length > 0 ? formData.variants[0].stock : '');
 
-        if (!formData.name || !formData.price || !formData.stock || !formData.header || !formData.categoryId || !formData.subcategoryId) {
-            return toast.error('Please fill all required fields, including categories');
-        }
+        if (!formData.name) return toast.error('Please enter a Product Title');
+        if (!formData.sellerId) return toast.error('Please select a Seller');
+        if (effPrice === '') return toast.error('Please enter a Price (in General Info or Variants)');
+        if (effStock === '') return toast.error('Please enter Stock (in General Info or Variants)');
+        if (!formData.header) return toast.error('Please select a Main Group (Header)');
+        if (!formData.categoryId) return toast.error('Please select a Specific Category');
+        // subcategoryId is optional if no subcategories exist
 
         setIsSaving(true);
         try {
             const data = new FormData();
             data.append('name', formData.name);
-            data.append('slug', formData.slug);
+            data.append('slug', formData.slug || '');
             data.append('sku', formData.sku);
             data.append('description', formData.description);
-            data.append('price', Number(formData.price));
-            data.append('salePrice', Number(formData.salePrice) || 0);
-            data.append('stock', Number(formData.stock));
+            data.append('price', Number(effPrice));
+            data.append('salePrice', Number(formData.salePrice || (formData.variants && formData.variants.length > 0 ? formData.variants[0].salePrice : 0)));
+            data.append('stock', Number(effStock));
             data.append('lowStockAlert', Number(formData.lowStockAlert) || 5);
             data.append('unit', formData.unit);
             data.append('headerId', formData.header);
@@ -210,8 +228,18 @@ const ProductManagement = () => {
                 formData.galleryFiles.forEach((file) => data.append('galleryImages', file));
             }
 
-            await adminApi.updateProduct(editingItem._id, data);
-            toast.success('Product updated successfully');
+            if (formData.sellerId) {
+                data.append('sellerId', formData.sellerId);
+            }
+
+            if (editingItem) {
+                await adminApi.updateProduct(editingItem._id, data);
+                toast.success('Product updated successfully');
+            } else {
+                await adminApi.createProduct(data);
+                toast.success('Product created successfully');
+            }
+            
             setIsProductModalOpen(false);
             fetchProducts(page);
         } catch (error) {
@@ -244,24 +272,38 @@ const ProductManagement = () => {
     };
 
     const handleImageUpload = async (e, type) => {
-        if (e.target.files && e.target.files[0]) {
+        if (e.target.files && e.target.files.length > 0) {
             try {
-                const originalFile = e.target.files[0];
-                const webpFile = await convertToWebP(originalFile);
-                
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    if (type === 'main') {
-                        setFormData({ ...formData, mainImage: reader.result, mainImageFile: webpFile });
-                    } else {
-                        setFormData({
-                            ...formData,
-                            galleryImages: [...formData.galleryImages, reader.result],
-                            galleryFiles: [...(formData.galleryFiles || []), webpFile]
+                if (type === 'main') {
+                    const originalFile = e.target.files[0];
+                    const webpFile = await convertToWebP(originalFile);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setFormData(prev => ({ ...prev, mainImage: reader.result, mainImageFile: webpFile }));
+                    };
+                    reader.readAsDataURL(webpFile);
+                } else {
+                    const files = Array.from(e.target.files);
+                    const newImages = [];
+                    const newFiles = [];
+                    
+                    for (const file of files) {
+                        const webpFile = await convertToWebP(file);
+                        const reader = new FileReader();
+                        const result = await new Promise((resolve) => {
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(webpFile);
                         });
+                        newImages.push(result);
+                        newFiles.push(webpFile);
                     }
-                };
-                reader.readAsDataURL(webpFile);
+                    
+                    setFormData(prev => ({
+                        ...prev,
+                        galleryImages: [...(prev.galleryImages || []), ...newImages],
+                        galleryFiles: [...(prev.galleryFiles || []), ...newFiles]
+                    }));
+                }
             } catch (error) {
                 console.error("WebP conversion failed:", error);
                 toast.error("Failed to process image");
@@ -420,6 +462,13 @@ const ProductManagement = () => {
                                     filterStatus === 'inactive' ? 'ONLY DRAFT' :
                                         'SHOW ALL'}
                             </span>
+                        </button>
+                        <button
+                            onClick={() => openModal(null)}
+                            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-primary text-white hover:bg-primary/90 shadow-md"
+                        >
+                            <HiOutlinePlus className="h-4 w-4" />
+                            <span>ADD PRODUCT</span>
                         </button>
                     </div>
                 </div>
@@ -616,7 +665,6 @@ const ProductManagement = () => {
                                 <div className="lg:w-1/4 bg-slate-50/50 border-r border-slate-100 p-4 space-y-1 overflow-y-auto scrollbar-hide">
                                     {[
                                         { id: 'general', label: 'General Info', icon: HiOutlineTag },
-                                        { id: 'variants', label: 'Item Variants', icon: HiOutlineSwatch },
                                         { id: 'category', label: 'Groups', icon: HiOutlineFolderOpen },
                                         { id: 'media', label: 'Photos', icon: HiOutlinePhoto },
                                         { id: 'attributes', label: 'SEO & Details', icon: HiOutlineScale }
@@ -674,18 +722,6 @@ const ProductManagement = () => {
                                                         placeholder="e.g. Premium Basmati Rice"
                                                     />
                                                 </div>
-                                                <div className="space-y-1.5 flex flex-col">
-                                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Web Address</label>
-                                                    <div className="flex items-center bg-slate-50 rounded-xl px-4 py-2.5">
-                                                        <span className="text-[10px] text-slate-400 font-bold mr-1">/product/</span>
-                                                        <input
-                                                            value={formData.slug}
-                                                            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                                                            className="flex-1 bg-transparent border-none text-sm text-slate-500 font-semibold outline-none"
-                                                            placeholder="premium-basmati-rice"
-                                                        />
-                                                    </div>
-                                                </div>
                                             </div>
                                             <div className="space-y-1.5 flex flex-col">
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">About this item</label>
@@ -697,6 +733,21 @@ const ProductManagement = () => {
                                                     className="w-full px-4 py-3 bg-slate-100 border-none rounded-2xl text-sm font-semibold min-h-[160px] max-h-[260px] outline-none resize-none overflow-y-auto custom-scrollbar"
                                                     placeholder="Describe the item here..."
                                                 />
+                                            </div>
+                                            <div className="space-y-1.5 flex flex-col mb-6 mt-6">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Seller Selection <span className="text-rose-500">*</span></label>
+                                                <select
+                                                    value={formData.sellerId}
+                                                    onChange={(e) => setFormData({ ...formData, sellerId: e.target.value })}
+                                                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-semibold outline-none ring-primary/5 focus:ring-2 cursor-pointer"
+                                                >
+                                                    <option value="">Select Seller</option>
+                                                    {sellers.map(s => (
+                                                        <option key={s._id || s.id} value={s._id || s.id}>
+                                                            {s.shopName || s.name || s.ownerName || 'Unknown Seller'}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="space-y-1.5 flex flex-col">
@@ -789,86 +840,73 @@ const ProductManagement = () => {
                                                     </div>
                                                 </div>
                                             </div>
+                                            <div className="space-y-3 mt-8 pt-6 border-t border-slate-100">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Gallery Photos</label>
+                                                <div className="flex flex-wrap gap-4">
+                                                    {(formData.galleryImages || []).map((img, idx) => (
+                                                        <div key={idx} className="w-24 aspect-square rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden relative group">
+                                                            <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => {
+                                                                    const newImages = formData.galleryImages.filter((_, i) => i !== idx);
+                                                                    const newFiles = (formData.galleryFiles || []).filter((_, i) => i !== idx);
+                                                                    setFormData({ ...formData, galleryImages: newImages, galleryFiles: newFiles });
+                                                                }}
+                                                                className="absolute top-1.5 right-1.5 bg-rose-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    <div className="w-24 aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center group hover:border-primary hover:bg-primary/5 transition-all cursor-pointer overflow-hidden relative">
+                                                        <input
+                                                            type="file"
+                                                            multiple
+                                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                            onChange={(e) => handleImageUpload(e, 'gallery')}
+                                                        />
+                                                        <div className="flex flex-col items-center">
+                                                            <HiOutlinePhoto className="h-6 w-6 text-slate-300" />
+                                                            <p className="text-[8px] text-slate-400 font-bold mt-1">ADD PHOTOS</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                            <p className="text-[10px] text-slate-400 font-medium italic text-center pt-4 border-t border-slate-50 outline-none">
+                                            <p className="text-[10px] text-slate-400 font-medium italic text-center pt-6 outline-none">
                                                 Quick Tip: Multiple photos help users trust your products more!
                                             </p>
                                         </div>
                                     )}
 
-                                    {modalTab === 'variants' && (
-                                        <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
-                                            <div className="flex items-center justify-between">
-                                                <h4 className="text-sm font-bold">Product Variants</h4>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormData({ ...formData, variants: [...formData.variants, { id: Date.now(), name: '', price: '', salePrice: '', stock: '', sku: '' }] })}
-                                                    className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-[10px] font-bold"
-                                                >
-                                                    + ADD
-                                                </button>
-                                            </div>
-                                            <div className="space-y-3">
-                                                {formData.variants.map((v, i) => (
-                                                    <div key={v.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                                                        <input
-                                                            value={v.name}
-                                                            onChange={e => {
-                                                                const news = [...formData.variants];
-                                                                news[i].name = e.target.value;
-                                                                setFormData({ ...formData, variants: news });
-                                                            }}
-                                                            placeholder="Name"
-                                                            className="bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none"
-                                                        />
-                                                        <input
-                                                            type="number"
-                                                            value={v.price}
-                                                            onChange={e => {
-                                                                const news = [...formData.variants];
-                                                                news[i].price = e.target.value;
-                                                                setFormData({ ...formData, variants: news });
-                                                            }}
-                                                            placeholder="Price"
-                                                            className="bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none"
-                                                        />
-                                                        <input
-                                                            type="number"
-                                                            value={v.stock}
-                                                            onChange={e => {
-                                                                const news = [...formData.variants];
-                                                                news[i].stock = e.target.value;
-                                                                setFormData({ ...formData, variants: news });
-                                                            }}
-                                                            placeholder="Stock"
-                                                            className="bg-white px-3 py-2 rounded-xl text-xs ring-1 ring-slate-100 outline-none"
-                                                        />
-                                                        <div className="flex justify-end">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setFormData({ ...formData, variants: formData.variants.filter((_, idx) => idx !== i) })}
-                                                                className="text-rose-500 p-2 hover:bg-rose-50 rounded-lg"
-                                                            >
-                                                                <HiOutlineTrash className="h-4 w-4" />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
                                     {modalTab === 'attributes' && (
                                         <div className="ds-section-spacing animate-in fade-in slide-in-from-right-2 duration-300">
-                                            <div className="p-6 bg-slate-50 rounded-xl border border-slate-100 italic text-slate-500 text-xs text-center font-medium">
+                                            <div className="p-6 bg-slate-50 rounded-xl border border-slate-100 italic text-slate-500 text-xs text-center font-medium mb-6">
                                                 Additional SEO data and technical specifications coming in future updates.
+                                            </div>
+
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h4 className="text-sm font-bold text-slate-800">Product Variants</h4>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, variants: [...(formData.variants || []), { id: Date.now(), name: '', price: '', salePrice: '', stock: '', sku: '' }] })}
+                                                    className="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-colors flex items-center gap-1"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                                    </svg>
+                                                    ADD VARIANT
+                                                </button>
                                             </div>
 
                                             {formData.variants?.length > 0 ? (
                                                 <div className="space-y-3">
                                                     {formData.variants.map((variant, idx) => (
                                                         <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-12 gap-4 items-end group relative">
-                                                            <div className="col-span-4 space-y-1">
+                                                            <div className="col-span-3 space-y-1">
                                                                 <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest ml-1">Variant Name</label>
                                                                 <input
                                                                     value={variant.name}
@@ -877,7 +915,7 @@ const ProductManagement = () => {
                                                                         newVariants[idx].name = e.target.value;
                                                                         setFormData({ ...formData, variants: newVariants });
                                                                     }}
-                                                                    placeholder="e.g. 1kg Packet"
+                                                                    placeholder="e.g. 1kg"
                                                                     className="w-full px-3 py-2 bg-white ring-1 ring-slate-200 border-none rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/10"
                                                                 />
                                                             </div>
@@ -909,7 +947,7 @@ const ProductManagement = () => {
                                                                     className="w-full px-3 py-2 bg-emerald-50/50 ring-1 ring-emerald-100 border-none rounded-lg text-xs font-bold text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-200"
                                                                 />
                                                             </div>
-                                                            <div className="col-span-1 space-y-1">
+                                                            <div className="col-span-2 space-y-1">
                                                                 <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest ml-1">Stock</label>
                                                                 <input
                                                                     type="number"

@@ -15,6 +15,7 @@ const quickProductSchema = new mongoose.Schema({
   mainImage: { type: String, default: '' },
   galleryImages: { type: [String], default: [] },
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'quick_category', required: true, index: true },
+  sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Seller', default: null, index: true },
   subcategoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'quick_category', default: null, index: true },
   headerId: { type: mongoose.Schema.Types.ObjectId, ref: 'quick_category', default: null, index: true },
   description: { type: String, default: '' },

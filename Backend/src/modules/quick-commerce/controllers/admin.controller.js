@@ -168,7 +168,7 @@ const parseVariants = (value = '[]') => {
       price: parseNumber(variant?.price, 0),
       salePrice: parseNumber(variant?.salePrice, 0),
       stock: parseNumber(variant?.stock, 0),
-      sku: String(variant?.sku || '').trim(),
+      sku: String(variant?.sku || '').trim() || `VAR-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
     })) : [];
   } catch {
     return [];
@@ -705,6 +705,7 @@ export const createProduct = async (req, res) => {
     categoryId,
     subcategoryId,
     headerId,
+    sellerId,
     price,
     mrp,
     salePrice,
@@ -738,6 +739,8 @@ export const createProduct = async (req, res) => {
   const count = await QuickProduct.countDocuments({ slug: { $regex: `^${baseSlug}` } });
   const slug = count > 0 ? `${baseSlug}-${count + 1}` : baseSlug;
 
+  const generatedSku = sku || `PRD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
   const product = await QuickProduct.create({
     name,
     slug,
@@ -745,6 +748,7 @@ export const createProduct = async (req, res) => {
     mainImage: images.mainImage,
     galleryImages: images.galleryImages,
     categoryId,
+    sellerId: mongoose.isValidObjectId(sellerId) ? sellerId : null,
     subcategoryId: mongoose.isValidObjectId(subcategoryId) ? subcategoryId : null,
     headerId: mongoose.isValidObjectId(headerId) ? headerId : null,
     description: description || '',
@@ -754,7 +758,7 @@ export const createProduct = async (req, res) => {
     unit: unit || '',
     weight: weight || '',
     brand: brand || '',
-    sku: sku || '',
+    sku: generatedSku,
     stock: parseNumber(stock, 0),
     lowStockAlert: parseNumber(lowStockAlert, 5),
     status: status || 'active',
