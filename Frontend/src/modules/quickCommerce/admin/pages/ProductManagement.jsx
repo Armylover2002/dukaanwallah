@@ -391,6 +391,15 @@ const ProductManagement = () => {
                     </h1>
                     <p className="ds-description mt-0.5">Track your items, prices, and how many are left in stock.</p>
                 </div>
+                <div>
+                    <button
+                        onClick={() => openModal(null)}
+                        className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-primary text-white hover:bg-primary/90 shadow-md"
+                    >
+                        <HiOutlinePlus className="h-4 w-4" />
+                        <span>ADD PRODUCT</span>
+                    </button>
+                </div>
             </div>
 
             {/* Quick Stats */}
@@ -462,13 +471,6 @@ const ProductManagement = () => {
                                     filterStatus === 'inactive' ? 'ONLY DRAFT' :
                                         'SHOW ALL'}
                             </span>
-                        </button>
-                        <button
-                            onClick={() => openModal(null)}
-                            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-primary text-white hover:bg-primary/90 shadow-md"
-                        >
-                            <HiOutlinePlus className="h-4 w-4" />
-                            <span>ADD PRODUCT</span>
                         </button>
                     </div>
                 </div>
