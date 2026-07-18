@@ -16,6 +16,7 @@ import {
   Trash2,
   AlertTriangle,
   LogOut,
+  Clock,
 } from "lucide-react";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
@@ -24,6 +25,45 @@ import Button from "@shared/components/ui/Button";
 import MapPicker from "../../../shared/components/MapPicker";
 import { clearModuleAuth } from "@food/utils/auth";
 import { useAuth } from "@core/context/AuthContext";
+
+const CustomTimePicker = ({ name, value, onChange, disabled }) => {
+  const [hourStr, minStr] = (value || "09:00").split(":");
+  let h = parseInt(hourStr);
+  if (isNaN(h)) h = 9;
+  const ampm = h >= 12 ? "PM" : "AM";
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  const hStr = h.toString().padStart(2, "0");
+  const mStr = minStr || "00";
+
+  const update = (newH, newM, newAmpm) => {
+    let hh = parseInt(newH);
+    if (newAmpm === "PM" && hh !== 12) hh += 12;
+    if (newAmpm === "AM" && hh === 12) hh = 0;
+    onChange({ target: { name, type: "time", value: `${hh.toString().padStart(2, "0")}:${newM}` } });
+  };
+
+  const selectClass = "bg-transparent font-bold text-slate-700 outline-none cursor-pointer appearance-none text-center hover:bg-slate-200 rounded px-1 transition-colors";
+
+  return (
+    <div className={`w-full flex items-center justify-between pl-10 pr-2 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm transition-all ${disabled ? 'opacity-70 pointer-events-none' : 'focus-within:bg-white focus-within:border-slate-100'}`}>
+      <div className="flex items-center gap-1">
+        <select value={hStr} onChange={e => update(e.target.value, mStr, ampm)} disabled={disabled} className={selectClass}>
+          {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map(hr => <option key={hr} value={hr}>{hr}</option>)}
+        </select>
+        <span className="font-bold text-slate-700">:</span>
+        <select value={mStr} onChange={e => update(hStr, e.target.value, ampm)} disabled={disabled} className={selectClass}>
+          {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+      <select value={ampm} onChange={e => update(hStr, mStr, e.target.value)} disabled={disabled} className={selectClass}>
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+};
+
 
 const SellerProfile = () => {
   const { logout } = useAuth();
@@ -44,6 +84,19 @@ const SellerProfile = () => {
     lng: null,
     radius: 5,
     address: "",
+    businessType: "",
+    alternatePhone: "",
+    supportEmail: "",
+    openTime: "",
+    closeTime: "",
+    panNumber: "",
+    gstRegistered: false,
+    gstNumber: "",
+    gstLegalName: "",
+    fssaiNumber: "",
+    fssaiExpiry: "",
+    shopLicenseNumber: "",
+    shopLicenseExpiry: "",
   });
 
   useEffect(() => {
@@ -62,14 +115,27 @@ const SellerProfile = () => {
       const data = response.data.result;
       setProfile(data);
       setFormData({
-        name: data.name,
-        shopName: data.shopName,
-        phone: data.phone,
-        email: data.email,
+        name: data.name || "",
+        shopName: data.shopName || "",
+        phone: data.phone || "",
+        email: data.email || "",
         lat: (data.location?.coordinates && data.location.coordinates[1] !== undefined) ? data.location.coordinates[1] : null,
         lng: (data.location?.coordinates && data.location.coordinates[0] !== undefined) ? data.location.coordinates[0] : null,
         radius: data.serviceRadius || 5,
         address: data.address || "",
+        businessType: data.shopInfo?.businessType || "",
+        alternatePhone: data.shopInfo?.alternatePhone || "",
+        supportEmail: data.shopInfo?.supportEmail || "",
+        openTime: data.shopInfo?.openingHours ? data.shopInfo.openingHours.split(' - ')[0] || "" : "",
+        closeTime: data.shopInfo?.openingHours ? data.shopInfo.openingHours.split(' - ')[1] || "" : "",
+        panNumber: data.documents?.panNumber || "",
+        gstRegistered: data.documents?.gstRegistered || false,
+        gstNumber: data.documents?.gstNumber || "",
+        gstLegalName: data.documents?.gstLegalName || "",
+        fssaiNumber: data.documents?.fssaiNumber || "",
+        fssaiExpiry: data.documents?.fssaiExpiry ? data.documents.fssaiExpiry.split('T')[0] : "",
+        shopLicenseNumber: data.documents?.shopLicenseNumber || "",
+        shopLicenseExpiry: data.documents?.shopLicenseExpiry ? data.documents.shopLicenseExpiry.split('T')[0] : "",
       });
     } catch (error) {
       if (error?.response?.status !== 401) {
@@ -106,19 +172,19 @@ const SellerProfile = () => {
       setProfile((prev) =>
         prev
           ? {
-              ...prev,
-              serviceRadius: nextLocation.radius,
+            ...prev,
+            serviceRadius: nextLocation.radius,
+            address: nextLocation.address,
+            location: {
+              ...(prev.location || {}),
+              type: "Point",
+              coordinates: [nextLocation.lng, nextLocation.lat],
+              latitude: nextLocation.lat,
+              longitude: nextLocation.lng,
+              formattedAddress: nextLocation.address,
               address: nextLocation.address,
-              location: {
-                ...(prev.location || {}),
-                type: "Point",
-                coordinates: [nextLocation.lng, nextLocation.lat],
-                latitude: nextLocation.lat,
-                longitude: nextLocation.lng,
-                formattedAddress: nextLocation.address,
-                address: nextLocation.address,
-              },
-            }
+            },
+          }
           : prev,
       );
       toast.success("Location updated successfully");
@@ -132,8 +198,10 @@ const SellerProfile = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "name") {
+    const { name, value, type, checked } = e.target;
+    if (type === "checkbox") {
+      setFormData({ ...formData, [name]: checked });
+    } else if (name === "name") {
       // Disallow numbers in seller name
       const cleaned = value.replace(/[0-9]/g, "");
       setFormData({ ...formData, [name]: cleaned });
@@ -141,9 +209,30 @@ const SellerProfile = () => {
       // Allow only digits, max 10 characters
       const digitsOnly = value.replace(/[^0-9]/g, "").slice(0, 10);
       setFormData({ ...formData, [name]: digitsOnly });
-    } else if (name === "email") {
+    } else if (name === "email" || name === "supportEmail") {
       // Trim spaces, keep as-is otherwise; HTML5 type=email will help validate shape
       setFormData({ ...formData, [name]: value.trimStart() });
+    } else if (name === "alternatePhone") {
+      const digitsOnly = value.replace(/[^0-9]/g, "").slice(0, 10);
+      setFormData({ ...formData, [name]: digitsOnly });
+    } else if (name === "panNumber") {
+      const alphanumeric = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10);
+      setFormData({ ...formData, [name]: alphanumeric });
+    } else if (name === "gstNumber") {
+      const alphanumeric = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 15);
+      setFormData({ ...formData, [name]: alphanumeric });
+    } else if (name === "fssaiNumber") {
+      const digitsOnly = value.replace(/[^0-9]/g, "").slice(0, 14);
+      setFormData({ ...formData, [name]: digitsOnly });
+    } else if (name === "shopLicenseNumber") {
+      const alphanumeric = value.replace(/[^a-zA-Z0-9-]/g, "").toUpperCase().slice(0, 20);
+      setFormData({ ...formData, [name]: alphanumeric });
+    } else if (name === "businessType") {
+      const lettersOnly = value.replace(/[^a-zA-Z\s]/g, "").slice(0, 25);
+      setFormData({ ...formData, [name]: lettersOnly });
+    } else if (name === "gstLegalName") {
+      const lettersOnly = value.replace(/[^a-zA-Z\s]/g, "").slice(0, 50);
+      setFormData({ ...formData, [name]: lettersOnly });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -153,6 +242,35 @@ const SellerProfile = () => {
     () => (formData.lat ? { lat: formData.lat, lng: formData.lng } : null),
     [formData.lat, formData.lng],
   );
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (profile) {
+      setFormData({
+        name: profile.name || "",
+        shopName: profile.shopName || "",
+        phone: profile.phone || "",
+        email: profile.email || "",
+        lat: (profile.location?.coordinates && profile.location.coordinates[1] !== undefined) ? profile.location.coordinates[1] : null,
+        lng: (profile.location?.coordinates && profile.location.coordinates[0] !== undefined) ? profile.location.coordinates[0] : null,
+        radius: profile.serviceRadius || 5,
+        address: profile.address || "",
+        businessType: profile.shopInfo?.businessType || "",
+        alternatePhone: profile.shopInfo?.alternatePhone || "",
+        supportEmail: profile.shopInfo?.supportEmail || "",
+        openTime: profile.shopInfo?.openingHours ? profile.shopInfo.openingHours.split(' - ')[0] || "" : "",
+        closeTime: profile.shopInfo?.openingHours ? profile.shopInfo.openingHours.split(' - ')[1] || "" : "",
+        panNumber: profile.documents?.panNumber || "",
+        gstRegistered: profile.documents?.gstRegistered || false,
+        gstNumber: profile.documents?.gstNumber || "",
+        gstLegalName: profile.documents?.gstLegalName || "",
+        fssaiNumber: profile.documents?.fssaiNumber || "",
+        fssaiExpiry: profile.documents?.fssaiExpiry ? profile.documents.fssaiExpiry.split('T')[0] : "",
+        shopLicenseNumber: profile.documents?.shopLicenseNumber || "",
+        shopLicenseExpiry: profile.documents?.shopLicenseExpiry ? profile.documents.shopLicenseExpiry.split('T')[0] : "",
+      });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
@@ -173,15 +291,40 @@ const SellerProfile = () => {
       return;
     }
 
+    if (formData.openTime && formData.closeTime) {
+      if (formData.closeTime <= formData.openTime) {
+        toast.error("Closing time must be after opening time.");
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const payload = {
-        ...formData,
+        name: formData.name,
+        shopName: formData.shopName,
         phone: normalizedPhone,
         email: trimmedEmail,
         lat: formData.lat,
         lng: formData.lng,
         radius: formData.radius,
+        address: formData.address,
+        shopInfo: {
+          businessType: formData.businessType,
+          alternatePhone: formData.alternatePhone,
+          supportEmail: formData.supportEmail,
+          openingHours: formData.openTime && formData.closeTime ? `${formData.openTime} - ${formData.closeTime}` : "",
+        },
+        documents: {
+          panNumber: formData.panNumber,
+          gstRegistered: formData.gstRegistered,
+          gstNumber: formData.gstNumber,
+          gstLegalName: formData.gstLegalName,
+          fssaiNumber: formData.fssaiNumber,
+          fssaiExpiry: formData.fssaiExpiry || null,
+          shopLicenseNumber: formData.shopLicenseNumber,
+          shopLicenseExpiry: formData.shopLicenseExpiry || null,
+        }
       };
       await sellerApi.updateProfile(payload);
       toast.success("Profile updated successfully");
@@ -273,7 +416,7 @@ const SellerProfile = () => {
               <div className="flex gap-2 w-full md:w-auto">
                 <Button
                   type="button"
-                  onClick={() => setIsEditing(false)}
+                  onClick={handleCancelEdit}
                   variant="outline"
                   className="h-12 w-12 md:h-[64px] md:w-[64px] flex items-center justify-center bg-white/5 text-white border border-white/20 hover:bg-white hover:text-slate-900 rounded-lg shadow-lg transition-all backdrop-blur-md shrink-0">
                   <X size={20} className="stroke-[2.5]" />
@@ -340,6 +483,7 @@ const SellerProfile = () => {
                       value={formData.shopName}
                       onChange={handleChange}
                       disabled={!isEditing}
+                      maxLength={45}
                       className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70"
                     />
                   </div>
@@ -407,11 +551,10 @@ const SellerProfile = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div
-                      className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                        formData.lat
-                          ? "bg-emerald-100 text-emerald-600 shadow-[0_8px_20px_-6px_rgba(16,185,129,0.3)]"
-                          : "bg-white text-slate-400 shadow-sm"
-                      }`}>
+                      className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-all ${formData.lat
+                        ? "bg-emerald-100 text-emerald-600 shadow-[0_8px_20px_-6px_rgba(16,185,129,0.3)]"
+                        : "bg-white text-slate-400 shadow-sm"
+                        }`}>
                       <MapPin size={24} />
                     </div>
                     <div className="space-y-1">
@@ -480,6 +623,114 @@ const SellerProfile = () => {
                   exactly at your physical storefront for accurate delivery
                   assignments.
                 </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Shop Information Card */}
+          <Card className="p-5 sm:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 border-b border-slate-50 pb-4">
+              <h3 className="text-xl font-black text-slate-900">
+                Shop Information
+              </h3>
+              {!isEditing && (
+                <Button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600 rounded-lg px-6 py-3 sm:py-2 text-[10px] font-black tracking-[2px]">
+                  MANAGE
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">Business Type</label>
+                <div className="relative group">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"><Store size={18} /></div>
+                  <input type="text" name="businessType" value={formData.businessType} onChange={handleChange} disabled={!isEditing} maxLength={25} className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">Alternate Phone</label>
+                <div className="relative group">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"><Phone size={18} /></div>
+                  <input type="tel" name="alternatePhone" value={formData.alternatePhone} onChange={handleChange} disabled={!isEditing} maxLength={10} className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">Support Email</label>
+                <div className="relative group">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"><Mail size={18} /></div>
+                  <input type="email" name="supportEmail" value={formData.supportEmail} onChange={handleChange} disabled={!isEditing} maxLength={50} className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">Shop Timings</label>
+                <div className="flex items-center gap-2">
+                  <div className="relative group flex-1">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10"><Clock size={16} /></div>
+                    <CustomTimePicker name="openTime" value={formData.openTime} onChange={handleChange} disabled={!isEditing} />
+                  </div>
+                  <span className="text-slate-400 font-bold">-</span>
+                  <div className="relative group flex-1">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10"><Clock size={16} /></div>
+                    <CustomTimePicker name="closeTime" value={formData.closeTime} onChange={handleChange} disabled={!isEditing} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Documents Card */}
+          <Card className="p-5 sm:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 border-b border-slate-50 pb-4">
+              <h3 className="text-xl font-black text-slate-900">
+                Documents & Licenses
+              </h3>
+              {!isEditing && (
+                <Button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600 rounded-lg px-6 py-3 sm:py-2 text-[10px] font-black tracking-[2px]">
+                  MANAGE
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">PAN Number</label>
+                <input type="text" name="panNumber" value={formData.panNumber} onChange={handleChange} disabled={!isEditing} maxLength={10} className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70 uppercase" />
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-600 ml-1 cursor-pointer">
+                  <input type="checkbox" name="gstRegistered" checked={formData.gstRegistered} onChange={handleChange} disabled={!isEditing} className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary" />
+                  GST Registered
+                </label>
+                {formData.gstRegistered && (
+                  <div className="grid grid-cols-1 gap-4 mt-2">
+                    <input type="text" name="gstNumber" value={formData.gstNumber} onChange={handleChange} disabled={!isEditing} maxLength={15} placeholder="GST Number" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70 uppercase" />
+                    <input type="text" name="gstLegalName" value={formData.gstLegalName} onChange={handleChange} disabled={!isEditing} maxLength={50} placeholder="GST Legal Name" className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">FSSAI Number</label>
+                <input type="text" name="fssaiNumber" value={formData.fssaiNumber} onChange={handleChange} disabled={!isEditing} maxLength={14} className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">FSSAI Expiry</label>
+                <input type="date" name="fssaiExpiry" value={formData.fssaiExpiry} onChange={handleChange} disabled={!isEditing} className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70 text-slate-500" />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">Shop License Number</label>
+                <input type="text" name="shopLicenseNumber" value={formData.shopLicenseNumber} onChange={handleChange} disabled={!isEditing} maxLength={20} className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">Shop License Expiry</label>
+                <input type="date" name="shopLicenseExpiry" value={formData.shopLicenseExpiry} onChange={handleChange} disabled={!isEditing} className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70 text-slate-500" />
               </div>
             </div>
           </Card>
