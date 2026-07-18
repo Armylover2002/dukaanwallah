@@ -1308,7 +1308,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
 
       {/* ─── 3. BOTTOM NAV (Fixed - Compact Pro) ─── */}
       {!isKeyboardVisible && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 pb-[env(safe-area-inset-bottom,24px)] flex justify-between items-center z-[200] shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 flex justify-between items-center z-[200] shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
           <button onClick={() => navigate('/food/delivery/feed')} className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'feed' ? 'text-gray-950 scale-110' : 'text-gray-400 opacity-70'}`}>
             <LayoutGrid className="w-6 h-6" /><span className="text-[11px] font-medium font-sans">Feed</span>
           </button>

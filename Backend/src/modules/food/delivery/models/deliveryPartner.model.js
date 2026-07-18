@@ -133,7 +133,7 @@ const deliveryPartnerSchema = new mongoose.Schema(
         },
         accountStatus: {
             type: String,
-            enum: ['active', 'deleted'],
+            enum: ['active', 'deleted', 'approved', 'pending', 'suspended'],
             default: 'active'
         }
     },
