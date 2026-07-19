@@ -21,7 +21,8 @@ import {
     HiOutlineExclamationCircle,
     HiOutlineFolderOpen,
     HiOutlineSwatch,
-    HiOutlineSquaresPlus
+    HiOutlineSquaresPlus,
+    HiOutlineCurrencyRupee
 } from 'react-icons/hi2';
 import Modal from '@shared/components/ui/Modal';
 import Pagination from '@shared/components/ui/Pagination';
@@ -106,7 +107,7 @@ const ProductManagement = () => {
         salePrice: '',
         stock: '',
         lowStockAlert: 5,
-        unit: 'packet',
+        unit: '',
         header: '',
         categoryId: '',
         subcategoryId: '',
@@ -322,7 +323,7 @@ const ProductManagement = () => {
                 salePrice: item.salePrice || item.discountPrice || '',
                 stock: item.stock || '',
                 lowStockAlert: item.lowStockAlert || 5,
-                unit: item.unit || 'packet',
+                unit: item.unit || '',
                 header: item.headerId?._id || item.headerId || '',
                 categoryId: item.categoryId?._id || item.categoryId || '',
                 subcategoryId: item.subcategoryId?._id || item.subcategoryId || '',
@@ -349,7 +350,7 @@ const ProductManagement = () => {
         } else {
             setFormData({
                 name: '', slug: '', sku: '', description: '', price: '',
-                salePrice: '', stock: '', lowStockAlert: 5, unit: 'packet',
+                salePrice: '', stock: '', lowStockAlert: 5, unit: '',
                 header: '', categoryId: '', subcategoryId: '', status: 'active',
                 isFeatured: false, tags: '', weight: '', brand: '',
                 mainImage: null, galleryImages: [],
@@ -668,8 +669,9 @@ const ProductManagement = () => {
                                     {[
                                         { id: 'general', label: 'General Info', icon: HiOutlineTag },
                                         { id: 'category', label: 'Groups', icon: HiOutlineFolderOpen },
+                                        { id: 'pricing', label: 'Pricing & Stock', icon: HiOutlineCurrencyRupee },
                                         { id: 'media', label: 'Photos', icon: HiOutlinePhoto },
-                                        { id: 'attributes', label: 'SEO & Details', icon: HiOutlineScale }
+                                        { id: 'attributes', label: 'Variants & Details', icon: HiOutlineScale }
                                     ].map((tab) => (
                                         <button
                                             key={tab.id}
@@ -816,6 +818,48 @@ const ProductManagement = () => {
                                                         <option key={sc._id} value={sc._id}>{sc.name}</option>
                                                     ))}
                                                 </select>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {modalTab === 'pricing' && (
+                                        <div className="ds-section-spacing animate-in fade-in slide-in-from-right-2 duration-300">
+                                            <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 text-orange-700 text-xs font-medium mb-6">
+                                                Note: Please enter the product price including GST.
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                <div className="space-y-1.5 flex flex-col">
+                                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Price (₹) (Inclusive of GST)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={formData.price}
+                                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                                        className="w-full px-4 py-2.5 bg-white ring-1 ring-slate-200 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10"
+                                                        placeholder="e.g. 500"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5 flex flex-col">
+                                                    <label className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest ml-1">Discounted Price (₹) (Inclusive of GST)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={formData.salePrice}
+                                                        onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
+                                                        className="w-full px-4 py-2.5 bg-emerald-50/50 ring-1 ring-emerald-100 border-none rounded-xl text-sm font-bold text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-200"
+                                                        placeholder="e.g. 450"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-1.5 flex flex-col">
+                                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">How many in stock</label>
+                                                    <input
+                                                        type="number"
+                                                        value={formData.stock}
+                                                        onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                                                        className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-semibold outline-none ring-primary/5 focus:ring-2"
+                                                        placeholder="e.g. 10"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     )}
