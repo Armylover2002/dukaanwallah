@@ -4,3 +4,6 @@ node_modules/
 dist/
 coverage/
 .DS_Store
+check_role.js
+k6-load-test.js
+k6-user-load-test.js

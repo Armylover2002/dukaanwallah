@@ -319,11 +319,11 @@ router.patch(
   checkPermission("quick::core_management::customer_support::tickets", "edit"),
   updateAdminSupportTicketController,
 );
-router.get("/admin/seller-requests", ...adminOrEmployee, checkPermission("quick::core_management::seller_requests", "view"), getAdminSellerRequests);
+router.get("/admin/seller-requests", ...adminOrEmployee, checkPermission("quick::core_management::sellers::pending", "view"), getAdminSellerRequests);
 router.post(
   "/admin/create-active-seller",
   ...adminOrEmployee,
-  checkPermission("quick::core_management::seller_requests", "create"),
+  checkPermission("quick::core_management::sellers::active", "create"),
   upload.fields([
     { name: "upiQrImage", maxCount: 1 },
     { name: "shopLicenseImage", maxCount: 1 }
@@ -333,25 +333,25 @@ router.post(
 router.put(
   "/admin/seller-requests/:sellerId/approve",
   ...adminOrEmployee,
-  checkPermission("quick::core_management::seller_requests", "edit"),
+  checkPermission("quick::core_management::sellers::pending", "edit"),
   approveAdminSellerRequest,
 );
 router.put(
   "/admin/seller-requests/:sellerId/reject",
   ...adminOrEmployee,
-  checkPermission("quick::core_management::seller_requests", "edit"),
+  checkPermission("quick::core_management::sellers::pending", "edit"),
   rejectAdminSellerRequest,
 );
 router.put(
   "/admin/sellers/:sellerId/toggle-status",
   ...adminOrEmployee,
-  checkPermission("quick::core_management::seller_requests", "edit"),
+  checkPermission("quick::core_management::sellers::active", "edit"),
   toggleAdminSellerStatus,
 );
 router.put(
   "/admin/sellers/:sellerId",
   ...adminOrEmployee,
-  checkPermission("quick::core_management::seller_requests", "edit"),
+  checkPermission("quick::core_management::sellers::active", "edit"),
   updateActiveSeller
 );
 router.get("/admin/zones", ...adminOrEmployee, checkPermission("quick::core_management::zone_setup", "view"), getAdminZones);
