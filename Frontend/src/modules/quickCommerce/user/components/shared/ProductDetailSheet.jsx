@@ -305,11 +305,11 @@ const ProductDetailSheet = () => {
             showToast("This product is out of stock", "error");
             return;
         }
-        
-        const productToAdd = selectedVariant 
-            ? { ...selectedProduct, id: productId } 
+
+        const productToAdd = selectedVariant
+            ? { ...selectedProduct, id: productId }
             : selectedProduct;
-            
+
         addToCart(productToAdd);
         showToast(`${selectedProduct.name}${selectedVariant ? ' - ' + selectedVariant.name : ''} added to cart`, 'success');
     }, [addToCart, selectedProduct, selectedVariant, productId, showToast]);
@@ -565,7 +565,7 @@ const ProductDetailSheet = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.15 }}
                                     >
-                                        <h1 className="text-[22px] lg:text-[26px] font-[800] text-foreground leading-[1.2] tracking-tight mb-1">
+                                        <h1 className="text-[18px] lg:text-[20px] font-[800] text-foreground leading-[1.2] tracking-tight mb-1">
                                             {selectedProduct.name}
                                         </h1>
                                         <div className="flex items-center gap-3 mb-2">

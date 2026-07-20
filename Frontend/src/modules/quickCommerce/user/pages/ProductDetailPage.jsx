@@ -466,14 +466,34 @@ const ProductDetailPage = () => {
                 {averageRating} ({reviews.length || "0"})
               </div>
             </div>
-            <h1 className="mb-2 text-3xl font-black leading-tight text-foreground md:text-4xl transition-colors">{product.name}</h1>
-            <div className="mb-6 flex items-center gap-2">
+            {/* <h1 className="mb-2 text-[20px] lg:text-[20px] font-black leading-tight text-foreground md:text-4xl transition-colors">{product.name}</h1> */}
+            <h1
+              className="mb-2 text-[22px] lg:text-[24px] font-semibold leading-[1.3] tracking-[-0.2px] text-gray-900"
+            >
+              {product.name}
+            </h1>
+            {/* <div className="mb-6 flex items-center gap-2">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                 <ShieldCheck size={14} />
               </div>
               <span className="text-sm font-black uppercase tracking-tighter text-slate-500 dark:text-slate-400">
                 Sold by: <span className="text-foreground underline decoration-emerald-500/30 decoration-2 underline-offset-4">{product.storeName}</span>
               </span>
+            </div> */}
+            <div className="mb-5 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <ShieldCheck size={16} />
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500">
+                  Sold by
+                </span>
+
+                <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  {product.storeName}
+                </span>
+              </div>
             </div>
             <div className="mb-5 flex items-baseline gap-4">
               <span className="text-4xl font-black text-[#0c831f] dark:text-emerald-500">₹{product.price}</span>
@@ -571,7 +591,7 @@ const ProductDetailPage = () => {
       </div>
 
       {/* Reviews Section */}
-      <div className="mt-20 border-t border-border pt-16">
+      <div className=" border-t border-border pt-16">
         <div className="flex flex-col gap-12 lg:flex-row">
           <div className="lg:w-[40%]">
             <div className="sticky top-24 rounded-[2.5rem] border border-border bg-card p-8 shadow-sm transition-colors">
