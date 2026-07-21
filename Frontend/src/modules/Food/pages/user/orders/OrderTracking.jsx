@@ -1792,7 +1792,7 @@ export default function OrderTracking() {
                             returnOrderDetails.status === 'pickup_assigned' ? 'Rider Assigned for Pickup' :
                               returnOrderDetails.status === 'picked_up' ? 'Package Picked Up' :
                                 returnOrderDetails.status === 'delivered_to_seller' ? 'Delivered to Store (Awaiting Refund)' :
-                                  returnOrderDetails.status === 'refund_processed' ? 'Refund Completed' :
+                                  returnOrderDetails.status === 'refund_processed' ? (returnOrderDetails.refundMethod === 'original_source' ? 'Refund Initiated' : 'Refund Completed') :
                                     returnOrderDetails.status === 'rejected' ? 'Return Rejected' :
                                       returnOrderDetails.status
                       }
@@ -1804,7 +1804,7 @@ export default function OrderTracking() {
                             returnOrderDetails.status === 'pickup_assigned' ? 'A rider is on the way to collect your return items. Please keep the package ready.' :
                               returnOrderDetails.status === 'picked_up' ? 'Rider has collected the package from you and is delivering it back to the store.' :
                                 returnOrderDetails.status === 'delivered_to_seller' ? 'Return items successfully delivered to the store. Refund will be processed shortly.' :
-                                  returnOrderDetails.status === 'refund_processed' ? 'Refund has been successfully processed and credited.' :
+                                  returnOrderDetails.status === 'refund_processed' ? (returnOrderDetails.refundMethod === 'original_source' ? 'Refund has been successfully initiated. It may take 5-7 working days to reflect in your bank/card statement.' : 'Refund has been successfully processed and credited.') :
                                     returnOrderDetails.status === 'rejected' ? `Rejected: ${returnOrderDetails.rejectionReason || 'No details provided'}` :
                                       ''
                       }
@@ -2050,6 +2050,7 @@ export default function OrderTracking() {
       {showReturnModal && (
         <ReturnOrderModal
           orderId={orderId}
+          paymentMethod={order?.paymentMethod}
           onClose={() => setShowReturnModal(false)}
           onSuccess={() => {
             setShowReturnModal(false);

@@ -13,17 +13,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function ReturnOrderModal({ orderId, onClose, onSuccess }) {
+export default function ReturnOrderModal({ orderId, paymentMethod, onClose, onSuccess }) {
   const [reason, setReason] = useState('');
   const [refundMethod, setRefundMethod] = useState('wallet');
   
-  // Bank Details
-  const [bankDetails, setBankDetails] = useState({
-    accountHolderName: '',
-    accountNumber: '',
-    ifscCode: '',
-    bankName: ''
-  });
+  // Removed Bank Details form state
+  const isOnlinePayment = paymentMethod && ['razorpay', 'razorpay_qr', 'online'].includes(paymentMethod.toLowerCase());
 
   // Upload state
   const [imageFile, setImageFile] = useState(null);
@@ -98,12 +93,7 @@ export default function ReturnOrderModal({ orderId, onClose, onSuccess }) {
       return;
     }
 
-    if (refundMethod === 'bank_account') {
-      if (!bankDetails.accountHolderName.trim() || !bankDetails.accountNumber.trim() || !bankDetails.ifscCode.trim()) {
-        setErrorMsg('All bank account details (Holder name, Account number, and IFSC) are required.');
-        return;
-      }
-    }
+    // Validations removed for bank account
 
     setSubmitting(true);
     try {
@@ -112,7 +102,6 @@ export default function ReturnOrderModal({ orderId, onClose, onSuccess }) {
         reason,
         proofImageUrl,
         refundMethod,
-        bankDetails: refundMethod === 'bank_account' ? bankDetails : undefined
       };
 
       const response = await customerApi.submitReturnRequest(payload);
@@ -233,90 +222,34 @@ export default function ReturnOrderModal({ orderId, onClose, onSuccess }) {
                 </div>
               </button>
 
-              {/* Bank Account Option */}
-              <button
-                type="button"
-                onClick={() => setRefundMethod('bank_account')}
-                className={cn(
-                  "flex items-center gap-3 p-4 rounded-2xl border text-left transition-all",
-                  refundMethod === 'bank_account'
-                    ? "border-rose-200 bg-rose-50/20 text-rose-950 shadow-sm"
-                    : "border-slate-100 bg-white text-slate-700 hover:border-slate-200"
-                )}
-              >
-                <div className={cn(
-                  "p-2.5 rounded-xl shrink-0",
-                  refundMethod === 'bank_account' ? "bg-rose-50 text-rose-500" : "bg-slate-50 text-slate-400"
-                )}>
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black">Bank Account</h4>
-                  <p className="text-[9px] text-slate-400 font-semibold mt-0.5">Direct transfer to bank</p>
-                </div>
-              </button>
+              {/* Original Payment Source Option */}
+              {isOnlinePayment && (
+                <button
+                  type="button"
+                  onClick={() => setRefundMethod('original_source')}
+                  className={cn(
+                    "flex items-center gap-3 p-4 rounded-2xl border text-left transition-all",
+                    refundMethod === 'original_source'
+                      ? "border-rose-200 bg-rose-50/20 text-rose-950 shadow-sm"
+                      : "border-slate-100 bg-white text-slate-700 hover:border-slate-200"
+                  )}
+                >
+                  <div className={cn(
+                    "p-2.5 rounded-xl shrink-0",
+                    refundMethod === 'original_source' ? "bg-rose-50 text-rose-500" : "bg-slate-50 text-slate-400"
+                  )}>
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black">Original Source</h4>
+                    <p className="text-[9px] text-slate-400 font-semibold mt-0.5">Refund to original payment method</p>
+                  </div>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Bank details form */}
-          {refundMethod === 'bank_account' && (
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Enter Bank details</h4>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400">Holder Name *</label>
-                  <input
-                    type="text"
-                    name="accountHolderName"
-                    value={bankDetails.accountHolderName}
-                    onChange={handleBankFieldChange}
-                    placeholder="John Doe"
-                    required
-                    className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-rose-300 transition-all"
-                  />
-                </div>
-                
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400">Account Number *</label>
-                  <input
-                    type="text"
-                    name="accountNumber"
-                    value={bankDetails.accountNumber}
-                    onChange={handleBankFieldChange}
-                    placeholder="1234567890"
-                    required
-                    className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-rose-300 transition-all"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400">IFSC Code *</label>
-                  <input
-                    type="text"
-                    name="ifscCode"
-                    value={bankDetails.ifscCode}
-                    onChange={handleBankFieldChange}
-                    placeholder="SBIN0001234"
-                    required
-                    className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-rose-300 transition-all font-mono uppercase"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400">Bank Name (Optional)</label>
-                  <input
-                    type="text"
-                    name="bankName"
-                    value={bankDetails.bankName}
-                    onChange={handleBankFieldChange}
-                    placeholder="State Bank of India"
-                    className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-rose-300 transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Bank details form removed */}
 
           {/* Error Message */}
           {errorMsg && (

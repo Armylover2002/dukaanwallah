@@ -35,10 +35,9 @@ const quickReturnOrderSchema = new mongoose.Schema(
     reason: { type: String, required: true, trim: true },
     proofImageUrl: { type: String, default: '', trim: true }, // customer-uploaded product photo
 
-    // ── Refund preference ─────────────────────────────────────────────────────
     refundMethod: {
       type: String,
-      enum: ['wallet', 'bank_account'],
+      enum: ['wallet', 'bank_account', 'original_source'],
       required: true,
       default: 'wallet',
     },

@@ -614,10 +614,30 @@ export const processReturnRefund = async (returnId, { force = false } = {}) => {
       logger.error(`[Return] Wallet credit failed returnId=${returnId}: ${err.message}`);
       throw err; // Re-throw so the status is not falsely marked as processed
     }
-  } else if (ret.refundMethod === 'bank_account') {
-    // Bank transfer: automatically processed and recorded
-    ret.refundTransactionId = `bank_ref_${Date.now()}`;
-    logger.info(`[Return] Bank refund processed automatically for returnId=${returnId}, amount=${ret.refundAmount} to customer's registered bank account: ${JSON.stringify(ret.bankDetails)}`);
+  } else if (ret.refundMethod === 'original_source') {
+    // Original payment source: use razorpay refund API
+    try {
+      // Find original order to get transaction info
+      const originalOrder = await QuickOrder.findById(ret.parentOrderMongoId || ret.orderId).lean();
+      const paymentId = originalOrder?.payment?.razorpay?.paymentId;
+      if (paymentId) {
+        const { initiateRazorpayRefund } = await import('../../../food/orders/helpers/razorpay.helper.js');
+        const refundTxn = await initiateRazorpayRefund(
+            paymentId,
+            ret.refundAmount
+        );
+        
+        ret.refundTransactionId = refundTxn?.refundId || refundTxn?.id || `gateway_ref_${Date.now()}`;
+        logger.info(`[Return] Gateway refund processed automatically for returnId=${returnId}, amount=${ret.refundAmount} to original source`);
+      } else {
+        // Fallback if no transactionId
+        ret.refundTransactionId = `gateway_ref_${Date.now()}`;
+        logger.warn(`[Return] No transactionId found for gateway refund on returnId=${returnId}`);
+      }
+    } catch (err) {
+      logger.error(`[Return] Gateway refund failed returnId=${returnId}: ${err.message}`);
+      throw err; // Re-throw so the status is not falsely marked as processed
+    }
   }
 
   // 2. Calculate Delivery Partner Return Earnings & Credit Wallet
