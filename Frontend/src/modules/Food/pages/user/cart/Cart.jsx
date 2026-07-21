@@ -151,7 +151,7 @@ export default function Cart() {
   const { cart: originalCart = [], updateQuantity, addToCart, getCartCount = () => 0, clearCart, cleanCartForRestaurant } = cartContext;
   
   // Filter cart to ONLY include food items so this page ignores Quick items entirely
-  const cart = originalCart.filter((item) => (item?.orderType || "food") === "food");
+  const cart = useMemo(() => originalCart.filter((item) => (item?.orderType || "food") === "food"), [originalCart]);
   
   const hasQuickItems = false; 
   const hasFoodItems = cart.length > 0;

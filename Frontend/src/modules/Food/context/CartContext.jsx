@@ -366,7 +366,9 @@ export function CartProvider({ children }) {
   }, [normalizedCart])
 
   const getCartCount = useCallback(() =>
-    normalizedCart.reduce((total, item) => total + (item.quantity || 0), 0)
+    normalizedCart
+      .filter((item) => (item?.orderType || "food") === "food")
+      .reduce((total, item) => total + (item.quantity || 0), 0)
   , [normalizedCart])
 
   const isInCart = useCallback((itemId, variantId = "") => {
@@ -498,7 +500,8 @@ export function CartProvider({ children }) {
 
   // Transform cart to match AddToCartAnimation expected structure — uses stable normalizedCart
   const cartForAnimation = useMemo(() => {
-    const items = normalizedCart.map(item => ({
+    const foodItems = normalizedCart.filter((item) => (item?.orderType || "food") === "food")
+    const items = foodItems.map(item => ({
       product: {
         id: item.id,
         name: item.name,
@@ -506,8 +509,8 @@ export function CartProvider({ children }) {
       },
       quantity: item.quantity || 1,
     }))
-    const itemCount = normalizedCart.reduce((total, item) => total + (item.quantity || 0), 0)
-    const total = normalizedCart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0)
+    const itemCount = foodItems.reduce((total, item) => total + (item.quantity || 0), 0)
+    const total = foodItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0)
     return { items, itemCount, total }
   }, [normalizedCart])
 
