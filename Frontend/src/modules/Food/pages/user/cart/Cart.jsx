@@ -148,10 +148,14 @@ export default function Cart() {
 
   // Defensive check: Ensure CartProvider is available
   const cartContext = useCart() || {};
-  const { cart = [], updateQuantity, addToCart, getCartCount = () => 0, clearCart, cleanCartForRestaurant } = cartContext;
-  const hasQuickItems = cart.some((item) => (item?.orderType || "food") === "quick")
-  const hasFoodItems = cart.some((item) => (item?.orderType || "food") === "food")
-  const isQuickCart = cart.length > 0 && cart.every((item) => (item?.orderType || "food") === "quick")
+  const { cart: originalCart = [], updateQuantity, addToCart, getCartCount = () => 0, clearCart, cleanCartForRestaurant } = cartContext;
+  
+  // Filter cart to ONLY include food items so this page ignores Quick items entirely
+  const cart = originalCart.filter((item) => (item?.orderType || "food") === "food");
+  
+  const hasQuickItems = false; 
+  const hasFoodItems = cart.length > 0;
+  const isQuickCart = false;
 
   const { getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods, userProfile } = useProfile()
   const { createOrder } = useOrders()
