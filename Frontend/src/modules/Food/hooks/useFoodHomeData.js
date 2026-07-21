@@ -11,7 +11,7 @@ import * as imgUtils from "@food/utils/imageUtils";
 // --- Global Persistence Cache (Outlives Component Lifecycle) ---
 let globalHomeCache = {};
 
-const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_EXPIRY_MS = 1 * 60 * 1000; // 1 minute (matches backend cache TTL)
 
 export const useFoodHomeData = ({
   zoneId,
@@ -78,6 +78,8 @@ export const useFoodHomeData = ({
   const menuUnionRequestSeqRef = useRef(0);
   const menuUnionCacheRef = useRef(new Map());
   const publicCategoriesCacheRef = useRef(new Map());
+  // Track the previous zoneId so we know when zone resolves from null → actual value
+  const prevZoneIdRef = useRef(zoneId);
 
   // --- Image Helpers ---
   const normalizeImageUrl = useCallback((imageUrl) =>
@@ -268,8 +270,13 @@ export const useFoodHomeData = ({
   }, [location, zoneId, buildRestaurantImageCandidates, extractImages]);
 
   useEffect(() => {
+    // Re-fetch restaurants whenever:
+    // 1. Applied filters change (user applies a filter)
+    // 2. fetchRestaurants callback changes (when zoneId or location changes)
+    // 3. zoneId itself changes — explicit dep ensures re-fetch when zone resolves from null → value
+    prevZoneIdRef.current = zoneId;
     fetchRestaurants(appliedFilters);
-  }, [appliedFilters, fetchRestaurants]);
+  }, [appliedFilters, fetchRestaurants, zoneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Menu Context Fetching (Veg Mode) ---
   // Memoized stable string key — prevents .join() re-computation on every render

@@ -1769,7 +1769,11 @@ export const listApprovedRestaurants = async (query = {}) => {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
 
-    const filter = { status: 'approved', activeItemCount: { $gt: 0 } };
+    // NOTE: activeItemCount filter removed — it was blocking restaurants from showing
+    // if their activeItemCount was 0 or not yet synced (e.g. older restaurants, or restaurants
+    // where admin-approved food items exist but the sync hadn't run). 
+    // The status: 'approved' guard is sufficient to ensure only verified restaurants appear.
+    const filter = { status: 'approved' };
 
     if (query.city && String(query.city).trim()) {
         const city = String(query.city).trim().slice(0, 80);
