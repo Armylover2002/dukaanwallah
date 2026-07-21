@@ -745,7 +745,7 @@ const CartPage = () => {
               ['Items total', cartTotal],
               ['Delivery fee', deliveryFee],
               ['Platform fee', platformFee],
-              ['GST', gstAmount],
+              ...(gstAmount > 0 ? [['GST', gstAmount]] : []),
             ].map(([label, value]) => (
               <div key={label} className="flex flex-col space-y-2">
                 <div className="flex items-center justify-between">

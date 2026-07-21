@@ -1482,10 +1482,12 @@ const CheckoutPage = () => {
                   <span className="text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider">Platform fee</span>
                   <span className="font-black text-slate-800 dark:text-white">₹{platformFee}</span>
                 </div>
-                <div className="flex justify-between items-center px-2">
-                  <span className="text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider">GST</span>
-                  <span className="font-black text-slate-800 dark:text-white">₹{gstAmount}</span>
-                </div>
+                {gstAmount > 0 && (
+                  <div className="flex justify-between items-center px-2">
+                    <span className="text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider">GST</span>
+                    <span className="font-black text-slate-800 dark:text-white">₹{gstAmount}</span>
+                  </div>
+                )}
                 {selectedCoupon && (
                   <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center px-3 py-2 bg-green-50 dark:bg-emerald-500/10 rounded-xl border border-green-100 dark:border-emerald-500/20">
                     <span className="text-[#0c831f] font-black text-xs flex items-center gap-2 uppercase tracking-wider">
@@ -1517,13 +1519,9 @@ const CheckoutPage = () => {
                     <span className="font-[1000] text-[#0c831f] text-3xl tracking-tighter italic">{isPreviewLoading ? "Calculating..." : `₹${totalAmount}`}</span>
                   </div>
                   <div className="hidden lg:block">
-                    {selectedPayment === "cash" ? (
-                      <button onClick={handlePlaceOrderSafe} disabled={isPlacingOrder || isPreviewLoading || isEstimating || !pricingPreview || isDeliveryDistanceExceeded || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
-                        {isPlacingOrder ? "Placing Order..." : isEstimating ? "Calculating Fee..." : isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : `Place Order | ₹${totalAmount}`}
-                      </button>
-                    ) : (
-                      <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrderSafe} isLoading={isPlacingOrder || isEstimating || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={isEstimating ? "Calculating Fee..." : isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Slide to Pay"} />
-                    )}
+                    <button onClick={handlePlaceOrderSafe} disabled={isPlacingOrder || isPreviewLoading || isEstimating || !pricingPreview || isDeliveryDistanceExceeded || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-[#FE5502] hover:bg-[#C83C00] disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
+                      {isPlacingOrder ? "Placing Order..." : isEstimating ? "Calculating Fee..." : isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : selectedPayment === 'cash' ? `Place Order | ₹${totalAmount}` : `Pay Now | ₹${totalAmount}`}
+                    </button>
                     <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-4 uppercase tracking-[0.1em]">🔒 SSL encrypted secure checkout</p>
                   </div>
                 </div>
@@ -1536,13 +1534,9 @@ const CheckoutPage = () => {
       {/* Mobile Footer */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-slate-200 dark:border-white/10 px-4 py-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 rounded-t-3xl transition-colors">
         <div className="max-w-4xl mx-auto">
-          {selectedPayment === "cash" ? (
-            <button onClick={handlePlaceOrderSafe} disabled={isPlacingOrder || isPreviewLoading || !pricingPreview || isDeliveryDistanceExceeded || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
-              {isPlacingOrder ? "Placing Order..." : (storeLocation && distanceKm > serviceRadius) ? "Out of Delivery Zone" : `Place Order | ₹${totalAmount}`}
+            <button onClick={handlePlaceOrderSafe} disabled={isPlacingOrder || isPreviewLoading || isEstimating || !pricingPreview || isDeliveryDistanceExceeded || (storeLocation && distanceKm > serviceRadius)} className="w-full py-4 rounded-2xl bg-[#FE5502] hover:bg-[#C83C00] disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-lg tracking-wide transition-colors">
+              {isPlacingOrder ? "Placing Order..." : isEstimating ? "Calculating Fee..." : (storeLocation && distanceKm > serviceRadius) ? "Out of Delivery Zone" : isDeliveryDistanceExceeded ? "Out of 20km Range" : selectedPayment === 'cash' ? `Place Order | ₹${totalAmount}` : `Pay Now | ₹${totalAmount}`}
             </button>
-          ) : (
-            <SlideToPay amount={totalAmount} onSuccess={handlePlaceOrderSafe} isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview || (storeLocation && distanceKm > serviceRadius)} text={isDeliveryDistanceExceeded ? "Out of 20km Range" : (storeLocation && distanceKm > serviceRadius) ? "Out of Zone" : "Slide to Pay"} />
-          )}
         </div>
       </div>
 
