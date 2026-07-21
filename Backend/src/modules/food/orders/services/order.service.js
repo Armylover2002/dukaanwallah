@@ -40,6 +40,7 @@ import { fetchPolyline } from '../utils/googleMaps.js';
 import { getFirebaseDB } from '../../../../config/firebase.js';
 import * as foodTransactionService from './foodTransaction.service.js';
 import { autoRefundForCancelledOrder } from '../../../../core/payments/autoRefund.service.js';
+import { deductWalletBalance } from '../../user/services/userWallet.service.js';
 import { ensureDailyPassEligibility } from "../../subscriptions/services/wallet.service.js";
 import {
   tryAutoAssign,
@@ -2481,6 +2482,19 @@ export async function createOrder(userId, dto) {
     }
   }
 
+  if (isWallet) {
+    try {
+      await deductWalletBalance(
+        userId,
+        normalizedPricing.total,
+        `Payment for order #${orderId}`,
+        { orderId: String(order._id) }
+      );
+    } catch (err) {
+      throw new ValidationError(`Wallet deduction failed: ${err.message}`);
+    }
+  }
+
   await order.save();
 
   await foodTransactionService.createInitialTransaction(order);
@@ -3011,7 +3025,7 @@ export async function cancelOrder(orderId, userId, reason, refundTo) {
 
   const paymentMethod = String(order.payment?.method || "").trim().toLowerCase();
   const isOnlinePaid =
-    ["razorpay", "razorpay_qr"].includes(paymentMethod) &&
+    ["razorpay", "razorpay_qr", "wallet"].includes(paymentMethod) &&
     (order.payment.status === "paid" || order.payment.status === "refunded");
   const requestedRefundMethod =
     refundTo === "wallet" || refundTo === "gateway" ? refundTo : "gateway";
