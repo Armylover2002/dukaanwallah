@@ -125,6 +125,7 @@ const OrdersList = () => {
                         _id: o?._id,
                         orderType: String(o?.orderType || 'quick').toLowerCase(),
                         customer: String(o?.customer?.name || o?.sellerOrder?.customer?.name || 'Unknown'),
+                        deliveryOtp: o?.deliveryOtp || "--",
                         seller: String(o?.seller?.shopName || o?.storeName || 'Unknown'),
                         items: o?.itemCount || o?.items?.length || 0,
                         amount: orderAmount,
@@ -472,6 +473,8 @@ const OrdersList = () => {
                             <tr className="bg-slate-50/50">
                                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Details</th>
                                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
+                                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">OTP</th>
+
                                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Seller</th>
                                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
@@ -532,6 +535,11 @@ const OrdersList = () => {
                                         </div>
                                     </td>
                                     <td className="px-4 py-5">
+                                        <span className="text-xs font-black text-slate-700">
+                                            {order.deliveryOtp || "--"}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-5">
                                         <div className="flex items-center gap-2">
                                             <div className="h-2 w-2 rounded-full bg-emerald-500" />
                                             <span className="text-xs font-black text-slate-700">{order.seller}</span>
@@ -546,6 +554,8 @@ const OrdersList = () => {
                                             <span>{order.status.replace(/_/g, ' ')}</span>
                                         </div>
                                     </td>
+
+
                                     <td className="px-4 py-5 text-right">
                                         <div className="flex flex-col items-end">
                                             <span className="text-sm font-black text-slate-900">₹{(order?.amount || 0).toLocaleString()}</span>

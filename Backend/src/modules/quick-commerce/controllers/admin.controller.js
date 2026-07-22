@@ -223,6 +223,7 @@ const buildQuickAdminOrderResponse = (order, sellerMap = {}, sellerOrderMap = {}
     id: order._id,
     _id: order._id,
     orderId: order.orderId,
+    deliveryOtp: order.deliveryOtp || "--",
     orderNumber: order.orderId,
     orderType: order.orderType || 'quick',
     total: payableTotal,
@@ -892,6 +893,7 @@ export const getAdminOrders = async (req, res) => {
   const perPage = Math.max(1, Math.min(parseInt(limit, 10) || 50, 200));
   const [orders, total] = await Promise.all([
     QuickOrder.find(query)
+      .select("+deliveryOtp") //delivery otp 
       .sort({ createdAt: -1 })
       .skip((currentPage - 1) * perPage)
       .limit(perPage)
