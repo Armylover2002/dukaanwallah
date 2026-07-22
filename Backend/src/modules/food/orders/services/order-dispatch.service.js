@@ -316,28 +316,6 @@ export async function tryAutoAssign(orderId, options = {}) {
     );
     return null;
   }
-  // ADD THIS FIX: Forcefully set rider earning before building payload for Quick Commerce
-  if (order.orderType === "quick" || order.orderType === "mixed") {
-    order.riderEarning = order.riderEarning || order.pricing?.riderEarning || order.pricing?.deliveryFee || 0;
-    order.earnings = order.riderEarning;
-  }
-
-  // Existing code
-  const payload = buildDeliverySocketPayload(order, source);
-
-  const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
-    ? (order.restaurantId ||
-      order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
-      order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
-    : null;
-
-  if (qcSellerId) {
-    const seller = await Seller.findById(qcSellerId).lean();
-    order.restaurantId = seller;
-  } else if (order.restaurantId) {
-    const restaurant = await FoodRestaurant.findById(order.restaurantId).lean();
-    order.restaurantId = restaurant;
-  }
 
   try {
     // Sweep: force offline any online rider whose cash limit is ₹0 (Run async, fire-and-forget)
@@ -379,6 +357,21 @@ export async function tryAutoAssign(orderId, options = {}) {
     if (order.orderType === "quick" || order.orderType === "mixed") {
       order.riderEarning = order.riderEarning || order.pricing?.riderEarning || order.pricing?.deliveryFee || 0;
       order.earnings = order.riderEarning;
+    }
+
+    // Resolve seller/restaurant object so delivery payload has pickup info
+    const qcSellerId = (order.orderType === "quick" || order.orderType === "mixed")
+      ? (order.restaurantId ||
+        order.items?.find((item) => item?.type === "quick" && item?.sourceId)?.sourceId ||
+        order.pickupPoints?.find((point) => point?.pickupType === "quick" && point?.sourceId)?.sourceId)
+      : null;
+
+    if (qcSellerId) {
+      const seller = await Seller.findById(qcSellerId).lean();
+      order.restaurantId = seller;
+    } else if (order.restaurantId) {
+      const restaurant = await FoodRestaurant.findById(order.restaurantId).lean();
+      order.restaurantId = restaurant;
     }
 
     // TIERED ALERT LOGIC
