@@ -4775,6 +4775,7 @@ export async function listOrdersAdmin(query) {
 
   const [docs, total] = await Promise.all([
     FoodOrder.find(filter)
+      .select("+deliveryOtp") //otp show
       .populate("userId", "name phone email")
       .populate("dispatch.deliveryPartnerId", "name phone")
       .sort({ createdAt: -1 })
