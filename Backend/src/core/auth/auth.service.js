@@ -102,7 +102,8 @@ export const requestUserOtp = async (phone) => {
   const otp = await createOrUpdateOtp(phone);
   const shouldExposeOtp =
     config.nodeEnv !== "production" || config.useDefaultOtp || isEmail;
-  return {};
+  // return {};
+  return shouldExposeOtp ? { otp } : {};
 };
 
 export const verifyUserOtpAndLogin = async (
@@ -370,7 +371,8 @@ export const requestRestaurantOtp = async (phone) => {
   const otp = await createOrUpdateOtp(phone);
   const shouldExposeOtp =
     config.nodeEnv !== "production" || config.useDefaultOtp;
-  return {};
+  // return {};
+  return shouldExposeOtp ? { otp } : {};
 };
 
 export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform) => {
@@ -475,7 +477,8 @@ export const requestDeliveryOtp = async (phone) => {
   // Only expose OTP in response when in default/dev mode — never in production with real SMS
   const shouldExposeOtp =
     config.nodeEnv !== "production" || config.useDefaultOtp;
-  return {};
+  // return {};
+  return shouldExposeOtp ? { otp } : {};
 };
 
 const getPhoneCandidates = (phone) => {
