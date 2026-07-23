@@ -6,6 +6,7 @@ import { Input } from "@food/components/ui/input"
 import { Button } from "@food/components/ui/button"
 import { authAPI } from "@food/api"
 import { setAuthData as setUserAuthData } from "@food/utils/auth"
+import { toast } from "sonner"
 
 export default function OTP() {
   const navigate = useNavigate()
@@ -76,6 +77,18 @@ export default function OTP() {
 
     return () => clearInterval(timer)
   }, [navigate])
+
+  // Prevent browser back button from bypassing name entry
+  useEffect(() => {
+    if (!showNameInput) return
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href)
+      toast.error("Please enter your name to continue")
+    }
+    window.history.pushState(null, "", window.location.href)
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [showNameInput])
 
   useEffect(() => {
     // Focus first input on mount
@@ -419,7 +432,13 @@ export default function OTP() {
         {/* Header */}
         <div className="flex items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <button
-            onClick={() => navigate("/food/user/auth/login")}
+            onClick={() => {
+              if (showNameInput) {
+                toast.error("Please enter your name to continue")
+                return
+              }
+              navigate("/food/user/auth/login")
+            }}
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
             aria-label="Go back"
           >

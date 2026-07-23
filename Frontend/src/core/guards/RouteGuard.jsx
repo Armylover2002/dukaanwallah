@@ -43,6 +43,21 @@ const AUTH_PAGES = [
 ]
 
 /**
+ * Check if authenticated user is missing a valid name.
+ * Only applies to the "user" module.
+ */
+function isUserNameMissing() {
+  try {
+    const raw = localStorage.getItem("user_user") || localStorage.getItem("user")
+    if (!raw) return false
+    const user = JSON.parse(raw)
+    const name = String(user?.name || "").trim()
+    const phone = String(user?.phone || "").replace(/\D/g, "")
+    return !name || name.toLowerCase() === "null" || name === phone
+  } catch (e) { return false }
+}
+
+/**
  * RouteGuard — Do kaam karta hai:
  *
  * 1. AUTH PAGE GUARD (alreadyLoggedIn redirect):
@@ -71,6 +86,10 @@ export default function RouteGuard({ children, module: forcedModule, loginPath: 
   // ──────────────────────────────────────────────────────────────────────────
   const matchedAuthPage = AUTH_PAGES.find(ap => pathname.startsWith(ap.prefix))
   if (matchedAuthPage && isModuleAuthenticated(matchedAuthPage.module)) {
+    // Allow user to stay on login page if they need to enter their name
+    if (matchedAuthPage.module === "user" && isUserNameMissing()) {
+      return <>{children}</>
+    }
     return <Navigate to={matchedAuthPage.home} replace />
   }
 
@@ -158,6 +177,10 @@ function detectWrongPortal(pathname, allowedModule) {
  */
 export function AuthPageGuard({ children, module, home }) {
   if (isModuleAuthenticated(module)) {
+    // Allow user to stay on login page if they need to enter their name
+    if (module === "user" && isUserNameMissing()) {
+      return <>{children}</>
+    }
     return <Navigate to={home} replace />
   }
   return <>{children}</>

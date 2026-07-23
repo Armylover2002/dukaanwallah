@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { useEffect, useState, createContext, useContext } from "react"
 import { ProfileProvider } from "@food/context/ProfileContext"
 import { loadBusinessSettings, setAppType } from "@common/utils/businessSettings"
+import { isModuleAuthenticated } from "@food/utils/auth"
 import LocationPrompt from "./LocationPrompt"
 import { CartProvider } from "@food/context/CartContext"
 import { OrdersProvider } from "@food/context/OrdersContext"
@@ -109,6 +110,7 @@ function LocationSelectorProvider({ children }) {
 
 export default function UserLayout({ children }) {
   const location = useLocation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     // Initialize user app settings and favicon
@@ -125,6 +127,23 @@ export default function UserLayout({ children }) {
 
   // Note: Authentication checks and redirects are handled by ProtectedRoute components
   // UserLayout should not interfere with authentication redirects
+  // Name-missing users are redirected to login; AuthPageGuard allows them to stay there.
+
+  // Guard: redirect authenticated users with missing name to login (name entry)
+  useEffect(() => {
+    if (!isModuleAuthenticated("user")) return
+    try {
+      const raw = localStorage.getItem("user_user") || localStorage.getItem("user")
+      if (!raw) return
+      const user = JSON.parse(raw)
+      const name = String(user?.name || "").trim()
+      const phone = String(user?.phone || "").replace(/\D/g, "")
+      const isNameMissing = !name || name.toLowerCase() === "null" || name === phone
+      if (isNameMissing) {
+        navigate("/user/auth/login", { replace: true, state: { redirectTo: location.pathname } })
+      }
+    } catch (e) { /* ignore parse errors */ }
+  }, [location.pathname])
 
   // Show bottom navigation only on home page, dining page, under-250 page, and profile page
   const path = location.pathname.startsWith("/food")

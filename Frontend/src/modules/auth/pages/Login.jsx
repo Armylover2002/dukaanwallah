@@ -80,8 +80,36 @@ export default function UnifiedOTPFastLogin() {
 
   useEffect(() => {
     if (!isModuleAuthenticated("user")) return
+    // Before redirecting, check if user has a valid name
+    try {
+      const raw = localStorage.getItem("user_user") || localStorage.getItem("user")
+      if (raw) {
+        const user = JSON.parse(raw)
+        const userName = String(user?.name || "").trim()
+        const userPhone = String(user?.phone || "").replace(/\D/g, "")
+        const isNameMissing = !userName || userName.toLowerCase() === "null" || userName === userPhone
+        if (isNameMissing) {
+          // Authenticated but no name — show name input instead of redirecting
+          setStep(2)
+          setShowNameInput(true)
+          return
+        }
+      }
+    } catch (e) { /* ignore parse errors */ }
     navigate(redirectTo, { replace: true })
   }, [navigate, redirectTo])
+
+  // Prevent browser back button from bypassing name entry
+  useEffect(() => {
+    if (!showNameInput) return
+    const handlePopState = (e) => {
+      window.history.pushState(null, "", window.location.href)
+      toast.error("Please enter your name to continue")
+    }
+    window.history.pushState(null, "", window.location.href)
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [showNameInput])
 
   const clearNameFlow = () => {
     setShowNameInput(false)
@@ -382,7 +410,13 @@ export default function UnifiedOTPFastLogin() {
         {/* Back Button */}
         <button
           type="button"
-          onClick={() => navigate("/")}
+          onClick={() => {
+            if (showNameInput) {
+              toast.error("Please enter your name to continue")
+              return
+            }
+            navigate("/")
+          }}
           className="absolute top-6 left-6 z-20 p-2 bg-white/20 hover:bg-white/30 active:scale-95 rounded-full backdrop-blur-sm transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5 text-white" strokeWidth={3} />

@@ -44,7 +44,18 @@ const ESTIMATED_DELIVERY_TIME_OPTIONS = [
   "50-60 mins",
 ]
 
-const ONBOARDING_STORAGE_KEY = "restaurant_onboarding_data"
+const getOnboardingStorageKey = () => {
+  try {
+    const userStr = localStorage.getItem("restaurant_user")
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      const userId = user._id || user.id
+      if (userId) return `restaurant_onboarding_data_${userId}`
+    }
+  } catch (e) { /* ignore */ }
+  return "restaurant_onboarding_data"
+}
+const ONBOARDING_STORAGE_KEY = getOnboardingStorageKey()
 const PAN_NUMBER_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const GST_NUMBER_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 const FSSAI_NUMBER_REGEX = /^\d{14}$/
@@ -991,7 +1002,15 @@ export default function RestaurantOnboarding() {
         }
 
         // 3. Overlay Local Progress from localStorage / IndexedDB
-        const localData = loadOnboardingFromLocalStorage()
+        let localData = loadOnboardingFromLocalStorage()
+        // Discard drafts older than 7 days to avoid stale data
+        if (localData && localData.timestamp) {
+          const MAX_DRAFT_AGE_MS = 7 * 24 * 60 * 60 * 1000
+          if (Date.now() - localData.timestamp > MAX_DRAFT_AGE_MS) {
+            clearOnboardingFromLocalStorage()
+            localData = null
+          }
+        }
         if (localData) {
           if (localData.step1) {
             initialStep1 = {
@@ -1209,6 +1228,40 @@ export default function RestaurantOnboarding() {
 
     return () => {
       active = false
+    }
+  }, [step1, step2, step3, step4, step, isDataInitialized])
+
+  // Synchronous save on page unload/hide — guarantees text fields are persisted
+  // even if the async save above hasn't completed yet (e.g. mid-refresh).
+  // Also handles WebView visibility changes where beforeunload may not fire.
+  useEffect(() => {
+    if (!isDataInitialized) return
+
+    const syncSave = () => {
+      try {
+        const quickSave = {
+          step1,
+          step2: { ...step2, menuImages: [], profileImage: null },
+          step3: { ...step3, panImage: null, gstImage: null, fssaiImage: null },
+          step4,
+          currentStep: step,
+          timestamp: Date.now(),
+        }
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(quickSave))
+      } catch (e) {
+        // Best-effort — ignore quota or serialization errors
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") syncSave()
+    }
+
+    window.addEventListener("beforeunload", syncSave)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => {
+      window.removeEventListener("beforeunload", syncSave)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
     }
   }, [step1, step2, step3, step4, step, isDataInitialized])
 

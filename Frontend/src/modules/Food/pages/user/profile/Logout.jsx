@@ -7,9 +7,9 @@ import { useState } from "react"
 import { authAPI } from "@food/api"
 import { firebaseAuth, ensureFirebaseInitialized } from "@food/firebase"
 import { clearUserSession } from "@food/utils/auth"
-const debugLog = (...args) => {}
-const debugWarn = (...args) => {}
-const debugError = (...args) => {}
+const debugLog = (...args) => { }
+const debugWarn = (...args) => { }
+const debugError = (...args) => { }
 const USER_SESSION_PREFERENCE_KEYS = ["userVegMode", "food-under-250-filters"]
 
 
@@ -42,7 +42,7 @@ export default function Logout() {
                     fcmToken = t.trim();
                     break;
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             } else {
               fcmToken = localStorage.getItem("fcm_web_registered_token_user") || null;
@@ -81,6 +81,11 @@ export default function Logout() {
 
       // Clear sessionStorage
       sessionStorage.removeItem("userAuthData")
+      sessionStorage.removeItem("userLoginStep")
+      sessionStorage.removeItem("userLoginType")
+      sessionStorage.removeItem("userPhoneNumber")
+      sessionStorage.removeItem("userEmailAddress")
+      sessionStorage.removeItem("userOtpSent")
 
       // Dispatch auth change event to notify other components
       window.dispatchEvent(new Event("userAuthChanged"))
@@ -92,7 +97,7 @@ export default function Logout() {
     } catch (err) {
       // Even if there's an error, we should still clear local data and logout
       debugError("Error during logout:", err)
-      
+
       // Clear local data anyway
       clearUserSession()
       localStorage.removeItem("accessToken")
@@ -101,10 +106,16 @@ export default function Logout() {
       localStorage.removeItem("user")
       localStorage.removeItem("cart")
       sessionStorage.removeItem("userAuthData")
+
+      sessionStorage.removeItem("userLoginStep")
+      sessionStorage.removeItem("userLoginType")
+      sessionStorage.removeItem("userPhoneNumber")
+      sessionStorage.removeItem("userEmailAddress")
+      sessionStorage.removeItem("userOtpSent")
       window.dispatchEvent(new Event("userAuthChanged"))
 
       setError("An error occurred during logout, but you have been signed out locally.")
-      
+
       // Still return to the shared login screen after showing error.
       setTimeout(() => {
         navigate("/user/auth/login", { replace: true })

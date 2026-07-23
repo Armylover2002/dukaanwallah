@@ -179,7 +179,7 @@ export default function Profile() {
   const handleEditRequest = (request) => {
     setEditingRequestId(request._id || request.id);
     setStatusModalOpen(false);
-    
+
     const details = request.details || {};
     if (request.role === "RESTAURANT") {
       setRestaurantForm({
@@ -236,7 +236,7 @@ export default function Profile() {
     try {
       const confirmDelete = window.confirm("Are you sure you want to delete this role request?");
       if (!confirmDelete) return;
-      
+
       const reqId = request._id || request.id;
       const res = await userAPI.deleteRoleRequest(reqId);
       if (res?.data?.success || res?.success) {
@@ -284,7 +284,7 @@ export default function Profile() {
       toast.error("Please fill in all required fields.");
       return;
     }
-    
+
     setSubmittingRole(true);
     try {
       const details = {
@@ -306,7 +306,7 @@ export default function Profile() {
           landmark: restaurantForm.landmark,
         }
       };
-      
+
       if (editingRequestId) {
         await userAPI.updateRoleRequest(editingRequestId, details);
         toast.success("Your restaurant onboard request was updated successfully!");
@@ -330,7 +330,7 @@ export default function Profile() {
       toast.error("Please fill in all required fields.");
       return;
     }
-    
+
     setSubmittingRole(true);
     try {
       const details = {
@@ -345,7 +345,7 @@ export default function Profile() {
         supportEmail: sellerForm.supportEmail,
         openingHours: `${sellerForm.openingTime} - ${sellerForm.closingTime}`,
       };
-      
+
       if (editingRequestId) {
         await userAPI.updateRoleRequest(editingRequestId, details);
         toast.success("Your seller request was updated successfully!");
@@ -371,10 +371,10 @@ export default function Profile() {
     const isVnRequired = !isBicycle;
     const isDlRequired = !isBicycle && !isElectricBike;
 
-    if (!deliveryForm.name || !deliveryForm.address || !deliveryForm.city || !deliveryForm.state || 
-        (isVnRequired && !deliveryForm.vehicleNumber) || 
-        (isDlRequired && !deliveryForm.drivingLicenseNumber) || 
-        !deliveryForm.panNumber || !aadharClean) {
+    if (!deliveryForm.name || !deliveryForm.address || !deliveryForm.city || !deliveryForm.state ||
+      (isVnRequired && !deliveryForm.vehicleNumber) ||
+      (isDlRequired && !deliveryForm.drivingLicenseNumber) ||
+      !deliveryForm.panNumber || !aadharClean) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -410,7 +410,7 @@ export default function Profile() {
       toast.error("Aadhaar Number must be exactly 12 digits.");
       return;
     }
-    
+
     setSubmittingRole(true);
     try {
       const details = {
@@ -426,7 +426,7 @@ export default function Profile() {
         panNumber: deliveryForm.panNumber,
         aadharNumber: aadharClean,
       };
-      
+
       if (editingRequestId) {
         await userAPI.updateRoleRequest(editingRequestId, details);
         toast.success("Your delivery partner request was updated successfully!");
@@ -584,7 +584,7 @@ export default function Profile() {
       (typeof userProfile.profileImage === "string"
         ? userProfile.profileImage.trim() !== ""
         : typeof userProfile.profileImage?.url === "string" &&
-          userProfile.profileImage.url.trim() !== "") &&
+        userProfile.profileImage.url.trim() !== "") &&
       userProfile.profileImage !== "null" &&
       userProfile.profileImage !== "undefined"
     );
@@ -760,10 +760,10 @@ export default function Profile() {
         const { signOut } = await import("firebase/auth");
         // Firebase Auth is lazy-initialized now; only attempt sign out if it was actually used
         if (firebaseAuth) {
-           const currentUser = firebaseAuth.currentUser;
-           if (currentUser) {
-             await signOut(firebaseAuth);
-           }
+          const currentUser = firebaseAuth.currentUser;
+          if (currentUser) {
+            await signOut(firebaseAuth);
+          }
         }
       } catch (firebaseError) {
         // Continue even if Firebase logout fails
@@ -782,6 +782,13 @@ export default function Profile() {
       localStorage.removeItem("user_user");
       localStorage.removeItem("user");
       localStorage.removeItem("cart");
+      sessionStorage.removeItem("userAuthData");
+      sessionStorage.removeItem("userLoginStep");
+      sessionStorage.removeItem("userLoginType");
+      sessionStorage.removeItem("userPhoneNumber");
+      sessionStorage.removeItem("userEmailAddress");
+      sessionStorage.removeItem("userOtpSent");
+
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
 
       // Dispatch auth change event to notify other components
@@ -802,6 +809,12 @@ export default function Profile() {
       localStorage.removeItem("user_user");
       localStorage.removeItem("user");
       localStorage.removeItem("cart");
+      sessionStorage.removeItem("userAuthData");
+      sessionStorage.removeItem("userLoginStep");
+      sessionStorage.removeItem("userLoginType");
+      sessionStorage.removeItem("userPhoneNumber");
+      sessionStorage.removeItem("userEmailAddress");
+      sessionStorage.removeItem("userOtpSent");
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
       window.dispatchEvent(new Event("userAuthChanged"));
 
@@ -819,7 +832,7 @@ export default function Profile() {
     try {
       // Call soft delete API on backend
       await userAPI.deleteAccount();
-      
+
       // Cleanup locally
       clearModuleAuth("user");
       localStorage.removeItem("accessToken");
@@ -827,6 +840,13 @@ export default function Profile() {
       localStorage.removeItem("user_user");
       localStorage.removeItem("user");
       localStorage.removeItem("cart");
+      sessionStorage.removeItem("userAuthData");
+      sessionStorage.removeItem("userLoginStep");
+      sessionStorage.removeItem("userLoginType");
+      sessionStorage.removeItem("userPhoneNumber");
+      sessionStorage.removeItem("userEmailAddress");
+      sessionStorage.removeItem("userOtpSent");
+
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
       window.dispatchEvent(new Event("userAuthChanged"));
 
@@ -937,8 +957,8 @@ export default function Profile() {
                   <div className="flex items-center gap-2">
                     <motion.span
                       className={`text-xs font-medium px-2 py-1 rounded ${isComplete
-                          ? "bg-primary-orange/10 text-primary-orange border border-primary-orange/30"
-                          : "bg-primary-orange/5 text-primary-orange"
+                        ? "bg-primary-orange/10 text-primary-orange border border-primary-orange/30"
+                        : "bg-primary-orange/5 text-primary-orange"
                         }`}
                       whileHover={{ scale: 1.1 }}
                       transition={{ duration: 0.2 }}>
@@ -1045,46 +1065,46 @@ export default function Profile() {
             <motion.div
               whileHover={{ x: 4, scale: 1.01 }}
               transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-            <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <Tag className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                    </motion.div>
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      Refer & Earn
-                    </span>
+              <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <motion.div
+                        className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
+                        whileHover={{ rotate: 15, scale: 1.1 }}
+                        transition={{ duration: 0.3 }}>
+                        <Tag className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                      </motion.div>
+                      <span className="text-base font-medium text-gray-900 dark:text-white">
+                        Refer & Earn
+                      </span>
+                    </div>
+                    {referralReward > 0 && (
+                      <span className="text-xs font-semibold px-2 py-1 rounded bg-primary-orange/10 text-primary-orange">
+                        Earn {"\u20B9"}{referralReward}
+                      </span>
+                    )}
                   </div>
-                  {referralReward > 0 && (
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-primary-orange/10 text-primary-orange">
-                      Earn {"\u20B9"}{referralReward}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Invite a friend. Reward is added to your wallet when they
-                    sign up.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleShareReferral();
-                    }}
-                    className="inline-flex items-center gap-1 text-xs text-[#FE5502] font-medium ml-2 px-2 py-1 rounded-md"
-                    disabled={!referralLink}>
-                    <Share2 className="h-3.5 w-3.5" />
-                    Refer
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Invite a friend. Reward is added to your wallet when they
+                      sign up.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleShareReferral();
+                      }}
+                      className="inline-flex items-center gap-1 text-xs text-[#FE5502] font-medium ml-2 px-2 py-1 rounded-md"
+                      disabled={!referralLink}>
+                      <Share2 className="h-3.5 w-3.5" />
+                      Refer
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           </Link>
 
@@ -1633,14 +1653,14 @@ export default function Profile() {
                 setVegModeOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${vegMode
-                  ? "border-green-600 bg-green-50"
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                ? "border-green-600 bg-green-50"
+                : "border-gray-200 bg-white hover:border-gray-300"
                 }`}>
               <div className="flex items-center gap-3">
                 <div
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${vegMode
-                      ? "border-green-600 bg-green-600"
-                      : "border-gray-300"
+                    ? "border-green-600 bg-green-600"
+                    : "border-gray-300"
                     }`}>
                   {vegMode && <Check className="h-3 w-3 text-white" />}
                 </div>
@@ -1663,8 +1683,8 @@ export default function Profile() {
                 setVegModeOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${!vegMode
-                  ? "border-red-600 bg-red-50"
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                ? "border-red-600 bg-red-50"
+                : "border-gray-200 bg-white hover:border-gray-300"
                 }`}>
               <div className="flex items-center gap-3">
                 <div
@@ -1708,16 +1728,13 @@ export default function Profile() {
                     {selectedStatusRequest.role === "DELIVERY_BOY" && "Delivery Partner"}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                    selectedStatusRequest.status === "PENDING" ? "bg-amber-100 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30" : ""
-                  } ${
-                    selectedStatusRequest.status === "APPROVED" ? "bg-emerald-100 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30" : ""
-                  } ${
-                    selectedStatusRequest.status === "REJECTED" ? "bg-rose-100 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/30" : ""
-                  }`}>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${selectedStatusRequest.status === "PENDING" ? "bg-amber-100 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30" : ""
+                    } ${selectedStatusRequest.status === "APPROVED" ? "bg-emerald-100 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30" : ""
+                    } ${selectedStatusRequest.status === "REJECTED" ? "bg-rose-100 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/30" : ""
+                    }`}>
                     {selectedStatusRequest.status === "PENDING" && "Pending"}
                     {selectedStatusRequest.status === "APPROVED" && "Approved"}
                     {selectedStatusRequest.status === "REJECTED" && "Rejected"}
@@ -1751,7 +1768,7 @@ export default function Profile() {
                   Edit Request
                 </Button>
               )}
-              
+
               {["PENDING", "REJECTED"].includes(selectedStatusRequest?.status) && (
                 <Button
                   onClick={() => handleDeleteRequest(selectedStatusRequest)}
@@ -1864,13 +1881,13 @@ export default function Profile() {
                 setAppearanceOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${appearance === "light"
-                  ? "border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
-                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                ? "border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
+                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}>
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${appearance === "light"
-                    ? "border-blue-600 bg-blue-600 dark:border-blue-500 dark:bg-blue-500"
-                    : "border-gray-300 dark:border-gray-600"
+                  ? "border-blue-600 bg-blue-600 dark:border-blue-500 dark:bg-blue-500"
+                  : "border-gray-300 dark:border-gray-600"
                   }`}>
                 {appearance === "light" && (
                   <Check className="h-3 w-3 text-white" />
@@ -1892,13 +1909,13 @@ export default function Profile() {
                 setAppearanceOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${appearance === "dark"
-                  ? "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                ? "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}>
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${appearance === "dark"
-                    ? "border-blue-600 bg-blue-600 dark:border-blue-500 dark:bg-blue-500"
-                    : "border-gray-300 dark:border-gray-600"
+                  ? "border-blue-600 bg-blue-600 dark:border-blue-500 dark:bg-blue-500"
+                  : "border-gray-300 dark:border-gray-600"
                   }`}>
                 {appearance === "dark" && (
                   <Check className="h-3 w-3 text-white" />
@@ -1933,12 +1950,12 @@ export default function Profile() {
           <form onSubmit={handleBecomeRestaurantSubmit} className="p-5 space-y-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Restaurant Name <span className="text-red-500">*</span></label>
-              <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Restaurant name" value={restaurantForm.restaurantName} onChange={e => setRestaurantForm({...restaurantForm, restaurantName: e.target.value})} />
+              <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Restaurant name" value={restaurantForm.restaurantName} onChange={e => setRestaurantForm({ ...restaurantForm, restaurantName: e.target.value })} />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Type <span className="text-red-500">*</span></label>
-              <select className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={restaurantForm.pureVegRestaurant} onChange={e => setRestaurantForm({...restaurantForm, pureVegRestaurant: e.target.value})}>
+              <select className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={restaurantForm.pureVegRestaurant} onChange={e => setRestaurantForm({ ...restaurantForm, pureVegRestaurant: e.target.value })}>
                 <option value="false">Non-Vegetarian & Vegetarian</option>
                 <option value="true">Pure Vegetarian</option>
               </select>
@@ -1947,28 +1964,28 @@ export default function Profile() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Owner Name <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Owner name" value={restaurantForm.ownerName} onChange={e => setRestaurantForm({...restaurantForm, ownerName: e.target.value.replace(/[^a-zA-Z\s]/g, "")})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Owner name" value={restaurantForm.ownerName} onChange={e => setRestaurantForm({ ...restaurantForm, ownerName: e.target.value.replace(/[^a-zA-Z\s]/g, "") })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Owner Email <span className="text-red-500">*</span></label>
-                <input required type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="owner@email.com" value={restaurantForm.ownerEmail} onChange={e => setRestaurantForm({...restaurantForm, ownerEmail: e.target.value})} />
+                <input required type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="owner@email.com" value={restaurantForm.ownerEmail} onChange={e => setRestaurantForm({ ...restaurantForm, ownerEmail: e.target.value })} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Owner Phone <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Owner phone" value={restaurantForm.ownerPhone} onChange={e => setRestaurantForm({...restaurantForm, ownerPhone: e.target.value.replace(/\D/g, "").slice(0, 10)})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Owner phone" value={restaurantForm.ownerPhone} onChange={e => setRestaurantForm({ ...restaurantForm, ownerPhone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Primary Contact <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Primary contact" value={restaurantForm.primaryContactNumber} onChange={e => setRestaurantForm({...restaurantForm, primaryContactNumber: e.target.value.replace(/\D/g, "").slice(0, 10)})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Primary contact" value={restaurantForm.primaryContactNumber} onChange={e => setRestaurantForm({ ...restaurantForm, primaryContactNumber: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Service Zone <span className="text-red-500">*</span></label>
-              <select required className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={restaurantForm.zoneId} onChange={e => setRestaurantForm({...restaurantForm, zoneId: e.target.value})} disabled={loadingZones}>
+              <select required className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={restaurantForm.zoneId} onChange={e => setRestaurantForm({ ...restaurantForm, zoneId: e.target.value })} disabled={loadingZones}>
                 <option value="">{loadingZones ? "Loading zones..." : "Select Service Zone"}</option>
                 {zones.map(z => (
                   <option key={z._id || z.id} value={z._id || z.id}>
@@ -1980,40 +1997,40 @@ export default function Profile() {
 
             <div className="border-t border-dashed border-gray-200 dark:border-zinc-800 pt-3">
               <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider block mb-2">Location Details</span>
-              
+
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">Address Line 1 <span className="text-red-500">*</span></label>
-                  <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Flat, House no., Building, Company" value={restaurantForm.addressLine1} onChange={e => setRestaurantForm({...restaurantForm, addressLine1: e.target.value})} />
+                  <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Flat, House no., Building, Company" value={restaurantForm.addressLine1} onChange={e => setRestaurantForm({ ...restaurantForm, addressLine1: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">Address Line 2 (Optional)</label>
-                  <input type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Area, Street, Sector, Village" value={restaurantForm.addressLine2} onChange={e => setRestaurantForm({...restaurantForm, addressLine2: e.target.value})} />
+                  <input type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Area, Street, Sector, Village" value={restaurantForm.addressLine2} onChange={e => setRestaurantForm({ ...restaurantForm, addressLine2: e.target.value })} />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Area / Locality</label>
-                    <input type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Area" value={restaurantForm.area} onChange={e => setRestaurantForm({...restaurantForm, area: e.target.value})} />
+                    <input type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Area" value={restaurantForm.area} onChange={e => setRestaurantForm({ ...restaurantForm, area: e.target.value })} />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Landmark</label>
-                    <input type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. near hospital" value={restaurantForm.landmark} onChange={e => setRestaurantForm({...restaurantForm, landmark: e.target.value})} />
+                    <input type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="E.g. near hospital" value={restaurantForm.landmark} onChange={e => setRestaurantForm({ ...restaurantForm, landmark: e.target.value })} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">City <span className="text-red-500">*</span></label>
-                    <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="City" value={restaurantForm.city} onChange={e => setRestaurantForm({...restaurantForm, city: e.target.value.replace(/[^a-zA-Z\s]/g, "")})} />
+                    <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="City" value={restaurantForm.city} onChange={e => setRestaurantForm({ ...restaurantForm, city: e.target.value.replace(/[^a-zA-Z\s]/g, "") })} />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">State <span className="text-red-500">*</span></label>
-                    <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="State" value={restaurantForm.state} onChange={e => setRestaurantForm({...restaurantForm, state: e.target.value.replace(/[^a-zA-Z\s]/g, "")})} />
+                    <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="State" value={restaurantForm.state} onChange={e => setRestaurantForm({ ...restaurantForm, state: e.target.value.replace(/[^a-zA-Z\s]/g, "") })} />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Pincode <span className="text-red-500">*</span></label>
-                    <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="6 digits" value={restaurantForm.pincode} onChange={e => setRestaurantForm({...restaurantForm, pincode: e.target.value.replace(/\D/g, "").slice(0, 6)})} />
+                    <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="6 digits" value={restaurantForm.pincode} onChange={e => setRestaurantForm({ ...restaurantForm, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })} />
                   </div>
                 </div>
               </div>
@@ -2047,29 +2064,29 @@ export default function Profile() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Seller Name <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Your name" value={sellerForm.name} onChange={e => setSellerForm({...sellerForm, name: e.target.value.replace(/[^a-zA-Z\s]/g, "")})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Your name" value={sellerForm.name} onChange={e => setSellerForm({ ...sellerForm, name: e.target.value.replace(/[^a-zA-Z\s]/g, "") })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Shop Name <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Shop name" value={sellerForm.shopName} onChange={e => setSellerForm({...sellerForm, shopName: e.target.value.replace(/[^a-zA-Z\s]/g, "")})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Shop name" value={sellerForm.shopName} onChange={e => setSellerForm({ ...sellerForm, shopName: e.target.value.replace(/[^a-zA-Z\s]/g, "") })} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Email <span className="text-red-500">*</span></label>
-                <input required type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="seller@email.com" value={sellerForm.email} onChange={e => setSellerForm({...sellerForm, email: e.target.value})} />
+                <input required type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="seller@email.com" value={sellerForm.email} onChange={e => setSellerForm({ ...sellerForm, email: e.target.value })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Primary Phone <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Primary phone" value={sellerForm.phone} onChange={e => setSellerForm({...sellerForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10)})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Primary phone" value={sellerForm.phone} onChange={e => setSellerForm({ ...sellerForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Business Type <span className="text-red-500">*</span></label>
-                <select className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={sellerForm.businessType} onChange={e => setSellerForm({...sellerForm, businessType: e.target.value})}>
+                <select className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={sellerForm.businessType} onChange={e => setSellerForm({ ...sellerForm, businessType: e.target.value })}>
                   <option value="Grocery">Grocery</option>
                   <option value="Bakery">Bakery</option>
                   <option value="Pharmacy">Pharmacy</option>
@@ -2080,14 +2097,14 @@ export default function Profile() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Alternate Phone <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Alternate phone" value={sellerForm.alternatePhone} onChange={e => setSellerForm({...sellerForm, alternatePhone: e.target.value.replace(/\D/g, "").slice(0, 10)})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Alternate phone" value={sellerForm.alternatePhone} onChange={e => setSellerForm({ ...sellerForm, alternatePhone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Service Zone <span className="text-red-500">*</span></label>
-                <select required className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={sellerForm.zoneId} onChange={e => setSellerForm({...sellerForm, zoneId: e.target.value})} disabled={loadingZones}>
+                <select required className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={sellerForm.zoneId} onChange={e => setSellerForm({ ...sellerForm, zoneId: e.target.value })} disabled={loadingZones}>
                   <option value="">{loadingZones ? "Loading zones..." : "Select Service Zone"}</option>
                   {zones.map(z => (
                     <option key={z._id || z.id} value={z._id || z.id}>
@@ -2098,24 +2115,24 @@ export default function Profile() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Support Email</label>
-                <input type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="support@email.com" value={sellerForm.supportEmail} onChange={e => setSellerForm({...sellerForm, supportEmail: e.target.value})} />
+                <input type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="support@email.com" value={sellerForm.supportEmail} onChange={e => setSellerForm({ ...sellerForm, supportEmail: e.target.value })} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Opening Time <span className="text-red-500">*</span></label>
-                <input required type="time" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={sellerForm.openingTime} onChange={e => setSellerForm({...sellerForm, openingTime: e.target.value})} />
+                <input required type="time" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={sellerForm.openingTime} onChange={e => setSellerForm({ ...sellerForm, openingTime: e.target.value })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Closing Time <span className="text-red-500">*</span></label>
-                <input required type="time" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={sellerForm.closingTime} onChange={e => setSellerForm({...sellerForm, closingTime: e.target.value})} />
+                <input required type="time" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={sellerForm.closingTime} onChange={e => setSellerForm({ ...sellerForm, closingTime: e.target.value })} />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Shop Address <span className="text-red-500">*</span></label>
-              <textarea required rows={2} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Complete shop address" value={sellerForm.address} onChange={e => setSellerForm({...sellerForm, address: e.target.value})} />
+              <textarea required rows={2} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Complete shop address" value={sellerForm.address} onChange={e => setSellerForm({ ...sellerForm, address: e.target.value })} />
             </div>
 
             <div className="flex items-center gap-3 pt-3">
@@ -2146,34 +2163,34 @@ export default function Profile() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Full Name <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Your full name" value={deliveryForm.name} onChange={e => setDeliveryForm({...deliveryForm, name: e.target.value.replace(/[^a-zA-Z\s]/g, "")})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Your full name" value={deliveryForm.name} onChange={e => setDeliveryForm({ ...deliveryForm, name: e.target.value.replace(/[^a-zA-Z\s]/g, "") })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Email <span className="text-red-500">*</span></label>
-                <input required type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="delivery@email.com" value={deliveryForm.email} onChange={e => setDeliveryForm({...deliveryForm, email: e.target.value})} />
+                <input required type="email" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="delivery@email.com" value={deliveryForm.email} onChange={e => setDeliveryForm({ ...deliveryForm, email: e.target.value })} />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Address <span className="text-red-500">*</span></label>
-              <textarea required rows={2} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Complete home address" value={deliveryForm.address} onChange={e => setDeliveryForm({...deliveryForm, address: e.target.value})} />
+              <textarea required rows={2} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="Complete home address" value={deliveryForm.address} onChange={e => setDeliveryForm({ ...deliveryForm, address: e.target.value })} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">City <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="City" value={deliveryForm.city} onChange={e => setDeliveryForm({...deliveryForm, city: e.target.value.replace(/[^a-zA-Z\s]/g, "")})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="City" value={deliveryForm.city} onChange={e => setDeliveryForm({ ...deliveryForm, city: e.target.value.replace(/[^a-zA-Z\s]/g, "") })} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">State <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="State" value={deliveryForm.state} onChange={e => setDeliveryForm({...deliveryForm, state: e.target.value.replace(/[^a-zA-Z\s]/g, "")})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="State" value={deliveryForm.state} onChange={e => setDeliveryForm({ ...deliveryForm, state: e.target.value.replace(/[^a-zA-Z\s]/g, "") })} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Vehicle Type <span className="text-red-500">*</span></label>
-                <select className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={deliveryForm.vehicleType} onChange={e => setDeliveryForm({...deliveryForm, vehicleType: e.target.value})}>
+                <select className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" value={deliveryForm.vehicleType} onChange={e => setDeliveryForm({ ...deliveryForm, vehicleType: e.target.value })}>
                   <option value="bike">Bike</option>
                   <option value="scooter">Scooter</option>
                   <option value="bicycle">Bicycle</option>
@@ -2189,7 +2206,7 @@ export default function Profile() {
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all"
                   placeholder="E.g. Splendor, Activa"
                   value={deliveryForm.vehicleName}
-                  onChange={e => setDeliveryForm({...deliveryForm, vehicleName: e.target.value.slice(0, 30)})}
+                  onChange={e => setDeliveryForm({ ...deliveryForm, vehicleName: e.target.value.slice(0, 30) })}
                 />
               </div>
             </div>
@@ -2202,21 +2219,19 @@ export default function Profile() {
                 <input
                   required={deliveryForm.vehicleType !== "bicycle"}
                   type="text"
-                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${
-                    deliveryForm.vehicleNumber && !/^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/.test(deliveryForm.vehicleNumber)
-                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                      : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${deliveryForm.vehicleNumber && !/^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/.test(deliveryForm.vehicleNumber)
+                    ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                    : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
+                    }`}
                   placeholder="E.g. MH12AB1234"
                   value={deliveryForm.vehicleNumber}
-                  onChange={e => setDeliveryForm({...deliveryForm, vehicleNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)})}
+                  onChange={e => setDeliveryForm({ ...deliveryForm, vehicleNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) })}
                 />
                 {deliveryForm.vehicleNumber && (
-                  <p className={`text-[10px] mt-1 font-medium ${
-                    /^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/.test(deliveryForm.vehicleNumber)
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-500"
-                  }`}>
+                  <p className={`text-[10px] mt-1 font-medium ${/^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/.test(deliveryForm.vehicleNumber)
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-500"
+                    }`}>
                     {/^(?:[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/.test(deliveryForm.vehicleNumber)
                       ? "✓ Valid vehicle number format"
                       : "✗ Format: MH12AB1234 / 21BH1234AA"}
@@ -2230,21 +2245,19 @@ export default function Profile() {
                 <input
                   required={deliveryForm.vehicleType !== "bicycle" && deliveryForm.vehicleType !== "electric_bike"}
                   type="text"
-                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${
-                    deliveryForm.drivingLicenseNumber && !/^[A-Z]{2}[0-9]{13}$/.test(deliveryForm.drivingLicenseNumber)
-                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                      : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${deliveryForm.drivingLicenseNumber && !/^[A-Z]{2}[0-9]{13}$/.test(deliveryForm.drivingLicenseNumber)
+                    ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                    : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
+                    }`}
                   placeholder="E.g. MH1220110012345"
                   value={deliveryForm.drivingLicenseNumber}
-                  onChange={e => setDeliveryForm({...deliveryForm, drivingLicenseNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15)})}
+                  onChange={e => setDeliveryForm({ ...deliveryForm, drivingLicenseNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15) })}
                 />
                 {deliveryForm.drivingLicenseNumber && (
-                  <p className={`text-[10px] mt-1 font-medium ${
-                    /^[A-Z]{2}[0-9]{13}$/.test(deliveryForm.drivingLicenseNumber)
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-500"
-                  }`}>
+                  <p className={`text-[10px] mt-1 font-medium ${/^[A-Z]{2}[0-9]{13}$/.test(deliveryForm.drivingLicenseNumber)
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-500"
+                    }`}>
                     {/^[A-Z]{2}[0-9]{13}$/.test(deliveryForm.drivingLicenseNumber)
                       ? "✓ Valid license format"
                       : "✗ Must be State Code + 13 digits"}
@@ -2261,21 +2274,19 @@ export default function Profile() {
                 <input
                   required
                   type="text"
-                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${
-                    deliveryForm.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(deliveryForm.panNumber)
-                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                      : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 transition-all ${deliveryForm.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(deliveryForm.panNumber)
+                    ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                    : "border-gray-200 dark:border-gray-800 focus:ring-primary-orange focus:border-primary-orange"
+                    }`}
                   placeholder="ABCDE1234F"
                   value={deliveryForm.panNumber}
-                  onChange={e => setDeliveryForm({...deliveryForm, panNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)})}
+                  onChange={e => setDeliveryForm({ ...deliveryForm, panNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) })}
                 />
                 {deliveryForm.panNumber && (
-                  <p className={`text-[10px] mt-1 font-medium ${
-                    /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(deliveryForm.panNumber)
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-500"
-                  }`}>
+                  <p className={`text-[10px] mt-1 font-medium ${/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(deliveryForm.panNumber)
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-500"
+                    }`}>
                     {/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(deliveryForm.panNumber)
                       ? "✓ Valid PAN number format"
                       : "✗ Format: 5 letters + 4 digits + 1 letter"}
@@ -2284,7 +2295,7 @@ export default function Profile() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Aadhaar Number <span className="text-red-500">*</span></label>
-                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="12 digits" value={deliveryForm.aadharNumber} onChange={e => setDeliveryForm({...deliveryForm, aadharNumber: e.target.value.replace(/\D/g, "").slice(0, 12).replace(/(\d{4})(?=\d)/g, "$1 ")})} />
+                <input required type="text" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-950 dark:text-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-orange focus:border-primary-orange transition-all" placeholder="12 digits" value={deliveryForm.aadharNumber} onChange={e => setDeliveryForm({ ...deliveryForm, aadharNumber: e.target.value.replace(/\D/g, "").slice(0, 12).replace(/(\d{4})(?=\d)/g, "$1 ") })} />
               </div>
             </div>
 
