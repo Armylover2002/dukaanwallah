@@ -93,23 +93,23 @@ export const healDeliveryPartnerWallet = async (partnerId) => {
   }
 
   // 2. In local development, auto-reject pending withdrawals to allow continuous testing of withdrawal flow
-  if (process.env.NODE_ENV === 'development') {
-    try {
-      const pendingWithdrawalsCount = await FoodDeliveryWithdrawal.countDocuments({
-        deliveryPartnerId: partnerId,
-        status: 'pending'
-      });
-      if (pendingWithdrawalsCount > 0) {
-        await FoodDeliveryWithdrawal.updateMany(
-          { deliveryPartnerId: partnerId, status: 'pending' },
-          { $set: { status: 'rejected', rejectionReason: 'Auto-rejected in development environment for testing' } }
-        );
-        logger.info(`Auto-rejected ${pendingWithdrawalsCount} pending withdrawals for partner ${partnerId} in development`);
-      }
-    } catch (err) {
-      logger.error(`Auto-rejecting pending withdrawals failed: ${err.message}`);
-    }
-  }
+  // if (process.env.NODE_ENV === 'development') {
+  //   try {
+  //     const pendingWithdrawalsCount = await FoodDeliveryWithdrawal.countDocuments({
+  //       deliveryPartnerId: partnerId,
+  //       status: 'pending'
+  //     });
+  //     if (pendingWithdrawalsCount > 0) {
+  //       await FoodDeliveryWithdrawal.updateMany(
+  //         { deliveryPartnerId: partnerId, status: 'pending' },
+  //         { $set: { status: 'rejected', rejectionReason: 'Auto-rejected in development environment for testing' } }
+  //       );
+  //       logger.info(`Auto-rejected ${pendingWithdrawalsCount} pending withdrawals for partner ${partnerId} in development`);
+  //     }
+  //   } catch (err) {
+  //     logger.error(`Auto-rejecting pending withdrawals failed: ${err.message}`);
+  //   }
+  // }
 };
 
 /**
@@ -140,6 +140,7 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
     cashCollectedAgg,
     totalDepositedCashAgg,
     pendingWithdrawalsAgg,
+    approvedWithdrawalsAgg,
     transactionsResult,
     totalDeliveries,
   ] = await Promise.all([
@@ -189,6 +190,12 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
       { $match: { deliveryPartnerId: partnerId, status: "pending" } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
+
+    FoodDeliveryWithdrawal.aggregate([
+      { $match: { deliveryPartnerId: partnerId, status: "approved" } }, // Check your DB for exact status string (e.g. "completed" or "approved")
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+
     getTransactionsByEntity("deliveryBoy", partnerId, { page: 1, limit: 50 }),
     FoodOrder.countDocuments({
       "dispatch.deliveryPartnerId": partnerId,
@@ -206,7 +213,7 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
   const aggregatedBonus = Number(totalBonusAgg?.[0]?.total) || 0;
   const effectiveBonus = Math.max(recordedBonus, aggregatedBonus);
   const missingBonusBalance = Math.max(0, effectiveBonus - recordedBonus);
-
+  const totalWithdrawnAmount = Number(approvedWithdrawalsAgg?.[0]?.total) || 0;
   const grossCashCollected = Number(cashCollectedAgg?.[0]?.cashCollected) || 0;
   const totalDepositedCash =
     Number(totalDepositedCashAgg?.[0]?.depositedCash) || 0;
@@ -249,7 +256,7 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
     totalBalance: (wallet.totalEarnings || 0) + effectiveBonus,
     pocketBalance,
     cashInHand,
-    totalWithdrawn: wallet.totalSettled || 0,
+    totalWithdrawn: totalWithdrawnAmount,
     pendingWithdrawals,
     totalEarned: wallet.totalEarnings || 0,
     totalBonus: effectiveBonus,
@@ -388,26 +395,26 @@ export const verifyDeliveryCashDepositPayment = async (
 
   const deposit = existing
     ? await FoodDeliveryCashDeposit.findByIdAndUpdate(
-        existing._id,
-        {
-          $set: {
-            amount,
-            paymentMethod: isRazorpayConfigured() ? "razorpay" : "cash",
-            status: "Completed",
-            razorpayOrderId: orderId,
-            razorpayPaymentId: paymentId,
-          },
+      existing._id,
+      {
+        $set: {
+          amount,
+          paymentMethod: isRazorpayConfigured() ? "razorpay" : "cash",
+          status: "Completed",
+          razorpayOrderId: orderId,
+          razorpayPaymentId: paymentId,
         },
-        { new: true },
-      )
+      },
+      { new: true },
+    )
     : await FoodDeliveryCashDeposit.create({
-        deliveryPartnerId,
-        amount,
-        paymentMethod: isRazorpayConfigured() ? "razorpay" : "cash",
-        status: "Completed",
-        razorpayOrderId: orderId,
-        razorpayPaymentId: paymentId,
-      });
+      deliveryPartnerId,
+      amount,
+      paymentMethod: isRazorpayConfigured() ? "razorpay" : "cash",
+      status: "Completed",
+      razorpayOrderId: orderId,
+      razorpayPaymentId: paymentId,
+    });
 
   return {
     deposit,

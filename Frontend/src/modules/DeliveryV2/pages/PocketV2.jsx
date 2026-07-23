@@ -339,7 +339,7 @@ export const PocketV2 = () => {
                   </div>
                </div>
 
-               <div className="grid grid-cols-2 gap-4">
+               {/* <div className="grid grid-cols-2 gap-4">
                   <div onClick={() => navigate('/food/delivery/pocket/deductions')} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 active:bg-gray-50 flex flex-col justify-between">
                      <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 mb-4 border border-red-100">
                         <FileText className="w-5 h-5" />
@@ -353,7 +353,7 @@ export const PocketV2 = () => {
                      </div>
                      <p className="text-sm font-bold text-gray-800 leading-tight">Pocket statement</p>
                   </div>
-               </div>
+               </div> */}
             </div>
          </div>
 

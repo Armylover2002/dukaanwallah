@@ -12,6 +12,7 @@ import { ValidationError } from '../../../../core/auth/errors.js';
 import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service.js';
 import { ensureDailyPassEligibility, activateDailyPass } from '../../subscriptions/services/wallet.service.js';
 import { QuickReturnOrder } from '../../../quick-commerce/returns/models/quickReturnOrder.model.js';
+import { FoodDeliveryWithdrawal } from '../models/foodDeliveryWithdrawal.model.js';
 
 export const registerDeliveryPartner = async (payload, files) => {
     const {
@@ -609,7 +610,15 @@ export const getDeliveryPartnerWallet = async (deliveryPartnerId) => {
         description: t.reference ? `Bonus - ${t.reference}` : 'Bonus'
     }));
 
-    const totalWithdrawn = 0;
+    // const totalWithdrawn = 0;
+    // Calculate total withdrawn amount
+    const withdrawalResult = await FoodDeliveryWithdrawal.aggregate([
+        { $match: { deliveryPartnerId: new mongoose.Types.ObjectId(deliveryPartnerId), status: 'approved' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalWithdrawn = withdrawalResult.length > 0 ? withdrawalResult[0].total : 0;
+
+
     const totalBalance = totalEarned + totalBonus;
     const availableCashLimit = Math.max(0, totalCashLimit - cashInHand);
 
@@ -686,14 +695,14 @@ export const getDeliveryPartnerEarnings = async (deliveryPartnerId, query = {}) 
             {
                 $group: {
                     _id: null,
-                    totalEarnings: { 
-                        $sum: { 
+                    totalEarnings: {
+                        $sum: {
                             $cond: [
                                 { $gt: [{ $ifNull: ['$riderEarning', 0] }, 0] },
                                 '$riderEarning',
                                 { $ifNull: ['$pricing.deliveryFee', 0] }
                             ]
-                        } 
+                        }
                     }
                 }
             }
